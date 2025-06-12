@@ -37,7 +37,8 @@ export default {
         'dynamic-accent': 'var(--dynamic-accent)', // For using with Tailwind utilities
       },
       fontFamily: {
-        sans: ['Noto Sans', 'Noto Color Emoji', 'sans-serif'],
+        sans: ['Noto Sans', 'sans-serif'],
+        emoji: ['Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Twemoji Mozilla'],
       },
     },
   },

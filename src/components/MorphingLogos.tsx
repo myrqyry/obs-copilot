@@ -1,151 +1,192 @@
-import React, { useRef, useLayoutEffect } from 'react';
+import React, { useLayoutEffect, useRef, useEffect } from 'react';
 import { gsap } from 'gsap';
 import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
 
-// Normalized paths with consistent center points and bounding boxes
+// It's still a best practice to move this to your main src/index.tsx file
+gsap.registerPlugin(MorphSVGPlugin);
+
+// The pre-normalized path data you provided
 const paths = {
-    obs: "M24,4C12.971,4,4,12.971,4,24s8.971,20,20,20s20-8.971,20-20S35.029,4,24,4z M40.317,32.15 c1.102-3.234-0.114-6.983-3.102-8.896c-3.499-2.24-8.151-1.218-10.391,2.281l0,0c-1.612,2.518-1.527,5.63-0.053,8.013 c-0.877,1.353-2.06,2.537-3.539,3.418c-4.696,2.8-10.744,1.697-14.109-2.417c-0.162-0.228-0.319-0.458-0.47-0.693 c2.278,2.846,6.438,3.663,9.71,1.817c3.618-2.042,4.897-6.63,2.855-10.249l0,0c-1.407-2.493-4.023-3.875-6.698-3.825 c-0.864-1.558-1.359-3.35-1.359-5.258c0-4.767,3.076-8.799,7.346-10.261c0.313-0.061,0.633-0.101,0.951-0.146 c-2.888,1.05-4.955,3.812-4.955,7.063c0,4.155,3.368,7.523,7.523,7.523c2.764,0,5.173-1.495,6.481-3.717 c1.91,0.013,3.841,0.517,5.589,1.587c4.397,2.69,6.237,8.082,4.687,12.794C40.641,31.516,40.477,31.832,40.317,32.15z",
-    gemini: "M46.117,23.081l-0.995-0.04H45.12C34.243,22.613,25.387,13.757,24.959,2.88l-0.04-0.996C24.9,1.39,24.494,1,24,1s-0.9,0.39-0.919,0.883l-0.04,0.996c-0.429,10.877-9.285,19.733-20.163,20.162l-0.995,0.04C1.39,23.1,1,23.506,1,24s0.39,0.9,0.884,0.919l0.995,0.039c10.877,0.43,19.733,9.286,20.162,20.163l0.04,0.996C23.1,46.61,23.506,47,24,47s0.9-0.39,0.919-0.883l0.04-0.996c0.429-10.877,9.285-19.733,20.162-20.163l0.995-0.039C46.61,24.9,47,24.494,47,24S46.61,23.1,46.117,23.081z"
+    gemini: "M22.0728 0H25.925L26.0394 1.88084C26.3598 7.10156 28.5784 12.0249 32.2773 15.7235C35.9762 19.422 40.9 21.6404 46.1212 21.9608L48 22.0752V25.9248L46.1212 26.0392C40.9 26.3596 35.9762 28.578 32.2773 32.2765C28.5784 35.9751 26.3598 40.8984 26.0394 46.1192L25.925 48H22.075L21.9606 46.1192C21.6402 40.8984 19.4216 35.9751 15.7227 32.2765C12.0238 28.578 7.10001 26.3596 1.87882 26.0392L0 25.927V22.0752L1.87882 21.9608C7.10001 21.6404 12.0238 19.422 15.7227 15.7235C19.4216 12.0249 21.6402 7.10156 21.9606 1.88084L22.0728 0Z M24 10.4711C21.4154 16.5647 16.564 21.4156 10.4699 24C16.564 26.5844 21.4154 31.4353 24 37.5289C26.5846 31.4353 31.436 26.5844 37.5301 24C31.436 21.4156 26.5846 16.5647 24 10.4711Z",
+    obs: "M48 24C48 37.2545 37.2545 48 24 48C10.7455 48 0 37.2545 0 24C0 10.7455 10.7455 0 24 0C37.2545 0 48 10.7455 48 24ZM40.4095 33.4385C41.3037 31.8735 41.641 30.0516 41.3661 28.2702C41.0912 26.4888 40.2204 24.8532 38.896 23.6306C37.5716 22.408 35.8717 21.6705 34.0741 21.5387C32.2764 21.4068 30.4872 21.8884 28.9985 22.9047C28.1274 23.5023 27.3839 24.2673 26.8113 25.155C26.2387 26.0428 25.8484 27.0356 25.6632 28.0756C25.478 29.1157 25.5016 30.1822 25.7326 31.213C25.9636 32.2439 26.3974 33.2184 27.0087 34.08C27.1539 34.2606 27.2331 34.4854 27.2331 34.7171C27.2331 34.9488 27.1539 35.1736 27.0087 35.3542C26.1537 36.3757 25.1374 37.2505 24 37.944C21.4148 39.4304 18.3674 39.897 15.4559 39.2524C12.5443 38.6078 9.97873 36.8984 8.26255 34.4596C9.31337 35.8135 10.7726 36.7926 12.4238 37.2517C14.075 37.7108 15.8302 37.6254 17.429 37.0082C19.0279 36.391 20.3852 35.2748 21.2996 33.8254C22.214 32.3759 22.6369 30.6702 22.5055 28.9615C22.4259 27.9083 22.1376 26.8814 21.6574 25.9407C21.1772 24.9999 20.5147 24.1641 19.7084 23.4819C18.9021 22.7997 17.9682 22.2846 16.9609 21.9668C15.9537 21.649 14.8933 21.5347 13.8415 21.6305C13.6155 21.6663 13.3841 21.6219 13.1873 21.5052C12.9905 21.3885 12.8407 21.2067 12.7636 20.9913C12.295 19.7219 12.0528 18.3801 12.048 17.0269C12.042 13.9938 13.1889 11.0717 15.2566 8.85257C17.3242 6.6334 20.158 5.28302 23.184 5.07491C22.0255 5.19053 20.9063 5.55864 19.9053 6.15334C18.9044 6.74804 18.0459 7.55488 17.3903 8.51708C16.7348 9.47928 16.298 10.5735 16.1109 11.7226C15.9237 12.8718 15.9906 14.048 16.307 15.1685C16.6233 16.289 17.1814 17.3266 17.9419 18.2082C18.7024 19.0898 19.6469 19.794 20.7089 20.2713C21.7709 20.7486 22.9245 20.9873 24.0887 20.9707C25.2529 20.9541 26.3993 20.6826 27.4473 20.1753C29.1248 19.3837 30.4659 18.0209 31.2305 16.3309C31.32 16.1215 31.476 15.9475 31.6745 15.8359C31.8729 15.7243 32.1026 15.6812 32.328 15.7135C33.6084 15.9726 34.8344 16.4509 35.952 17.1273C37.3157 17.9056 38.5128 18.9449 39.4749 20.1858C40.4369 21.4268 41.1451 22.845 41.559 24.3597C41.973 25.8744 42.0845 27.4557 41.8872 29.0135C41.69 30.5712 41.1878 32.0749 40.4095 33.4385Z",
 };
 
-function MorphingLogos() {
-    const svgRef = useRef<SVGSVGElement>(null);
+const MorphingLogos: React.FC = () => {
     const morphingPathRef = useRef<SVGPathElement>(null);
     const stop1Ref = useRef<SVGStopElement>(null);
     const stop2Ref = useRef<SVGStopElement>(null);
+    const colorAnimationRef = useRef<gsap.core.Tween | null>(null);
 
-    // Set initial path directly for visibility
-    React.useEffect(() => {
-        const morphingPath = morphingPathRef.current;
-        if (morphingPath) {
-            morphingPath.setAttribute('d', paths.obs);
+    // Function to get current accent colors
+    const getAccentColors = () => {
+        const accent1 = getComputedStyle(document.documentElement).getPropertyValue('--dynamic-accent').trim();
+        const accent2 = getComputedStyle(document.documentElement).getPropertyValue('--dynamic-secondary-accent').trim();
+
+        // Fallback to default colors if custom properties are not available
+        const finalAccent1 = accent1 || '#cba6f7'; // mauve
+        const finalAccent2 = accent2 || '#f2cdcd'; // flamingo
+
+        console.log('Logo colors debug:', {
+            raw1: accent1,
+            raw2: accent2,
+            final1: finalAccent1,
+            final2: finalAccent2
+        });
+
+        return { accent1: finalAccent1, accent2: finalAccent2 };
+    };
+
+    // Function to update colors
+    const updateColors = () => {
+        const stop1 = stop1Ref.current;
+        const stop2 = stop2Ref.current;
+        if (!stop1 || !stop2) return;
+
+        const { accent1, accent2 } = getAccentColors();
+
+        console.log('Updating colors to:', { accent1, accent2 });
+
+        // Kill existing color animation completely
+        if (colorAnimationRef.current) {
+            colorAnimationRef.current.kill();
+            colorAnimationRef.current = null;
         }
-    }, []);
 
-    // Animation effect (only runs if MorphSVGPlugin is loaded and GSAP is available)
+        // Force set the current colors immediately
+        gsap.set(stop1, { attr: { 'stop-color': accent1 } });
+        gsap.set(stop2, { attr: { 'stop-color': accent2 } });
+
+        // Wait a moment then restart the animation with the new color targets
+        setTimeout(() => {
+            colorAnimationRef.current = gsap.to([stop1, stop2], {
+                duration: 6,
+                ease: "power2.inOut",
+                attr: { 'stop-color': (i) => i === 0 ? accent2 : accent1 },
+                repeat: -1,
+                repeatDelay: 0,
+                yoyo: true
+            });
+        }, 50);
+    };
+
     useLayoutEffect(() => {
-        const svg = svgRef.current;
         const morphingPath = morphingPathRef.current;
         const stop1 = stop1Ref.current;
         const stop2 = stop2Ref.current;
-        if (!svg || !morphingPath || !stop1 || !stop2) return;
+        if (!morphingPath || !stop1 || !stop2) return;
 
-        // Defensive: ensure MorphSVGPlugin is registered
-        if (!gsap.utils || !gsap.to || !gsap.timeline || !gsap.set || !gsap.plugins || !MorphSVGPlugin) {
-            return;
-        }
-        gsap.registerPlugin(MorphSVGPlugin);
+        // Small delay to ensure CSS custom properties are available
+        setTimeout(() => {
+            const { accent1, accent2 } = getAccentColors();
 
-        // Initial colors
-        const getAccent = () => getComputedStyle(document.documentElement).getPropertyValue('--dynamic-accent').trim() || "#cba6f7";
-        const getAccent2 = () => getComputedStyle(document.documentElement).getPropertyValue('--dynamic-secondary-accent').trim() || "#f2cdcd";
+            // Set the initial state
+            gsap.set(morphingPath, { attr: { d: paths.gemini } });
+            gsap.set(stop1, { attr: { 'stop-color': accent1 } });
+            gsap.set(stop2, { attr: { 'stop-color': accent2 } });
 
-        gsap.set(svg, {
-            transformOrigin: "center center"
-        });
-        gsap.set(morphingPath, {
-            attr: { d: paths.obs },
-            transformOrigin: "24px 24px"
-        });
-        gsap.set(stop1, { stopColor: getAccent() });
-        gsap.set(stop2, { stopColor: getAccent2() });
+            // A single, simple .to() tween handles the looping morph perfectly
+            gsap.to(morphingPath, {
+                duration: 2.8,
+                ease: "power2.inOut",
+                morphSVG: {
+                    shape: paths.obs,
+                    origin: "24 24"
+                },
+                repeat: -1,
+                repeatDelay: 1.2,
+                yoyo: true
+            });
 
-        const masterTl = gsap.timeline({ repeat: -1, repeatDelay: 1.5 });
-        // Phase 1: Morph to Gemini
-        masterTl.to(morphingPath, {
-            morphSVG: {
-                shape: paths.gemini,
-                origin: "50% 50%",
-                shapeIndex: "auto",
-                map: "complexity"
-            },
-            duration: 3,
-            ease: "back.inOut(1.2)",
-            transformOrigin: "24px 24px"
-        }, 0);
-        masterTl.to(morphingPath, {
-            rotation: 5,
-            duration: 1.5,
-            ease: "power2.out",
-            transformOrigin: "24px 24px"
-        }, 0);
-        masterTl.to(morphingPath, {
-            rotation: 0,
-            duration: 1.5,
-            ease: "power2.in",
-            transformOrigin: "24px 24px"
-        }, 1.5);
-        masterTl.to(stop1, {
-            stopColor: getAccent2(),
-            duration: 3,
-            ease: "power1.inOut"
-        }, 0);
-        masterTl.to(stop2, {
-            stopColor: getAccent(),
-            duration: 3,
-            ease: "power1.inOut"
-        }, 0);
-        // Phase 2: Morph back to OBS
-        masterTl.to(morphingPath, {
-            morphSVG: {
-                shape: paths.obs,
-                origin: "50% 50%",
-                shapeIndex: "auto",
-                map: "complexity"
-            },
-            duration: 3,
-            ease: "back.inOut(1.2)",
-            transformOrigin: "24px 24px"
-        }, 6);
-        masterTl.to(morphingPath, {
-            rotation: -5,
-            duration: 1.5,
-            ease: "power2.out",
-            transformOrigin: "24px 24px"
-        }, 6);
-        masterTl.to(morphingPath, {
-            rotation: 0,
-            duration: 1.5,
-            ease: "power2.in",
-            transformOrigin: "24px 24px"
-        }, 7.5);
-        masterTl.to(stop1, {
-            stopColor: getAccent(),
-            duration: 3,
-            ease: "power1.inOut"
-        }, 6);
-        masterTl.to(stop2, {
-            stopColor: getAccent2(),
-            duration: 3,
-            ease: "power1.inOut"
-        }, 6);
-        return () => {
-            masterTl.kill();
-        };
+            // Initial color animation
+            colorAnimationRef.current = gsap.to([stop1, stop2], {
+                duration: 6,
+                ease: "power2.inOut",
+                attr: { 'stop-color': (i) => i === 0 ? accent2 : accent1 },
+                repeat: -1,
+                repeatDelay: 0,
+                yoyo: true
+            });
+
+            // Additional subtle rotation for more dynamic effect
+            gsap.to(morphingPath, {
+                duration: 12,
+                ease: "none",
+                rotation: 360,
+                repeat: -1,
+                transformOrigin: "24 24"
+            });
+
+            // Set up observer to watch for CSS custom property changes
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                        // Small delay to ensure new styles are computed
+                        setTimeout(updateColors, 50);
+                    }
+                });
+            });
+
+            // Observe changes to the document element's style attribute
+            observer.observe(document.documentElement, {
+                attributes: true,
+                attributeFilter: ['style']
+            });
+
+            // Cleanup function
+            return () => {
+                observer.disconnect();
+                if (colorAnimationRef.current) {
+                    colorAnimationRef.current.kill();
+                }
+            };
+        }, 100);
+
+    }, []);
+
+    // Additional effect to watch for color changes more reliably
+    useEffect(() => {
+        const interval = setInterval(() => {
+            const currentAccent1 = getComputedStyle(document.documentElement).getPropertyValue('--dynamic-accent').trim();
+            const currentAccent2 = getComputedStyle(document.documentElement).getPropertyValue('--dynamic-secondary-accent').trim();
+
+            // Check if colors have changed by comparing with stored values
+            const stop1 = stop1Ref.current;
+            const stop2 = stop2Ref.current;
+            if (stop1 && stop2) {
+                const currentStop1Color = stop1.getAttribute('stop-color');
+                const currentStop2Color = stop2.getAttribute('stop-color');
+
+                if (currentStop1Color !== currentAccent1 || currentStop2Color !== currentAccent2) {
+                    console.log('Color change detected via polling');
+                    updateColors();
+                }
+            }
+        }, 500); // Check every 500ms
+
+        return () => clearInterval(interval);
     }, []);
 
     return (
         <svg
-            ref={svgRef}
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 48 48"
             width={48}
             height={48}
-            style={{ display: 'block' }}
         >
             <defs>
-                <radialGradient id="logo-gradient" cx="50%" cy="50%" r="80%">
+                <radialGradient id="logo-gradient" cx="50%" cy="50%" r="75%">
                     <stop ref={stop1Ref} offset="0%" stopColor="#cba6f7" />
                     <stop ref={stop2Ref} offset="100%" stopColor="#f2cdcd" />
                 </radialGradient>
             </defs>
             <path
                 ref={morphingPathRef}
-                d={paths.obs}
                 fill="url(#logo-gradient)"
+                d={paths.gemini}
+                fillRule="evenodd"
             />
         </svg>
     );
-}
+};
 
 export default MorphingLogos;

@@ -42,7 +42,7 @@
 }
 
 body {
-  font-family: "Noto Sans", "Noto Color Emoji", sans-serif;
+  font-family: "Noto Sans", sans-serif;
   background-color: var(--ctp-base);
   color: var(--ctp-text);
   overflow-x: hidden;
@@ -52,6 +52,9 @@ body {
   -webkit-font-smoothing: antialiased;
   /* Smoother fonts */
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  /* Force text variant for numbers and regular characters */
+  font-variant-emoji: text;
 }
 
 /* Custom scrollbars - Catppuccin Mocha */
@@ -118,6 +121,41 @@ body {
     transform: scale(1);
   }
 }
+
+/* Emoji styling for color support - only for actual emoji characters */
+.emoji,
+[data-emoji] {
+  font-family: "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Twemoji Mozilla", sans-serif !important;
+  font-variant-emoji: emoji;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "liga", "kern";
+  display: inline-block;
+  vertical-align: text-bottom;
+  line-height: 1;
+}
+
+/* For text that contains emojis but should preserve normal text rendering */
+.emoji-text {
+  font-variant-emoji: text;
+  /* Keep text normal */
+}
+
+/* Only apply emoji styling to specific emoji spans within text */
+.emoji-text .emoji {
+  font-family: "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Twemoji Mozilla", sans-serif !important;
+  font-variant-emoji: emoji;
+}
+
+/* Tab emojis - specific targeting */
+.tab-emoji {
+  font-family: "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Twemoji Mozilla", sans-serif !important;
+  font-variant-emoji: emoji;
+  display: inline-block;
+  vertical-align: text-bottom;
+}
+
+/* Remove broad emoji styling that affects numbers */
+/* Only apply emoji fonts to specific emoji elements */
 
 .animate-modal-appear {
   animation: modal-appear 0.3s forwards;

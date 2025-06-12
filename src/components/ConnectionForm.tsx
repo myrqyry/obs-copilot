@@ -51,8 +51,12 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
     onGeminiApiKeyChange(newKey);
   };
 
+  // Track if user has attempted to connect
+  const [hasAttemptedConnect, setHasAttemptedConnect] = useState(false);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setHasAttemptedConnect(true);
     if (!isConnected) {
       onConnect(address, password);
     }
@@ -72,7 +76,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
         });
       } else {
         gsap.killTweensOf(dot);
-        gsap.set(dot, { clearProps: "all" }); 
+        gsap.set(dot, { clearProps: "all" });
       }
     }
     return () => {
@@ -103,6 +107,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
   }, [isGeminiClientInitialized, geminiInitializationError]);
 
 
+
   return (
     <form onSubmit={handleSubmit} className="bg-[var(--ctp-mantle)] p-0.5 rounded-lg space-y-2.5">
       <div className="space-y-2">
@@ -115,7 +120,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
           disabled={isConnected || isConnecting}
           placeholder="e.g., ws://localhost:4455"
           accentColorName={accentColorName}
-          className="text-xs" 
+          className="text-xs"
         />
         <TextInput
           label="OBS Password (optional)"
@@ -133,13 +138,13 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
           <span
             ref={geminiStatusDotRef}
             className={`inline-block w-3 h-3 rounded-full border border-[var(--ctp-surface2)] ${geminiInitializationError
-                ? 'bg-[var(--ctp-red)]'
-                : isGeminiClientInitialized
-                  ? 'bg-[var(--ctp-green)]'
-                  : 'bg-[var(--ctp-yellow)]' 
+              ? 'bg-[var(--ctp-red)]'
+              : isGeminiClientInitialized
+                ? 'bg-[var(--ctp-green)]'
+                : 'bg-[var(--ctp-yellow)]'
               }`}
             title={geminiInitializationError ? `Gemini Error: ${geminiInitializationError}` : isGeminiClientInitialized ? 'Gemini Ready' : 'Gemini Initializing...'}
-            style={{ marginBottom: 4 }} 
+            style={{ marginBottom: 4 }}
           ></span>
           <TextInput
             label="Gemini API Key (Optional)"
@@ -175,7 +180,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
           </Button>
         </div>
         <p id="gemini-api-key-description" className="mt-0.5 text-xs text-[var(--ctp-subtext0)]">
-          Needed for ✨ Gemini Assistant features. Get yours from{' '}
+          Needed for <span className="emoji">✨</span> Gemini Assistant features. Get yours from{' '}
           <a
             href="https://aistudio.google.com/app/apikey"
             target="_blank"
@@ -188,7 +193,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
         </p>
       </div>
 
-      {error && <p className="text-[var(--ctp-red)] text-sm p-2 bg-[var(--ctp-crust)] border border-[var(--ctp-maroon)] rounded-md shadow">{error}</p>}
+      {hasAttemptedConnect && error && <p className="text-[var(--ctp-red)] text-sm p-2 bg-[var(--ctp-crust)] border border-[var(--ctp-maroon)] rounded-md shadow">{error}</p>}
 
       <div className="flex items-center gap-2 mt-1.5">
         {/* Connection status dot */}
@@ -197,7 +202,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
           className={`inline-block w-3 h-3 rounded-full border border-[var(--ctp-surface2)] ${isConnected
             ? 'bg-[var(--ctp-green)]'
             : isConnecting
-              ? 'bg-[var(--ctp-yellow)]' 
+              ? 'bg-[var(--ctp-yellow)]'
               : 'bg-[var(--ctp-red)]'
             }`}
           title={isConnected ? 'Connected' : isConnecting ? 'Connecting...' : 'Disconnected'}

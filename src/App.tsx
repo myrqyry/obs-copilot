@@ -93,7 +93,10 @@ const App: React.FC = () => {
       } else if (isGeminiClientInitialized) {
         addGeminiMessageInternal({ role: 'system', text: "Gemini Assistant initialized. Ready for your commands! ✨" });
       } else if (!effectiveApiKey && !isGeminiClientInitialized) {
-        addGeminiMessageInternal({ role: 'system', text: "Gemini API Key needs to be provided via input or environment variable for Gemini features to work." });
+        // Only show Gemini API Key warning if OBS is connected but Gemini API key is missing
+        if (isConnected && !geminiApiKey) {
+          addGeminiMessageInternal({ role: 'system', text: "Gemini API Key needs to be provided via input or environment variable for Gemini features to work." });
+        }
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -262,7 +265,7 @@ const App: React.FC = () => {
 
   const renderTabContent = () => {
     if (!isConnected || !obsServiceInstance) {
-      return <p className="text-center text-[var(--ctp-subtext0)] mt-8">🔗 Please connect to OBS WebSocket to begin. Click the 🔗 icon in the top right.</p>;
+      return <p className="text-center text-[var(--ctp-subtext0)] mt-8"><span className="emoji">🔗</span> Please connect to OBS WebSocket to begin. Click the <span className="emoji">🔗</span> icon in the top right.</p>;
     }
     switch (activeTab) {
       case AppTab.CONTROLS:
@@ -345,7 +348,7 @@ const App: React.FC = () => {
                     : 'shadow-lg'}`}
                 aria-current={activeTab === tab ? 'page' : undefined}
               >
-                {tabEmojis[tab]} {tab}
+                <span className="tab-emoji">{tabEmojis[tab]}</span> {tab}
               </button>
             ))}
           </div>
@@ -390,7 +393,7 @@ const App: React.FC = () => {
           </div>
         ) : (
           !isConnecting && !isConnectionModalOpen && (
-            <p className="text-center text-[var(--ctp-subtext0)] mt-2">🔗 Connect to OBS to unlock the magic! Click the 🔗 icon in the top right.</p>
+            <p className="text-center text-[var(--ctp-subtext0)] mt-2"><span className="emoji">🔗</span> Connect to OBS to unlock the magic! Click the <span className="emoji">🔗</span> icon in the top right.</p>
           )
         )}
       </main>

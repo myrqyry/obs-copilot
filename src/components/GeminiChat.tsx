@@ -446,7 +446,7 @@ const ChatMessageItem: React.FC<{ message: ChatMessage }> = ({ message }) => {
   return (
     <div ref={itemRef} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={`max-w-xl p-2.5 rounded-xl shadow-md border border-[var(--ctp-surface2)] leading-relaxed`}
+        className={`chat-message max-w-xl p-2.5 rounded-xl shadow-md border border-[var(--ctp-surface2)] leading-relaxed`}
         style={{
           backgroundColor: message.role === 'user' ? 'var(--user-chat-bubble-color)' :
             message.role === 'model' ? 'var(--model-chat-bubble-color)' :
@@ -959,7 +959,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-[var(--ctp-surface0)] rounded-lg shadow-lg border border-[var(--ctp-surface1)]">
-      <div className="p-2 border-b border-[var(--ctp-surface1)] text-base font-semibold" style={{ color: 'var(--dynamic-accent)' }}>✨ Gemini Assistant</div>
+      <div className="p-2 border-b border-[var(--ctp-surface1)] text-base font-semibold emoji-text" style={{ color: 'var(--dynamic-accent)' }}><span className="emoji">✨</span> Gemini Assistant</div>
 
       <div className="flex-grow p-2 space-y-2 overflow-y-auto">
         {messages.map((msg) => (
@@ -982,8 +982,14 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
             disabled={isLoading || !isGeminiClientInitialized}
             accentColorName={accentColorName}
           />
-          <Button onClick={handleSend} isLoading={isLoading} disabled={isLoading || !chatInputValue.trim() || !isGeminiClientInitialized} variant="primary" size="sm" accentColorName={accentColorName}>
-            Send ✨
+          <Button
+            onClick={handleSend}
+            disabled={isLoading || !chatInputValue.trim() || !isGeminiClientInitialized}
+            variant="primary"
+            size="sm"
+            accentColorName={accentColorName}
+          >
+            {isLoading ? 'Sending...' : 'Send'}
           </Button>
         </div>
         <div className="mt-1.5">
@@ -1027,7 +1033,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
                   title={suggestion.prompt}
                   accentColorName={accentColorName}
                 >
-                  {suggestion.emoji && <span className="mr-1" role="img" aria-hidden="true">{suggestion.emoji}</span>}
+                  {suggestion.emoji && <span className="emoji mr-1" role="img" aria-hidden="true">{suggestion.emoji}</span>}
                   {suggestion.label}
                 </Button>
               ))}

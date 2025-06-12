@@ -1,13 +1,13 @@
 
 import React from 'react';
-import { Button } from './Button'; 
+import { Button } from './Button';
 import { CatppuccinAccentColorName } from '../../types';
 
 interface ModalProps {
   title: string;
   children: React.ReactNode;
   onClose: () => void;
-  isOpen?: boolean; 
+  isOpen?: boolean;
   accentColorName?: CatppuccinAccentColorName;
 }
 
@@ -16,7 +16,7 @@ export const Modal: React.FC<ModalProps> = ({ title, children, onClose, accentCo
     <div className="fixed inset-0 bg-[var(--ctp-crust)] bg-opacity-80 flex items-center justify-center z-50 p-4 backdrop-blur-sm transition-opacity duration-300 ease-in-out">
       <div className="bg-[var(--ctp-mantle)] p-6 rounded-xl shadow-2xl w-full max-w-md border border-[var(--ctp-surface1)] transform transition-all duration-300 ease-out scale-95 opacity-0 animate-modal-appear">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-semibold" style={{color: 'var(--dynamic-accent)'}}>{title}</h3>
+          <h3 className="text-xl font-semibold emoji-text" style={{ color: 'var(--dynamic-accent)' }}>{title}</h3>
           <button
             onClick={onClose}
             className="text-[var(--ctp-overlay1)] hover:text-[var(--ctp-text)] transition-colors p-1 rounded-full hover:bg-[var(--ctp-surface0)] focus:outline-none focus:ring-2 focus:ring-[var(--dynamic-accent)]"
