@@ -1,60 +1,124 @@
-import React, { useLayoutEffect, useRef } from 'react';
+import React, { useRef, useLayoutEffect } from 'react';
 import { gsap } from 'gsap';
 import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
 
-gsap.registerPlugin(MorphSVGPlugin);
-
+// Normalized paths with consistent center points and bounding boxes
 const paths = {
-    gemini: 'M950 500A450 450 0 00500 950h0A450 450 0 0050 500v0A450 450 0 00500 50h0A450 450 0 00950 500z',
-    obsOuter: 'M950 500A450 450 0 00500 950A450 450 0 0050 500A450 450 0 00500 50A450 450 0 00950 500Z',
-    obsInner: 'M684.907,370.50177a199.24212,199.24212,0,0,1-277.2406,70.45605A202.74787,202.74787,0,0,1,362.753,403.18446a198.9214,198.9214,0,0,1-49.89819-141.13313c.28387-5.78965.76859-11.56257,1.52683-17.30975.74726-5.66395,1.7459-11.30258,2.97756-16.87354q1.89659-8.57846,4.54716-16.96232q2.572-8.15982,5.86352-16.07336c2.27456-5.48511,4.8105-10.85411,7.54648-16.122,2.88124-5.54761,6.07307-10.94466,9.4812-16.1843q4.7149-7.24866,10.04419-14.06235c3.85433-4.95083,7.95005-9.72719,12.27081-14.27641q6.54174-6.88764,13.66916-13.16194c4.83847-4.26274,9.91241-8.2498,15.13962-12.02191q4.04222-2.917,8.23639-5.61188a244.394,244.394,0,0,0-109.08168,323.486q.82056,1.704,1.66751,3.39519.38468.7681.77476,1.53348a4.60036,4.60036,0,0,0,.46987.91713c.32364.35883.40473.29867.89987.28969,2.578-.04676,5.15806-.03471,7.73585.021q7.14438.15426,14.26584.8147A199.577,199.577,0,0,1,499.05209,600.21532a201.32943,201.32943,0,0,1,.64133,60.16627A198.7484,198.7484,0,0,1,453.532,762.237a202.19273,202.19273,0,0,1-49.77669,41.78411A199.86222,199.86222,0,0,1,279.6049,830.51543a203.06671,203.06671,0,0,1-23.20252-4.02994c-4.95445-1.16337-9.85994-2.531-14.71085-4.07118a242.60378,242.60378,0,0,0,68.54706,18.97282,247.03638,247.03638,0,0,0,66.4102-.79809,243.52975,243.52975,0,0,0,108.66832-44.88732,246.04226,246.04226,0,0,0,59.73343-63.07421q1.04115-1.58711,2.05761-3.19021c.263-.41478.85074-1.06891.77441-1.50894a8.49447,8.49447,0,0,0-1.05057-1.9447q-2.00279-3.75737-3.8436-7.59815-3.698-7.71623-6.7219-15.73206a198.01918,198.01918,0,0,1-9.34078-33.367,200.87418,200.87418,0,0,1,.041-73.98045A197.88137,197.88137,0,0,1,548.324,536.05063,199.08091,199.08091,0,0,1,721.41371,432.9917q7.33682-.05093,14.66347.42449,7.066.47,14.088,1.41786,6.952.95079,13.82736,2.39389,6.73038,1.4208,13.355,3.29017,6.48924,1.84088,12.8432,4.11821,6.44067,2.31259,12.7085,5.06391,6.3891,2.79015,12.56139,6.04592,6.16559,3.24277,12.09984,6.9069c3.71356,2.2975,7.36439,4.705,10.91293,7.25121q5.48994,3.93921,10.72616,8.20808c3.603,2.93077,7.0801,6.01877,10.46193,9.202q5.40071,5.08362,10.4077,10.563,4.9978,5.44733,9.57009,11.27034c3.4,4.31833,6.6383,8.77214,9.66035,13.36317,3.10448,4.71627,6.03931,9.55546,8.74828,14.51488a200.21456,200.21456,0,0,1,10.06824,21.36634,206.9737,206.9737,0,0,1,7.97272,24.37127,243.74067,243.74067,0,0,0-51.67776-120.94126,245.663,245.663,0,0,0-75.01182-62.48165,242.85789,242.85789,0,0,0-95.94806-28.3044Q689.18423,370.69463,684.907,370.50177Z',
+    obs: "M24,4C12.971,4,4,12.971,4,24s8.971,20,20,20s20-8.971,20-20S35.029,4,24,4z M40.317,32.15 c1.102-3.234-0.114-6.983-3.102-8.896c-3.499-2.24-8.151-1.218-10.391,2.281l0,0c-1.612,2.518-1.527,5.63-0.053,8.013 c-0.877,1.353-2.06,2.537-3.539,3.418c-4.696,2.8-10.744,1.697-14.109-2.417c-0.162-0.228-0.319-0.458-0.47-0.693 c2.278,2.846,6.438,3.663,9.71,1.817c3.618-2.042,4.897-6.63,2.855-10.249l0,0c-1.407-2.493-4.023-3.875-6.698-3.825 c-0.864-1.558-1.359-3.35-1.359-5.258c0-4.767,3.076-8.799,7.346-10.261c0.313-0.061,0.633-0.101,0.951-0.146 c-2.888,1.05-4.955,3.812-4.955,7.063c0,4.155,3.368,7.523,7.523,7.523c2.764,0,5.173-1.495,6.481-3.717 c1.91,0.013,3.841,0.517,5.589,1.587c4.397,2.69,6.237,8.082,4.687,12.794C40.641,31.516,40.477,31.832,40.317,32.15z",
+    gemini: "M46.117,23.081l-0.995-0.04H45.12C34.243,22.613,25.387,13.757,24.959,2.88l-0.04-0.996C24.9,1.39,24.494,1,24,1s-0.9,0.39-0.919,0.883l-0.04,0.996c-0.429,10.877-9.285,19.733-20.163,20.162l-0.995,0.04C1.39,23.1,1,23.506,1,24s0.39,0.9,0.884,0.919l0.995,0.039c10.877,0.43,19.733,9.286,20.162,20.163l0.04,0.996C23.1,46.61,23.506,47,24,47s0.9-0.39,0.919-0.883l0.04-0.996c0.429-10.877,9.285-19.733,20.162-20.163l0.995-0.039C46.61,24.9,47,24.494,47,24S46.61,23.1,46.117,23.081z"
 };
 
-const MorphingLogos: React.FC = () => {
-    const outerPathRef = useRef<SVGPathElement>(null);
-    const innerPathRef = useRef<SVGPathElement>(null);
+function MorphingLogos() {
+    const svgRef = useRef<SVGSVGElement>(null);
+    const morphingPathRef = useRef<SVGPathElement>(null);
+    const stop1Ref = useRef<SVGStopElement>(null);
+    const stop2Ref = useRef<SVGStopElement>(null);
 
+    // Set initial path directly for visibility
+    React.useEffect(() => {
+        const morphingPath = morphingPathRef.current;
+        if (morphingPath) {
+            morphingPath.setAttribute('d', paths.obs);
+        }
+    }, []);
+
+    // Animation effect (only runs if MorphSVGPlugin is loaded and GSAP is available)
     useLayoutEffect(() => {
-        const outerPath = outerPathRef.current;
-        const innerPath = innerPathRef.current;
-        if (!outerPath || !innerPath) return;
+        const svg = svgRef.current;
+        const morphingPath = morphingPathRef.current;
+        const stop1 = stop1Ref.current;
+        const stop2 = stop2Ref.current;
+        if (!svg || !morphingPath || !stop1 || !stop2) return;
 
-        // Set the initial state to be the OBS logo
-        gsap.set(outerPath, { attr: { d: paths.obsOuter } });
-        gsap.set(innerPath, { attr: { d: paths.obsInner }, opacity: 1 });
+        // Defensive: ensure MorphSVGPlugin is registered
+        if (!gsap.utils || !gsap.to || !gsap.timeline || !gsap.set || !gsap.plugins || !MorphSVGPlugin) {
+            return;
+        }
+        gsap.registerPlugin(MorphSVGPlugin);
 
-        const masterTl = gsap.timeline({ repeat: -1 });
+        // Initial colors
+        const getAccent = () => getComputedStyle(document.documentElement).getPropertyValue('--dynamic-accent').trim() || "#cba6f7";
+        const getAccent2 = () => getComputedStyle(document.documentElement).getPropertyValue('--dynamic-secondary-accent').trim() || "#f2cdcd";
 
-        // Animation from OBS to Gemini
-        masterTl.to(outerPath, {
-            morphSVG: paths.gemini,
-            duration: 1.2,
-            ease: 'power2.inOut',
-        })
-            .to(innerPath, {
-                opacity: 0,
-                duration: 0.8,
-                ease: 'power2.inOut',
-            }, '<'); // Start at the same time as the morph
+        gsap.set(svg, {
+            transformOrigin: "center center"
+        });
+        gsap.set(morphingPath, {
+            attr: { d: paths.obs },
+            transformOrigin: "24px 24px"
+        });
+        gsap.set(stop1, { stopColor: getAccent() });
+        gsap.set(stop2, { stopColor: getAccent2() });
 
-        // HOLD the Gemini logo for 1.5 seconds
-        masterTl.to({}, { duration: 1.5 });
-
-        // Animation from Gemini back to OBS
-        masterTl.to(outerPath, {
-            morphSVG: paths.obsOuter,
-            duration: 1.2,
-            ease: 'power2.inOut',
-        })
-            .to(innerPath, {
-                opacity: 1,
-                duration: 0.8,
-                ease: 'power2.inOut',
-            }, '<'); // Start at the same time as the morph back
-
-        // HOLD the OBS logo for 1.5 seconds before the loop repeats
-        masterTl.to({}, { duration: 1.5 });
-
+        const masterTl = gsap.timeline({ repeat: -1, repeatDelay: 1.5 });
+        // Phase 1: Morph to Gemini
+        masterTl.to(morphingPath, {
+            morphSVG: {
+                shape: paths.gemini,
+                origin: "50% 50%",
+                shapeIndex: "auto",
+                map: "complexity"
+            },
+            duration: 3,
+            ease: "back.inOut(1.2)",
+            transformOrigin: "24px 24px"
+        }, 0);
+        masterTl.to(morphingPath, {
+            rotation: 5,
+            duration: 1.5,
+            ease: "power2.out",
+            transformOrigin: "24px 24px"
+        }, 0);
+        masterTl.to(morphingPath, {
+            rotation: 0,
+            duration: 1.5,
+            ease: "power2.in",
+            transformOrigin: "24px 24px"
+        }, 1.5);
+        masterTl.to(stop1, {
+            stopColor: getAccent2(),
+            duration: 3,
+            ease: "power1.inOut"
+        }, 0);
+        masterTl.to(stop2, {
+            stopColor: getAccent(),
+            duration: 3,
+            ease: "power1.inOut"
+        }, 0);
+        // Phase 2: Morph back to OBS
+        masterTl.to(morphingPath, {
+            morphSVG: {
+                shape: paths.obs,
+                origin: "50% 50%",
+                shapeIndex: "auto",
+                map: "complexity"
+            },
+            duration: 3,
+            ease: "back.inOut(1.2)",
+            transformOrigin: "24px 24px"
+        }, 6);
+        masterTl.to(morphingPath, {
+            rotation: -5,
+            duration: 1.5,
+            ease: "power2.out",
+            transformOrigin: "24px 24px"
+        }, 6);
+        masterTl.to(morphingPath, {
+            rotation: 0,
+            duration: 1.5,
+            ease: "power2.in",
+            transformOrigin: "24px 24px"
+        }, 7.5);
+        masterTl.to(stop1, {
+            stopColor: getAccent(),
+            duration: 3,
+            ease: "power1.inOut"
+        }, 6);
+        masterTl.to(stop2, {
+            stopColor: getAccent2(),
+            duration: 3,
+            ease: "power1.inOut"
+        }, 6);
         return () => {
             masterTl.kill();
         };
@@ -62,16 +126,26 @@ const MorphingLogos: React.FC = () => {
 
     return (
         <svg
+            ref={svgRef}
             xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 1000 1000"
-            width="100%"
-            height="100%"
-            preserveAspectRatio="xMidYMid meet"
+            viewBox="0 0 48 48"
+            width={48}
+            height={48}
+            style={{ display: 'block' }}
         >
-            <path ref={outerPathRef} fill="currentColor" />
-            <path ref={innerPathRef} fill="currentColor" />
+            <defs>
+                <radialGradient id="logo-gradient" cx="50%" cy="50%" r="80%">
+                    <stop ref={stop1Ref} offset="0%" stopColor="#cba6f7" />
+                    <stop ref={stop2Ref} offset="100%" stopColor="#f2cdcd" />
+                </radialGradient>
+            </defs>
+            <path
+                ref={morphingPathRef}
+                d={paths.obs}
+                fill="url(#logo-gradient)"
+            />
         </svg>
     );
-};
+}
 
 export default MorphingLogos;
