@@ -88,7 +88,7 @@
 3. **Configure environment**
    ```bash
    # Create .env.local file
-   echo "GEMINI_API_KEY=your_gemini_api_key_here" > .env.local
+   echo "API_KEY=your_gemini_api_key_here" > .env.local
    ```
 
 4. **Setup OBS Studio**
