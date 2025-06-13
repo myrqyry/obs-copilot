@@ -139,7 +139,7 @@ const LocalChatMessageItem: React.FC<{
   const [isScrolling, setIsScrolling] = useState(false);
   const [isScrolledFromTop, setIsScrolledFromTop] = useState(false);
   const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
-  const [isHovered, setIsHovered] = useState(false);
+  // const [isHovered, setIsHovered] = useState(false);
   const bubbleRef = useRef<HTMLDivElement>(null);
 
   // Memoize suggestions to prevent them from changing on every render
@@ -210,8 +210,8 @@ const LocalChatMessageItem: React.FC<{
             ? 'px-3 py-2 text-sm leading-tight max-w-xl'
             : 'p-3 text-sm leading-tight max-w-lg'}
         `}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        // onMouseEnter={() => setIsHovered(true)}
+        // onMouseLeave={() => setIsHovered(false)}
         style={{
           backgroundColor: isSystem ? 'var(--dynamic-secondary-accent)' :
             (isUser ? 'var(--user-chat-bubble-color)' : 'var(--model-chat-bubble-color)'),
@@ -666,7 +666,6 @@ function detectObsChoiceQuestion(text: string, obsData: any): { hasChoices: bool
 
 export const GeminiChat: React.FC<GeminiChatProps> = ({
   geminiApiKeyFromInput,
-  obsService,
   onRefreshData,
   setErrorMessage,
   chatInputValue,
@@ -692,7 +691,6 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
   const ai = useRef<GoogleGenAI | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const sendButtonRef = useRef<HTMLButtonElement>(null);
-  const sparkleRef = useRef<HTMLSpanElement>(null);
 
   // Handle adding messages to context
   const handleAddToContext = useCallback((text: string) => {
