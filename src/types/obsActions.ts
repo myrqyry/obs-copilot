@@ -467,6 +467,97 @@ export interface OpenInputInteractDialogAction extends ObsActionBase {
     inputName: string;
 }
 
+export interface RemoveSceneAction extends ObsActionBase {
+    type: "removeScene";
+    sceneName: string;
+}
+
+export interface GetStreamStatusAction extends ObsActionBase {
+    type: "getStreamStatus";
+}
+
+export interface StartStreamAction extends ObsActionBase {
+    type: "startStream";
+}
+
+export interface StopStreamAction extends ObsActionBase {
+    type: "stopStream";
+}
+
+export interface GetRecordStatusAction extends ObsActionBase {
+    type: "getRecordStatus";
+}
+
+export interface StartRecordAction extends ObsActionBase {
+    type: "startRecord";
+}
+
+export interface StopRecordAction extends ObsActionBase {
+    type: "stopRecord";
+}
+
+export interface ToggleRecordPauseAction extends ObsActionBase {
+    type: "toggleRecordPause";
+}
+
+export interface GetVideoSettingsAction extends ObsActionBase {
+    type: "getVideoSettings";
+}
+
+export interface GetSceneItemTransformAction extends ObsActionBase {
+    type: "getSceneItemTransform";
+    sceneName: string;
+    sourceName: string;
+}
+
+export interface GetSourceFilterAction extends ObsActionBase {
+    type: "getSourceFilter";
+    sourceName: string;
+    filterName: string;
+}
+
+export interface GetInputVolumeAction extends ObsActionBase {
+    type: "getInputVolume";
+    inputName: string;
+}
+
+export interface GetVirtualCamStatusAction extends ObsActionBase {
+    type: "getVirtualCamStatus";
+}
+
+export interface GetReplayBufferStatusAction extends ObsActionBase {
+    type: "getReplayBufferStatus";
+}
+
+export interface DuplicateSceneItemAction extends ObsActionBase {
+    type: "duplicateSceneItem";
+    sceneName: string;
+    sourceName: string;
+    destinationSceneName?: string;
+}
+
+export interface StopReplayBufferAction extends ObsActionBase {
+    type: "stopReplayBuffer";
+}
+
+export interface GetCurrentProfileAction extends ObsActionBase {
+    type: "getCurrentProfile";
+}
+
+export interface SetCurrentProfileAction extends ObsActionBase {
+    type: "setCurrentProfile";
+    profileName: string;
+}
+
+export interface GetCurrentSceneCollectionAction extends ObsActionBase {
+    type: "getCurrentSceneCollection";
+}
+
+export interface SetCurrentSceneCollectionAction extends ObsActionBase {
+    type: "setCurrentSceneCollection";
+    sceneCollectionName: string;
+}
+
 export type ObsAction =
     | CreateInputAction | SetInputSettingsAction | SetSceneItemEnabledAction | GetInputSettingsAction | GetSceneItemListAction
     | SetCurrentProgramSceneAction | SetVideoSettingsAction | CreateSceneAction | RemoveInputAction | SetSceneItemTransformAction
@@ -485,4 +576,8 @@ export type ObsAction =
     | GetHotkeyListAction | GetInputPropertiesListPropertyItemsAction | PressInputPropertiesButtonAction | GetInputAudioBalanceAction
     | SetInputAudioBalanceAction | GetInputAudioSyncOffsetAction | SetInputAudioSyncOffsetAction | GetInputAudioTracksAction
     | SetInputAudioTracksAction | DuplicateSceneAction | GetSourceScreenshotAction | SetCurrentSceneTransitionSettingsAction
-    | OpenInputPropertiesDialogAction | OpenInputFiltersDialogAction | OpenInputInteractDialogAction | SetSceneNameAction;
+    | OpenInputPropertiesDialogAction | OpenInputFiltersDialogAction | OpenInputInteractDialogAction | SetSceneNameAction
+    | RemoveSceneAction | GetStreamStatusAction | StartStreamAction | StopStreamAction | GetRecordStatusAction | StartRecordAction
+    | StopRecordAction | ToggleRecordPauseAction | GetVideoSettingsAction | GetSceneItemTransformAction | GetSourceFilterAction
+    | GetInputVolumeAction | GetVirtualCamStatusAction | GetReplayBufferStatusAction | DuplicateSceneItemAction
+    | StopReplayBufferAction | GetCurrentProfileAction | SetCurrentProfileAction | GetCurrentSceneCollectionAction | SetCurrentSceneCollectionAction;

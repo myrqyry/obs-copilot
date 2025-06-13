@@ -122,7 +122,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                 </div>
 
                 {/* Timestamp outside of scrollable area */}
-                <div className="text-xs mt-1.5 text-[var(--ctp-base)] text-opacity-70 relative z-20">
+                <div className="text-xs mt-1.5 text-[var(--ctp-crust)] text-opacity-90 relative z-20">
                     {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
 

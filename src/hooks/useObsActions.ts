@@ -281,6 +281,175 @@ export const useObsActions = ({
                     actionFeedback = `\n✅ Removed filter "${filterName}" from source "${sourceName}".`;
                     break;
                 }
+                case 'openInputFiltersDialog': {
+                    const { inputName } = action;
+                    await obsService.openInputFiltersDialog(inputName);
+                    actionFeedback = `\n✅ Opened filters dialog for input "${inputName}".`;
+                    break;
+                }
+                case 'openInputPropertiesDialog': {
+                    const { inputName } = action;
+                    await obsService.openInputPropertiesDialog(inputName);
+                    actionFeedback = `\n✅ Opened properties dialog for input "${inputName}".`;
+                    break;
+                }
+                case 'openInputInteractDialog': {
+                    const { inputName } = action;
+                    await obsService.openInputInteractDialog(inputName);
+                    actionFeedback = `\n✅ Opened interact dialog for input "${inputName}".`;
+                    break;
+                }
+                case 'removeScene': {
+                    const { sceneName } = action;
+                    await obsService.removeScene(sceneName);
+                    actionFeedback = `\n✅ Removed scene "${sceneName}".`;
+                    break;
+                }
+                case 'getStreamStatus': {
+                    const status = await obsService.getStreamStatus();
+                    actionFeedback = `\n✅ Fetched stream status.`;
+                    additionalSystemMessage = `ℹ️ Stream status:\n\`\`\`json\n${JSON.stringify(status, null, 2)}\n\`\`\``;
+                    break;
+                }
+                case 'startStream': {
+                    await obsService.startStream();
+                    actionFeedback = `\n✅ Started streaming.`;
+                    break;
+                }
+                case 'stopStream': {
+                    await obsService.stopStream();
+                    actionFeedback = `\n✅ Stopped streaming.`;
+                    break;
+                }
+                case 'getRecordStatus': {
+                    const status = await obsService.getRecordStatus();
+                    actionFeedback = `\n✅ Fetched record status.`;
+                    additionalSystemMessage = `ℹ️ Record status:\n\`\`\`json\n${JSON.stringify(status, null, 2)}\n\`\`\``;
+                    break;
+                }
+                case 'startRecord': {
+                    await obsService.startRecord();
+                    actionFeedback = `\n✅ Started recording.`;
+                    break;
+                }
+                case 'stopRecord': {
+                    await obsService.stopRecord();
+                    actionFeedback = `\n✅ Stopped recording.`;
+                    break;
+                }
+                case 'toggleRecordPause': {
+                    await obsService.toggleRecordPause();
+                    actionFeedback = `\n✅ Toggled record pause.`;
+                    break;
+                }
+                case 'getVideoSettings': {
+                    const settings = await obsService.getVideoSettings();
+                    actionFeedback = `\n✅ Fetched video settings.`;
+                    additionalSystemMessage = `ℹ️ Video settings:\n\`\`\`json\n${JSON.stringify(settings, null, 2)}\n\`\`\``;
+                    break;
+                }
+                case 'getSceneItemTransform': {
+                    const { sceneName, sourceName } = action;
+                    const sceneItemId = await obsService.getSceneItemId(sceneName, sourceName);
+                    if (sceneItemId === null) {
+                        throw new Error(`Source "${sourceName}" not found in scene "${sceneName}"`);
+                    }
+                    const transform = await obsService.getSceneItemTransform(sceneName, sceneItemId);
+                    actionFeedback = `\n✅ Fetched transform for "${sourceName}" in scene "${sceneName}".`;
+                    additionalSystemMessage = `ℹ️ Transform for "${sourceName}":\n\`\`\`json\n${JSON.stringify(transform, null, 2)}\n\`\`\``;
+                    break;
+                }
+                case 'getSourceFilter': {
+                    const { sourceName, filterName } = action;
+                    const filter = await obsService.getSourceFilter(sourceName, filterName);
+                    actionFeedback = `\n✅ Fetched filter "${filterName}" on source "${sourceName}".`;
+                    additionalSystemMessage = `ℹ️ Filter "${filterName}" details:\n\`\`\`json\n${JSON.stringify(filter, null, 2)}\n\`\`\``;
+                    break;
+                }
+                case 'setSourceFilterEnabled': {
+                    const { sourceName, filterName, filterEnabled } = action;
+                    await obsService.setSourceFilterEnabled(sourceName, filterName, filterEnabled);
+                    actionFeedback = `\n✅ ${filterEnabled ? 'Enabled' : 'Disabled'} filter "${filterName}" on source "${sourceName}".`;
+                    break;
+                }
+                case 'setSourceFilterSettings': {
+                    const { sourceName, filterName, filterSettings, overlay } = action;
+                    await obsService.setSourceFilterSettings(sourceName, filterName, filterSettings, overlay);
+                    actionFeedback = `\n✅ Updated settings for filter "${filterName}" on source "${sourceName}".`;
+                    break;
+                }
+                case 'getInputVolume': {
+                    const { inputName } = action;
+                    const volume = await obsService.getInputVolume(inputName);
+                    actionFeedback = `\n✅ Fetched volume for input "${inputName}".`;
+                    additionalSystemMessage = `ℹ️ Volume for "${inputName}":\n\`\`\`json\n${JSON.stringify(volume, null, 2)}\n\`\`\``;
+                    break;
+                }
+                case 'getVirtualCamStatus': {
+                    const status = await obsService.getVirtualCamStatus();
+                    actionFeedback = `\n✅ Fetched virtual camera status.`;
+                    additionalSystemMessage = `ℹ️ Virtual camera status:\n\`\`\`json\n${JSON.stringify(status, null, 2)}\n\`\`\``;
+                    break;
+                }
+                case 'getReplayBufferStatus': {
+                    const status = await obsService.getReplayBufferStatus();
+                    actionFeedback = `\n✅ Fetched replay buffer status.`;
+                    additionalSystemMessage = `ℹ️ Replay buffer status:\n\`\`\`json\n${JSON.stringify(status, null, 2)}\n\`\`\``;
+                    break;
+                }
+                case 'duplicateSceneItem': {
+                    const { sceneName, sourceName, destinationSceneName } = action;
+                    const sceneItemId = await obsService.getSceneItemId(sceneName, sourceName);
+                    if (sceneItemId === null) {
+                        throw new Error(`Source "${sourceName}" not found in scene "${sceneName}"`);
+                    }
+                    await obsService.duplicateSceneItem(sceneName, sceneItemId, destinationSceneName);
+                    const targetScene = destinationSceneName || sceneName;
+                    actionFeedback = `\n✅ Duplicated "${sourceName}" from scene "${sceneName}" to scene "${targetScene}".`;
+                    break;
+                }
+                case 'setSceneName': {
+                    const { sceneName, newSceneName } = action;
+                    await obsService.setSceneName(sceneName, newSceneName);
+                    actionFeedback = `\n✅ Renamed scene "${sceneName}" to "${newSceneName}".`;
+                    break;
+                }
+                case 'getSourceScreenshot': {
+                    const { sourceName, imageFormat, imageWidth, imageHeight, imageCompressionQuality } = action;
+                    const screenshot = await obsService.getSourceScreenshot(sourceName, imageFormat, imageWidth, imageHeight, imageCompressionQuality);
+                    actionFeedback = `\n✅ Captured screenshot of source "${sourceName}".`;
+                    additionalSystemMessage = `ℹ️ Screenshot captured as ${imageFormat} format. Image data: ${screenshot.imageData.substring(0, 100)}...`;
+                    break;
+                }
+                case 'stopReplayBuffer': {
+                    await obsService.stopReplayBuffer();
+                    actionFeedback = `\n✅ Stopped replay buffer.`;
+                    break;
+                }
+                case 'getCurrentProfile': {
+                    const profile = await obsService.getCurrentProfile();
+                    actionFeedback = `\n✅ Fetched current profile information.`;
+                    additionalSystemMessage = `ℹ️ Profile information:\n\`\`\`json\n${JSON.stringify(profile, null, 2)}\n\`\`\``;
+                    break;
+                }
+                case 'setCurrentProfile': {
+                    const { profileName } = action;
+                    await obsService.setCurrentProfile(profileName);
+                    actionFeedback = `\n✅ Switched to profile "${profileName}".`;
+                    break;
+                }
+                case 'getCurrentSceneCollection': {
+                    const collection = await obsService.getCurrentSceneCollection();
+                    actionFeedback = `\n✅ Fetched current scene collection information.`;
+                    additionalSystemMessage = `ℹ️ Scene collection information:\n\`\`\`json\n${JSON.stringify(collection, null, 2)}\n\`\`\``;
+                    break;
+                }
+                case 'setCurrentSceneCollection': {
+                    const { sceneCollectionName } = action;
+                    await obsService.setCurrentSceneCollection(sceneCollectionName);
+                    actionFeedback = `\n✅ Switched to scene collection "${sceneCollectionName}".`;
+                    break;
+                }
                 // Add more cases for other actions...
                 default:
                     const unknownActionType = (action as any).type;

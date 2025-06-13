@@ -55,9 +55,11 @@ export interface ChatMessage {
   text: string;
   timestamp: Date;
   sources?: GroundingChunk[];
-  type?: "source-prompt";
+  type?: "source-prompt" | "choice-prompt";
   sourcePrompt?: string;
   showSuggestions?: boolean;
+  choices?: string[];
+  choiceType?: string;
 }
 
 export interface GroundingChunk {
@@ -69,7 +71,8 @@ export interface GroundingChunk {
 }
 
 export enum AppTab {
-  CONTROLS = "Controls",
+  CONNECTIONS = "Connections",
+  OBS_STUDIO = "OBS Studio",
   SETTINGS = "Settings",
   GEMINI = "Gemini"
 }

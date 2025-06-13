@@ -1,8 +1,5 @@
-
-
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
-  OBSVideoSettings,
   CatppuccinAccentColorName,
   catppuccinAccentColorsHexMap,
   CatppuccinSecondaryAccentColorName,
@@ -10,17 +7,11 @@ import {
   CatppuccinChatBubbleColorName,
   catppuccinChatBubbleColorsHexMap
 } from '../types';
-import { OBSWebSocketService } from '../services/obsService';
 import { Button } from './common/Button';
-import { TextInput } from './common/TextInput';
-import { LoadingSpinner } from './common/LoadingSpinner';
 import { useAppStore } from '../store/appStore';
+import { clearAllSettings } from '../utils/persistence';
 
 interface ObsSettingsPanelProps {
-  obsService: OBSWebSocketService;
-  onSettingsChanged: () => Promise<void>;
-  setErrorMessage: (message: string | null) => void;
-
   selectedAccentColorName: CatppuccinAccentColorName;
   onAccentColorNameChange: (name: CatppuccinAccentColorName) => void;
 
@@ -38,9 +29,6 @@ interface ObsSettingsPanelProps {
 }
 
 export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
-  obsService,
-  onSettingsChanged,
-  setErrorMessage,
   selectedAccentColorName,
   onAccentColorNameChange,
   selectedSecondaryAccentColorName,
@@ -52,51 +40,22 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
   flipSides,
   setFlipSides
 }) => {
-  // Use Zustand for video settings
-  const { videoSettings: initialVideoSettings } = useAppStore();
-  const [editableSettings, setEditableSettings] = useState<OBSVideoSettings | null>(initialVideoSettings);
-  const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    setEditableSettings(initialVideoSettings);
-  }, [initialVideoSettings]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!editableSettings) return;
-    const { name, value } = e.target;
-    setEditableSettings({
-      ...editableSettings,
-      [name]: parseInt(value, 10) || 0,
-    });
-  };
-
-  const handleSaveChanges = async () => {
-    if (!editableSettings) return;
-    setIsLoading(true);
-    setErrorMessage(null);
-    try {
-      await obsService.setVideoSettings(editableSettings);
-      await onSettingsChanged();
-    } catch (error: any) {
-      console.error("Error saving video settings:", error);
-      setErrorMessage(`Failed to save settings: ${error.message || 'Unknown error'}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Use Zustand for auto-apply suggestions
+  const { autoApplySuggestions, actions } = useAppStore();
 
   const ColorChooser: React.FC<{
     label: string;
     colorsHexMap: Record<string, string>;
     selectedColorName: string;
-    onColorNameChange: (name: any) => void;
-    colorNameTypeGuard: (name: string) => name is CatppuccinAccentColorName | CatppuccinSecondaryAccentColorName | CatppuccinChatBubbleColorName;
+    onColorNameChange: (name: string) => void;
+    colorNameTypeGuard: (name: string) => boolean;
   }> = ({ label, colorsHexMap, selectedColorName, onColorNameChange, colorNameTypeGuard }) => (
-    <div className="bg-[var(--ctp-mantle)] p-2 rounded-lg shadow-md border border-[var(--ctp-surface0)] mb-3"> {/* Reduced p and mb */}
-      <label className="block text-sm font-medium text-[var(--ctp-lavender)] mb-1.5">{label}:</label> {/* Reduced mb */}
-      <div className="flex flex-wrap gap-1.5"> {/* Reduced gap */}
-        {(Object.keys(colorsHexMap) as string[]).map(colorNameIter => {
+    <div className="mb-2">
+      <label className="block text-sm font-medium mb-1 text-[var(--ctp-lavender)]">{label}</label>
+      <div className="flex flex-wrap gap-1.5">
+        {Object.keys(colorsHexMap).map((colorNameIter) => {
           if (!colorNameTypeGuard(colorNameIter)) return null;
+
           return (
             <button
               key={colorNameIter}
@@ -104,7 +63,7 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
               onClick={() => onColorNameChange(colorNameIter)}
               className={`w-5 h-5 rounded-full border-2 transition-all duration-150 focus:outline-none
                           ${selectedColorName === colorNameIter ? 'ring-2 ring-offset-2 ring-offset-[var(--ctp-base)]' : 'border-[var(--ctp-surface1)] hover:border-[var(--ctp-overlay0)]'}
-                          focus:ring-[var(--dynamic-accent)]`} // Reduced size
+                          focus:ring-[var(--dynamic-accent)]`}
               style={{
                 backgroundColor: colorsHexMap[colorNameIter],
                 borderColor: selectedColorName === colorNameIter ? colorsHexMap[colorNameIter] : undefined
@@ -117,50 +76,40 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
     </div>
   );
 
-
-  if (!editableSettings && !initialVideoSettings && !isLoading) {
-    return <div className="flex justify-center items-center h-64"><LoadingSpinner size={10} /></div>;
-  }
-
-  if (!editableSettings && !isLoading) {
-    return <p className="text-[var(--ctp-subtext0)] text-center p-4">🎥 Video settings not available or not loaded yet.</p>;
-  }
-
-
   return (
-    <div className="space-y-3 bg-[var(--ctp-surface0)] p-2 rounded-lg shadow-lg border border-[var(--ctp-surface1)]"> {/* Reduced p and space-y */}
-      <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--dynamic-accent)' }}>🎨 Theme & 🎞️ Video Settings</h3> {/* Reduced mb */}
+    <div className="space-y-3 bg-[var(--ctp-surface0)] p-2 rounded-lg shadow-lg border border-[var(--ctp-surface1)]">
+      <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--dynamic-accent)' }}>🎨 Theme Settings</h3>
 
       <ColorChooser
         label="🎨 Primary Accent Color"
         colorsHexMap={catppuccinAccentColorsHexMap}
         selectedColorName={selectedAccentColorName}
-        onColorNameChange={onAccentColorNameChange}
+        onColorNameChange={(name) => onAccentColorNameChange(name as CatppuccinAccentColorName)}
         colorNameTypeGuard={(name): name is CatppuccinAccentColorName => name in catppuccinAccentColorsHexMap}
       />
       <ColorChooser
         label="🎨 Secondary Accent Color"
         colorsHexMap={catppuccinSecondaryAccentColorsHexMap}
         selectedColorName={selectedSecondaryAccentColorName}
-        onColorNameChange={onSecondaryAccentColorNameChange}
+        onColorNameChange={(name) => onSecondaryAccentColorNameChange(name as CatppuccinSecondaryAccentColorName)}
         colorNameTypeGuard={(name): name is CatppuccinSecondaryAccentColorName => name in catppuccinSecondaryAccentColorsHexMap}
       />
       <ColorChooser
         label="💬 User Chat Bubble Color"
         colorsHexMap={catppuccinChatBubbleColorsHexMap}
         selectedColorName={selectedUserChatBubbleColorName}
-        onColorNameChange={onUserChatBubbleColorNameChange}
+        onColorNameChange={(name) => onUserChatBubbleColorNameChange(name as CatppuccinChatBubbleColorName)}
         colorNameTypeGuard={(name): name is CatppuccinChatBubbleColorName => name in catppuccinChatBubbleColorsHexMap}
       />
       <ColorChooser
         label="🤖 Model Chat Bubble Color"
         colorsHexMap={catppuccinChatBubbleColorsHexMap}
         selectedColorName={selectedModelChatBubbleColorName}
-        onColorNameChange={onModelChatBubbleColorNameChange}
+        onColorNameChange={(name) => onModelChatBubbleColorNameChange(name as CatppuccinChatBubbleColorName)}
         colorNameTypeGuard={(name): name is CatppuccinChatBubbleColorName => name in catppuccinChatBubbleColorsHexMap}
       />
 
-      <div className="flex items-center mt-2 mb-2">
+      <div className="space-y-2 mt-2 mb-2">
         <label className="flex items-center text-sm text-[var(--ctp-lavender)] cursor-pointer">
           <input
             type="checkbox"
@@ -170,99 +119,39 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
           />
           Flip assistant/user chat sides
         </label>
+
+        <label className="flex items-center text-sm text-[var(--ctp-lavender)] cursor-pointer">
+          <input
+            type="checkbox"
+            checked={autoApplySuggestions}
+            onChange={actions.toggleAutoApplySuggestions}
+            className="mr-2 accent-[var(--dynamic-accent)]"
+          />
+          Auto-apply chat suggestions (send immediately when clicked)
+        </label>
       </div>
 
-
-      {editableSettings ? (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2"> {/* Reduced gap */}
-            <TextInput
-              label="Base (Canvas) Width"
-              id="baseWidth"
-              name="baseWidth"
-              type="number"
-              value={editableSettings.baseWidth}
-              onChange={handleInputChange}
-              disabled={isLoading}
-              accentColorName={selectedAccentColorName}
-              className="text-xs"
-            />
-            <TextInput
-              label="Base (Canvas) Height"
-              id="baseHeight"
-              name="baseHeight"
-              type="number"
-              value={editableSettings.baseHeight}
-              onChange={handleInputChange}
-              disabled={isLoading}
-              accentColorName={selectedAccentColorName}
-              className="text-xs"
-            />
-            <TextInput
-              label="Output (Scaled) Width"
-              id="outputWidth"
-              name="outputWidth"
-              type="number"
-              value={editableSettings.outputWidth}
-              onChange={handleInputChange}
-              disabled={isLoading}
-              accentColorName={selectedAccentColorName}
-              className="text-xs"
-            />
-            <TextInput
-              label="Output (Scaled) Height"
-              id="outputHeight"
-              name="outputHeight"
-              type="number"
-              value={editableSettings.outputHeight}
-              onChange={handleInputChange}
-              disabled={isLoading}
-              accentColorName={selectedAccentColorName}
-              className="text-xs"
-            />
-            <TextInput
-              label="FPS Numerator"
-              id="fpsNumerator"
-              name="fpsNumerator"
-              type="number"
-              value={editableSettings.fpsNumerator}
-              onChange={handleInputChange}
-              disabled={isLoading}
-              accentColorName={selectedAccentColorName}
-              className="text-xs"
-            />
-            <TextInput
-              label="FPS Denominator"
-              id="fpsDenominator"
-              name="fpsDenominator"
-              type="number"
-              value={editableSettings.fpsDenominator}
-              onChange={handleInputChange}
-              disabled={isLoading}
-              accentColorName={selectedAccentColorName}
-              className="text-xs"
-            />
-          </div>
-          <div className="mt-3 flex justify-end"> {/* Reduced mt */}
-            <Button
-              onClick={handleSaveChanges}
-              isLoading={isLoading}
-              disabled={isLoading}
-              variant="primary"
-              size="sm"
-              title="Save current video settings to OBS"
-              accentColorName={selectedAccentColorName}
-            >
-              Save Video Settings 💾
-            </Button>
-          </div>
-          <p className="text-xs text-[var(--ctp-subtext0)] mt-1.5"> {/* Reduced mt */}
-            Note: Modifying settings can impact OBS performance. Ensure values are valid. Some settings may require an OBS restart to take full effect (not handled by this UI).
-          </p>
-        </>
-      ) : (
-        <div className="flex justify-center items-center py-8"><LoadingSpinner size={8} /> <span className="ml-2 text-[var(--ctp-subtext0)]">Loading video settings...</span></div>
-      )}
+      {/* Settings Reset Section */}
+      <div className="bg-[var(--ctp-mantle)] p-3 rounded-lg border border-[var(--ctp-surface0)] mb-3">
+        <h3 className="text-sm font-medium text-[var(--ctp-lavender)] mb-2">🔄 Reset Settings</h3>
+        <p className="text-xs text-[var(--ctp-subtext0)] mb-3">
+          Clear all saved preferences and return to defaults. This will reset theme colors, connection settings, and other preferences.
+        </p>
+        <Button
+          onClick={() => {
+            if (confirm('Are you sure you want to reset all settings to defaults? This will clear your saved connection details, theme preferences, and other settings.')) {
+              clearAllSettings();
+              // Reload the page to reset the store state
+              window.location.reload();
+            }
+          }}
+          variant="danger"
+          size="sm"
+          accentColorName={selectedAccentColorName}
+        >
+          Reset All Settings
+        </Button>
+      </div>
     </div>
   );
 };

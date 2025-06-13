@@ -16,9 +16,9 @@ export function highlightJsonSyntax(rawJsonString: string): string {
 }
 
 export function applyInlineMarkdown(text: string): string {
-    let html = text.replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>');
+    let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     html = html.replace(/`([^`]+)`/g, '<code class="bg-[var(--ctp-surface0)] px-1 py-0.5 rounded text-xs text-[var(--ctp-peach)] shadow-inner">$1</code>');
-    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold text-[var(--ctp-text)]">$1</strong>');
-    html = html.replace(/\*([^*]+)\*/g, '<em class="italic text-[var(--ctp-subtext1)]">$1</em>');
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold text-[var(--ctp-crust)]">$1</strong>');
+    html = html.replace(/\*([^*]+)\*/g, '<em class="italic text-[var(--ctp-mantle)]">$1</em>');
     return html;
 }
