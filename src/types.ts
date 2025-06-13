@@ -12,6 +12,14 @@ export interface OBSSource {
   inputKind?: string;
 }
 
+export interface OBSData {
+  scenes: OBSScene[];
+  currentProgramScene: string | null;
+  sources: OBSSource[];
+  streamStatus: OBSStreamStatus | null;
+  videoSettings: OBSVideoSettings | null;
+}
+
 export interface OBSStreamStatus {
   outputActive: boolean;
   outputReconnecting: boolean;
@@ -47,6 +55,9 @@ export interface ChatMessage {
   text: string;
   timestamp: Date;
   sources?: GroundingChunk[];
+  type?: "source-prompt";
+  sourcePrompt?: string;
+  showSuggestions?: boolean;
 }
 
 export interface GroundingChunk {
@@ -95,7 +106,7 @@ export const catppuccinMochaColors = {
 
 export type CatppuccinColorName = keyof typeof catppuccinMochaColors;
 
-export type CatppuccinAccentColorName = 
+export type CatppuccinAccentColorName =
   | 'sky' | 'mauve' | 'pink' | 'green' | 'teal' | 'peach' | 'yellow' | 'red' | 'flamingo' | 'rosewater' | 'sapphire' | 'blue' | 'lavender';
 
 export const catppuccinAccentColorsHexMap: Record<CatppuccinAccentColorName, string> = {

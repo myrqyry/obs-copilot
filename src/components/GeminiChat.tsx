@@ -1,18 +1,26 @@
 import React, { useState, useCallback, useRef, useEffect, useLayoutEffect } from 'react';
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/solid';
 import { gsap } from 'gsap';
-import { GoogleGenAI, GenerateContentResponse, Content } from '@google/genai';
+import { GoogleGenAI } from '@google/genai';
 import { Button } from './common/Button';
 import { TextInput } from './common/TextInput';
 import { LoadingSpinner } from './common/LoadingSpinner';
+import { useObsActions } from '../hooks/useObsActions';
 import { GEMINI_MODEL_NAME, INITIAL_SYSTEM_PROMPT } from '../constants';
-import { ChatMessage as BaseChatMessage, GroundingChunk, OBSScene, OBSSource, OBSStreamStatus, OBSVideoSettings, CatppuccinAccentColorName, AppTab } from '../types';
+import { getRandomSuggestions } from '../constants/chatSuggestions';
+import {
+  ChatMessage,
+  OBSScene,
+  OBSSource,
+  OBSStreamStatus,
+  OBSVideoSettings,
+  CatppuccinAccentColorName,
+  AppTab
+} from '../types';
+import type {
+  GeminiActionResponse
+} from '../types/obsActions';
 import { OBSWebSocketService } from '../services/obsService';
-
-interface ChatMessage extends BaseChatMessage {
-  type?: "source-prompt";
-  sourcePrompt?: string;
-}
 
 interface GeminiChatProps {
   geminiApiKeyFromInput?: string;
@@ -31,7 +39,6 @@ interface GeminiChatProps {
   chatInputValue: string;
   onChatInputChange: (value: string) => void;
   accentColorName?: CatppuccinAccentColorName;
-
   messages: ChatMessage[];
   onAddMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
   isGeminiClientInitialized: boolean;
@@ -39,322 +46,8 @@ interface GeminiChatProps {
   onSetIsGeminiClientInitialized: (status: boolean) => void;
   onSetGeminiInitializationError: (error: string | null) => void;
   activeTab: AppTab;
-  streamerName: string | null; // <-- Added new prop
-  setGeminiStatus: (status: { status: 'initializing' | 'connected' | 'error' | 'unavailable' | 'missing-key'; message: string } | null) => void;
+  streamerName: string | null;
 }
-
-interface GeminiActionResponse {
-  obsAction?: ObsAction;
-  responseText: string;
-  sources?: GroundingChunk[];
-}
-
-interface ObsActionBase {
-  type: string;
-}
-
-interface CreateInputAction extends ObsActionBase {
-  type: "createInput";
-  inputName: string;
-  inputKind: string;
-  inputSettings?: object;
-  sceneName?: string;
-  sceneItemEnabled?: boolean;
-}
-
-interface SetInputSettingsAction extends ObsActionBase {
-  type: "setInputSettings";
-  inputName: string;
-  inputSettings: object;
-  overlay?: boolean;
-}
-
-interface SetSceneItemEnabledAction extends ObsActionBase {
-  type: "setSceneItemEnabled";
-  sceneName: string;
-  sourceName: string;
-  sceneItemEnabled: boolean;
-  enabled?: boolean;
-}
-
-interface GetInputSettingsAction extends ObsActionBase {
-  type: "getInputSettings";
-  inputName: string;
-}
-
-interface GetSceneItemListAction extends ObsActionBase {
-  type: "getSceneItemList";
-  sceneName: string;
-}
-
-interface SetCurrentProgramSceneAction extends ObsActionBase {
-  type: "setCurrentProgramScene";
-  sceneName: string;
-}
-
-interface SetVideoSettingsAction extends ObsActionBase {
-  type: "setVideoSettings";
-  videoSettings: OBSVideoSettings;
-}
-
-interface CreateSceneAction extends ObsActionBase {
-  type: "createScene";
-  sceneName: string;
-}
-
-interface RemoveInputAction extends ObsActionBase {
-  type: "removeInput";
-  inputName: string;
-}
-
-interface SetSceneItemTransformAction extends ObsActionBase {
-  type: "setSceneItemTransform";
-  sceneName: string;
-  sourceName: string;
-  transform: {
-    positionX?: number;
-    positionY?: number;
-    scaleX?: number;
-    scaleY?: number;
-    rotation?: number;
-    alignment?: number;
-  };
-}
-
-interface CreateSourceFilterAction extends ObsActionBase {
-  type: "createSourceFilter";
-  sourceName: string;
-  filterName: string;
-  filterKind: string;
-  filterSettings?: object;
-}
-
-interface SetInputVolumeAction extends ObsActionBase {
-  type: "setInputVolume";
-  inputName: string;
-  inputVolumeMul?: number;
-  inputVolumeDb?: number;
-}
-
-interface SetInputMuteAction extends ObsActionBase {
-  type: "setInputMute";
-  inputName: string;
-  inputMuted: boolean;
-}
-
-interface StartVirtualCamAction extends ObsActionBase {
-  type: "startVirtualCam";
-}
-
-interface StopVirtualCamAction extends ObsActionBase {
-  type: "stopVirtualCam";
-}
-
-interface SaveScreenshotAction extends ObsActionBase {
-  type: "saveScreenshot";
-  imageFormat: string;
-  imageFilePath: string;
-  imageWidth?: number;
-  imageHeight?: number;
-}
-
-interface StartReplayBufferAction extends ObsActionBase {
-  type: "startReplayBuffer";
-}
-
-interface SaveReplayBufferAction extends ObsActionBase {
-  type: "saveReplayBuffer";
-}
-
-interface SetSourceFilterIndexAction extends ObsActionBase {
-  type: "setSourceFilterIndex";
-  sourceName: string;
-  filterName: string;
-  filterIndex: number;
-}
-
-interface SetSourceFilterNameAction extends ObsActionBase {
-  type: "setSourceFilterName";
-  sourceName: string;
-  filterName: string;
-  newFilterName: string;
-}
-
-interface DuplicateSourceFilterAction extends ObsActionBase {
-  type: "duplicateSourceFilter";
-  sourceName: string;
-  filterName: string;
-  newFilterName: string;
-}
-
-interface TriggerStudioModeTransitionAction extends ObsActionBase {
-  type: "triggerStudioModeTransition";
-}
-
-interface SetInputAudioMonitorTypeAction extends ObsActionBase {
-  type: "setInputAudioMonitorType";
-  inputName: string;
-  monitorType: "OBS_MONITORING_TYPE_NONE" | "OBS_MONITORING_TYPE_MONITOR_ONLY" | "OBS_MONITORING_TYPE_MONITOR_AND_OUTPUT";
-}
-
-interface SetSceneItemBlendModeAction extends ObsActionBase {
-  type: "setSceneItemBlendMode";
-  sceneName: string;
-  sourceName: string;
-  blendMode: string;
-}
-
-interface SetSceneNameAction extends ObsActionBase {
-  type: "setSceneName";
-  sceneName: string; // The current name of the scene
-  newSceneName: string; // The new name for the scene
-}
-
-interface RefreshBrowserSourceAction extends ObsActionBase {
-  type: "refreshBrowserSource";
-  inputName: string;
-}
-
-interface GetLogFileListAction extends ObsActionBase {
-  type: "getLogFileList";
-}
-
-interface GetLogFileAction extends ObsActionBase {
-  type: "getLogFile";
-  logFile: string;
-}
-
-interface SetStudioModeEnabledAction extends ObsActionBase {
-  type: "setStudioModeEnabled";
-  enabled: boolean;
-}
-
-interface ToggleStudioModeAction extends ObsActionBase {
-  type: "toggleStudioMode";
-}
-
-interface TriggerHotkeyByNameAction extends ObsActionBase {
-  type: "triggerHotkeyByName";
-  hotkeyName: string;
-}
-
-interface TriggerHotkeyByKeySequenceAction extends ObsActionBase {
-  type: "triggerHotkeyByKeySequence";
-  keyId: string;
-  keyModifiers: { shift: boolean, control: boolean, alt: boolean, command: boolean };
-}
-
-interface ToggleStreamAction extends ObsActionBase {
-  type: "toggleStream";
-}
-
-interface ToggleRecordAction extends ObsActionBase {
-  type: "toggleRecord";
-}
-
-interface GetSourceFilterListAction extends ObsActionBase {
-  type: "getSourceFilterList";
-  sourceName: string;
-}
-
-interface GetSourceFilterDefaultSettingsAction extends ObsActionBase {
-  type: "getSourceFilterDefaultSettings";
-  filterKind: string;
-}
-
-interface GetSourceFilterSettingsAction extends ObsActionBase {
-  type: "getSourceFilterSettings";
-  sourceName: string;
-  filterName: string;
-}
-
-interface SetSourceFilterSettingsAction extends ObsActionBase {
-  type: "setSourceFilterSettings";
-  sourceName: string;
-  filterName: string;
-  filterSettings: object;
-  overlay?: boolean;
-}
-
-interface SetSourceFilterEnabledAction extends ObsActionBase {
-  type: "setSourceFilterEnabled";
-  sourceName: string;
-  filterName: string;
-  filterEnabled: boolean;
-}
-
-interface RemoveSourceFilterAction extends ObsActionBase {
-  type: "removeSourceFilter";
-  sourceName: string;
-  filterName: string;
-}
-
-interface GetInputDefaultSettingsAction extends ObsActionBase {
-  type: "getInputDefaultSettings";
-  inputKind: string;
-}
-
-interface GetOutputListAction extends ObsActionBase { type: "getOutputList"; }
-interface GetOutputStatusAction extends ObsActionBase { type: "getOutputStatus"; outputName: string; }
-interface StartOutputAction extends ObsActionBase { type: "startOutput"; outputName: string; }
-interface StopOutputAction extends ObsActionBase { type: "stopOutput"; outputName: string; }
-interface GetOutputSettingsAction extends ObsActionBase { type: "getOutputSettings"; outputName: string; }
-interface SetOutputSettingsAction extends ObsActionBase { type: "setOutputSettings"; outputName: string; outputSettings: Record<string, any>; }
-interface GetSceneTransitionListAction extends ObsActionBase { type: "getSceneTransitionList"; }
-interface GetCurrentSceneTransitionAction extends ObsActionBase { type: "getCurrentSceneTransition"; }
-interface SetCurrentSceneTransitionAction extends ObsActionBase { type: "setCurrentSceneTransition"; transitionName: string; }
-interface SetSceneTransitionDurationAction extends ObsActionBase { type: "setSceneTransitionDuration"; transitionDuration: number; }
-interface GetSceneTransitionCursorAction extends ObsActionBase { type: "getSceneTransitionCursor"; }
-interface GetMediaInputStatusAction extends ObsActionBase { type: "getMediaInputStatus"; inputName: string; }
-interface SetMediaInputCursorAction extends ObsActionBase { type: "setMediaInputCursor"; inputName: string; mediaCursor: number; }
-interface OffsetMediaInputCursorAction extends ObsActionBase { type: "offsetMediaInputCursor"; inputName: string; mediaCursorOffset: number; }
-interface TriggerMediaInputActionAction extends ObsActionBase { type: "triggerMediaInputAction"; inputName: string; mediaAction: string; }
-interface GetCurrentPreviewSceneAction extends ObsActionBase { type: "getCurrentPreviewScene"; }
-interface SetCurrentPreviewSceneAction extends ObsActionBase { type: "setCurrentPreviewScene"; sceneName: string; }
-interface GetSceneItemLockedAction extends ObsActionBase { type: "getSceneItemLocked"; sceneName: string; sceneItemId: number; }
-interface SetSceneItemLockedAction extends ObsActionBase { type: "setSceneItemLocked"; sceneName: string; sceneItemId: number; sceneItemLocked: boolean; }
-interface GetSceneItemIndexAction extends ObsActionBase { type: "getSceneItemIndex"; sceneName: string; sceneItemId: number; }
-interface SetSceneItemIndexAction extends ObsActionBase { type: "setSceneItemIndex"; sceneName: string; sceneItemId: number; sceneItemIndex: number; }
-interface CreateSceneItemAction extends ObsActionBase { type: "createSceneItem"; sceneName: string; sourceName: string; sceneItemEnabled?: boolean; }
-interface RemoveSceneItemAction extends ObsActionBase { type: "removeSceneItem"; sceneName: string; sceneItemId: number; }
-interface GetStatsAction extends ObsActionBase { type: "getStats"; }
-interface GetVersionAction extends ObsActionBase { type: "getVersion"; }
-interface GetHotkeyListAction extends ObsActionBase { type: "getHotkeyList"; }
-interface GetInputPropertiesListPropertyItemsAction extends ObsActionBase { type: "getInputPropertiesListPropertyItems"; inputName: string; propertyName: string; }
-interface PressInputPropertiesButtonAction extends ObsActionBase { type: "pressInputPropertiesButton"; inputName: string; propertyName: string; }
-interface GetInputAudioBalanceAction extends ObsActionBase { type: "getInputAudioBalance"; inputName: string; }
-interface SetInputAudioBalanceAction extends ObsActionBase { type: "setInputAudioBalance"; inputName: string; inputAudioBalance: number; }
-interface GetInputAudioSyncOffsetAction extends ObsActionBase { type: "getInputAudioSyncOffset"; inputName: string; }
-interface SetInputAudioSyncOffsetAction extends ObsActionBase { type: "setInputAudioSyncOffset"; inputName: string; inputAudioSyncOffset: number; }
-interface GetInputAudioTracksAction extends ObsActionBase { type: "getInputAudioTracks"; inputName: string; }
-interface SetInputAudioTracksAction extends ObsActionBase { type: "setInputAudioTracks"; inputName: string; inputAudioTracks: Record<string, boolean>; }
-interface DuplicateSceneAction extends ObsActionBase { type: "duplicateScene"; sceneName: string; duplicateSceneName?: string; }
-interface GetSourceScreenshotAction extends ObsActionBase { type: "getSourceScreenshot"; sourceName: string; imageFormat: string; imageWidth?: number; imageHeight?: number; imageCompressionQuality?: number; }
-interface SetCurrentSceneTransitionSettingsAction extends ObsActionBase { type: "setCurrentSceneTransitionSettings"; transitionSettings: object; overlay?: boolean; }
-interface OpenInputPropertiesDialogAction extends ObsActionBase { type: "openInputPropertiesDialog"; inputName: string; }
-interface OpenInputFiltersDialogAction extends ObsActionBase { type: "openInputFiltersDialog"; inputName: string; }
-interface OpenInputInteractDialogAction extends ObsActionBase { type: "openInputInteractDialog"; inputName: string; }
-
-
-type ObsAction =
-  | CreateInputAction | SetInputSettingsAction | SetSceneItemEnabledAction | GetInputSettingsAction | GetSceneItemListAction
-  | SetCurrentProgramSceneAction | SetVideoSettingsAction | CreateSceneAction | RemoveInputAction | SetSceneItemTransformAction
-  | CreateSourceFilterAction | SetInputVolumeAction | SetInputMuteAction | StartVirtualCamAction | StopVirtualCamAction
-  | SaveScreenshotAction | StartReplayBufferAction | SaveReplayBufferAction | SetSourceFilterIndexAction | SetSourceFilterNameAction
-  | DuplicateSourceFilterAction | TriggerStudioModeTransitionAction | SetInputAudioMonitorTypeAction | SetSceneItemBlendModeAction
-  | RefreshBrowserSourceAction | GetLogFileListAction | GetLogFileAction | ToggleStudioModeAction | SetStudioModeEnabledAction | TriggerHotkeyByNameAction
-  | TriggerHotkeyByKeySequenceAction | GetSourceFilterListAction | GetSourceFilterDefaultSettingsAction | GetSourceFilterSettingsAction
-  | SetSourceFilterSettingsAction | SetSourceFilterEnabledAction | RemoveSourceFilterAction | ToggleStreamAction | ToggleRecordAction
-  | GetInputDefaultSettingsAction | GetOutputListAction | GetOutputStatusAction | StartOutputAction | StopOutputAction
-  | GetOutputSettingsAction | SetOutputSettingsAction | GetSceneTransitionListAction | GetCurrentSceneTransitionAction
-  | SetCurrentSceneTransitionAction | SetSceneTransitionDurationAction | GetSceneTransitionCursorAction | GetMediaInputStatusAction
-  | SetMediaInputCursorAction | OffsetMediaInputCursorAction | TriggerMediaInputActionAction | GetCurrentPreviewSceneAction
-  | SetCurrentPreviewSceneAction | GetSceneItemLockedAction | SetSceneItemLockedAction | GetSceneItemIndexAction
-  | SetSceneItemIndexAction | CreateSceneItemAction | RemoveSceneItemAction | GetStatsAction | GetVersionAction
-  | GetHotkeyListAction | GetInputPropertiesListPropertyItemsAction | PressInputPropertiesButtonAction | GetInputAudioBalanceAction
-  | SetInputAudioBalanceAction | GetInputAudioSyncOffsetAction | SetInputAudioSyncOffsetAction | GetInputAudioTracksAction
-  | SetInputAudioTracksAction | DuplicateSceneAction | GetSourceScreenshotAction | SetCurrentSceneTransitionSettingsAction
-  | OpenInputPropertiesDialogAction | OpenInputFiltersDialogAction | OpenInputInteractDialogAction | SetSceneNameAction;
 
 function highlightJsonSyntax(rawJsonString: string): string {
   let htmlEscapedJsonString = rawJsonString
@@ -374,91 +67,78 @@ function highlightJsonSyntax(rawJsonString: string): string {
 }
 
 function applyInlineMarkdown(text: string): string {
-  let html = text.replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>');
-  html = html.replace(/` + "`" + `([^` + "`" + `]+)` + "`" + `/g, '<code class="bg-[var(--ctp-surface0)] px-1 py-0.5 rounded text-xs text-[var(--ctp-peach)] shadow-inner">$1</code>');
-  // Make **...** use the basic text color for system messages (used for OBS Action)
-  html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="text-[var(--ctp-base)] font-bold">$1</strong>');
-  html = html.replace(/\*(.*?)\*/g, '<em class="text-[var(--ctp-mauve)]">$1</em>');
+  let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  html = html.replace(/`([^`]+)`/g, '<code class="bg-[var(--ctp-surface0)] px-1 py-0.5 rounded text-xs text-[var(--ctp-peach)] shadow-inner">$1</code>');
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong class="text-[var(--ctp-base)] font-bold">$1</strong>');
+  html = html.replace(/\*([^*]+)\*/g, '<em class="text-[var(--ctp-mauve)]">$1</em>');
   html = html.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-[var(--ctp-sky)] hover:text-[var(--ctp-sapphire)] underline transition-colors">$1</a>');
   html = html.replace(/\n/g, '<br />');
   return html;
 }
 
 const MarkdownRenderer: React.FC<{ content: string }> = React.memo(({ content }) => {
-  const parts = [];
-  let lastIndex = 0;
-  const codeBlockRegex = /```(\w*)\s*\n?([\s\S]*?)\n?\s*```/g;
-  let match;
+  const processContent = useCallback((text: string) => {
+    const codeBlockRegex = /```(\w+)?\n?([\s\S]*?)```/g;
+    const parts: Array<{ type: 'text' | 'code', content: string, language?: string }> = [];
+    let lastIndex = 0;
+    let match;
 
-  while ((match = codeBlockRegex.exec(content)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push(applyInlineMarkdown(content.substring(lastIndex, match.index)));
+    while ((match = codeBlockRegex.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push({ type: 'text', content: text.slice(lastIndex, match.index) });
+      }
+      parts.push({ type: 'code', content: match[2] || '', language: match[1] || 'text' });
+      lastIndex = match.index + match[0].length;
     }
-    const lang = match[1]?.toLowerCase();
-    const rawCode = match[2];
-    let highlightedCode;
-    if (lang === 'json') {
-      highlightedCode = highlightJsonSyntax(rawCode);
-    } else {
-      highlightedCode = rawCode.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    if (lastIndex < text.length) {
+      parts.push({ type: 'text', content: text.slice(lastIndex) });
     }
-    parts.push(
-      `<pre class="bg-[var(--ctp-crust)] p-2.5 text-xs my-1.5 overflow-x-auto text-[var(--ctp-subtext1)] border border-[var(--ctp-surface1)] shadow-inner rounded-md leading-relaxed"><code class="language-${lang || ''}">${highlightedCode}</code></pre>`
-    );
-    lastIndex = codeBlockRegex.lastIndex;
-  }
 
-  if (lastIndex < content.length) {
-    parts.push(applyInlineMarkdown(content.substring(lastIndex)));
-  }
+    return parts;
+  }, []);
 
-  return <div dangerouslySetInnerHTML={{ __html: parts.join('') }} />;
+  const parts = processContent(content);
+
+  return (
+    <div className="markdown-content font-sans">
+      {parts.map((part, index) => (
+        <div key={index}>
+          {part.type === 'code' ? (
+            <div className="my-2">
+              <div className="text-xs text-[var(--ctp-overlay1)] mb-1 font-mono">
+                {part.language || 'code'}
+              </div>
+              <pre className="bg-[var(--ctp-crust)] p-2.5 text-xs overflow-x-auto text-[var(--ctp-subtext1)] border border-[var(--ctp-surface1)] shadow-inner rounded-md leading-tight font-mono">
+                <code
+                  className="text-[var(--ctp-text)] font-mono leading-tight"
+                  dangerouslySetInnerHTML={{
+                    __html: part.language === 'json' ? highlightJsonSyntax(part.content) : part.content
+                  }}
+                />
+              </pre>
+            </div>
+          ) : (
+            <div
+              className="text-[var(--ctp-base)] text-sm leading-tight font-sans"
+              dangerouslySetInnerHTML={{ __html: applyInlineMarkdown(part.content) }}
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  );
 });
 
-
-interface Suggestion {
-  id: string;
-  label: string;
-  prompt: string;
-  emoji?: string;
-}
-
-const allChatSuggestions: Suggestion[] = [
-  { id: "sg1", label: "Scene Sources?", prompt: "What are the sources in the current scene?", emoji: "🖼️" },
-  { id: "sg2", label: "Switch Scene", prompt: "Switch to another scene.", emoji: "🎬" },
-  { id: "sg3", label: "Create Text", prompt: "Create a text source in the current scene.", emoji: "✍️" },
-  { id: "sg4", label: "Apex Stream Ideas", prompt: "Suggest 3 stream ideas for playing Apex Legends.", emoji: "💡" },
-  { id: "sg5", label: "Hide Source", prompt: "Hide a source in the current scene.", emoji: "🙈" },
-  { id: "sg6", label: "Show Source", prompt: "Show a source in the current scene.", emoji: "👁️" },
-  { id: "sg7", label: "Stream/Record Status?", prompt: "What is the current status of my stream and recording?", emoji: "📡" },
-  { id: "sg8", label: "Set Text", prompt: "Set the text of a source in the current scene.", emoji: "💬" },
-  { id: "sg9", label: "Add Filter", prompt: "Add a color correction filter to a source.", emoji: "🎨" },
-  { id: "sg10", label: "30s Ad Script", prompt: "Can you give me a script for a 30-second ad read for a new energy drink?", emoji: "📜" },
-  { id: "sg11", label: "Royalty-Free Music?", prompt: "What are some good websites for royalty-free music for streaming?", emoji: "🎵" },
-  { id: "sg12", label: "Fix Audio Crackle", prompt: "I'm hearing audio crackling in OBS, what are common fixes?", emoji: "🛠️" },
-  { id: "sg13", label: "Canvas to 1080p?", prompt: "How do I change my OBS canvas resolution to 1920x1080?", emoji: "🎞️" },
-  { id: "sg14", label: "Duplicate Scene", prompt: "Duplicate the current scene.", emoji: "➕" },
-  { id: "sg15", label: "Screenshot Source", prompt: "Get a PNG screenshot of a source in the current scene.", emoji: "📸" },
-  { id: "sg16", label: "Transition Duration", prompt: "Set the current scene transition duration.", emoji: "⏱️" },
-  { id: "sg17", label: "Open Filters", prompt: "Open the filters dialog for a source.", emoji: "⚙️" },
-  { id: "sg18", label: "What's new in OBS?", prompt: "Using Google Search, tell me about the latest OBS Studio features.", emoji: "🔍" },
-  { id: "sg19", label: "List video settings", prompt: "What are my current video settings in OBS?", emoji: "⚙️" },
-  { id: "sg20", label: "Toggle Studio Mode", prompt: "Toggle OBS Studio Mode.", emoji: "🎭" },
-];
-
-const getRandomSuggestions = (count: number): Suggestion[] => {
-  const shuffled = [...allChatSuggestions].sort(() => 0.5 - Math.random());
-  return shuffled.slice(0, count);
-};
-
-const ChatMessageItem: React.FC<{
+const LocalChatMessageItem: React.FC<{
   message: ChatMessage;
   onSuggestionClick?: (prompt: string) => void;
   accentColorName?: CatppuccinAccentColorName;
   obsSources?: OBSSource[];
   onSourceSelect?: (sourceName: string) => void;
   flipSides: boolean;
-}> = ({ message, onSuggestionClick, accentColorName, obsSources, onSourceSelect, flipSides }) => {
+  showSuggestions?: boolean;
+}> = ({ message, onSuggestionClick, accentColorName: _, obsSources, onSourceSelect, flipSides, showSuggestions = false }) => {
   const itemRef = useRef<HTMLDivElement>(null);
   const [isShrunk, setIsShrunk] = useState(false);
   const [forceExpand, setForceExpand] = useState(false);
@@ -481,12 +161,9 @@ const ChatMessageItem: React.FC<{
         setIsShrunk(false);
       }
     }
-  }, [message.text, forceExpand]);
+  }, [message, forceExpand]);
 
-  // Show suggestions if this is the Gemini welcome message
-  const isGeminiWelcome = message.role === 'system' && /Gemini Assistant connected/i.test(message.text);
-
-  function handleBubbleScroll(event: React.UIEvent<HTMLDivElement>) {
+  const handleBubbleScroll = (event: React.UIEvent<HTMLDivElement>) => {
     const target = event.target as HTMLDivElement;
     setIsScrolling(true);
     setIsScrolledFromTop(target.scrollTop > 10);
@@ -497,43 +174,42 @@ const ChatMessageItem: React.FC<{
 
     clearTimeout((handleBubbleScroll as any)._scrollTimeout);
     (handleBubbleScroll as any)._scrollTimeout = setTimeout(() => setIsScrolling(false), 1000);
-  }
+  };
+
+  const isUser = message.role === 'user';
+  const isSystem = message.role === 'system';
+
+  // System messages are always centered
+  const containerClasses = isSystem ? 'justify-center' : flipSides
+    ? (isUser ? 'justify-start' : 'justify-end')
+    : (isUser ? 'justify-end' : 'justify-start');
 
   return (
-    <div
-      ref={itemRef}
-      className={`flex ${(message.role === 'user' && !flipSides) || (message.role === 'model' && flipSides)
-        ? 'justify-end'
-        : (message.role === 'model' && !flipSides) || (message.role === 'user' && flipSides)
-          ? 'justify-start'
-          : 'justify-center'
-        }`}
-    >
+    <div ref={itemRef} className={`flex ${containerClasses} mb-3 font-sans`}>
       <div
         className={`chat-message max-w-xl rounded-2xl shadow-xl border border-[var(--ctp-surface2)] bg-[var(--ctp-surface0)] relative
-          ${message.role === 'system'
+          ${isSystem
             ? 'px-4 py-2 text-xs font-extrabold leading-tight'
-            : 'p-4 leading-relaxed'}
+            : 'p-4 leading-tight'}
         `}
         style={{
-          backgroundColor: message.role === 'user' ? 'var(--user-chat-bubble-color)' :
-            message.role === 'model' ? 'var(--model-chat-bubble-color)' :
-              'var(--dynamic-secondary-accent)',
+          backgroundColor: isSystem ? 'var(--dynamic-secondary-accent)' :
+            (isUser ? 'var(--user-chat-bubble-color)' : 'var(--model-chat-bubble-color)'),
           color: 'var(--ctp-base)',
-          fontStyle: message.role === 'system' ? 'italic' : 'normal',
-          fontSize: message.role === 'system' ? '0.85rem' : '1rem',
+          fontStyle: isSystem ? 'italic' : 'normal',
+          fontSize: isSystem ? '0.85rem' : '1rem',
           position: 'relative',
-          ['--bubble-scrollbar-thumb' as any]: message.role === 'user'
+          ['--bubble-scrollbar-thumb' as any]: isUser
             ? 'var(--user-chat-bubble-color)'
             : message.role === 'model'
               ? 'var(--model-chat-bubble-color)'
               : 'var(--dynamic-secondary-accent)',
-          ['--bubble-scrollbar-thumb-hover' as any]: message.role === 'user'
+          ['--bubble-scrollbar-thumb-hover' as any]: isUser
             ? 'var(--ctp-blue)'
             : message.role === 'model'
               ? 'var(--ctp-lavender)'
               : 'var(--dynamic-secondary-accent)',
-          ['--bubble-fade-color' as any]: message.role === 'user'
+          ['--bubble-fade-color' as any]: isUser
             ? 'var(--user-chat-bubble-color)'
             : message.role === 'model'
               ? 'var(--model-chat-bubble-color)'
@@ -549,67 +225,71 @@ const ChatMessageItem: React.FC<{
             `}
             onScroll={isShrunk ? handleBubbleScroll : undefined}
           >
-            <MarkdownRenderer content={message.text} />
-            {message.type === "source-prompt" && obsSources && onSourceSelect && (
-              <div className="mt-2">
-                <div className="text-xs mb-1 text-[var(--ctp-base)] text-opacity-70">Select a source:</div>
-                <div className="flex flex-wrap gap-1">
-                  {obsSources.map((src) => (
-                    <Button
-                      key={src.sourceName}
-                      onClick={() => onSourceSelect(src.sourceName)}
-                      variant="secondary"
-                      size="sm"
-                      accentColorName={accentColorName}
-                      className="bg-[var(--dynamic-secondary-accent)] hover:bg-[var(--dynamic-accent)] text-[var(--ctp-crust)] border border-[var(--ctp-surface0)] shadow-[0_2px_8px_0_rgba(0,0,0,0.10)] text-xs transition-colors ring-1 ring-[var(--ctp-overlay1)] ring-inset"
-                      title={src.sourceName}
+            {message.type === "source-prompt" && obsSources && onSourceSelect ? (
+              <div>
+                <div className="text-base text-[var(--ctp-base)] mb-3 font-semibold font-sans">{message.text}</div>
+                <div className="flex flex-wrap gap-2">
+                  {obsSources.map((source) => (
+                    <button
+                      key={source.sourceName}
+                      onClick={() => onSourceSelect(source.sourceName)}
+                      className="source-select-btn flex items-center min-w-[140px] px-4 py-2 text-base font-sans font-medium bg-[var(--ctp-surface0)] text-[var(--ctp-base)] border border-[var(--ctp-surface2)] rounded-lg shadow-sm transition-all duration-200 hover:bg-[var(--dynamic-accent)] hover:text-[var(--ctp-base)] hover:border-[var(--dynamic-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--dynamic-accent)] focus:z-10"
+                      style={{ letterSpacing: '0.01em', lineHeight: 1.2 }}
+                      tabIndex={0}
+                      aria-label={`Select source ${source.sourceName}`}
                     >
-                      {src.sourceName}
-                    </Button>
+                      <span className="font-mono text-[var(--ctp-text)] group-hover:text-[var(--ctp-base)] text-base truncate max-w-[8rem]">{source.sourceName}</span>
+                      <span className="text-[var(--ctp-subtext0)] ml-2 text-xs">({source.typeName || source.inputKind || 'Source'})</span>
+                    </button>
                   ))}
                 </div>
               </div>
-            )}
-            {isGeminiWelcome && onSuggestionClick && (
-              <div className="mt-2 pt-2 border-t border-[var(--ctp-surface1)]">
-                <div
-                  className="text-xs mt-1.5 text-[var(--ctp-base)] text-opacity-70 mb-1"
-                >
-                  Quick suggestions:
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  {getRandomSuggestions(3).map((suggestion) => (
-                    <Button
-                      key={suggestion.id}
-                      onClick={() => onSuggestionClick(suggestion.prompt)}
-                      variant="secondary"
-                      size="sm"
-                      accentColorName={accentColorName}
-                      className="bg-[var(--dynamic-secondary-accent)] hover:bg-[var(--dynamic-accent)] text-[var(--ctp-crust)] border border-[var(--ctp-surface0)] shadow-[0_2px_8px_0_rgba(0,0,0,0.10)] text-xs transition-colors ring-1 ring-[var(--ctp-overlay1)] ring-inset"
-                      title={suggestion.prompt}
-                    >
-                      {suggestion.emoji && <span className="emoji mr-1" role="img" aria-hidden="true">{suggestion.emoji}</span>}
-                      {suggestion.label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            )}
-            {message.role === 'model' && message.sources && message.sources.length > 0 && (
-              <div className="mt-2 pt-2 border-t border-[var(--ctp-surface1)] opacity-90">
-                <p className="text-xs font-semibold mb-1" style={{ color: 'var(--ctp-base)', opacity: 0.8 }}>Sources:</p>
-                <ul className="list-disc list-inside space-y-1">
-                  {message.sources.map((source, index) => source.web && (
-                    <li key={index} className="text-xs">
-                      <a href={source.web.uri} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--ctp-base)' }} className="underline hover:opacity-80">
-                        {source.web.title || source.web.uri}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
+            ) : (
+              <div className="relative">
+                <MarkdownRenderer content={message.text} />
+
+                {/* Show suggestion buttons for greeting system messages */}
+                {showSuggestions && isSystem && onSuggestionClick && (
+                  <div className="mt-3 pt-3 border-t border-[var(--ctp-yellow)] border-opacity-30">
+                    <div className="text-xs text-[var(--ctp-base)] text-opacity-70 mb-3 font-medium">✨ Try these commands:</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {getRandomSuggestions(4).map((suggestion) => (
+                        <button
+                          key={suggestion.id}
+                          onClick={() => onSuggestionClick(suggestion.prompt)}
+                          className="text-xs px-3 py-2 bg-[var(--ctp-surface0)] hover:bg-[var(--dynamic-accent)] hover:text-[var(--ctp-base)] rounded-md border border-[var(--ctp-surface2)] hover:border-[var(--dynamic-accent)] transition-all duration-200 text-left group"
+                        >
+                          <span className="mr-1.5 text-sm group-hover:scale-110 transition-transform duration-200 inline-block">{suggestion.emoji}</span>
+                          <span className="font-medium">{suggestion.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {message.sources && message.sources.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-[var(--ctp-surface2)]">
+                    <div className="text-xs text-[var(--ctp-base)] text-opacity-70 mb-2 font-medium">📚 Sources:</div>
+                    <div className="space-y-1">
+                      {message.sources.map((source, idx) => (
+                        <div key={idx} className="text-xs">
+                          <a
+                            href={source.web?.uri}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[var(--ctp-sky)] hover:text-[var(--ctp-sapphire)] hover:underline transition-colors duration-200"
+                          >
+                            🔗 {source.web?.title || source.web?.uri}
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
+
           {/* Top fade overlay when scrolled from top */}
           {isShrunk && isScrolledFromTop && (
             <div className="bubble-fade-top" />
@@ -619,10 +299,12 @@ const ChatMessageItem: React.FC<{
             <div className={`bubble-fade-bottom ${isScrolling ? 'opacity-30' : 'opacity-100'}`} />
           )}
         </div>
+
         {/* Timestamp outside of scrollable area */}
         <div className="text-xs mt-1.5 text-[var(--ctp-base)] text-opacity-70 relative z-20">
           {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>
+
         {/* Expand/collapse floating icon button (bottom right, more visible) */}
         {isShrunk && !forceExpand && (
           <button
@@ -651,7 +333,6 @@ const ChatMessageItem: React.FC<{
   );
 };
 
-
 export const GeminiChat: React.FC<GeminiChatProps> = ({
   geminiApiKeyFromInput,
   obsService,
@@ -667,499 +348,153 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
   geminiInitializationError,
   onSetIsGeminiClientInitialized,
   onSetGeminiInitializationError,
-  // activeTab,
-  streamerName, // <-- Destructure new prop
+  streamerName,
   flipSides,
-  // setFlipSides
 }) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [useGoogleSearch, setUseGoogleSearch] = useState<boolean>(false);
-  // const [displayedSuggestions, setDisplayedSuggestions] = useState<Suggestion[]>([]);
-  // const [showSuggestions, setShowSuggestions] = useState<boolean>(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const ai = useRef<GoogleGenAI | null>(null);
 
+  // Use the extracted OBS actions hook
+  const { handleObsAction } = useObsActions({
+    obsService,
+    obsData,
+    onRefreshData,
+    onAddMessage,
+    setErrorMessage
+  });
+
   useEffect(() => {
-    const effectiveApiKey = geminiApiKeyFromInput || process.env.API_KEY;
-    if (effectiveApiKey) {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  useEffect(() => {
+    if (geminiApiKeyFromInput) {
       try {
-        if (!ai.current || !isGeminiClientInitialized) {
-          ai.current = new GoogleGenAI({ apiKey: effectiveApiKey });
-          onSetIsGeminiClientInitialized(true);
-          onSetGeminiInitializationError(null);
+        ai.current = new GoogleGenAI({ apiKey: geminiApiKeyFromInput });
+        onSetIsGeminiClientInitialized(true);
+        onSetGeminiInitializationError(null);
+
+        if (streamerName && messages.length === 0) {
+          const streamer = streamerName ? ` ${streamerName}` : '';
+          onAddMessage({
+            role: 'system',
+            text: `Gemini Assistant connected${streamer}! Ready for your commands! GLHF! ✨`,
+            showSuggestions: true
+          });
         }
-        // Only add a system message if there is NOT already a Gemini greeting system message
-        // Prevents double-greetings on mount/race conditions
-        const hasGeminiGreeting = messages.some(
-          (msg) =>
-            msg.role === 'system' &&
-            /Gemini Assistant connected/i.test(msg.text)
-        );
-        if (
-          !hasGeminiGreeting &&
-          isGeminiClientInitialized &&
-          !geminiInitializationError
-        ) {
-          let username = streamerName;
-          const streamer = username ? `, **${username}**` : '';
-          onAddMessage({ role: 'system', text: `Gemini Assistant connected${streamer}! Ready for your commands! GLHF! ✨` });
-        }
-      } catch (e: any) {
-        const errorMsg = `Failed to initialize Gemini client: ${(e as Error).message}. Ensure API Key is valid.`;
-        onSetGeminiInitializationError(errorMsg);
-        onSetIsGeminiClientInitialized(false);
-        ai.current = null;
+      } catch (error) {
+        console.error('Gemini client initialization error:', error);
+        const errorMsg = `❗ Failed to initialize Gemini: ${(error as Error).message}`;
         onAddMessage({ role: 'system', text: errorMsg });
+        onSetIsGeminiClientInitialized(false);
+        onSetGeminiInitializationError(errorMsg);
       }
     } else {
-      const errorMsg = "Gemini API Key must be configured. Gemini features are unavailable.";
-      onSetGeminiInitializationError(errorMsg);
       onSetIsGeminiClientInitialized(false);
-      ai.current = null;
-      onAddMessage({ role: 'system', text: errorMsg });
+      onSetGeminiInitializationError('❗ Missing Gemini API key. Please provide a valid API key to use Gemini features.');
     }
-  }, [geminiApiKeyFromInput, onSetIsGeminiClientInitialized, onSetGeminiInitializationError, isGeminiClientInitialized, geminiInitializationError, streamerName, onAddMessage, messages.length]);
+  }, [geminiApiKeyFromInput, onSetIsGeminiClientInitialized, onSetGeminiInitializationError, onAddMessage, streamerName]);
 
+  const buildObsSystemMessage = useCallback(() => {
+    const sceneNames = obsData.scenes.map(s => s.sceneName).join(', ');
+    const sourceNames = obsData.sources.map(s => s.sourceName).join(', ');
+    const currentScene = obsData.currentProgramScene || 'None';
+    const streamStatus = obsData.streamStatus ? `Active (${obsData.streamStatus.outputDuration}s)` : 'Inactive';
+    const videoRes = obsData.videoSettings ? `${obsData.videoSettings.baseWidth}x${obsData.videoSettings.baseHeight}` : 'Unknown';
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+    return `
+**OBS Context:**
+- Current Scene: ${currentScene}
+- Available Scenes: ${sceneNames}
+- Available Sources: ${sourceNames}
+- Stream Status: ${streamStatus}
+- Video Resolution: ${videoRes}
 
-  useEffect(scrollToBottom, [messages]);
+When user asks for OBS actions, respond with a JSON object in your response containing an "obsAction" field. Example:
+{
+  "obsAction": {
+    "type": "createInput",
+    "inputName": "My Text",
+    "inputKind": "text_gdiplus_v2",
+    "inputSettings": {"text": "Hello World"},
+    "sceneName": "Scene Name",
+    "sceneItemEnabled": true
+  }
+}
 
-  // useEffect(() => {
-  //   if (activeTab === AppTab.GEMINI || messages.length > 0) {
-  //     setDisplayedSuggestions(getRandomSuggestions(3));
-  //     setShowSuggestions(true);
-  //   }
-  // }, [activeTab, messages.length]);
-
-
-  const fetchObsContextString = useCallback(() => {
-    let context = "Current OBS Status:\n";
-    if (obsData.currentProgramScene) context += `- Active Scene: ${obsData.currentProgramScene}\n`;
-    else context += "- No active scene currently selected.\n";
-
-    if (obsData.scenes.length > 0) context += `- Available Scenes: ${obsData.scenes.map(s => s.sceneName).join(', ')}\n`;
-    else context += "- No scenes found in OBS.\n";
-
-    if (obsData.currentProgramScene && obsData.sources.length > 0) {
-      context += `- Sources in active scene '${obsData.currentProgramScene}': ${obsData.sources.map(s => s.sourceName + (s.sceneItemEnabled ? " (visible)" : " (hidden)")).join(', ')}\n`;
-    } else if (obsData.currentProgramScene) {
-      context += `- No sources found in the active scene '${obsData.currentProgramScene}'.\n`;
-    }
-
-    if (obsData.streamStatus) context += `- Streaming: ${obsData.streamStatus.outputActive ? 'Yes' : 'No'}\n`;
-    if (obsData.videoSettings) context += `- Output Resolution: ${obsData.videoSettings.outputWidth}x${obsData.videoSettings.outputHeight} @ ${obsData.videoSettings.fpsNumerator / (obsData.videoSettings.fpsDenominator || 1)} FPS\n`;
-    return context;
+Use these action types: createInput, setInputSettings, setSceneItemEnabled, getInputSettings, getSceneItemList, setCurrentProgramScene, setVideoSettings, createScene, removeInput, setSceneItemTransform, createSourceFilter, setInputVolume, setInputMute, etc.
+`;
   }, [obsData]);
 
   const handleSend = async () => {
-    if (!chatInputValue.trim() || !isGeminiClientInitialized || !ai.current) {
-      if (!ai.current && !geminiInitializationError) {
-        onSetGeminiInitializationError("Gemini client not ready. Please ensure API key is set and valid.");
-      }
-      return;
-    }
+    if (!chatInputValue.trim() || !ai.current || isLoading) return;
 
-    const userMessageText = chatInputValue;
-    onAddMessage({ role: 'user', text: userMessageText });
-    onChatInputChange('');
+    const userMessageText = chatInputValue.trim();
     setIsLoading(true);
-    setErrorMessage(null);
-
-    const obsContext = fetchObsContextString();
-    const historyForApi: Content[] = messages
-      .slice(-10)
-      .filter(msg => msg.role === 'user' || msg.role === 'model')
-      .map(msg => ({
-        role: msg.role as 'user' | 'model',
-        parts: [{ text: msg.text }]
-      }));
-
-    const contentsForApi: Content[] = [
-      ...historyForApi,
-      { role: 'user', parts: [{ text: `${obsContext}\n\nUser query: ${userMessageText}` }] }
-    ];
+    onChatInputChange('');
+    onAddMessage({ role: 'user', text: userMessageText });
 
     try {
-      const modelService = ai.current.models;
-      const generationConfig: any = {};
+      let finalPrompt = userMessageText;
+      const systemPrompt = useGoogleSearch
+        ? `${INITIAL_SYSTEM_PROMPT}\n\nYou can use Google Search to find current information. When you need to search for something, include it in your response. Focus on providing helpful, accurate, and up-to-date information.`
+        : `${INITIAL_SYSTEM_PROMPT}\n\n${buildObsSystemMessage()}`;
 
       if (useGoogleSearch) {
-        generationConfig.tools = [{ googleSearch: {} }];
-      } else {
-        generationConfig.responseMimeType = "application/json";
-        generationConfig.systemInstruction = { role: "system", parts: [{ text: INITIAL_SYSTEM_PROMPT }] };
+        finalPrompt = `Please search for information about: ${userMessageText}`;
       }
 
-      const result: GenerateContentResponse = await modelService.generateContent({
+      const response = await ai.current.models.generateContent({
         model: GEMINI_MODEL_NAME,
-        contents: contentsForApi,
-        config: generationConfig,
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: `${systemPrompt}\n\n${finalPrompt}` }]
+          }
+        ]
       });
 
-      let parsedResponse: GeminiActionResponse | null = null;
-      let modelResponseText = "Could not understand the response from Gemini.";
-      let responseSources: GroundingChunk[] | undefined = undefined;
+      let modelResponseText = response.text || 'No response received';
+      let responseSources: any[] | undefined;
 
-      if (useGoogleSearch && result.candidates && result.candidates[0]?.groundingMetadata?.groundingChunks) {
-        const apiChunks = result.candidates[0].groundingMetadata.groundingChunks;
-        responseSources = apiChunks
-          .filter(chunk => chunk.web && typeof chunk.web.uri === 'string' && typeof chunk.web.title === 'string')
-          .map(chunk => ({ web: { uri: chunk.web!.uri!, title: chunk.web!.title! } }));
+      if (response.candidates?.[0]?.groundingMetadata?.groundingChunks) {
+        responseSources = response.candidates[0].groundingMetadata.groundingChunks;
       }
 
-      if (useGoogleSearch) {
-        modelResponseText = result.text || "Gemini responded but without text.";
-        parsedResponse = { responseText: modelResponseText, sources: responseSources };
-      } else {
+      let displayText = modelResponseText;
+
+      if (!useGoogleSearch) {
         try {
-          let rawJsonText = (result.text || "").trim();
-          const fenceRegex = /^```(\w*)?\s*\n?([\s\S]*?)\n?\s*```$/s;
-          const match = fenceRegex.exec(rawJsonText);
-          if (match && match[2]) {
-            rawJsonText = match[2].trim();
+          // Try to extract a JSON block (```json ... ``` or {...})
+          const jsonMatch = modelResponseText.match(/```json\n([\s\S]*?)\n```/) || modelResponseText.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const jsonStr = jsonMatch[1] || jsonMatch[0];
+            const parsed: GeminiActionResponse = JSON.parse(jsonStr);
+            if (parsed.obsAction) {
+              await handleObsAction(parsed.obsAction);
+            }
+            // Prefer responseText for display if present
+            if (typeof parsed.responseText === 'string') {
+              displayText = parsed.responseText;
+            } else {
+              displayText = JSON.stringify(parsed, null, 2);
+            }
           }
-          parsedResponse = JSON.parse(rawJsonText) as GeminiActionResponse;
-          modelResponseText = parsedResponse?.responseText || "Gemini responded but without text.";
-        } catch (parseError: any) {
-          console.warn("Failed to parse Gemini JSON response, treating as plain text:", parseError, "Raw text:", result.text);
-          modelResponseText = result.text || "Gemini responded in an unexpected format.";
-          parsedResponse = { responseText: modelResponseText };
+        } catch (err) {
+          // If parsing fails, just show the original text
+          console.warn('No valid OBS action found in response:', err);
         }
       }
 
-      onAddMessage({ role: 'model', text: modelResponseText, sources: responseSources });
-
-      if (parsedResponse && parsedResponse.obsAction && !useGoogleSearch) {
-        await handleObsAction(parsedResponse.obsAction);
-      }
-
-    } catch (e: any) {
-      console.error("Gemini API error:", e);
-      const errorMessageText = (e as Error).message || "Failed to get response from Gemini.";
-      setErrorMessage(errorMessageText);
+      onAddMessage({ role: 'model', text: displayText, sources: responseSources });
+    } catch (error: any) {
+      console.error('Gemini API call failed:', error);
+      const errorMessageText = error?.message || 'Unknown error occurred';
       onAddMessage({ role: 'system', text: `❗ Gemini API Error: ${errorMessageText}` });
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleObsAction = async (action: ObsAction) => {
-    let actionAttemptMessage = `**OBS Action: \`${action.type}\`**\n\n⚙️ Attempting: ${action.type}...`;
-    let actionFeedback = "";
-    let additionalSystemMessage = "";
-
-    try {
-      switch (action.type) {
-        case 'createInput':
-          const createAction = action as CreateInputAction;
-          let sceneToAddTo = createAction.sceneName;
-          if (sceneToAddTo && !obsData.scenes.find(s => s.sceneName === sceneToAddTo)) {
-            actionFeedback += `\n⚠️ Scene "${sceneToAddTo}" not found. Trying current scene or creating globally.`;
-            sceneToAddTo = obsData.currentProgramScene || undefined;
-          }
-          await obsService.createInput(
-            createAction.inputName,
-            createAction.inputKind,
-            createAction.inputSettings,
-            sceneToAddTo,
-            createAction.sceneItemEnabled
-          );
-          actionFeedback += `\n✅ Successfully created input "${createAction.inputName}" of kind "${createAction.inputKind}".`;
-          break;
-        case 'setInputSettings':
-          const setSettingsAction = action as SetInputSettingsAction;
-          await obsService.setInputSettings(
-            setSettingsAction.inputName,
-            setSettingsAction.inputSettings,
-            setSettingsAction.overlay
-          );
-          actionFeedback = `\n✅ Successfully updated settings for input "${setSettingsAction.inputName}".`;
-          break;
-        case 'setSceneItemEnabled':
-          const targetAction = action as SetSceneItemEnabledAction;
-          const sceneItemId = await obsService.getSceneItemId(targetAction.sceneName, targetAction.sourceName);
-          if (sceneItemId === null) {
-            throw new Error(`Source "${targetAction.sourceName}" not found in scene "${targetAction.sceneName}".`);
-          }
-          const enabledValue = typeof targetAction.sceneItemEnabled === 'boolean'
-            ? targetAction.sceneItemEnabled
-            : !!targetAction.enabled;
-          await obsService.setSceneItemEnabled(targetAction.sceneName, sceneItemId, enabledValue);
-          actionFeedback = `\n✅ Successfully ${enabledValue ? 'enabled' : 'disabled'} "${targetAction.sourceName}" in scene "${targetAction.sceneName}".`;
-          break;
-        case 'getInputSettings':
-          const getSettingsAction = action as GetInputSettingsAction;
-          const settingsResponse = await obsService.getInputSettings(getSettingsAction.inputName);
-          actionFeedback = `\n✅ Fetched settings for input "${getSettingsAction.inputName}".`;
-          additionalSystemMessage = `ℹ️ Properties for input "${getSettingsAction.inputName}" (Kind: "${settingsResponse.inputKind}"):\n\`\`\`json\n${JSON.stringify(settingsResponse.inputSettings, null, 2)}\n\`\`\``;
-          break;
-        case 'getSceneItemList':
-          const getListAction = action as GetSceneItemListAction;
-          const listResponse = await obsService.getSceneItemList(getListAction.sceneName);
-          const itemsFormatted = listResponse.sceneItems.map(item => ({
-            name: item.sourceName,
-            id: item.sceneItemId,
-            enabled: item.sceneItemEnabled,
-            kind: item.inputKind || 'N/A'
-          }));
-          actionFeedback = `\n✅ Fetched items for scene "${getListAction.sceneName}".`;
-          additionalSystemMessage = `ℹ️ Items in scene "${getListAction.sceneName}":\n\`\`\`json\n${JSON.stringify(itemsFormatted, null, 2)}\n\`\`\``;
-          break;
-        case 'setCurrentProgramScene':
-          const setSceneAction = action as SetCurrentProgramSceneAction;
-          await obsService.setCurrentProgramScene(setSceneAction.sceneName);
-          actionFeedback = `\n✅ Successfully switched to scene "${setSceneAction.sceneName}".`;
-          break;
-        case 'setVideoSettings':
-          const setVideoAction = action as SetVideoSettingsAction;
-          await obsService.setVideoSettings(setVideoAction.videoSettings);
-          actionFeedback = `\n✅ Successfully updated video settings.`;
-          break;
-        case 'createScene':
-          const createSceneAction = action as CreateSceneAction;
-          await obsService.createScene(createSceneAction.sceneName);
-          actionFeedback = `\n✅ Successfully created scene "${createSceneAction.sceneName}".`;
-          break;
-        case 'removeInput':
-          const removeInputAction = action as RemoveInputAction;
-          await obsService.removeInput(removeInputAction.inputName);
-          actionFeedback = `\n✅ Successfully removed input "${removeInputAction.inputName}".`;
-          break;
-        case 'setSceneItemTransform':
-          const transformAction = action as SetSceneItemTransformAction;
-          const sceneItemIdTransform = await obsService.getSceneItemId(
-            transformAction.sceneName,
-            transformAction.sourceName
-          );
-          if (sceneItemIdTransform === null) {
-            throw new Error(`Source "${transformAction.sourceName}" not found in scene "${transformAction.sceneName}".`);
-          }
-          await obsService.setSceneItemTransform(
-            transformAction.sceneName,
-            sceneItemIdTransform,
-            transformAction.transform
-          );
-          actionFeedback = `\n✅ Successfully updated transform for "${transformAction.sourceName}" in scene "${transformAction.sceneName}".`;
-          break;
-        case 'createSourceFilter':
-          const filterAction = action as CreateSourceFilterAction;
-          await obsService.createSourceFilter(
-            filterAction.sourceName,
-            filterAction.filterName,
-            filterAction.filterKind,
-            filterAction.filterSettings
-          );
-          actionFeedback = `\n✅ Successfully created filter "${filterAction.filterName}" on source "${filterAction.sourceName}".`;
-          break;
-        case 'setInputVolume':
-          const volumeAction = action as SetInputVolumeAction;
-          await obsService.setInputVolume(volumeAction.inputName, volumeAction.inputVolumeMul, volumeAction.inputVolumeDb);
-          actionFeedback = `\n✅ Successfully set volume for input "${volumeAction.inputName}".`;
-          break;
-        case 'setInputMute':
-          const muteAction = action as SetInputMuteAction;
-          await obsService.setInputMute(muteAction.inputName, muteAction.inputMuted);
-          actionFeedback = `\n✅ Successfully ${muteAction.inputMuted ? 'muted' : 'unmuted'} input "${muteAction.inputName}".`;
-          break;
-        case 'startVirtualCam': await obsService.startVirtualCam(); actionFeedback = `\n✅ Successfully started virtual camera.`; break;
-        case 'stopVirtualCam': await obsService.stopVirtualCam(); actionFeedback = `\n✅ Successfully stopped virtual camera.`; break;
-        case 'saveScreenshot': actionFeedback = `\n❌ Screenshot functionality is not available: saveScreenshot is not implemented in OBSWebSocketService.`; break;
-        case 'startReplayBuffer': await obsService.startReplayBuffer(); actionFeedback = `\n✅ Successfully started replay buffer.`; break;
-        case 'saveReplayBuffer': await obsService.saveReplayBuffer(); actionFeedback = `\n✅ Successfully saved replay buffer.`; break;
-        case 'triggerStudioModeTransition': await obsService.triggerStudioModeTransition(); actionFeedback = `\n✅ Successfully triggered studio mode transition.`; break;
-        case 'setInputAudioMonitorType':
-          const monitorAction = action as SetInputAudioMonitorTypeAction;
-          await obsService.setInputAudioMonitorType(monitorAction.inputName, monitorAction.monitorType);
-          actionFeedback = `\n✅ Audio monitoring for "${monitorAction.inputName}" set to "${monitorAction.monitorType}".`;
-          break;
-        case 'setSceneItemBlendMode':
-          const blendAction = action as SetSceneItemBlendModeAction;
-          const sceneItemIdBlend = await obsService.getSceneItemId(blendAction.sceneName, blendAction.sourceName);
-          if (sceneItemIdBlend === null) throw new Error(`Source "${blendAction.sourceName}" not found in scene "${blendAction.sceneName}".`);
-          await obsService.setSceneItemBlendMode(blendAction.sceneName, sceneItemIdBlend, blendAction.blendMode);
-          actionFeedback = `\n✅ Blend mode for "${blendAction.sourceName}" set to "${blendAction.blendMode}".`;
-          break;
-        case 'refreshBrowserSource':
-          await obsService.refreshBrowserSource((action as RefreshBrowserSourceAction).inputName);
-          actionFeedback = `\n✅ Refreshed browser source "${(action as RefreshBrowserSourceAction).inputName}".`;
-          break;
-        case 'getLogFileList':
-          try {
-            const logList = await obsService.getLogFileList();
-            actionFeedback = `\n✅ Retrieved OBS log file list.`;
-            additionalSystemMessage = `\`\`\`json\n${JSON.stringify(logList, null, 2)}\n\`\`\``;
-          } catch (error: any) {
-            actionFeedback = `\n❌ ${error.message}`;
-            additionalSystemMessage = `**How to access OBS logs:**\n\n1. In OBS Studio, go to **Help** → **Log Files** → **View Current Log**\n2. Or find log files in your system:\n   - **Windows**: \`%APPDATA%\\obs-studio\\logs\`\n   - **macOS**: \`~/Library/Application Support/obs-studio/logs\`\n   - **Linux**: \`~/.config/obs-studio/logs\``;
-          }
-          break;
-        case 'getLogFile':
-          try {
-            const logFileAction = action as GetLogFileAction;
-            const logFileContent = await obsService.getLogFile(logFileAction.logFile);
-            actionFeedback = `\n✅ Retrieved OBS log file "${logFileAction.logFile}".`;
-            additionalSystemMessage = `\`\`\`text\n${logFileContent.content || JSON.stringify(logFileContent, null, 2)}\n\`\`\``;
-          } catch (error: any) {
-            actionFeedback = `\n❌ ${error.message}`;
-            additionalSystemMessage = `**How to access OBS logs:**\n\n1. In OBS Studio, go to **Help** → **Log Files** → **View Current Log**\n2. Or find log files in your system:\n   - **Windows**: \`%APPDATA%\\obs-studio\\logs\`\n   - **macOS**: \`~/Library/Application Support/obs-studio/logs\`\n   - **Linux**: \`~/.config/obs-studio/logs\``;
-          }
-          break;
-        case "toggleStream": await obsService.toggleStream(); actionFeedback = "\n✅ Stream toggled!"; break;
-        case "toggleRecord": await obsService.toggleRecord(); actionFeedback = "\n✅ Record toggled!"; break;
-        case "toggleStudioMode": await obsService.toggleStudioMode(); actionFeedback = "\n✅ Studio mode toggled!"; break;
-        case "setStudioModeEnabled":
-          await obsService.setStudioModeEnabled((action as SetStudioModeEnabledAction).enabled);
-          actionFeedback = `\n✅ Studio mode ${(action as SetStudioModeEnabledAction).enabled ? "enabled" : "disabled"}!`;
-          break;
-        case "triggerHotkeyByName":
-          await obsService.triggerHotkeyByName((action as TriggerHotkeyByNameAction).hotkeyName);
-          actionFeedback = `\n✅ Hotkey "${(action as TriggerHotkeyByNameAction).hotkeyName}" triggered!`;
-          break;
-        case "triggerHotkeyByKeySequence":
-          const hotkeyAction = action as TriggerHotkeyByKeySequenceAction;
-          await obsService.triggerHotkeyByKeySequence(hotkeyAction.keyId, hotkeyAction.keyModifiers);
-          actionFeedback = `\n✅ Hotkey sequence triggered!`;
-          break;
-        case "getSourceFilterList":
-          const filterList = await obsService.getSourceFilterList((action as GetSourceFilterListAction).sourceName);
-          actionFeedback = `\n✅ Got filter list for source "${(action as GetSourceFilterListAction).sourceName}".`;
-          additionalSystemMessage = `\`\`\`json\n${JSON.stringify(filterList, null, 2)}\n\`\`\``;
-          break;
-        case "getSourceFilterDefaultSettings":
-          const defaultFilterSettings = await obsService.getSourceFilterDefaultSettings((action as GetSourceFilterDefaultSettingsAction).filterKind);
-          actionFeedback = `\n✅ Got default settings for filter kind "${(action as GetSourceFilterDefaultSettingsAction).filterKind}".`;
-          additionalSystemMessage = `\`\`\`json\n${JSON.stringify(defaultFilterSettings, null, 2)}\n\`\`\``;
-          break;
-        case "getSourceFilterSettings":
-          const getFilterSettings = action as GetSourceFilterSettingsAction;
-          const filterSettings = await obsService.getSourceFilterSettings(getFilterSettings.sourceName, getFilterSettings.filterName);
-          actionFeedback = `\n✅ Got settings for filter "${getFilterSettings.filterName}" on source "${getFilterSettings.sourceName}".`;
-          additionalSystemMessage = `\`\`\`json\n${JSON.stringify(filterSettings, null, 2)}\n\`\`\``;
-          break;
-        case "setSourceFilterSettings":
-          const setFilterSettings = action as SetSourceFilterSettingsAction;
-          await obsService.setSourceFilterSettings(setFilterSettings.sourceName, setFilterSettings.filterName, setFilterSettings.filterSettings, setFilterSettings.overlay);
-          actionFeedback = "\n✅ Filter settings updated.";
-          break;
-        case "setSourceFilterEnabled":
-          const setFilterEnabled = action as SetSourceFilterEnabledAction;
-          await obsService.setSourceFilterEnabled(setFilterEnabled.sourceName, setFilterEnabled.filterName, setFilterEnabled.filterEnabled);
-          actionFeedback = `\n✅ Filter "${setFilterEnabled.filterName}" ${setFilterEnabled.filterEnabled ? "enabled" : "disabled"}.`;
-          break;
-        case "removeSourceFilter":
-          const removeFilter = action as RemoveSourceFilterAction;
-          await obsService.removeSourceFilter(removeFilter.sourceName, removeFilter.filterName);
-          actionFeedback = `\n✅ Filter "${removeFilter.filterName}" removed.`;
-          break;
-        case "setSourceFilterIndex":
-          const setFilterIndex = action as SetSourceFilterIndexAction;
-          await obsService.setSourceFilterIndex(setFilterIndex.sourceName, setFilterIndex.filterName, setFilterIndex.filterIndex);
-          actionFeedback = `\n✅ Filter "${setFilterIndex.filterName}" moved to index ${setFilterIndex.filterIndex}.`;
-          break;
-        case "setSourceFilterName":
-          const setFilterName = action as SetSourceFilterNameAction;
-          await obsService.setSourceFilterName(setFilterName.sourceName, setFilterName.filterName, setFilterName.newFilterName);
-          actionFeedback = `\n✅ Filter renamed to "${setFilterName.newFilterName}".`;
-          break;
-        case "duplicateSourceFilter":
-          const dupFilter = action as DuplicateSourceFilterAction;
-          await obsService.duplicateSourceFilter(dupFilter.sourceName, dupFilter.filterName, dupFilter.newFilterName);
-          actionFeedback = `\n✅ Filter duplicated as "${dupFilter.newFilterName}".`;
-          break;
-        case "getInputDefaultSettings":
-          const defaultSettings = await obsService.getInputDefaultSettings((action as GetInputDefaultSettingsAction).inputKind);
-          actionFeedback = `\n✅ Got default input settings for kind "${(action as GetInputDefaultSettingsAction).inputKind}".`;
-          additionalSystemMessage = `\`\`\`json\n${JSON.stringify(defaultSettings, null, 2)}\n\`\`\``;
-          break;
-        case "getOutputList":
-          const outputList = await obsService.getOutputList();
-          actionFeedback = "\n✅ Retrieved output list.";
-          additionalSystemMessage = `\`\`\`json\n${JSON.stringify(outputList, null, 2)}\n\`\`\``;
-          break;
-        case "getOutputStatus":
-          const outputStatusAction = action as GetOutputStatusAction;
-          const outputStatus = await obsService.getOutputStatus(outputStatusAction.outputName);
-          actionFeedback = `\n✅ Retrieved status for output "${outputStatusAction.outputName}".`;
-          additionalSystemMessage = `\`\`\`json\n${JSON.stringify(outputStatus, null, 2)}\n\`\`\``;
-          break;
-        case "startOutput":
-          await obsService.startOutput((action as StartOutputAction).outputName);
-          actionFeedback = `\n✅ Started output "${(action as StartOutputAction).outputName}".`;
-          break;
-        case "stopOutput":
-          await obsService.stopOutput((action as StopOutputAction).outputName);
-          actionFeedback = `\n✅ Stopped output "${(action as StopOutputAction).outputName}".`;
-          break;
-        case "getOutputSettings":
-          const getOutputSettingsAction = action as GetOutputSettingsAction;
-          const outputSettings = await obsService.getOutputSettings(getOutputSettingsAction.outputName);
-          actionFeedback = `\n✅ Retrieved settings for output "${getOutputSettingsAction.outputName}".`;
-          additionalSystemMessage = `\`\`\`json\n${JSON.stringify(outputSettings, null, 2)}\n\`\`\``;
-          break;
-        case "setOutputSettings":
-          const setOutputSettingsAction = action as SetOutputSettingsAction;
-          await obsService.setOutputSettings(setOutputSettingsAction.outputName, setOutputSettingsAction.outputSettings);
-          actionFeedback = `\n✅ Updated settings for output "${setOutputSettingsAction.outputName}".`;
-          break;
-        case 'duplicateScene':
-          const dupSceneAction = action as DuplicateSceneAction;
-          await obsService.duplicateScene(dupSceneAction.sceneName, dupSceneAction.duplicateSceneName);
-          actionFeedback = `\n✅ Scene "${dupSceneAction.sceneName}" duplicated${dupSceneAction.duplicateSceneName ? ` as "${dupSceneAction.duplicateSceneName}"` : ''}.`;
-          break;
-        case 'getSourceScreenshot':
-          const screenshotAction = action as GetSourceScreenshotAction;
-          const screenshotData = await obsService.getSourceScreenshot(
-            screenshotAction.sourceName,
-            screenshotAction.imageFormat,
-            screenshotAction.imageWidth,
-            screenshotAction.imageHeight,
-            screenshotAction.imageCompressionQuality
-          );
-          actionFeedback = `\n✅ Screenshot for source "${screenshotAction.sourceName}" fetched.`;
-          additionalSystemMessage = `ℹ️ Screenshot data for "${screenshotAction.sourceName}" (format: ${screenshotAction.imageFormat}) received by the application. Image data is ${screenshotData.imageData ? screenshotData.imageData.length : 0} characters long.`;
-          break;
-        case 'setCurrentSceneTransitionSettings':
-          const transSettingsAction = action as SetCurrentSceneTransitionSettingsAction;
-          await obsService.setCurrentSceneTransitionSettings(transSettingsAction.transitionSettings, transSettingsAction.overlay);
-          actionFeedback = `\n✅ Current scene transition settings updated.`;
-          break;
-        case 'openInputPropertiesDialog':
-          await obsService.openInputPropertiesDialog((action as OpenInputPropertiesDialogAction).inputName);
-          actionFeedback = `\n✅ Properties dialog for input "${(action as OpenInputPropertiesDialogAction).inputName}" requested to open.`;
-          break;
-        case 'openInputFiltersDialog':
-          await obsService.openInputFiltersDialog((action as OpenInputFiltersDialogAction).inputName);
-          actionFeedback = `\n✅ Filters dialog for input "${(action as OpenInputFiltersDialogAction).inputName}" requested to open.`;
-          break;
-        case 'openInputInteractDialog':
-          await obsService.openInputInteractDialog((action as OpenInputInteractDialogAction).inputName);
-          actionFeedback = `\n✅ Interact dialog for input "${(action as OpenInputInteractDialogAction).inputName}" requested to open.`;
-          break;
-        case 'setSceneName':
-          const setNameAction = action as SetSceneNameAction;
-          await obsService.setSceneName(setNameAction.sceneName, setNameAction.newSceneName);
-          actionFeedback = `\n✅ Successfully renamed scene "${setNameAction.sceneName}" to "${setNameAction.newSceneName}".`;
-          break;
-        default:
-          const unknownActionType = (action as any).type;
-          actionFeedback = `\n❌ Unsupported OBS action type: ${unknownActionType}`;
-          throw new Error(`Unsupported OBS action type: ${unknownActionType}`);
-      }
-      actionAttemptMessage += `${actionFeedback}`;
-      if (additionalSystemMessage) {
-        actionAttemptMessage += `\n\n---\n${additionalSystemMessage}`;
-      }
-      onAddMessage({ role: 'system', text: actionAttemptMessage });
-      await onRefreshData();
-    } catch (err: any) {
-      console.error(`OBS Action "${action.type}" failed:`, err);
-      const failureFeedback = `\n❗ Failed to execute OBS action "${action.type}": ${(err as Error).message || 'Unknown error'}`;
-      actionAttemptMessage += `${failureFeedback}`;
-      onAddMessage({ role: 'system', text: actionAttemptMessage });
-      setErrorMessage(`OBS Action "${action.type}" failed: ${(err as Error).message}`);
     }
   };
 
@@ -1172,11 +507,8 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
     "Open the filters dialog for a source."
   ];
 
-  // const [pendingSourcePrompt, setPendingSourcePrompt] = useState<string | null>(null);
-
   const handleSuggestionClick = (prompt: string) => {
     if (genericSourcePrompts.includes(prompt)) {
-      // Add a system message with type "source-prompt"
       onAddMessage({
         role: "system",
         text: "Select a source for this action:",
@@ -1189,16 +521,28 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
     }
   };
 
-  // This effect will run once when the streamerName is first fetched
-  // Remove duplicate greeting effect
-
   return (
     <div className="flex flex-col h-full bg-[var(--ctp-surface0)] rounded-lg shadow-lg border border-[var(--ctp-surface1)]">
-      <div className="p-2 border-b border-[var(--ctp-surface1)] text-base font-semibold emoji-text" style={{ color: 'var(--dynamic-accent)' }}><span className="emoji">✨</span> Gemini Assistant</div>
+      <div className="p-3 border-b border-[var(--ctp-surface1)] text-base font-semibold emoji-text bg-[var(--ctp-mantle)] rounded-t-lg font-sans" style={{ color: 'var(--dynamic-accent)' }}>
+        <div className="flex items-center space-x-2">
+          <span className="emoji text-lg font-emoji">✨</span>
+          <span className="font-sans">Gemini Assistant</span>
+          {!isGeminiClientInitialized && (
+            <span className="text-xs text-[var(--ctp-red)] bg-[var(--ctp-red)] bg-opacity-20 px-2 py-1 rounded-full font-sans">
+              Not Ready
+            </span>
+          )}
+          {isGeminiClientInitialized && (
+            <span className="text-xs text-[var(--ctp-green)] bg-[var(--ctp-green)] bg-opacity-20 px-2 py-1 rounded-full font-sans">
+              Connected
+            </span>
+          )}
+        </div>
+      </div>
 
       <div className="flex-grow p-2 space-y-2 overflow-y-auto">
         {messages.map((msg, idx) => (
-          <ChatMessageItem
+          <LocalChatMessageItem
             key={msg.id || idx}
             message={msg}
             onSuggestionClick={handleSuggestionClick}
@@ -1222,21 +566,25 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
                     specificPrompt = `Open the filters dialog for the source '${srcName}'`;
                   }
                   onChatInputChange(specificPrompt);
-                  // Optionally, remove the prompt message after selection
-                  // messages.splice(idx, 1);
                   document.getElementById('gemini-input')?.focus();
                 }
                 : undefined
             }
             flipSides={flipSides}
+            showSuggestions={msg.showSuggestions || false}
           />
         ))}
-        {isLoading && <div className="flex justify-center py-2"><LoadingSpinner size={5} /> <span className="ml-2 text-xs text-[var(--ctp-subtext0)]">Gemini is thinking...</span></div>}
+        {isLoading && (
+          <div className="flex justify-center items-center py-4">
+            <LoadingSpinner size={5} />
+            <span className="ml-3 text-sm text-[var(--ctp-subtext0)] animate-pulse">Gemini is thinking...</span>
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="p-2 border-t border-[var(--ctp-surface1)] bg-[var(--ctp-mantle)]">
-        <div className="flex items-center space-x-1.5">
+      <div className="p-3 border-t border-[var(--ctp-surface1)] bg-[var(--ctp-mantle)] rounded-b-lg">
+        <div className="flex items-center space-x-2">
           <TextInput
             id="gemini-input"
             type="text"
@@ -1244,9 +592,10 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
             onChange={(e) => onChatInputChange(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && !isLoading && isGeminiClientInitialized && handleSend()}
             placeholder={!isGeminiClientInitialized ? (geminiInitializationError || "Gemini not ready...") : "Ask Gemini or command OBS..."}
-            className="flex-grow text-xs"
+            className="flex-grow text-sm"
             disabled={isLoading || !isGeminiClientInitialized}
             accentColorName={accentColorName}
+            autoComplete="off"
           />
           <Button
             onClick={handleSend}
@@ -1255,25 +604,34 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
             size="sm"
             accentColorName={accentColorName}
           >
-            {isLoading ? 'Sending...' : 'Send'}
+            {isLoading ? (
+              <div className="flex items-center space-x-1">
+                <LoadingSpinner size={3} />
+                <span>Sending</span>
+              </div>
+            ) : (
+              '🚀 Send'
+            )}
           </Button>
         </div>
-        <div className="mt-1.5">
-          <label className="flex items-center space-x-1.5 text-xs text-[var(--ctp-subtext0)] cursor-pointer group">
+        <div className="mt-2">
+          <label className="flex items-center space-x-2 text-xs text-[var(--ctp-subtext0)] cursor-pointer group">
             <input
               type="checkbox"
               checked={useGoogleSearch}
               onChange={(e) => setUseGoogleSearch(e.target.checked)}
-              className="appearance-none h-3.5 w-3.5 border-2 border-[var(--ctp-surface2)] rounded-sm bg-[var(--ctp-surface0)]
-                           checked:bg-[var(--dynamic-accent)] checked:border-transparent focus:outline-none 
-                           focus:ring-2 focus:ring-offset-0 focus:ring-[var(--dynamic-accent)] focus:ring-opacity-50
-                           transition duration-150 group-hover:border-[var(--ctp-overlay1)]"
+              className="appearance-none h-4 w-4 border-2 border-[var(--ctp-surface2)] rounded-sm bg-[var(--ctp-surface0)]
+                         checked:bg-[var(--dynamic-accent)] checked:border-transparent focus:outline-none 
+                         focus:ring-2 focus:ring-offset-0 focus:ring-[var(--dynamic-accent)] focus:ring-opacity-50
+                         transition duration-150 group-hover:border-[var(--ctp-overlay1)]"
               disabled={!isGeminiClientInitialized}
             />
-            <span className="group-hover:text-[var(--ctp-text)]">Use Google Search 🌍 (disables OBS actions)</span>
+            <span className="group-hover:text-[var(--ctp-text)] transition-colors duration-200">
+              <span className="mr-1">🌍</span>
+              Use Google Search <span className="text-[var(--ctp-subtext1)]">(disables OBS actions)</span>
+            </span>
           </label>
         </div>
-        {/* Suggestions moved to Gemini welcome message */}
       </div>
     </div>
   );

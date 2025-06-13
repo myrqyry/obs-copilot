@@ -105,7 +105,11 @@ const App: React.FC = () => {
         addGeminiMessageInternal({ role: 'system', text: `❗ ${geminiInitializationError}` });
       } else if (isGeminiClientInitialized) {
         const streamer = streamerName ? `, **${streamerName}**` : '';
-        addGeminiMessageInternal({ role: 'system', text: `Gemini Assistant initialized${streamer}. Ready for your commands! GLHF! ✨` });
+        addGeminiMessageInternal({
+          role: 'system',
+          text: `Gemini Assistant initialized${streamer}. Ready for your commands! GLHF! ✨`,
+          showSuggestions: true
+        });
       } else if (!effectiveApiKey && !isGeminiClientInitialized) {
         // Only show Gemini API Key warning if OBS is connected but Gemini API key is missing
         if (isConnected && !geminiApiKey) {
@@ -340,7 +344,6 @@ const App: React.FC = () => {
           onSetGeminiInitializationError={setGeminiInitializationError}
           activeTab={activeTab}
           streamerName={streamerName}
-          setGeminiStatus={() => { }} // <-- Add this line as a no-op
           flipSides={flipSides}
           setFlipSides={setFlipSides}
         />;
