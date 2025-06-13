@@ -16,7 +16,8 @@
     "normalize-svg-path": "^1.1.0",
     "obs-websocket-js": "^5.0.6",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "zustand": "^5.0.5"
   },
   "devDependencies": {
     "@types/gsap": "^1.20.2",

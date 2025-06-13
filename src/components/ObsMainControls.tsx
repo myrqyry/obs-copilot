@@ -1,18 +1,14 @@
 
 
 import React from 'react';
-import { OBSScene, OBSSource, OBSStreamStatus, OBSRecordStatus, CatppuccinAccentColorName } from '../types';
+import { CatppuccinAccentColorName } from '../types';
 import { OBSWebSocketService } from '../services/obsService';
 import { Button } from './common/Button';
 import { LoadingSpinner } from './common/LoadingSpinner';
+import { useAppStore } from '../store/appStore';
 
 interface ObsMainControlsProps {
   obsService: OBSWebSocketService;
-  scenes: OBSScene[];
-  currentProgramScene: string | null;
-  sources: OBSSource[];
-  streamStatus: OBSStreamStatus | null;
-  recordStatus: OBSRecordStatus | null;
   onRefreshData: () => Promise<void>;
   setErrorMessage: (message: string | null) => void;
   onSendToGeminiContext: (contextText: string) => void;
@@ -21,16 +17,19 @@ interface ObsMainControlsProps {
 
 export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
   obsService,
-  scenes,
-  currentProgramScene,
-  sources,
-  streamStatus,
-  recordStatus,
   onRefreshData,
   setErrorMessage,
   onSendToGeminiContext,
   accentColorName
 }) => {
+  // Use Zustand for OBS state
+  const {
+    scenes,
+    currentProgramScene,
+    sources,
+    streamStatus,
+    recordStatus,
+  } = useAppStore();
   const [isLoading, setIsLoading] = React.useState(false);
 
   const handleAction = async (action: () => Promise<any>) => {
@@ -38,7 +37,7 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
     setErrorMessage(null);
     try {
       await action();
-      await onRefreshData(); 
+      await onRefreshData();
     } catch (error: any) {
       console.error("OBS Action Error:", error);
       setErrorMessage(`Action failed: ${error.message || 'Unknown error'}`);
@@ -52,7 +51,7 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
   };
 
   const toggleSourceVisibility = (sceneName: string, sceneItemId: number, enabled: boolean) => {
-     handleAction(() => obsService.setSceneItemEnabled(sceneName, sceneItemId, !enabled));
+    handleAction(() => obsService.setSceneItemEnabled(sceneName, sceneItemId, !enabled));
   };
 
   const toggleStream = () => {
@@ -71,19 +70,19 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
     }
   };
 
-  if (isLoading && !scenes.length && !currentProgramScene) { 
+  if (isLoading && !scenes.length && !currentProgramScene) {
     return <div className="flex justify-center items-center h-64"><LoadingSpinner size={12} /></div>;
   }
 
   return (
     <div className="space-y-3 p-1">
       <div className="bg-[var(--ctp-surface0)] p-2 rounded-lg shadow-lg border border-[var(--ctp-surface1)]">
-        <h3 className="text-base font-semibold mb-2" style={{ color: 'var(--dynamic-accent)'}}>📡 Stream & Record Controls</h3>
+        <h3 className="text-base font-semibold mb-2" style={{ color: 'var(--dynamic-accent)' }}>📡 Stream & Record Controls</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <Button 
-            onClick={toggleStream} 
-            variant={streamStatus?.outputActive ? 'danger' : 'success'} 
-            isLoading={isLoading} 
+          <Button
+            onClick={toggleStream}
+            variant={streamStatus?.outputActive ? 'danger' : 'success'}
+            isLoading={isLoading}
             className="w-full"
             title={streamStatus?.outputActive ? `Streaming for ${streamStatus.outputTimecode}` : 'Start Streaming'}
             accentColorName={accentColorName}
@@ -92,28 +91,28 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
             {streamStatus?.outputActive ? 'Stop Streaming' : 'Start Streaming'}
             {streamStatus?.outputActive && <span className="ml-1.5 text-xs opacity-80">({streamStatus.outputTimecode})</span>}
           </Button>
-          <Button 
-            onClick={toggleRecord} 
-            variant={recordStatus?.outputActive ? 'danger' : 'success'} 
-            isLoading={isLoading} 
+          <Button
+            onClick={toggleRecord}
+            variant={recordStatus?.outputActive ? 'danger' : 'success'}
+            isLoading={isLoading}
             className="w-full"
             title={recordStatus?.outputActive ? `Recording for ${recordStatus.outputTimecode}` : 'Start Recording'}
             accentColorName={accentColorName}
             size="sm"
           >
             {recordStatus?.outputActive ? 'Stop Recording' : 'Start Recording'}
-             {recordStatus?.outputActive && <span className="ml-1.5 text-xs opacity-80">({recordStatus.outputTimecode})</span>}
+            {recordStatus?.outputActive && <span className="ml-1.5 text-xs opacity-80">({recordStatus.outputTimecode})</span>}
           </Button>
         </div>
       </div>
 
       <div className="bg-[var(--ctp-surface0)] p-2 rounded-lg shadow-lg border border-[var(--ctp-surface1)]">
-        <h3 className="text-base font-semibold mb-2" style={{ color: 'var(--dynamic-accent)'}}>🎬 Scene Management</h3>
+        <h3 className="text-base font-semibold mb-2" style={{ color: 'var(--dynamic-accent)' }}>🎬 Scene Management</h3>
         {scenes.length === 0 && !isLoading && <p className="text-[var(--ctp-subtext0)] text-xs">No scenes found.</p>}
         <ul className="space-y-1 max-h-48 overflow-y-auto pr-1"> {/* Reduced max-h */}
-          {scenes.map(scene => (
-            <li key={scene.sceneName} 
-                className="flex justify-between items-center space-x-1 p-1 rounded-md hover:bg-[var(--ctp-surface1)] transition-all duration-150 ease-in-out">
+          {scenes.map((scene: import("../types").OBSScene) => (
+            <li key={scene.sceneName}
+              className="flex justify-between items-center space-x-1 p-1 rounded-md hover:bg-[var(--ctp-surface1)] transition-all duration-150 ease-in-out">
               <Button
                 onClick={() => handleSetCurrentScene(scene.sceneName)}
                 variant={scene.sceneName === currentProgramScene ? 'primary' : 'secondary'}
@@ -143,10 +142,10 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
 
       {currentProgramScene && (
         <div className="bg-[var(--ctp-surface0)] p-2 rounded-lg shadow-lg border border-[var(--ctp-surface1)]">
-          <h3 className="text-base font-semibold mb-2" style={{ color: 'var(--dynamic-accent)'}}>🖼️ Sources in '{currentProgramScene}'</h3>
+          <h3 className="text-base font-semibold mb-2" style={{ color: 'var(--dynamic-accent)' }}>🖼️ Sources in '{currentProgramScene}'</h3>
           {sources.length === 0 && !isLoading && <p className="text-[var(--ctp-subtext0)] text-xs">No sources in this scene.</p>}
           <ul className="space-y-1 max-h-48 overflow-y-auto pr-1"> {/* Reduced max-h */}
-            {sources.map(source => (
+            {sources.map((source: import("../types").OBSSource) => (
               <li key={source.sceneItemId} className="flex items-center justify-between p-1.5 bg-[var(--ctp-surface1)] rounded-md hover:bg-[var(--ctp-surface2)] transition-colors duration-150 ease-in-out">
                 <div className="flex items-center space-x-1 overflow-hidden mr-1">
                   <span className={`truncate text-xs ${source.sceneItemEnabled ? 'text-[var(--ctp-text)]' : 'text-[var(--ctp-overlay0)] line-through italic'}`}>
@@ -181,18 +180,18 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
           </ul>
         </div>
       )}
-       <div className="mt-2 flex justify-end"> {/* Reduced mt */}
-          <Button 
-            onClick={onRefreshData} 
-            variant="secondary" 
-            isLoading={isLoading} 
-            size="sm" 
-            title="Refresh all OBS data"
-            accentColorName={accentColorName}
-          >
-            Refresh Data 🔄
-          </Button>
-        </div>
+      <div className="mt-2 flex justify-end"> {/* Reduced mt */}
+        <Button
+          onClick={onRefreshData}
+          variant="secondary"
+          isLoading={isLoading}
+          size="sm"
+          title="Refresh all OBS data"
+          accentColorName={accentColorName}
+        >
+          Refresh Data 🔄
+        </Button>
+      </div>
     </div>
   );
 };

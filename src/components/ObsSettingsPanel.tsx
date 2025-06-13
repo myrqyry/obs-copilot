@@ -14,10 +14,10 @@ import { OBSWebSocketService } from '../services/obsService';
 import { Button } from './common/Button';
 import { TextInput } from './common/TextInput';
 import { LoadingSpinner } from './common/LoadingSpinner';
+import { useAppStore } from '../store/appStore';
 
 interface ObsSettingsPanelProps {
   obsService: OBSWebSocketService;
-  videoSettings: OBSVideoSettings | null;
   onSettingsChanged: () => Promise<void>;
   setErrorMessage: (message: string | null) => void;
 
@@ -39,7 +39,6 @@ interface ObsSettingsPanelProps {
 
 export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
   obsService,
-  videoSettings: initialVideoSettings,
   onSettingsChanged,
   setErrorMessage,
   selectedAccentColorName,
@@ -53,6 +52,8 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
   flipSides,
   setFlipSides
 }) => {
+  // Use Zustand for video settings
+  const { videoSettings: initialVideoSettings } = useAppStore();
   const [editableSettings, setEditableSettings] = useState<OBSVideoSettings | null>(initialVideoSettings);
   const [isLoading, setIsLoading] = useState(false);
 

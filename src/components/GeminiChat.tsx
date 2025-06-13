@@ -5,35 +5,26 @@ import { GoogleGenAI } from '@google/genai';
 import { Button } from './common/Button';
 import { TextInput } from './common/TextInput';
 import { LoadingSpinner } from './common/LoadingSpinner';
-import { useObsActions } from '../hooks/useObsActions';
+// Removed useObsActions import - now using store directly
 import { GEMINI_MODEL_NAME, INITIAL_SYSTEM_PROMPT } from '../constants';
 import { getRandomSuggestions } from '../constants/chatSuggestions';
 import {
   ChatMessage,
-  OBSScene,
-  OBSSource,
-  OBSStreamStatus,
-  OBSVideoSettings,
   CatppuccinAccentColorName,
-  AppTab
+  AppTab,
+  OBSSource
 } from '../types';
 import type {
   GeminiActionResponse
 } from '../types/obsActions';
 import { OBSWebSocketService } from '../services/obsService';
+import { useAppStore } from '../store/appStore';
 
 interface GeminiChatProps {
   geminiApiKeyFromInput?: string;
   obsService: OBSWebSocketService;
   flipSides: boolean;
   setFlipSides: (value: boolean) => void;
-  obsData: {
-    scenes: OBSScene[];
-    currentProgramScene: string | null;
-    sources: OBSSource[];
-    streamStatus: OBSStreamStatus | null;
-    videoSettings: OBSVideoSettings | null;
-  };
   onRefreshData: () => Promise<void>;
   setErrorMessage: (message: string | null) => void;
   chatInputValue: string;
@@ -336,7 +327,6 @@ const LocalChatMessageItem: React.FC<{
 export const GeminiChat: React.FC<GeminiChatProps> = ({
   geminiApiKeyFromInput,
   obsService,
-  obsData,
   onRefreshData,
   setErrorMessage,
   chatInputValue,
@@ -351,19 +341,14 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
   streamerName,
   flipSides,
 }) => {
+  // Use Zustand for OBS data and actions
+  const { scenes, currentProgramScene, sources, streamStatus, videoSettings, handleObsAction } = useAppStore();
+  const obsData = { scenes, currentProgramScene, sources, streamStatus, videoSettings };
+
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [useGoogleSearch, setUseGoogleSearch] = useState<boolean>(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const ai = useRef<GoogleGenAI | null>(null);
-
-  // Use the extracted OBS actions hook
-  const { handleObsAction } = useObsActions({
-    obsService,
-    obsData,
-    onRefreshData,
-    onAddMessage,
-    setErrorMessage
-  });
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -398,8 +383,8 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
   }, [geminiApiKeyFromInput, onSetIsGeminiClientInitialized, onSetGeminiInitializationError, onAddMessage, streamerName]);
 
   const buildObsSystemMessage = useCallback(() => {
-    const sceneNames = obsData.scenes.map(s => s.sceneName).join(', ');
-    const sourceNames = obsData.sources.map(s => s.sourceName).join(', ');
+    const sceneNames = obsData.scenes.map((s: any) => s.sceneName).join(', ');
+    const sourceNames = obsData.sources.map((s: any) => s.sourceName).join(', ');
     const currentScene = obsData.currentProgramScene || 'None';
     const streamStatus = obsData.streamStatus ? `Active (${obsData.streamStatus.outputDuration}s)` : 'Inactive';
     const videoRes = obsData.videoSettings ? `${obsData.videoSettings.baseWidth}x${obsData.videoSettings.baseHeight}` : 'Unknown';
@@ -473,7 +458,14 @@ Use these action types: createInput, setInputSettings, setSceneItemEnabled, getI
             const jsonStr = jsonMatch[1] || jsonMatch[0];
             const parsed: GeminiActionResponse = JSON.parse(jsonStr);
             if (parsed.obsAction) {
-              await handleObsAction(parsed.obsAction);
+              const result = await handleObsAction(parsed.obsAction);
+              if (result.success) {
+                onAddMessage({ role: 'system', text: result.message });
+              } else {
+                onAddMessage({ role: 'system', text: result.message });
+                setErrorMessage(`OBS Action failed: ${result.error}`);
+              }
+              await onRefreshData();
             }
             // Prefer responseText for display if present
             if (typeof parsed.responseText === 'string') {
