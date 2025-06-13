@@ -1,3 +1,95 @@
+/* Custom scrollbars - Catppuccin Mocha */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--ctp-mantle);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--ctp-surface2);
+  border-radius: 6px;
+  border: 3px solid var(--ctp-mantle);
+  /* Creates padding around thumb */
+}
+
+/* Top fade effect for chat bubbles when scrolled from top */
+.bubble-fade-top {
+  pointer-events: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2.5rem;
+  z-index: 30;
+  background: linear-gradient(to bottom, var(--bubble-fade-color, var(--ctp-base)) 10%, rgba(0, 0, 0, 0) 100%);
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 1;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--ctp-overlay0);
+}
+
+/* For Firefox */
+* {
+  scrollbar-width: auto;
+  /* Or 'thin' */
+  scrollbar-color: var(--ctp-surface2) var(--ctp-mantle);
+  /* thumb track */
+}
+
+/* Updated scrollbar styles for better visibility and modern look */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--bubble-scrollbar-thumb, var(--ctp-surface2)) transparent;
+  scrollbar-gutter: stable;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+  background: transparent;
+  opacity: 0;
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, var(--bubble-scrollbar-thumb, var(--ctp-surface2)), var(--ctp-overlay1));
+  border-radius: 8px;
+  border: 2px solid rgba(0, 0, 0, 0.05);
+  min-height: 40px;
+  opacity: 0.85;
+  transition: background 0.2s, opacity 0.2s;
+  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.10);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, var(--bubble-scrollbar-thumb-hover, var(--ctp-overlay1)), var(--ctp-mauve));
+  opacity: 1;
+}
+
+.custom-scrollbar.scrolling::-webkit-scrollbar {
+  opacity: 1;
+}
+
+/* Chat bubble fade effect - applied to the scrollable content area */
+.chat-scrollable-content {
+  position: relative;
+}
+
+.chat-scrollable-content.shrunk::after {
+  display: none;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -55,36 +147,6 @@ body {
   text-rendering: optimizeLegibility;
   /* Force text variant for numbers and regular characters */
   font-variant-emoji: text;
-}
-
-/* Custom scrollbars - Catppuccin Mocha */
-::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--ctp-mantle);
-  border-radius: 6px;
-}
-
-::-webkit-scrollbar-thumb {
-  background-color: var(--ctp-surface2);
-  border-radius: 6px;
-  border: 3px solid var(--ctp-mantle);
-  /* Creates padding around thumb */
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background-color: var(--ctp-overlay0);
-}
-
-/* For Firefox */
-* {
-  scrollbar-width: auto;
-  /* Or 'thin' */
-  scrollbar-color: var(--ctp-surface2) var(--ctp-mantle);
-  /* thumb track */
 }
 
 /* Logo Animations - Replaced with GSAP-based animations */
@@ -159,4 +221,22 @@ body {
 
 .animate-modal-appear {
   animation: modal-appear 0.3s forwards;
+}
+
+/* Updated fade effect for chat bubbles */
+.bubble-fade-bottom {
+  pointer-events: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2.5rem;
+  z-index: 30;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, var(--bubble-fade-color, var(--ctp-base)) 100%);
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 1;
+}
+
+.bubble-fade-bottom--hidden {
+  opacity: 0;
 }

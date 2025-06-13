@@ -28,9 +28,11 @@ import { OBSWebSocketService } from './services/obsService';
 import { DEFAULT_OBS_WEBSOCKET_URL } from './constants';
 import { AnimatedTitleLogos } from './components/common/AnimatedTitleLogos';
 import { ConnectionStatusIcon } from './components/ConnectionStatusIcon';
+// Removed GeminiStatusPopup import
 
 const App: React.FC = () => {
   const [obs, setObs] = useState<OBSWebSocket | null>(null);
+  const [flipSides, setFlipSides] = useState<boolean>(false);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
   const [connectError, setConnectError] = useState<string | null>(null);
@@ -42,6 +44,7 @@ const App: React.FC = () => {
   const [streamStatus, setStreamStatus] = useState<OBSStreamStatus | null>(null);
   const [recordStatus, setRecordStatus] = useState<OBSRecordStatus | null>(null);
   const [videoSettings, setVideoSettings] = useState<OBSVideoSettings | null>(null);
+  const [streamerName, setStreamerName] = useState<string | null>(null);
 
   const [activeTab, setActiveTab] = useState<AppTab>(AppTab.GEMINI);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -59,6 +62,8 @@ const App: React.FC = () => {
   const [geminiMessages, setGeminiMessages] = useState<ChatMessage[]>([]);
   const [isGeminiClientInitialized, setIsGeminiClientInitialized] = useState<boolean>(false);
   const [geminiInitializationError, setGeminiInitializationError] = useState<string | null>(null);
+
+  // Removed geminiStatus state
 
   const tabContentRef = useRef<HTMLDivElement>(null);
   const tabOrder: AppTab[] = [AppTab.GEMINI, AppTab.CONTROLS, AppTab.SETTINGS];
@@ -85,13 +90,22 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const effectiveApiKey = geminiApiKey || process.env.API_KEY;
-    const initialMessageExists = geminiMessages.some(m => m.role === 'system' && (m.text.includes("Gemini Assistant initialized") || m.text.includes("API Key must be configured") || m.text.includes("Failed to initialize Gemini client")));
+    const hasInitialMessage = geminiMessages.some(m =>
+      m.role === 'system' && (
+        m.text.includes("Gemini Assistant initialized") ||
+        m.text.includes("Gemini Assistant connected") ||
+        m.text.includes("API Key must be configured") ||
+        m.text.includes("Failed to initialize Gemini client")
+      )
+    );
 
-    if (!initialMessageExists) {
+    // Only show initial messages if no relevant system messages exist
+    if (!hasInitialMessage) {
       if (geminiInitializationError) {
         addGeminiMessageInternal({ role: 'system', text: `❗ ${geminiInitializationError}` });
       } else if (isGeminiClientInitialized) {
-        addGeminiMessageInternal({ role: 'system', text: "Gemini Assistant initialized. Ready for your commands! ✨" });
+        const streamer = streamerName ? `, **${streamerName}**` : '';
+        addGeminiMessageInternal({ role: 'system', text: `Gemini Assistant initialized${streamer}. Ready for your commands! GLHF! ✨` });
       } else if (!effectiveApiKey && !isGeminiClientInitialized) {
         // Only show Gemini API Key warning if OBS is connected but Gemini API key is missing
         if (isConnected && !geminiApiKey) {
@@ -155,12 +169,21 @@ const App: React.FC = () => {
   const fetchData = useCallback(async () => {
     if (!obsServiceInstance || !isConnected) return;
     try {
-      const [scenesData, currentProgramSceneData, streamStatusData, recordStatusData, videoSettingsData] = await Promise.all([
+      const [
+        scenesData,
+        currentProgramSceneData,
+        streamStatusData,
+        recordStatusData,
+        videoSettingsData,
+        streamerUsernameData // Changed variable name for clarity
+      ] = await Promise.all([
         obsServiceInstance.getSceneList(),
         obsServiceInstance.getCurrentProgramScene(),
         obsServiceInstance.getStreamStatus(),
         obsServiceInstance.getRecordStatus(),
         obsServiceInstance.getVideoSettings(),
+        // --- This is the only line you need to change ---
+        obsServiceInstance.getStreamerUsername(), // Use the new function here
       ]);
 
       setScenes(scenesData.scenes.map(s => ({
@@ -183,6 +206,7 @@ const App: React.FC = () => {
       } else {
         setSources([]);
       }
+      setStreamerName(streamerUsernameData); // This line remains the same!
       setConnectError(null);
     } catch (error: any) {
       console.error("Error fetching OBS data:", error);
@@ -295,6 +319,8 @@ const App: React.FC = () => {
           onUserChatBubbleColorNameChange={setSelectedUserChatBubbleColorName}
           selectedModelChatBubbleColorName={selectedModelChatBubbleColorName}
           onModelChatBubbleColorNameChange={setSelectedModelChatBubbleColorName}
+          flipSides={flipSides}
+          setFlipSides={setFlipSides}
         />;
       case AppTab.GEMINI:
         return <GeminiChat
@@ -313,6 +339,10 @@ const App: React.FC = () => {
           onSetIsGeminiClientInitialized={setIsGeminiClientInitialized}
           onSetGeminiInitializationError={setGeminiInitializationError}
           activeTab={activeTab}
+          streamerName={streamerName}
+          setGeminiStatus={() => { }} // <-- Add this line as a no-op
+          flipSides={flipSides}
+          setFlipSides={setFlipSides}
         />;
       default:
         return null;
@@ -356,6 +386,16 @@ const App: React.FC = () => {
       )}
 
       <main className="flex-grow overflow-y-auto p-2">
+        {/* Removed GeminiStatusPopup usage because it is undefined */}
+        {/* 
+        <GeminiStatusPopup
+          status={geminiStatus?.status ?? "unavailable"}
+          message={geminiStatus?.message ?? "Gemini Assistant is currently unavailable."}
+          accentColorName={selectedAccentColorName}
+          onClose={geminiStatus ? () => setGeminiStatus(null) : undefined}
+        />
+        */}
+
         {isConnectionModalOpen && (
           <Modal title="🔌 Connection Settings" onClose={() => setIsConnectionModalOpen(false)} accentColorName={selectedAccentColorName}>
             <ConnectionForm
@@ -388,7 +428,7 @@ const App: React.FC = () => {
         )}
 
         {isConnected ? (
-          <div ref={tabContentRef} key={activeTab} className="flex-grow flex flex-col min-h-0 h-full"> {/* Ensure GeminiChat can be h-full */}
+          <div ref={tabContentRef} key={activeTab} className="flex-grow flex flex-col min-h-0 h-full">
             {renderTabContent()}
           </div>
         ) : (

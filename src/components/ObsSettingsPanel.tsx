@@ -1,9 +1,9 @@
 
 
 import React, { useState, useEffect } from 'react';
-import { 
-  OBSVideoSettings, 
-  CatppuccinAccentColorName, 
+import {
+  OBSVideoSettings,
+  CatppuccinAccentColorName,
   catppuccinAccentColorsHexMap,
   CatppuccinSecondaryAccentColorName,
   catppuccinSecondaryAccentColorsHexMap,
@@ -20,10 +20,10 @@ interface ObsSettingsPanelProps {
   videoSettings: OBSVideoSettings | null;
   onSettingsChanged: () => Promise<void>;
   setErrorMessage: (message: string | null) => void;
-  
-  selectedAccentColorName: CatppuccinAccentColorName; 
+
+  selectedAccentColorName: CatppuccinAccentColorName;
   onAccentColorNameChange: (name: CatppuccinAccentColorName) => void;
-  
+
   selectedSecondaryAccentColorName: CatppuccinSecondaryAccentColorName;
   onSecondaryAccentColorNameChange: (name: CatppuccinSecondaryAccentColorName) => void;
 
@@ -32,11 +32,14 @@ interface ObsSettingsPanelProps {
 
   selectedModelChatBubbleColorName: CatppuccinChatBubbleColorName;
   onModelChatBubbleColorNameChange: (name: CatppuccinChatBubbleColorName) => void;
+
+  flipSides: boolean;
+  setFlipSides: (value: boolean) => void;
 }
 
-export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({ 
-  obsService, 
-  videoSettings: initialVideoSettings, 
+export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
+  obsService,
+  videoSettings: initialVideoSettings,
   onSettingsChanged,
   setErrorMessage,
   selectedAccentColorName,
@@ -46,7 +49,9 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
   selectedUserChatBubbleColorName,
   onUserChatBubbleColorNameChange,
   selectedModelChatBubbleColorName,
-  onModelChatBubbleColorNameChange
+  onModelChatBubbleColorNameChange,
+  flipSides,
+  setFlipSides
 }) => {
   const [editableSettings, setEditableSettings] = useState<OBSVideoSettings | null>(initialVideoSettings);
   const [isLoading, setIsLoading] = useState(false);
@@ -60,7 +65,7 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
     const { name, value } = e.target;
     setEditableSettings({
       ...editableSettings,
-      [name]: parseInt(value, 10) || 0, 
+      [name]: parseInt(value, 10) || 0,
     });
   };
 
@@ -70,7 +75,7 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
     setErrorMessage(null);
     try {
       await obsService.setVideoSettings(editableSettings);
-      await onSettingsChanged(); 
+      await onSettingsChanged();
     } catch (error: any) {
       console.error("Error saving video settings:", error);
       setErrorMessage(`Failed to save settings: ${error.message || 'Unknown error'}`);
@@ -78,7 +83,7 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
       setIsLoading(false);
     }
   };
-  
+
   const ColorChooser: React.FC<{
     label: string;
     colorsHexMap: Record<string, string>;
@@ -99,7 +104,7 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
               className={`w-5 h-5 rounded-full border-2 transition-all duration-150 focus:outline-none
                           ${selectedColorName === colorNameIter ? 'ring-2 ring-offset-2 ring-offset-[var(--ctp-base)]' : 'border-[var(--ctp-surface1)] hover:border-[var(--ctp-overlay0)]'}
                           focus:ring-[var(--dynamic-accent)]`} // Reduced size
-              style={{ 
+              style={{
                 backgroundColor: colorsHexMap[colorNameIter],
                 borderColor: selectedColorName === colorNameIter ? colorsHexMap[colorNameIter] : undefined
               }}
@@ -112,20 +117,20 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
   );
 
 
-  if (!editableSettings && !initialVideoSettings && !isLoading) { 
-     return <div className="flex justify-center items-center h-64"><LoadingSpinner size={10} /></div>;
+  if (!editableSettings && !initialVideoSettings && !isLoading) {
+    return <div className="flex justify-center items-center h-64"><LoadingSpinner size={10} /></div>;
   }
-  
-  if (!editableSettings && !isLoading) { 
-     return <p className="text-[var(--ctp-subtext0)] text-center p-4">🎥 Video settings not available or not loaded yet.</p>;
+
+  if (!editableSettings && !isLoading) {
+    return <p className="text-[var(--ctp-subtext0)] text-center p-4">🎥 Video settings not available or not loaded yet.</p>;
   }
 
 
   return (
     <div className="space-y-3 bg-[var(--ctp-surface0)] p-2 rounded-lg shadow-lg border border-[var(--ctp-surface1)]"> {/* Reduced p and space-y */}
-      <h3 className="text-lg font-semibold mb-2" style={{color: 'var(--dynamic-accent)'}}>🎨 Theme & 🎞️ Video Settings</h3> {/* Reduced mb */}
-      
-      <ColorChooser 
+      <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--dynamic-accent)' }}>🎨 Theme & 🎞️ Video Settings</h3> {/* Reduced mb */}
+
+      <ColorChooser
         label="🎨 Primary Accent Color"
         colorsHexMap={catppuccinAccentColorsHexMap}
         selectedColorName={selectedAccentColorName}
@@ -153,6 +158,18 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
         onColorNameChange={onModelChatBubbleColorNameChange}
         colorNameTypeGuard={(name): name is CatppuccinChatBubbleColorName => name in catppuccinChatBubbleColorsHexMap}
       />
+
+      <div className="flex items-center mt-2 mb-2">
+        <label className="flex items-center text-sm text-[var(--ctp-lavender)] cursor-pointer">
+          <input
+            type="checkbox"
+            checked={flipSides}
+            onChange={e => setFlipSides(e.target.checked)}
+            className="mr-2 accent-[var(--dynamic-accent)]"
+          />
+          Flip assistant/user chat sides
+        </label>
+      </div>
 
 
       {editableSettings ? (
@@ -226,14 +243,14 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
             />
           </div>
           <div className="mt-3 flex justify-end"> {/* Reduced mt */}
-            <Button 
-                onClick={handleSaveChanges} 
-                isLoading={isLoading} 
-                disabled={isLoading} 
-                variant="primary" 
-                size="sm"
-                title="Save current video settings to OBS"
-                accentColorName={selectedAccentColorName}
+            <Button
+              onClick={handleSaveChanges}
+              isLoading={isLoading}
+              disabled={isLoading}
+              variant="primary"
+              size="sm"
+              title="Save current video settings to OBS"
+              accentColorName={selectedAccentColorName}
             >
               Save Video Settings 💾
             </Button>
@@ -243,7 +260,7 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
           </p>
         </>
       ) : (
-         <div className="flex justify-center items-center py-8"><LoadingSpinner size={8} /> <span className="ml-2 text-[var(--ctp-subtext0)]">Loading video settings...</span></div>
+        <div className="flex justify-center items-center py-8"><LoadingSpinner size={8} /> <span className="ml-2 text-[var(--ctp-subtext0)]">Loading video settings...</span></div>
       )}
     </div>
   );

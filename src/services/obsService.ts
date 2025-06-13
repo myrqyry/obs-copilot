@@ -292,16 +292,21 @@ export class OBSWebSocketService {
     await this.obs.call('PressInputPropertiesButton', { inputName, propertyName: "refresh" });
   }
 
-  // Get Log Files
+  // Note: OBS WebSocket API does not provide log file access functionality
+  // Log files must be accessed through the operating system or OBS Studio UI directly
   async getLogFileList(): Promise<any> {
-    return (this.obs as any).call('GetLogFileList');
+    throw new Error('Log file access is not available through OBS WebSocket API. Please access log files through OBS Studio menu: Help → Log Files');
   }
 
-  async getLogFile(logFile: string): Promise<any> {
-    return (this.obs as any).call('GetLogFile', { logFile });
+  async getLogFile(_logFile: string): Promise<any> {
+    throw new Error('Log file access is not available through OBS WebSocket API. Please access log files through OBS Studio menu: Help → Log Files');
   }
 
   // Studio Mode
+  async setStudioModeEnabled(enabled: boolean): Promise<void> {
+    await this.obs.call('SetStudioModeEnabled', { studioModeEnabled: enabled });
+  }
+
   async toggleStudioMode(): Promise<void> {
     await this.obs.call('ToggleStudioMode' as any);
   }
@@ -526,5 +531,29 @@ export class OBSWebSocketService {
 
   async openInputInteractDialog(inputName: string): Promise<void> {
     await this.obs.call('OpenInputInteractDialog' as any, { inputName });
+  }
+
+  async setSceneName(sceneName: string, newSceneName: string): Promise<void> {
+    await this.obs.call('SetSceneName', { sceneName, newSceneName });
+  }
+
+  /**
+   * Fetches the configured streaming service settings and extracts the username.
+   * Note: The exact key for the username might vary by service, but 'username' or 'user_name' is common.
+   * @returns {Promise<string>} The streamer's username or an empty string if not found.
+   */
+  async getStreamerUsername(): Promise<string> {
+    try {
+      const response = await this.obs.call('GetStreamServiceSettings');
+      // The settings object contains various details. We look for a username key.
+      // This is a safe way to access a potentially nested and unknown property.
+      const settings = response.streamServiceSettings || {};
+      const username = settings.username || settings.user_name || '';
+      return typeof username === 'string' ? username : '';
+    } catch (error) {
+      console.error("Could not fetch stream service settings:", error);
+      // Return an empty string if the call fails or username is not found
+      return '';
+    }
   }
 }

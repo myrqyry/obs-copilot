@@ -1,17 +1,24 @@
-
 import React, { useState, useCallback, useRef, useEffect, useLayoutEffect } from 'react';
+import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/solid';
 import { gsap } from 'gsap';
 import { GoogleGenAI, GenerateContentResponse, Content } from '@google/genai';
 import { Button } from './common/Button';
 import { TextInput } from './common/TextInput';
 import { LoadingSpinner } from './common/LoadingSpinner';
 import { GEMINI_MODEL_NAME, INITIAL_SYSTEM_PROMPT } from '../constants';
-import { ChatMessage, GroundingChunk, OBSScene, OBSSource, OBSStreamStatus, OBSVideoSettings, CatppuccinAccentColorName, AppTab } from '../types';
+import { ChatMessage as BaseChatMessage, GroundingChunk, OBSScene, OBSSource, OBSStreamStatus, OBSVideoSettings, CatppuccinAccentColorName, AppTab } from '../types';
 import { OBSWebSocketService } from '../services/obsService';
+
+interface ChatMessage extends BaseChatMessage {
+  type?: "source-prompt";
+  sourcePrompt?: string;
+}
 
 interface GeminiChatProps {
   geminiApiKeyFromInput?: string;
   obsService: OBSWebSocketService;
+  flipSides: boolean;
+  setFlipSides: (value: boolean) => void;
   obsData: {
     scenes: OBSScene[];
     currentProgramScene: string | null;
@@ -32,6 +39,8 @@ interface GeminiChatProps {
   onSetIsGeminiClientInitialized: (status: boolean) => void;
   onSetGeminiInitializationError: (error: string | null) => void;
   activeTab: AppTab;
+  streamerName: string | null; // <-- Added new prop
+  setGeminiStatus: (status: { status: 'initializing' | 'connected' | 'error' | 'unavailable' | 'missing-key'; message: string } | null) => void;
 }
 
 interface GeminiActionResponse {
@@ -195,6 +204,12 @@ interface SetSceneItemBlendModeAction extends ObsActionBase {
   blendMode: string;
 }
 
+interface SetSceneNameAction extends ObsActionBase {
+  type: "setSceneName";
+  sceneName: string; // The current name of the scene
+  newSceneName: string; // The new name for the scene
+}
+
 interface RefreshBrowserSourceAction extends ObsActionBase {
   type: "refreshBrowserSource";
   inputName: string;
@@ -207,6 +222,11 @@ interface GetLogFileListAction extends ObsActionBase {
 interface GetLogFileAction extends ObsActionBase {
   type: "getLogFile";
   logFile: string;
+}
+
+interface SetStudioModeEnabledAction extends ObsActionBase {
+  type: "setStudioModeEnabled";
+  enabled: boolean;
 }
 
 interface ToggleStudioModeAction extends ObsActionBase {
@@ -322,7 +342,7 @@ type ObsAction =
   | CreateSourceFilterAction | SetInputVolumeAction | SetInputMuteAction | StartVirtualCamAction | StopVirtualCamAction
   | SaveScreenshotAction | StartReplayBufferAction | SaveReplayBufferAction | SetSourceFilterIndexAction | SetSourceFilterNameAction
   | DuplicateSourceFilterAction | TriggerStudioModeTransitionAction | SetInputAudioMonitorTypeAction | SetSceneItemBlendModeAction
-  | RefreshBrowserSourceAction | GetLogFileListAction | GetLogFileAction | ToggleStudioModeAction | TriggerHotkeyByNameAction
+  | RefreshBrowserSourceAction | GetLogFileListAction | GetLogFileAction | ToggleStudioModeAction | SetStudioModeEnabledAction | TriggerHotkeyByNameAction
   | TriggerHotkeyByKeySequenceAction | GetSourceFilterListAction | GetSourceFilterDefaultSettingsAction | GetSourceFilterSettingsAction
   | SetSourceFilterSettingsAction | SetSourceFilterEnabledAction | RemoveSourceFilterAction | ToggleStreamAction | ToggleRecordAction
   | GetInputDefaultSettingsAction | GetOutputListAction | GetOutputStatusAction | StartOutputAction | StopOutputAction
@@ -334,7 +354,7 @@ type ObsAction =
   | GetHotkeyListAction | GetInputPropertiesListPropertyItemsAction | PressInputPropertiesButtonAction | GetInputAudioBalanceAction
   | SetInputAudioBalanceAction | GetInputAudioSyncOffsetAction | SetInputAudioSyncOffsetAction | GetInputAudioTracksAction
   | SetInputAudioTracksAction | DuplicateSceneAction | GetSourceScreenshotAction | SetCurrentSceneTransitionSettingsAction
-  | OpenInputPropertiesDialogAction | OpenInputFiltersDialogAction | OpenInputInteractDialogAction;
+  | OpenInputPropertiesDialogAction | OpenInputFiltersDialogAction | OpenInputInteractDialogAction | SetSceneNameAction;
 
 function highlightJsonSyntax(rawJsonString: string): string {
   let htmlEscapedJsonString = rawJsonString
@@ -354,9 +374,10 @@ function highlightJsonSyntax(rawJsonString: string): string {
 }
 
 function applyInlineMarkdown(text: string): string {
-  let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  let html = text.replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>');
   html = html.replace(/` + "`" + `([^` + "`" + `]+)` + "`" + `/g, '<code class="bg-[var(--ctp-surface0)] px-1 py-0.5 rounded text-xs text-[var(--ctp-peach)] shadow-inner">$1</code>');
-  html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="text-[var(--ctp-pink)]">$1</strong>');
+  // Make **...** use the basic text color for system messages (used for OBS Action)
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="text-[var(--ctp-base)] font-bold">$1</strong>');
   html = html.replace(/\*(.*?)\*/g, '<em class="text-[var(--ctp-mauve)]">$1</em>');
   html = html.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-[var(--ctp-sky)] hover:text-[var(--ctp-sapphire)] underline transition-colors">$1</a>');
   html = html.replace(/\n/g, '<br />');
@@ -404,22 +425,22 @@ interface Suggestion {
 
 const allChatSuggestions: Suggestion[] = [
   { id: "sg1", label: "Scene Sources?", prompt: "What are the sources in the current scene?", emoji: "🖼️" },
-  { id: "sg2", label: "Switch to 'Gaming'", prompt: "Switch scene to 'Gaming Scene'", emoji: "🎬" },
-  { id: "sg3", label: "Create Text", prompt: "Create a text source 'Welcome' with text 'Hello Streamers!' and color magenta in current scene", emoji: "✍️" },
+  { id: "sg2", label: "Switch Scene", prompt: "Switch to another scene.", emoji: "🎬" },
+  { id: "sg3", label: "Create Text", prompt: "Create a text source in the current scene.", emoji: "✍️" },
   { id: "sg4", label: "Apex Stream Ideas", prompt: "Suggest 3 stream ideas for playing Apex Legends.", emoji: "💡" },
-  { id: "sg5", label: "Hide 'Webcam'", prompt: "Hide the source named 'Webcam' in the current scene", emoji: "🙈" },
-  { id: "sg6", label: "Show 'Game Capture'", prompt: "Show the source named 'Game Capture' in the current scene", emoji: "👁️" },
+  { id: "sg5", label: "Hide Source", prompt: "Hide a source in the current scene.", emoji: "🙈" },
+  { id: "sg6", label: "Show Source", prompt: "Show a source in the current scene.", emoji: "👁️" },
   { id: "sg7", label: "Stream/Record Status?", prompt: "What is the current status of my stream and recording?", emoji: "📡" },
-  { id: "sg8", label: "Set 'Alert' Text", prompt: "Set the text of source 'AlertText' to 'New Follower!'", emoji: "💬" },
-  { id: "sg9", label: "Filter for 'Camera'", prompt: "Add a color correction filter named 'Vibrance' to source 'Camera' with settings { saturation: 0.2 }", emoji: "🎨" },
+  { id: "sg8", label: "Set Text", prompt: "Set the text of a source in the current scene.", emoji: "💬" },
+  { id: "sg9", label: "Add Filter", prompt: "Add a color correction filter to a source.", emoji: "🎨" },
   { id: "sg10", label: "30s Ad Script", prompt: "Can you give me a script for a 30-second ad read for a new energy drink?", emoji: "📜" },
   { id: "sg11", label: "Royalty-Free Music?", prompt: "What are some good websites for royalty-free music for streaming?", emoji: "🎵" },
   { id: "sg12", label: "Fix Audio Crackle", prompt: "I'm hearing audio crackling in OBS, what are common fixes?", emoji: "🛠️" },
   { id: "sg13", label: "Canvas to 1080p?", prompt: "How do I change my OBS canvas resolution to 1920x1080?", emoji: "🎞️" },
-  { id: "sg14", label: "Duplicate Scene", prompt: "Duplicate the current scene and name the copy 'Backup Scene'", emoji: "➕" },
-  { id: "sg15", label: "Screenshot 'Game'", prompt: "Get a PNG screenshot of the source 'Game' with width 640", emoji: "📸" },
-  { id: "sg16", label: "Transition to 500ms", prompt: "Set the current scene transition duration to 500ms", emoji: "⏱️" },
-  { id: "sg17", label: "Open 'Browser' Filters", prompt: "Open the filters dialog for the source 'BrowserSource'", emoji: "⚙️" },
+  { id: "sg14", label: "Duplicate Scene", prompt: "Duplicate the current scene.", emoji: "➕" },
+  { id: "sg15", label: "Screenshot Source", prompt: "Get a PNG screenshot of a source in the current scene.", emoji: "📸" },
+  { id: "sg16", label: "Transition Duration", prompt: "Set the current scene transition duration.", emoji: "⏱️" },
+  { id: "sg17", label: "Open Filters", prompt: "Open the filters dialog for a source.", emoji: "⚙️" },
   { id: "sg18", label: "What's new in OBS?", prompt: "Using Google Search, tell me about the latest OBS Studio features.", emoji: "🔍" },
   { id: "sg19", label: "List video settings", prompt: "What are my current video settings in OBS?", emoji: "⚙️" },
   { id: "sg20", label: "Toggle Studio Mode", prompt: "Toggle OBS Studio Mode.", emoji: "🎭" },
@@ -430,8 +451,21 @@ const getRandomSuggestions = (count: number): Suggestion[] => {
   return shuffled.slice(0, count);
 };
 
-const ChatMessageItem: React.FC<{ message: ChatMessage }> = ({ message }) => {
+const ChatMessageItem: React.FC<{
+  message: ChatMessage;
+  onSuggestionClick?: (prompt: string) => void;
+  accentColorName?: CatppuccinAccentColorName;
+  obsSources?: OBSSource[];
+  onSourceSelect?: (sourceName: string) => void;
+  flipSides: boolean;
+}> = ({ message, onSuggestionClick, accentColorName, obsSources, onSourceSelect, flipSides }) => {
   const itemRef = useRef<HTMLDivElement>(null);
+  const [isShrunk, setIsShrunk] = useState(false);
+  const [forceExpand, setForceExpand] = useState(false);
+  const [isScrolling, setIsScrolling] = useState(false);
+  const [isScrolledFromTop, setIsScrolledFromTop] = useState(false);
+  const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
+  const bubbleRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
     if (itemRef.current) {
@@ -440,40 +474,178 @@ const ChatMessageItem: React.FC<{ message: ChatMessage }> = ({ message }) => {
         { opacity: 0, y: 15, scale: 0.98 },
         { opacity: 1, y: 0, scale: 1, duration: 0.35, ease: 'power2.out' }
       );
+      // Shrink logic: if height > 320px, shrink (unless forceExpand)
+      if (!forceExpand && itemRef.current.scrollHeight > 320) {
+        setIsShrunk(true);
+      } else {
+        setIsShrunk(false);
+      }
     }
-  }, []);
+  }, [message.text, forceExpand]);
+
+  // Show suggestions if this is the Gemini welcome message
+  const isGeminiWelcome = message.role === 'system' && /Gemini Assistant connected/i.test(message.text);
+
+  function handleBubbleScroll(event: React.UIEvent<HTMLDivElement>) {
+    const target = event.target as HTMLDivElement;
+    setIsScrolling(true);
+    setIsScrolledFromTop(target.scrollTop > 10);
+
+    // Check if scrolled to bottom (within 5px tolerance)
+    const isAtBottom = target.scrollHeight - target.scrollTop - target.clientHeight < 5;
+    setIsScrolledToBottom(isAtBottom);
+
+    clearTimeout((handleBubbleScroll as any)._scrollTimeout);
+    (handleBubbleScroll as any)._scrollTimeout = setTimeout(() => setIsScrolling(false), 1000);
+  }
 
   return (
-    <div ref={itemRef} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+    <div
+      ref={itemRef}
+      className={`flex ${(message.role === 'user' && !flipSides) || (message.role === 'model' && flipSides)
+        ? 'justify-end'
+        : (message.role === 'model' && !flipSides) || (message.role === 'user' && flipSides)
+          ? 'justify-start'
+          : 'justify-center'
+        }`}
+    >
       <div
-        className={`chat-message max-w-xl p-2.5 rounded-xl shadow-md border border-[var(--ctp-surface2)] leading-relaxed`}
+        className={`chat-message max-w-xl rounded-2xl shadow-xl border border-[var(--ctp-surface2)] bg-[var(--ctp-surface0)] relative
+          ${message.role === 'system'
+            ? 'px-4 py-2 text-xs font-extrabold leading-tight'
+            : 'p-4 leading-relaxed'}
+        `}
         style={{
           backgroundColor: message.role === 'user' ? 'var(--user-chat-bubble-color)' :
             message.role === 'model' ? 'var(--model-chat-bubble-color)' :
               'var(--dynamic-secondary-accent)',
           color: 'var(--ctp-base)',
           fontStyle: message.role === 'system' ? 'italic' : 'normal',
-          fontSize: message.role === 'system' ? '0.8rem' : '0.875rem'
+          fontSize: message.role === 'system' ? '0.85rem' : '1rem',
+          position: 'relative',
+          ['--bubble-scrollbar-thumb' as any]: message.role === 'user'
+            ? 'var(--user-chat-bubble-color)'
+            : message.role === 'model'
+              ? 'var(--model-chat-bubble-color)'
+              : 'var(--dynamic-secondary-accent)',
+          ['--bubble-scrollbar-thumb-hover' as any]: message.role === 'user'
+            ? 'var(--ctp-blue)'
+            : message.role === 'model'
+              ? 'var(--ctp-lavender)'
+              : 'var(--dynamic-secondary-accent)',
+          ['--bubble-fade-color' as any]: message.role === 'user'
+            ? 'var(--user-chat-bubble-color)'
+            : message.role === 'model'
+              ? 'var(--model-chat-bubble-color)'
+              : 'var(--dynamic-secondary-accent)'
         }}
       >
-        <MarkdownRenderer content={message.text} />
-        {message.role === 'model' && message.sources && message.sources.length > 0 && (
-          <div className="mt-2 pt-2 border-t border-[var(--ctp-surface1)] opacity-90">
-            <p className="text-xs font-semibold mb-1" style={{ color: 'var(--ctp-base)', opacity: 0.8 }}>Sources:</p>
-            <ul className="list-disc list-inside space-y-1">
-              {message.sources.map((source, index) => source.web && (
-                <li key={index} className="text-xs">
-                  <a href={source.web.uri} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--ctp-base)' }} className="underline hover:opacity-80">
-                    {source.web.title || source.web.uri}
-                  </a>
-                </li>
-              ))}
-            </ul>
+        <div style={{ position: 'relative' }}>
+          <div
+            ref={bubbleRef}
+            className={`chat-scrollable-content
+              ${isShrunk ? 'max-h-80 overflow-y-auto custom-scrollbar shrunk' : ''}
+              ${isScrolling ? 'scrolling' : ''}
+            `}
+            onScroll={isShrunk ? handleBubbleScroll : undefined}
+          >
+            <MarkdownRenderer content={message.text} />
+            {message.type === "source-prompt" && obsSources && onSourceSelect && (
+              <div className="mt-2">
+                <div className="text-xs mb-1 text-[var(--ctp-base)] text-opacity-70">Select a source:</div>
+                <div className="flex flex-wrap gap-1">
+                  {obsSources.map((src) => (
+                    <Button
+                      key={src.sourceName}
+                      onClick={() => onSourceSelect(src.sourceName)}
+                      variant="secondary"
+                      size="sm"
+                      accentColorName={accentColorName}
+                      className="bg-[var(--dynamic-secondary-accent)] hover:bg-[var(--dynamic-accent)] text-[var(--ctp-crust)] border border-[var(--ctp-surface0)] shadow-[0_2px_8px_0_rgba(0,0,0,0.10)] text-xs transition-colors ring-1 ring-[var(--ctp-overlay1)] ring-inset"
+                      title={src.sourceName}
+                    >
+                      {src.sourceName}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {isGeminiWelcome && onSuggestionClick && (
+              <div className="mt-2 pt-2 border-t border-[var(--ctp-surface1)]">
+                <div
+                  className="text-xs mt-1.5 text-[var(--ctp-base)] text-opacity-70 mb-1"
+                >
+                  Quick suggestions:
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {getRandomSuggestions(3).map((suggestion) => (
+                    <Button
+                      key={suggestion.id}
+                      onClick={() => onSuggestionClick(suggestion.prompt)}
+                      variant="secondary"
+                      size="sm"
+                      accentColorName={accentColorName}
+                      className="bg-[var(--dynamic-secondary-accent)] hover:bg-[var(--dynamic-accent)] text-[var(--ctp-crust)] border border-[var(--ctp-surface0)] shadow-[0_2px_8px_0_rgba(0,0,0,0.10)] text-xs transition-colors ring-1 ring-[var(--ctp-overlay1)] ring-inset"
+                      title={suggestion.prompt}
+                    >
+                      {suggestion.emoji && <span className="emoji mr-1" role="img" aria-hidden="true">{suggestion.emoji}</span>}
+                      {suggestion.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {message.role === 'model' && message.sources && message.sources.length > 0 && (
+              <div className="mt-2 pt-2 border-t border-[var(--ctp-surface1)] opacity-90">
+                <p className="text-xs font-semibold mb-1" style={{ color: 'var(--ctp-base)', opacity: 0.8 }}>Sources:</p>
+                <ul className="list-disc list-inside space-y-1">
+                  {message.sources.map((source, index) => source.web && (
+                    <li key={index} className="text-xs">
+                      <a href={source.web.uri} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--ctp-base)' }} className="underline hover:opacity-80">
+                        {source.web.title || source.web.uri}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
-        )}
-        <div className="text-xs mt-1.5 text-[var(--ctp-base)] text-opacity-70">
+          {/* Top fade overlay when scrolled from top */}
+          {isShrunk && isScrolledFromTop && (
+            <div className="bubble-fade-top" />
+          )}
+          {/* Absolutely positioned fade overlay, only when shrunk and not at bottom */}
+          {isShrunk && !isScrolledToBottom && (
+            <div className={`bubble-fade-bottom ${isScrolling ? 'opacity-30' : 'opacity-100'}`} />
+          )}
+        </div>
+        {/* Timestamp outside of scrollable area */}
+        <div className="text-xs mt-1.5 text-[var(--ctp-base)] text-opacity-70 relative z-20">
           {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>
+        {/* Expand/collapse floating icon button (bottom right, more visible) */}
+        {isShrunk && !forceExpand && (
+          <button
+            className="absolute right-3 bottom-3 z-40 bg-gradient-to-br from-[var(--ctp-base)]/90 to-[var(--ctp-surface2)]/90 text-[var(--dynamic-accent)] hover:text-[var(--ctp-mauve)] p-2.5 rounded-full shadow-2xl border-2 border-[var(--ctp-overlay1)] transition-all flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-[var(--ctp-mauve)]"
+            style={{ fontSize: '1.7rem', lineHeight: 1, boxShadow: '0 6px 24px 0 rgba(0,0,0,0.22)' }}
+            onClick={() => setForceExpand(true)}
+            title="Expand bubble"
+            aria-label="Expand chat bubble"
+          >
+            <ChevronDownIcon className="w-7 h-7" />
+          </button>
+        )}
+        {forceExpand && (
+          <button
+            className="absolute right-3 bottom-3 z-40 bg-gradient-to-br from-[var(--ctp-base)]/90 to-[var(--ctp-surface2)]/90 text-[var(--ctp-overlay1)] hover:text-[var(--ctp-mauve)] p-2.5 rounded-full shadow-2xl border-2 border-[var(--ctp-overlay1)] transition-all flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-[var(--ctp-mauve)]"
+            style={{ fontSize: '1.7rem', lineHeight: 1, boxShadow: '0 6px 24px 0 rgba(0,0,0,0.22)' }}
+            onClick={() => setForceExpand(false)}
+            title="Shrink bubble"
+            aria-label="Shrink chat bubble"
+          >
+            <ChevronUpIcon className="w-7 h-7" />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -495,18 +667,20 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
   geminiInitializationError,
   onSetIsGeminiClientInitialized,
   onSetGeminiInitializationError,
-  activeTab
+  // activeTab,
+  streamerName, // <-- Destructure new prop
+  flipSides,
+  // setFlipSides
 }) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [useGoogleSearch, setUseGoogleSearch] = useState<boolean>(false);
-  const [displayedSuggestions, setDisplayedSuggestions] = useState<Suggestion[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState<boolean>(true);
+  // const [displayedSuggestions, setDisplayedSuggestions] = useState<Suggestion[]>([]);
+  // const [showSuggestions, setShowSuggestions] = useState<boolean>(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const ai = useRef<GoogleGenAI | null>(null);
 
   useEffect(() => {
     const effectiveApiKey = geminiApiKeyFromInput || process.env.API_KEY;
-
     if (effectiveApiKey) {
       try {
         if (!ai.current || !isGeminiClientInitialized) {
@@ -514,19 +688,37 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
           onSetIsGeminiClientInitialized(true);
           onSetGeminiInitializationError(null);
         }
+        // Only add a system message if there is NOT already a Gemini greeting system message
+        // Prevents double-greetings on mount/race conditions
+        const hasGeminiGreeting = messages.some(
+          (msg) =>
+            msg.role === 'system' &&
+            /Gemini Assistant connected/i.test(msg.text)
+        );
+        if (
+          !hasGeminiGreeting &&
+          isGeminiClientInitialized &&
+          !geminiInitializationError
+        ) {
+          let username = streamerName;
+          const streamer = username ? `, **${username}**` : '';
+          onAddMessage({ role: 'system', text: `Gemini Assistant connected${streamer}! Ready for your commands! GLHF! ✨` });
+        }
       } catch (e: any) {
         const errorMsg = `Failed to initialize Gemini client: ${(e as Error).message}. Ensure API Key is valid.`;
         onSetGeminiInitializationError(errorMsg);
         onSetIsGeminiClientInitialized(false);
         ai.current = null;
+        onAddMessage({ role: 'system', text: errorMsg });
       }
     } else {
       const errorMsg = "Gemini API Key must be configured. Gemini features are unavailable.";
       onSetGeminiInitializationError(errorMsg);
       onSetIsGeminiClientInitialized(false);
       ai.current = null;
+      onAddMessage({ role: 'system', text: errorMsg });
     }
-  }, [geminiApiKeyFromInput, onSetIsGeminiClientInitialized, onSetGeminiInitializationError, isGeminiClientInitialized]);
+  }, [geminiApiKeyFromInput, onSetIsGeminiClientInitialized, onSetGeminiInitializationError, isGeminiClientInitialized, geminiInitializationError, streamerName, onAddMessage, messages.length]);
 
 
   const scrollToBottom = () => {
@@ -535,12 +727,12 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
 
   useEffect(scrollToBottom, [messages]);
 
-  useEffect(() => {
-    if (activeTab === AppTab.GEMINI || messages.length > 0) {
-      setDisplayedSuggestions(getRandomSuggestions(3));
-      setShowSuggestions(true);
-    }
-  }, [activeTab, messages.length]);
+  // useEffect(() => {
+  //   if (activeTab === AppTab.GEMINI || messages.length > 0) {
+  //     setDisplayedSuggestions(getRandomSuggestions(3));
+  //     setShowSuggestions(true);
+  //   }
+  // }, [activeTab, messages.length]);
 
 
   const fetchObsContextString = useCallback(() => {
@@ -795,19 +987,33 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
           actionFeedback = `\n✅ Refreshed browser source "${(action as RefreshBrowserSourceAction).inputName}".`;
           break;
         case 'getLogFileList':
-          const logList = await obsService.getLogFileList();
-          actionFeedback = `\n✅ Retrieved OBS log file list.`;
-          additionalSystemMessage = `\`\`\`json\n${JSON.stringify(logList, null, 2)}\n\`\`\``;
+          try {
+            const logList = await obsService.getLogFileList();
+            actionFeedback = `\n✅ Retrieved OBS log file list.`;
+            additionalSystemMessage = `\`\`\`json\n${JSON.stringify(logList, null, 2)}\n\`\`\``;
+          } catch (error: any) {
+            actionFeedback = `\n❌ ${error.message}`;
+            additionalSystemMessage = `**How to access OBS logs:**\n\n1. In OBS Studio, go to **Help** → **Log Files** → **View Current Log**\n2. Or find log files in your system:\n   - **Windows**: \`%APPDATA%\\obs-studio\\logs\`\n   - **macOS**: \`~/Library/Application Support/obs-studio/logs\`\n   - **Linux**: \`~/.config/obs-studio/logs\``;
+          }
           break;
         case 'getLogFile':
-          const logFileAction = action as GetLogFileAction;
-          const logFileContent = await obsService.getLogFile(logFileAction.logFile);
-          actionFeedback = `\n✅ Retrieved OBS log file "${logFileAction.logFile}".`;
-          additionalSystemMessage = `\`\`\`text\n${logFileContent.content || JSON.stringify(logFileContent, null, 2)}\n\`\`\``;
+          try {
+            const logFileAction = action as GetLogFileAction;
+            const logFileContent = await obsService.getLogFile(logFileAction.logFile);
+            actionFeedback = `\n✅ Retrieved OBS log file "${logFileAction.logFile}".`;
+            additionalSystemMessage = `\`\`\`text\n${logFileContent.content || JSON.stringify(logFileContent, null, 2)}\n\`\`\``;
+          } catch (error: any) {
+            actionFeedback = `\n❌ ${error.message}`;
+            additionalSystemMessage = `**How to access OBS logs:**\n\n1. In OBS Studio, go to **Help** → **Log Files** → **View Current Log**\n2. Or find log files in your system:\n   - **Windows**: \`%APPDATA%\\obs-studio\\logs\`\n   - **macOS**: \`~/Library/Application Support/obs-studio/logs\`\n   - **Linux**: \`~/.config/obs-studio/logs\``;
+          }
           break;
         case "toggleStream": await obsService.toggleStream(); actionFeedback = "\n✅ Stream toggled!"; break;
         case "toggleRecord": await obsService.toggleRecord(); actionFeedback = "\n✅ Record toggled!"; break;
         case "toggleStudioMode": await obsService.toggleStudioMode(); actionFeedback = "\n✅ Studio mode toggled!"; break;
+        case "setStudioModeEnabled":
+          await obsService.setStudioModeEnabled((action as SetStudioModeEnabledAction).enabled);
+          actionFeedback = `\n✅ Studio mode ${(action as SetStudioModeEnabledAction).enabled ? "enabled" : "disabled"}!`;
+          break;
         case "triggerHotkeyByName":
           await obsService.triggerHotkeyByName((action as TriggerHotkeyByNameAction).hotkeyName);
           actionFeedback = `\n✅ Hotkey "${(action as TriggerHotkeyByNameAction).hotkeyName}" triggered!`;
@@ -932,6 +1138,11 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
           await obsService.openInputInteractDialog((action as OpenInputInteractDialogAction).inputName);
           actionFeedback = `\n✅ Interact dialog for input "${(action as OpenInputInteractDialogAction).inputName}" requested to open.`;
           break;
+        case 'setSceneName':
+          const setNameAction = action as SetSceneNameAction;
+          await obsService.setSceneName(setNameAction.sceneName, setNameAction.newSceneName);
+          actionFeedback = `\n✅ Successfully renamed scene "${setNameAction.sceneName}" to "${setNameAction.newSceneName}".`;
+          break;
         default:
           const unknownActionType = (action as any).type;
           actionFeedback = `\n❌ Unsupported OBS action type: ${unknownActionType}`;
@@ -952,18 +1163,73 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
     }
   };
 
+  const genericSourcePrompts = [
+    "Hide a source in the current scene.",
+    "Show a source in the current scene.",
+    "Set the text of a source in the current scene.",
+    "Add a color correction filter to a source.",
+    "Get a PNG screenshot of a source in the current scene.",
+    "Open the filters dialog for a source."
+  ];
+
+  // const [pendingSourcePrompt, setPendingSourcePrompt] = useState<string | null>(null);
+
   const handleSuggestionClick = (prompt: string) => {
-    onChatInputChange(prompt);
-    document.getElementById('gemini-input')?.focus();
+    if (genericSourcePrompts.includes(prompt)) {
+      // Add a system message with type "source-prompt"
+      onAddMessage({
+        role: "system",
+        text: "Select a source for this action:",
+        type: "source-prompt",
+        sourcePrompt: prompt,
+      });
+    } else {
+      onChatInputChange(prompt);
+      document.getElementById('gemini-input')?.focus();
+    }
   };
+
+  // This effect will run once when the streamerName is first fetched
+  // Remove duplicate greeting effect
 
   return (
     <div className="flex flex-col h-full bg-[var(--ctp-surface0)] rounded-lg shadow-lg border border-[var(--ctp-surface1)]">
       <div className="p-2 border-b border-[var(--ctp-surface1)] text-base font-semibold emoji-text" style={{ color: 'var(--dynamic-accent)' }}><span className="emoji">✨</span> Gemini Assistant</div>
 
       <div className="flex-grow p-2 space-y-2 overflow-y-auto">
-        {messages.map((msg) => (
-          <ChatMessageItem key={msg.id} message={msg} />
+        {messages.map((msg, idx) => (
+          <ChatMessageItem
+            key={msg.id || idx}
+            message={msg}
+            onSuggestionClick={handleSuggestionClick}
+            accentColorName={accentColorName}
+            obsSources={msg.type === "source-prompt" ? obsData.sources : undefined}
+            onSourceSelect={
+              msg.type === "source-prompt"
+                ? (srcName) => {
+                  let specificPrompt = "";
+                  if (msg.sourcePrompt === "Hide a source in the current scene.") {
+                    specificPrompt = `Hide the source named '${srcName}' in the current scene`;
+                  } else if (msg.sourcePrompt === "Show a source in the current scene.") {
+                    specificPrompt = `Show the source named '${srcName}' in the current scene`;
+                  } else if (msg.sourcePrompt === "Set the text of a source in the current scene.") {
+                    specificPrompt = `Set the text of source '${srcName}' to 'Your text here'`;
+                  } else if (msg.sourcePrompt === "Add a color correction filter to a source.") {
+                    specificPrompt = `Add a color correction filter named 'Vibrance' to source '${srcName}' with settings { saturation: 0.2 }`;
+                  } else if (msg.sourcePrompt === "Get a PNG screenshot of a source in the current scene.") {
+                    specificPrompt = `Get a PNG screenshot of the source '${srcName}' with width 640`;
+                  } else if (msg.sourcePrompt === "Open the filters dialog for a source.") {
+                    specificPrompt = `Open the filters dialog for the source '${srcName}'`;
+                  }
+                  onChatInputChange(specificPrompt);
+                  // Optionally, remove the prompt message after selection
+                  // messages.splice(idx, 1);
+                  document.getElementById('gemini-input')?.focus();
+                }
+                : undefined
+            }
+            flipSides={flipSides}
+          />
         ))}
         {isLoading && <div className="flex justify-center py-2"><LoadingSpinner size={5} /> <span className="ml-2 text-xs text-[var(--ctp-subtext0)]">Gemini is thinking...</span></div>}
         <div ref={messagesEndRef} />
@@ -1007,39 +1273,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
             <span className="group-hover:text-[var(--ctp-text)]">Use Google Search 🌍 (disables OBS actions)</span>
           </label>
         </div>
-        {isGeminiClientInitialized && showSuggestions && displayedSuggestions.length > 0 && (
-          <div className="mt-1.5 pt-1.5 border-t border-[var(--ctp-surface1)]">
-            <div className="flex justify-between items-center mb-1">
-              <p className="text-xs text-[var(--ctp-subtext0)]">Quick suggestions:</p>
-              <button
-                onClick={() => setShowSuggestions(false)}
-                className="p-0.5 rounded-full hover:bg-ctp-surface2 text-ctp-subtext0 hover:text-ctp-text transition-colors"
-                aria-label="Hide suggestions"
-                title="Hide suggestions"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {displayedSuggestions.map((suggestion) => (
-                <Button
-                  key={suggestion.id}
-                  onClick={() => handleSuggestionClick(suggestion.prompt)}
-                  variant="secondary"
-                  size="sm"
-                  className="bg-[var(--ctp-surface1)] hover:bg-[var(--ctp-surface2)] text-[var(--ctp-lavender)] text-xs"
-                  title={suggestion.prompt}
-                  accentColorName={accentColorName}
-                >
-                  {suggestion.emoji && <span className="emoji mr-1" role="img" aria-hidden="true">{suggestion.emoji}</span>}
-                  {suggestion.label}
-                </Button>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Suggestions moved to Gemini welcome message */}
       </div>
     </div>
   );

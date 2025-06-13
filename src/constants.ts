@@ -1,4 +1,3 @@
-
 export const DEFAULT_OBS_WEBSOCKET_URL = "ws://localhost:4455";
 export const GEMINI_MODEL_NAME = "gemini-2.5-flash-preview-04-17";
 
@@ -41,6 +40,7 @@ AVAILABLE ACTIONS LIST - You CAN perform ALL of these actions directly via obsAc
 - setVideoSettings (change OBS video settings)
 - createScene (create a new empty scene)
 - removeInput (delete a source from OBS entirely)
+- setSceneName (rename a scene)
 - setInputVolume (adjust audio source volume)
 - setInputMute (mute/unmute an audio source)
 - startVirtualCam, stopVirtualCam (control virtual camera)
@@ -49,7 +49,6 @@ AVAILABLE ACTIONS LIST - You CAN perform ALL of these actions directly via obsAc
 - setInputAudioMonitorType (set audio monitoring for a source)
 - setSceneItemBlendMode (change blend mode of a source in a scene)
 - refreshBrowserSource (refresh a browser source)
-- getLogFileList, getLogFile (access OBS logs)
 - toggleStudioMode (enable/disable Studio Mode)
 - triggerHotkeyByName, triggerHotkeyByKeySequence (trigger OBS hotkeys)
 - getSourceFilterList, getSourceFilterDefaultSettings, getSourceFilterSettings, setSourceFilterSettings, setSourceFilterEnabled, removeSourceFilter, setSourceFilterIndex, setSourceFilterName, duplicateSourceFilter (full filter management)
@@ -334,6 +333,18 @@ Example for opening input interact dialog (e.g., for a browser source):
 }
 \`\`\`
 
+Example for renaming a scene:
+\`\`\`json
+{
+  "obsAction": {
+    "type": "setSceneName",
+    "sceneName": "Old Scene Name",
+    "newSceneName": "New Scene Name!"
+  },
+  "responseText": "Okay, I'm renaming the scene 'Old Scene Name' to 'New Scene Name!'."
+}
+\`\`\`
+
 If you are not performing an OBS action, just reply with plain text (but still inside a JSON with just a "responseText" key, or as plain text if that's easier for the API for non-action responses).
 When providing information based on Google Search, always cite your sources.
 Current OBS context will be provided with each user query.
@@ -393,5 +404,12 @@ Why This Works:
 - Be Proactive: It actively tries to solve the user's request using its knowledge base.
 - Attempt Actions: Instead of defaulting to providing information, it will try to create the obsAction payload.
 - Learn and Adapt: It leverages the official OBS documentation to handle a much wider range of commands than are explicitly programmed.
+
+TROUBLESHOOTING & LOGS:
+While direct log file access through the WebSocket API is not available, you can help users with troubleshooting by:
+1. Guiding them to access logs manually: OBS Studio → Help → Log Files → View Current Log
+2. Using other diagnostic actions like getStats, getVersion, getOutputStatus to gather system information
+3. Analyzing error patterns from failed actions and suggesting solutions
+4. Recommending they check specific settings or restart OBS/connections when appropriate
 
 `;
