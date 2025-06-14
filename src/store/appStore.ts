@@ -283,7 +283,10 @@ export const useAppStore = create<AppState>((set, get) => ({
                     case 'getVideoSettings': {
                         const settings = await obsServiceInstance.getVideoSettings();
                         actionFeedback = `\n✅ Fetched video settings.`;
-                        additionalSystemMessage = `ℹ️ Video settings:\n\`\`\`json\n${JSON.stringify(settings, null, 2)}\n\`\`\``;
+                        additionalSystemMessage = `🎥 **Current Video Settings:**\n\n` +
+                            `📐 **Canvas Resolution:** ${settings.baseWidth} × ${settings.baseHeight}\n` +
+                            `🖥️ **Output Resolution:** ${settings.outputWidth} × ${settings.outputHeight}\n` +
+                            `🎬 **Frame Rate:** ${settings.fpsNumerator}/${settings.fpsDenominator} FPS (${(settings.fpsNumerator / settings.fpsDenominator).toFixed(2)} FPS)`;
                         break;
                     }
 
@@ -298,14 +301,27 @@ export const useAppStore = create<AppState>((set, get) => ({
                     case 'getStreamStatus': {
                         const status = await obsServiceInstance.getStreamStatus();
                         actionFeedback = `\n✅ Fetched stream status.`;
-                        additionalSystemMessage = `ℹ️ Stream status:\n\`\`\`json\n${JSON.stringify(status, null, 2)}\n\`\`\``;
+                        const isActive = status.outputActive;
+                        const duration = status.outputDuration ? `${Math.floor(status.outputDuration / 60)}:${(status.outputDuration % 60).toString().padStart(2, '0')}` : '0:00';
+                        additionalSystemMessage = `🎥 **Stream Status:**\n\n` +
+                            `${isActive ? '🟢 **Status:** LIVE' : '🔴 **Status:** OFFLINE'}\n` +
+                            `⏱️ **Duration:** ${duration}\n` +
+                            (status.outputBytes ? `📊 **Data Sent:** ${(status.outputBytes / 1024 / 1024).toFixed(1)} MB\n` : '') +
+                            (status.outputSkippedFrames ? `⚠️ **Skipped Frames:** ${status.outputSkippedFrames}\n` : '') +
+                            (status.outputTotalFrames ? `🎬 **Total Frames:** ${status.outputTotalFrames}` : '');
                         break;
                     }
 
                     case 'getRecordStatus': {
                         const status = await obsServiceInstance.getRecordStatus();
                         actionFeedback = `\n✅ Fetched record status.`;
-                        additionalSystemMessage = `ℹ️ Record status:\n\`\`\`json\n${JSON.stringify(status, null, 2)}\n\`\`\``;
+                        const isActive = status.outputActive;
+                        const duration = status.outputDuration ? `${Math.floor(status.outputDuration / 60)}:${(status.outputDuration % 60).toString().padStart(2, '0')}` : '0:00';
+                        additionalSystemMessage = `🎬 **Recording Status:**\n\n` +
+                            `${isActive ? '🔴 **Status:** RECORDING' : '⏹️ **Status:** STOPPED'}\n` +
+                            `⏱️ **Duration:** ${duration}\n` +
+                            (status.outputBytes ? `💾 **File Size:** ${(status.outputBytes / 1024 / 1024).toFixed(1)} MB\n` : '') +
+                            (status.outputTimecode ? `🕒 **Timecode:** ${status.outputTimecode}` : '');
                         break;
                     }
 
@@ -373,14 +389,35 @@ export const useAppStore = create<AppState>((set, get) => ({
                     case 'getSceneItemList':
                         const getListAction = action;
                         const listResponse = await obsServiceInstance.getSceneItemList(getListAction.sceneName);
-                        const itemsFormatted = listResponse.sceneItems.map(item => ({
-                            name: item.sourceName,
-                            id: item.sceneItemId,
-                            enabled: item.sceneItemEnabled,
-                            kind: item.inputKind || 'N/A'
-                        }));
+                        const enabledItems = listResponse.sceneItems.filter(item => item.sceneItemEnabled);
+                        const disabledItems = listResponse.sceneItems.filter(item => !item.sceneItemEnabled);
+                        
                         actionFeedback = `\n✅ Fetched items for scene "${getListAction.sceneName}".`;
-                        additionalSystemMessage = `ℹ️ Items in scene "${getListAction.sceneName}":\n\`\`\`json\n${JSON.stringify(itemsFormatted, null, 2)}\n\`\`\``;
+                        
+                        let itemsList = `📋 **Sources in Scene "${getListAction.sceneName}":**\n\n`;
+                        
+                        if (enabledItems.length > 0) {
+                            itemsList += `🟢 **Enabled Sources:**\n`;
+                            enabledItems.forEach((item, index) => {
+                                const kindDisplay = item.inputKind ? ` (${String(item.inputKind).replace(/_/g, ' ')})` : '';
+                                itemsList += `${index + 1}. **${item.sourceName}**${kindDisplay}\n`;
+                            });
+                            itemsList += '\n';
+                        }
+                        
+                        if (disabledItems.length > 0) {
+                            itemsList += `🔴 **Disabled Sources:**\n`;
+                            disabledItems.forEach((item, index) => {
+                                const kindDisplay = item.inputKind ? ` (${String(item.inputKind).replace(/_/g, ' ')})` : '';
+                                itemsList += `${index + 1}. ~~${item.sourceName}~~${kindDisplay}\n`;
+                            });
+                        }
+                        
+                        if (enabledItems.length === 0 && disabledItems.length === 0) {
+                            itemsList += `❌ No sources found in this scene.`;
+                        }
+                        
+                        additionalSystemMessage = itemsList;
                         break;
 
                     // Add more action types as needed...
