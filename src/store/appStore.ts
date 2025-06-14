@@ -275,6 +275,114 @@ export const useAppStore = create<AppState>((set, get) => ({
                         actionFeedback = `\n✅ Opened interact dialog for input "${openInteractAction.inputName}".`;
                         break;
 
+                    case 'toggleStudioMode':
+                        await obsServiceInstance.toggleStudioMode();
+                        actionFeedback = "\n✅ Studio mode toggled!";
+                        break;
+
+                    case 'getVideoSettings': {
+                        const settings = await obsServiceInstance.getVideoSettings();
+                        actionFeedback = `\n✅ Fetched video settings.`;
+                        additionalSystemMessage = `ℹ️ Video settings:\n\`\`\`json\n${JSON.stringify(settings, null, 2)}\n\`\`\``;
+                        break;
+                    }
+
+                    case 'getOutputStatus': {
+                        const getOutputStatusAction = action;
+                        const status = await obsServiceInstance.getOutputStatus(getOutputStatusAction.outputName);
+                        actionFeedback = `\n✅ Output status for "${getOutputStatusAction.outputName}" fetched.`;
+                        additionalSystemMessage = `ℹ️ Status for output "${getOutputStatusAction.outputName}":\n\`\`\`json\n${JSON.stringify(status, null, 2)}\n\`\`\``;
+                        break;
+                    }
+
+                    case 'getStreamStatus': {
+                        const status = await obsServiceInstance.getStreamStatus();
+                        actionFeedback = `\n✅ Fetched stream status.`;
+                        additionalSystemMessage = `ℹ️ Stream status:\n\`\`\`json\n${JSON.stringify(status, null, 2)}\n\`\`\``;
+                        break;
+                    }
+
+                    case 'getRecordStatus': {
+                        const status = await obsServiceInstance.getRecordStatus();
+                        actionFeedback = `\n✅ Fetched record status.`;
+                        additionalSystemMessage = `ℹ️ Record status:\n\`\`\`json\n${JSON.stringify(status, null, 2)}\n\`\`\``;
+                        break;
+                    }
+
+                    case 'startStream': {
+                        await obsServiceInstance.startStream();
+                        actionFeedback = `\n✅ Started streaming.`;
+                        break;
+                    }
+
+                    case 'stopStream': {
+                        await obsServiceInstance.stopStream();
+                        actionFeedback = `\n✅ Stopped streaming.`;
+                        break;
+                    }
+
+                    case 'startRecord': {
+                        await obsServiceInstance.startRecord();
+                        actionFeedback = `\n✅ Started recording.`;
+                        break;
+                    }
+
+                    case 'stopRecord': {
+                        await obsServiceInstance.stopRecord();
+                        actionFeedback = `\n✅ Stopped recording.`;
+                        break;
+                    }
+
+                    case 'setVideoSettings':
+                        const setVideoAction = action;
+                        await obsServiceInstance.setVideoSettings(setVideoAction.videoSettings);
+                        actionFeedback = `\n✅ Successfully updated video settings.`;
+                        break;
+
+                    case 'createScene':
+                        const createSceneAction = action;
+                        await obsServiceInstance.createScene(createSceneAction.sceneName);
+                        actionFeedback = `\n✅ Successfully created scene "${createSceneAction.sceneName}".`;
+                        break;
+
+                    case 'removeInput':
+                        const removeInputAction = action;
+                        await obsServiceInstance.removeInput(removeInputAction.inputName);
+                        actionFeedback = `\n✅ Successfully removed input "${removeInputAction.inputName}".`;
+                        break;
+
+                    case 'setInputVolume':
+                        const volumeAction = action;
+                        await obsServiceInstance.setInputVolume(volumeAction.inputName, volumeAction.inputVolumeMul, volumeAction.inputVolumeDb);
+                        actionFeedback = `\n✅ Successfully set volume for input "${volumeAction.inputName}".`;
+                        break;
+
+                    case 'setInputMute':
+                        const muteAction = action;
+                        await obsServiceInstance.setInputMute(muteAction.inputName, muteAction.inputMuted);
+                        actionFeedback = `\n✅ Successfully ${muteAction.inputMuted ? 'muted' : 'unmuted'} input "${muteAction.inputName}".`;
+                        break;
+
+                    case 'getInputSettings':
+                        const getSettingsAction = action;
+                        const settingsResponse = await obsServiceInstance.getInputSettings(getSettingsAction.inputName);
+                        actionFeedback = `\n✅ Fetched settings for input "${getSettingsAction.inputName}".`;
+                        additionalSystemMessage = `ℹ️ Properties for input "${getSettingsAction.inputName}" (Kind: "${settingsResponse.inputKind}"):\n\`\`\`json\n${JSON.stringify(settingsResponse.inputSettings, null, 2)}\n\`\`\``;
+                        break;
+
+                    case 'getSceneItemList':
+                        const getListAction = action;
+                        const listResponse = await obsServiceInstance.getSceneItemList(getListAction.sceneName);
+                        const itemsFormatted = listResponse.sceneItems.map(item => ({
+                            name: item.sourceName,
+                            id: item.sceneItemId,
+                            enabled: item.sceneItemEnabled,
+                            kind: item.inputKind || 'N/A'
+                        }));
+                        actionFeedback = `\n✅ Fetched items for scene "${getListAction.sceneName}".`;
+                        additionalSystemMessage = `ℹ️ Items in scene "${getListAction.sceneName}":\n\`\`\`json\n${JSON.stringify(itemsFormatted, null, 2)}\n\`\`\``;
+                        break;
+
                     // Add more action types as needed...
                     default:
                         const unknownActionType = (action as any).type;
