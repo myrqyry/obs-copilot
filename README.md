@@ -1,4 +1,4 @@
-# 🎬 obs-copilot gemini 
+# 🎬 obs-copilot
 
 <div align="center">
 
@@ -8,13 +8,13 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4.4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![GSAP](https://img.shields.io/badge/GSAP-3.13.0-88CE02?style=for-the-badge&logo=greensock&logoColor=white)](https://greensock.com/gsap/)
 
-**🤖 AI-Powered OBS Studio Control Panel**
+**🤖 OBS Studio Control with LLM Chat Interface & Intelligent  Assistant.**
 
-*Seamlessly control your OBS Studio setup with the power of Google's Gemini AI*
+*Seamlessly control your OBS Studio setup with natural language + the power of Google's Gemini Models*
 
-> ⚠️ **Early Development Stage**: This project is in active development. The MCP (Model Context Protocol) server functionality is not yet fully implemented. Some features may be experimental or subject to change.
+> ⚠️ **Early Development Stage**: This project is in active development. Some features may be experimental or subject to change.
 
-[🚀 Quick Start](#-quick-start) • [✨ Features](#-features) • [🛠️ Tech Stack](#️-tech-stack) • [📱 Usage](#-usage) • [🎨 Customization](#-customization)
+[🚀 Quick Start](#-quick-start) • [✨ Features](#-features) • [🛠️ Tech-Stack](#️-tech-stack) • [📱 Usage](#-usage) • [💅 Visuals](#-visuals) • [🎨 Customization](#-customization)
 
 </div>
 
@@ -22,15 +22,15 @@
 
 ## 🌟 Overview
 
-**obs-copilot gemini** is a revolutionary React-based dock application that transforms how you interact with OBS Studio. By combining the robust OBS WebSocket protocol with Google's cutting-edge Gemini AI, this tool provides an intelligent, conversational interface for managing your streaming and recording setup.
+**obs-copilot** is a React-based dock application that has the possibility to transforms how you interact with OBS Studio. By combining the robust OBS WebSocket protocol with Google's Powerful Gemini AI, this tool provides an intelligent, **conversational interface** for managing your streaming and recording setup.
 
+---
 ### 🎯 What Makes It Special?
 
-- 🧠 **AI-Powered Control**: Natural language commands powered by Gemini 2.5 Flash
-- 🔗 **Real-time OBS Integration**: Direct WebSocket connection to OBS Studio
-- 🎨 **Beautiful UI**: Catppuccin-themed interface with smooth GSAP animations
-- 🎬 **Comprehensive Controls**: Manage scenes, sources, streaming, recording, and settings
-- 🎪 **MCP Server Ready**: Built for integration with Model Context Protocol servers
+- 🧠 **AI-Powered Control**: Natural language commands powered by Gemini  
+- 🔗 **Real-time OBS Integration**: Direct WebSocket connection to OBS Studio  
+- 🎨 **Beautiful UI**: Catppuccin-themed interface with smooth GSAP animations  
+- 🎬 **Comprehensive Controls**: Manage scenes, sources, streaming, recording, and settings 
 
 ---
 
@@ -51,7 +51,7 @@
 
 ### 🎨 User Experience
 - **Smooth Animations**: GSAP-powered transitions and morphing logos
-- **Responsive Design**: Works beautifully on any screen size
+- **Responsive Design**: Works on any screen size
 - **Customizable Themes**: Choose from 13 accent color combinations
 - **Connection Status**: Clear visual feedback for OBS and Gemini connections
 - **Error Recovery**: Graceful handling of connection issues
@@ -74,45 +74,37 @@
 
 ### Installation
 
-1. **Clone the repository**
+1. **Clone the repository**  
    ```bash
    git clone https://github.com/myrqyry/obs-copilot.git
    cd obs-copilot
    ```
-
-2. **Install dependencies**
+2. **Install dependencies**  
    ```bash
    npm install
    ```
-
-3. **Configure environment**
+3. **Configure environment**  
    ```bash
    # Create .env.local file
-   echo "API_KEY=your_gemini_api_key_here" > .env.local
+   echo "API_KEY=your_gemini_plus_api_key_here" > .env.local
    ```
-
-4. **Setup OBS Studio**
-   - Open OBS Studio
-   - Go to **Tools** → **WebSocket Server Settings**
-   - Enable **WebSocket Server**
+4. **Setup OBS Studio**  
+   - Open OBS Studio  
+   - Go to **Tools** → **WebSocket Server Settings**  
+   - Enable **WebSocket Server**  
    - Note the port (default: 4455) and password (if set)
-
-5. **Start the application**
+5. **Start the application**  
    ```bash
    npm run dev
    ```
-
-6. **Open in browser**
+6. **Open in browser**  
    Navigate to `http://localhost:3000`
-
-7. **Add as OBS Dock (Optional)**
-   - In OBS Studio, go to **View** → **Docks** → **Custom Browser Docks...**
-   - Click the **+** button to add a new dock
-   - Set **Dock Name** to "obs-copilot gemini"
-   - Set **URL** to `http://localhost:3000`
-   - Adjust **Width** and **Height** as needed (recommended: 400x600)
-   - Click **Apply** and **Close**
-   - The dock will now appear in your OBS Studio interface
+7. **Add as OBS Dock (Optional)**  
+   - In OBS Studio, go to **View** → **Docks** → **Custom Browser Docks...**  
+   - Click the **+** button to add a new dock  
+   - Set **Dock Name** to "obs-copilot gemini++"  
+   - Set **URL** to `http://localhost:3000`  
+   - Click **Apply** and **Close**  
 
 ---
 
@@ -120,11 +112,11 @@
 
 ### Initial Setup
 
-1. **Launch the app** and you'll see the connection modal
-2. **Enter OBS WebSocket URL** (default: `ws://localhost:4455`)
-3. **Add password** if you've set one in OBS
-4. **Enter your Gemini API key**
-5. **Click Connect** and start controlling OBS with AI!
+1. **Launch the app** to open the connection modal  
+2. **Enter OBS WebSocket URL** (default: `ws://localhost:4455`)  
+3. **Add password** if configured in OBS  
+4. **Enter your Gemini API key** if not set in **.env.local**  
+5. **Click Connect** to start controlling OBS with AI
 
 ### AI Commands Examples
 
@@ -139,30 +131,29 @@
 ```
 
 ### Manual Controls
-
-- **Scenes Tab**: Visual scene switcher with source management
-- **Settings Tab**: Video settings editor with theme customization
-- **Connection Tab**: Manage OBS and Gemini connections
+- **Scenes Tab**: Visual scene switcher with source management  
+- **Settings Tab**: Video settings editor with theme customization  
+- **Connection Tab**: Manage OBS and Gemini connections  
 
 ---
 
 ## 🛠️ Tech Stack
 
 ### Core Technologies
-- **⚛️ React 19.1.0** - Modern UI framework with latest features
+- **⚛️ React 19.1.0** - Modern UI framework
 - **📘 TypeScript 5.2.2** - Type-safe development
 - **⚡ Vite 5.3.1** - Lightning-fast build tool
 - **🎨 Tailwind CSS 3.4.4** - Utility-first styling
 
 ### Integrations
-- **🧠 Google Gemini AI** - Advanced language model integration
+- **🧠 Google Gemini++ AI** - Advanced language model integration
 - **📡 OBS WebSocket 5.0.6** - Real-time OBS Studio communication
 - **🎪 GSAP 3.13.0** - Professional animations and transitions
 
 ### Design System
 - **🌈 Catppuccin Theme** - Beautiful, consistent color palette
 - **📱 Responsive Design** - Mobile-first approach
-- **♿ Accessibility** - WCAG compliant components
+- **♿ Accessibility** - WCAG-compliant components
 
 ---
 
@@ -170,9 +161,9 @@
 
 ### Theme Colors
 Choose from 13 beautiful accent colors:
-- 🌸 Rosewater • 🦩 Flamingo • 💕 Pink • 🔮 Mauve
-- ❤️ Red • 🍷 Maroon • 🍑 Peach • 💛 Yellow
-- 💚 Green • 🌊 Teal • ☁️ Sky • 💎 Sapphire
+- 🌸 Rosewater • 🦩 Flamingo • 💕 Pink • 🔮 Mauve  
+- ❤️ Red • 🍷 Maroon • 🍑 Peach • 💛 Yellow  
+- 💚 Green • 🌊 Teal • ☁️ Sky • 💎 Sapphire  
 - 💙 Blue • 💜 Lavender
 
 ### Advanced Configuration
@@ -198,22 +189,16 @@ npm run lint     # Run ESLint checks
 ### Project Structure
 ```
 src/
-├── components/          # React components
-│   ├── common/         # Reusable UI components
-│   ├── ConnectionForm.tsx
-│   ├── GeminiChat.tsx
-│   ├── ObsMainControls.tsx
-│   └── ObsSettingsPanel.tsx
-├── services/           # API services
-│   ├── obsService.ts   # OBS WebSocket service
-│   └── geminiService.ts
-├── types.ts           # TypeScript definitions
-├── constants.ts       # App configuration
-└── App.tsx           # Main application
+├── components/
+│   └── ...
+├── services/
+│   └── ...
+├── types.ts
+├── constants.ts
+└── App.tsx
 ```
 
 ---
-
 
 ## 📄 License
 
@@ -223,16 +208,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- **OBS Studio** team for the incredible streaming software
-- **Google** for the powerful Gemini AI API
-- **Catppuccin** community for the beautiful color palette
-- **GreenSock** for the amazing GSAP animation library
-
----
-
-<div align="center">
-
-**❤️**
-
-
-</div>
+- **OBS Studio** team for the incredible streaming software  
+- **Google** for the powerful Gemini AI API  
+- **Catppuccin** community for the beautiful color palette  
+- **GreenSock** for
