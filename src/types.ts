@@ -17,6 +17,7 @@ export interface OBSData {
   currentProgramScene: string | null;
   sources: OBSSource[];
   streamStatus: OBSStreamStatus | null;
+  recordStatus: OBSRecordStatus | null;
   videoSettings: OBSVideoSettings | null;
 }
 

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { gsap } from 'gsap';
 import OBSWebSocket, { EventSubscription } from 'obs-websocket-js';
 // Import GSAP test for development verification
 import './utils/gsapTest';
@@ -21,6 +20,8 @@ import { OBSWebSocketService } from './services/obsService';
 import { useAppStore } from './store/appStore';
 import { DEFAULT_OBS_WEBSOCKET_URL } from './constants';
 import { AnimatedTitleLogos } from './components/common/AnimatedTitleLogos';
+import { loadConnectionSettings, isStorageAvailable } from './utils/persistence';
+import { gsap } from 'gsap';
 
 const App: React.FC = () => {
     // Get state and actions directly from the comprehensive Zustand store - optimized selectors
@@ -41,8 +42,6 @@ const App: React.FC = () => {
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [geminiChatInput, setGeminiChatInput] = useState<string>('');
 
-
-
     const tabContentRef = useRef<HTMLDivElement>(null);
     const tabOrder: AppTab[] = [AppTab.GEMINI, AppTab.OBS_STUDIO, AppTab.SETTINGS, AppTab.CONNECTIONS];
     const headerRef = useRef<HTMLDivElement>(null);
@@ -56,10 +55,44 @@ const App: React.FC = () => {
 
     // Update CSS custom properties when theme changes
     useEffect(() => {
+        // Set legacy dynamic accent properties (for components not yet migrated)
         document.documentElement.style.setProperty('--dynamic-accent', catppuccinAccentColorsHexMap[theme.accent]);
         document.documentElement.style.setProperty('--dynamic-secondary-accent', catppuccinSecondaryAccentColorsHexMap[theme.secondaryAccent]);
         document.documentElement.style.setProperty('--user-chat-bubble-color', catppuccinChatBubbleColorsHexMap[theme.userChatBubble]);
         document.documentElement.style.setProperty('--model-chat-bubble-color', catppuccinChatBubbleColorsHexMap[theme.modelChatBubble]);
+
+        // Update semantic design system variables to match selected accent colors
+        const accentColor = catppuccinAccentColorsHexMap[theme.accent];
+        // const secondaryAccentColor = catppuccinSecondaryAccentColorsHexMap[theme.secondaryAccent];
+
+        // Convert hex to HSL for CSS custom properties
+        const hexToHsl = (hex: string): string => {
+            const r = parseInt(hex.slice(1, 3), 16) / 255;
+            const g = parseInt(hex.slice(3, 5), 16) / 255;
+            const b = parseInt(hex.slice(5, 7), 16) / 255;
+
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            let h = 0, s = 0, l = (max + min) / 2;
+
+            if (max !== min) {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+                switch (max) {
+                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                    case g: h = (b - r) / d + 2; break;
+                    case b: h = (r - g) / d + 4; break;
+                }
+                h /= 6;
+            }
+
+            return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+        };
+
+        // Update semantic variables with dynamic accent colors
+        document.documentElement.style.setProperty('--primary', hexToHsl(accentColor));
+        document.documentElement.style.setProperty('--ring', hexToHsl(accentColor));
     }, [theme.accent, theme.secondaryAccent, theme.userChatBubble, theme.modelChatBubble]);
 
     // Handle initial Gemini messages - removed geminiMessages from dependencies to prevent infinite loop
@@ -87,7 +120,7 @@ const App: React.FC = () => {
                     showSuggestions: true
                 });
             } else if (!effectiveApiKey && !isGeminiClientInitialized) {
-                // Only show Gemini API Key warning if OBS is connected but Gemini API key is missing
+                // Only show Gemini API Key warning if OBS is connected and Gemini API key is missing
                 if (isConnected && !effectiveApiKey) {
                     actions.addMessage({ role: 'system', text: "Gemini API Key needs to be provided via environment variable (VITE_GEMINI_API_KEY) or manual input for Gemini features to work." });
                 }
@@ -184,6 +217,30 @@ const App: React.FC = () => {
         }
     }, [obs, actions]);
 
+    // Auto-connect to OBS on app load if settings are saved and auto-connect is enabled
+    useEffect(() => {
+        const attemptAutoConnect = async () => {
+            if (isConnected || isConnecting || obs) return; // Don't auto-connect if already connected/connecting
+
+            if (isStorageAvailable()) {
+                const connectionSettings = loadConnectionSettings();
+                if (connectionSettings.autoConnect && connectionSettings.obsWebSocketUrl) {
+                    console.log('Auto-connecting to OBS...', connectionSettings.obsWebSocketUrl);
+                    try {
+                        await handleConnect(connectionSettings.obsWebSocketUrl, connectionSettings.obsPassword);
+                    } catch (error) {
+                        console.warn('Auto-connect failed:', error);
+                        // Don't show error message for auto-connect failures, just silently fail
+                    }
+                }
+            }
+        };
+
+        // Run auto-connect after a brief delay to ensure all components are initialized
+        const timeoutId = setTimeout(attemptAutoConnect, 500);
+        return () => clearTimeout(timeoutId);
+    }, [isConnected, isConnecting, obs, handleConnect]); // Run once after component mounts
+
     useEffect(() => {
         if (connectError) {
             setActiveTab(AppTab.CONNECTIONS);
@@ -237,15 +294,17 @@ const App: React.FC = () => {
 
     useEffect(() => {
         if (tabContentRef.current) {
-            gsap.fromTo(
-                tabContentRef.current,
-                { opacity: 0, y: 10 },
-                { opacity: 1, y: 0, duration: 0.3, ease: 'power2.inOut' }
+            // Smooth crossfade transition instead of slide
+            gsap.fromTo(tabContentRef.current,
+                { opacity: 0 },
+                {
+                    opacity: 1,
+                    duration: 0.2,
+                    ease: 'power2.out'
+                }
             );
         }
     }, [activeTab]);
-
-
 
     const tabEmojis: Record<AppTab, string> = {
         [AppTab.CONNECTIONS]: '🔌',
@@ -263,126 +322,172 @@ const App: React.FC = () => {
     const renderTabContent = () => {
         const envApiKey = (process.env as any).VITE_GEMINI_API_KEY || (process.env as any).API_KEY;
 
-        switch (activeTab) {
-            case AppTab.CONNECTIONS:
-                return <ConnectionPanel
-                    onConnect={handleConnect}
-                    onDisconnect={handleDisconnect}
-                    isConnected={isConnected}
-                    isConnecting={isConnecting}
-                    defaultUrl={DEFAULT_OBS_WEBSOCKET_URL}
-                    error={connectError}
-                    geminiApiKey={geminiApiKey}
-                    envGeminiApiKey={envApiKey}
-                    onGeminiApiKeyChange={actions.setGeminiApiKey}
-                    isGeminiClientInitialized={isGeminiClientInitialized}
-                    geminiInitializationError={geminiInitializationError}
-                    accentColorName={theme.accent}
-                />;
-            case AppTab.OBS_STUDIO:
-                if (!isConnected || !obsServiceInstance) {
-                    return <p className="text-center text-[var(--ctp-subtext0)] mt-8"><span className="emoji">🔗</span> Please connect to OBS WebSocket in the Connections tab to begin.</p>;
-                }
-                return <ObsMainControls
-                    obsService={obsServiceInstance!}
-                    onRefreshData={fetchData}
-                    setErrorMessage={setErrorMessage}
-                    onSendToGeminiContext={handleSendToGeminiContext}
-                    accentColorName={theme.accent}
-                />;
-            case AppTab.SETTINGS:
-                return <ObsSettingsPanel
-                    selectedAccentColorName={theme.accent}
-                    onAccentColorNameChange={(color) => actions.setThemeColor('accent', color)}
-                    selectedSecondaryAccentColorName={theme.secondaryAccent}
-                    onSecondaryAccentColorNameChange={(color) => actions.setThemeColor('secondaryAccent', color)}
-                    selectedUserChatBubbleColorName={theme.userChatBubble}
-                    onUserChatBubbleColorNameChange={(color) => actions.setThemeColor('userChatBubble', color)}
-                    selectedModelChatBubbleColorName={theme.modelChatBubble}
-                    onModelChatBubbleColorNameChange={(color) => actions.setThemeColor('modelChatBubble', color)}
-                    flipSides={flipSides}
-                    setFlipSides={actions.toggleFlipSides}
-                />;
-            case AppTab.GEMINI:
-                const effectiveApiKey = envApiKey || geminiApiKey;
-                return <GeminiChat
-                    geminiApiKeyFromInput={effectiveApiKey}
-                    obsService={obsServiceInstance!}
-                    onRefreshData={fetchData}
-                    setErrorMessage={setErrorMessage}
-                    chatInputValue={geminiChatInput}
-                    onChatInputChange={setGeminiChatInput}
-                    accentColorName={theme.accent}
-                    messages={geminiMessages}
-                    onAddMessage={actions.addMessage}
-                    isGeminiClientInitialized={isGeminiClientInitialized}
-                    geminiInitializationError={geminiInitializationError}
-                    onSetIsGeminiClientInitialized={actions.setGeminiClientInitialized}
-                    onSetGeminiInitializationError={actions.setGeminiInitializationError}
-                    activeTab={activeTab}
-                    streamerName={streamerName}
-                    flipSides={flipSides}
-                    setFlipSides={actions.toggleFlipSides}
-                />;
-            default:
-                return null;
-        }
+        return (
+            <>
+                {/* Connections Tab */}
+                <div className={`h-full tab-content ${activeTab === AppTab.CONNECTIONS ? 'block' : 'hidden'}`}>
+                    <div className="flex flex-col h-full bg-background border-l border-r border-b border-border rounded-b-lg shadow-lg">
+                        <div className="flex-grow p-3 overflow-y-auto">
+                            <ConnectionPanel
+                                onConnect={handleConnect}
+                                onDisconnect={handleDisconnect}
+                                isConnected={isConnected}
+                                isConnecting={isConnecting}
+                                defaultUrl={DEFAULT_OBS_WEBSOCKET_URL}
+                                error={connectError}
+                                geminiApiKey={geminiApiKey}
+                                envGeminiApiKey={envApiKey}
+                                onGeminiApiKeyChange={actions.setGeminiApiKey}
+                                isGeminiClientInitialized={isGeminiClientInitialized}
+                                geminiInitializationError={geminiInitializationError}
+                                accentColorName={theme.accent}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* OBS Studio Tab */}
+                <div className={`h-full tab-content ${activeTab === AppTab.OBS_STUDIO ? 'block' : 'hidden'}`}>
+                    <div className="flex flex-col h-full bg-background border-l border-r border-b border-border rounded-b-lg shadow-lg">
+                        <div className="flex-grow p-3 overflow-y-auto">
+                            {!isConnected || !obsServiceInstance ? (
+                                <p className="text-center text-muted-foreground mt-8">
+                                    <span className="emoji">🔗</span> Please connect to OBS WebSocket in the Connections tab to begin.
+                                </p>
+                            ) : (
+                                <ObsMainControls
+                                    obsService={obsServiceInstance!}
+                                    onRefreshData={fetchData}
+                                    setErrorMessage={setErrorMessage}
+                                    onSendToGeminiContext={handleSendToGeminiContext}
+                                    accentColorName={theme.accent}
+                                />
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Settings Tab */}
+                <div className={`h-full tab-content ${activeTab === AppTab.SETTINGS ? 'block' : 'hidden'}`}>
+                    <div className="flex flex-col h-full bg-background border-l border-r border-b border-border rounded-b-lg shadow-lg">
+                        <div className="flex-grow p-3 overflow-y-auto">
+                            <ObsSettingsPanel
+                                selectedAccentColorName={theme.accent}
+                                selectedSecondaryAccentColorName={theme.secondaryAccent}
+                                selectedUserChatBubbleColorName={theme.userChatBubble}
+                                selectedModelChatBubbleColorName={theme.modelChatBubble}
+                                flipSides={flipSides}
+                                actions={actions}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Gemini Tab */}
+                <div className={`h-full tab-content ${activeTab === AppTab.GEMINI ? 'block' : 'hidden'}`}>
+                    <GeminiChat
+                        geminiApiKeyFromInput={envApiKey || geminiApiKey}
+                        obsService={obsServiceInstance!}
+                        onRefreshData={fetchData}
+                        setErrorMessage={setErrorMessage}
+                        chatInputValue={geminiChatInput}
+                        onChatInputChange={setGeminiChatInput}
+                        accentColorName={theme.accent}
+                        messages={geminiMessages}
+                        onAddMessage={actions.addMessage}
+                        isGeminiClientInitialized={isGeminiClientInitialized}
+                        geminiInitializationError={geminiInitializationError}
+                        onSetIsGeminiClientInitialized={actions.setGeminiClientInitialized}
+                        onSetGeminiInitializationError={actions.setGeminiInitializationError}
+                        activeTab={activeTab}
+                        streamerName={streamerName}
+                        flipSides={flipSides}
+                        setFlipSides={actions.toggleFlipSides}
+                    />
+                </div>
+            </>
+        );
     };
 
     return (
-        <div className="h-screen max-h-screen bg-gradient-to-br from-[var(--ctp-crust)] to-[var(--ctp-base)] text-[var(--ctp-text)] flex flex-col overflow-hidden">
-            <header ref={headerRef} className="sticky top-0 z-20 bg-ctp-crust p-2 shadow-lg h-16 flex justify-center items-center">
+        <div className="h-screen max-h-screen bg-gradient-to-br from-background to-card text-foreground flex flex-col overflow-hidden">
+            <header ref={headerRef} className="sticky top-0 z-20 bg-background p-1 shadow-lg h-12 flex justify-center items-center">
                 <AnimatedTitleLogos />
             </header>
 
-            <nav
-                className="sticky z-10 bg-ctp-mantle border-b border-ctp-surface1 shadow-md px-2"
+            {/* Unified Header with Integrated Tabs */}
+            <div
+                className="sticky z-10 px-1 pt-1"
                 style={{ top: `${headerHeight}px` }}
             >
-                <div className="flex justify-center space-x-0.5">
-                    {tabOrder.map(tab => {
-                        const isActive = activeTab === tab;
-                        const isConnectionsTab = tab === AppTab.CONNECTIONS;
+                <div className="py-2 px-3 border-b border-border text-base font-semibold emoji-text bg-background rounded-t-lg font-sans text-primary shadow-lg border border-border">
+                    <div className="flex items-center justify-center gap-1">
+                        {/* Centered Tab navigation with expanding active tab */}
+                        {tabOrder.map((tab) => {
+                            const isActive = activeTab === tab;
 
-                        // Define connection status color for the connections tab icon
-                        let connectionIconColor = '';
-                        if (isConnectionsTab) {
-                            if (isConnecting) {
-                                connectionIconColor = 'text-[var(--ctp-yellow)]';
-                            } else if (isConnected && isGeminiClientInitialized) {
-                                connectionIconColor = 'text-[var(--ctp-green)]';
-                            } else if (isConnected) {
-                                connectionIconColor = 'text-[var(--ctp-blue)]';
+                            // Define connection status color for the connections tab icon
+                            let iconColor = 'text-muted-foreground';
+                            const isConnectionsTab = tab === AppTab.CONNECTIONS;
+                            if (isConnectionsTab) {
+                                if (isConnecting) {
+                                    iconColor = 'text-yellow-500';
+                                } else if (isConnected && isGeminiClientInitialized) {
+                                    iconColor = 'text-green-500';
+                                } else if (isConnected) {
+                                    iconColor = 'text-blue-500';
+                                } else {
+                                    iconColor = 'text-destructive';
+                                }
+                            } else if (isActive) {
+                                iconColor = 'text-primary';
                             } else {
-                                connectionIconColor = 'text-[var(--ctp-red)]';
+                                iconColor = 'text-muted-foreground';
                             }
-                        }
 
-                        return (
-                            <button
-                                key={tab}
-                                onClick={() => setActiveTab(tab)}
-                                style={isActive ? { backgroundColor: 'var(--dynamic-accent)', color: 'var(--ctp-base)' } : {}}
-                                className={`px-3 py-1.5 rounded-t-lg text-xs font-medium transition-all duration-200 ease-in-out transform hover:-translate-y-0.5
-                                ${!isActive
-                                        ? 'bg-[var(--ctp-surface0)] hover:bg-[var(--ctp-surface1)] text-[var(--ctp-subtext1)] hover:text-[var(--ctp-text)]'
-                                        : 'shadow-lg'}`}
-                                aria-current={isActive ? 'page' : undefined}
-                            >
-                                <span className={`tab-emoji ${isConnectionsTab ? `${connectionIconColor} ${isConnecting ? 'animate-pulse' : ''}` : ''}`}>
-                                    {tabEmojis[tab]}
-                                </span> {tab}
-                            </button>
-                        );
-                    })}
+                            // Get the full title for the active tab
+                            const getTabTitle = (tabName: AppTab) => {
+                                switch (tabName) {
+                                    case AppTab.GEMINI: return 'Gemini Assistant';
+                                    case AppTab.OBS_STUDIO: return 'OBS Studio Controls';
+                                    case AppTab.SETTINGS: return 'Settings & Preferences';
+                                    case AppTab.CONNECTIONS: return 'Connection Manager';
+                                    default: return tabName;
+                                }
+                            };
+
+                            return (
+                                <button
+                                    key={tab}
+                                    onClick={() => setActiveTab(tab)}
+                                    className={`
+                                        flex items-center gap-2 px-3 py-1.5 rounded-md font-medium
+                                        transition-all duration-300 ease-out relative whitespace-nowrap
+                                        ${isActive
+                                            ? 'bg-primary/20 text-primary border border-primary/30 shadow-sm text-base'
+                                            : 'hover:bg-muted/50 hover:text-foreground text-sm'
+                                        }
+                                    `}
+                                >
+                                    <span className={`${isActive ? 'text-base' : 'text-base'} ${iconColor} transition-colors duration-200`}>
+                                        {tabEmojis[tab]}
+                                    </span>
+                                    <span className={`
+                                        transition-all duration-300 overflow-hidden
+                                        ${isActive ? 'max-w-48 opacity-100' : 'max-w-0 opacity-0'}
+                                    `}>
+                                        {getTabTitle(tab)}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
                 </div>
-            </nav>
+            </div>
 
-
-
-            <main className="flex-grow overflow-y-auto p-2">
+            <main className="flex-grow overflow-y-auto px-1 pb-1">
                 {isConnecting && !isConnected && (
-                    <div className="flex justify-center items-center mt-1 text-[var(--ctp-peach)]">
+                    <div className="flex justify-center items-center mt-1 text-orange-500">
                         <LoadingSpinner size={5} />
                         <span className="ml-2 text-sm">Connecting to OBS...</span>
                     </div>
@@ -394,7 +499,7 @@ const App: React.FC = () => {
                     </Modal>
                 )}
 
-                <div ref={tabContentRef} key={activeTab} className="flex-grow flex flex-col min-h-0 h-full">
+                <div ref={tabContentRef} className="flex-grow flex flex-col min-h-0 h-full tab-content-container tab-transition">
                     {renderTabContent()}
                 </div>
             </main>

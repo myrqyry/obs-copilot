@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
-import { ChevronDownIcon, ChevronUpIcon, ClipboardDocumentIcon, PlusCircleIcon } from '@heroicons/react/24/solid';
+import { ChevronDownIcon, ChevronUpIcon, ClipboardDocumentIcon, ArrowPathIcon, ChatBubbleLeftEllipsisIcon } from '@heroicons/react/24/solid';
 import { gsap } from 'gsap';
 import { GoogleGenAI } from '@google/genai';
 import { Button } from './common/Button';
@@ -8,6 +8,7 @@ import { LoadingSpinner } from './common/LoadingSpinner';
 // Removed useObsActions import - now using store directly
 import { GEMINI_MODEL_NAME, INITIAL_SYSTEM_PROMPT } from '../constants';
 import { getRandomSuggestions } from '../constants/chatSuggestions';
+import { highlightJsonSyntax, applyInlineMarkdown } from '../utils/markdown';
 import {
   ChatMessage,
   CatppuccinAccentColorName,
@@ -19,6 +20,7 @@ import type {
 } from '../types/obsActions';
 import { OBSWebSocketService } from '../services/obsService';
 import { useAppStore } from '../store/appStore';
+import { useLockStore } from '../store/lockStore';
 import { logoAnimations } from '../utils/gsapAnimations';
 import { uiAnimations } from '../utils/gsapAnimations'; // Add this import
 
@@ -40,33 +42,6 @@ interface GeminiChatProps {
   onSetGeminiInitializationError: (error: string | null) => void;
   activeTab: AppTab;
   streamerName: string | null;
-}
-
-function highlightJsonSyntax(rawJsonString: string): string {
-  let htmlEscapedJsonString = rawJsonString
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-
-  htmlEscapedJsonString = htmlEscapedJsonString
-    .replace(/"([^"\\]*(\\.[^"\\]*)*)"(\s*:)?/g, (match, _fullString, _stringContent, _escape, colon) => {
-      const className = colon ? 'text-[var(--ctp-blue)]' : 'text-[var(--ctp-green)]';
-      return `<span class="${className}">${match.substring(0, match.length - (colon ? 1 : 0))}</span>${colon ? ':' : ''}`;
-    })
-    .replace(/\b(true|false|null)\b/g, '<span class="text-[var(--ctp-mauve)]">$1</span>')
-    .replace(/(?<!\w)([-+]?\d*\.?\d+([eE][-+]?\d+)?)(?!\w)/g, '<span class="text-[var(--ctp-peach)]">$1</span>');
-
-  return htmlEscapedJsonString;
-}
-
-function applyInlineMarkdown(text: string): string {
-  let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  html = html.replace(/`([^`]+)`/g, '<code class="bg-[var(--ctp-surface0)] px-1 py-0.5 rounded text-xs text-[var(--ctp-peach)] shadow-inner">$1</code>');
-  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong class="text-[var(--ctp-crust)] font-bold">$1</strong>');
-  html = html.replace(/\*([^*]+)\*/g, '<em class="text-[var(--ctp-mantle)]">$1</em>');
-  html = html.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-[var(--ctp-sky)] hover:text-[var(--ctp-sapphire)] underline transition-colors">$1</a>');
-  html = html.replace(/\n/g, '<br />');
-  return html;
 }
 
 const MarkdownRenderer: React.FC<{ content: string }> = React.memo(({ content }) => {
@@ -99,12 +74,12 @@ const MarkdownRenderer: React.FC<{ content: string }> = React.memo(({ content })
         <div key={index}>
           {part.type === 'code' ? (
             <div className="my-2">
-              <div className="text-xs text-[var(--ctp-overlay1)] mb-1 font-mono">
+              <div className="text-xs text-muted-foreground mb-1 font-mono">
                 {part.language || 'code'}
               </div>
-              <pre className="bg-[var(--ctp-crust)] p-2.5 text-xs overflow-x-auto text-[var(--ctp-subtext1)] border border-[var(--ctp-surface1)] shadow-inner rounded-md leading-tight font-mono">
+              <pre className="bg-muted p-2.5 text-xs overflow-x-auto text-muted-foreground border border-border shadow-inner rounded-md leading-tight font-mono">
                 <code
-                  className="text-[var(--ctp-text)] font-mono leading-tight"
+                  className="text-foreground font-mono leading-tight"
                   dangerouslySetInnerHTML={{
                     __html: part.language === 'json' ? highlightJsonSyntax(part.content) : part.content
                   }}
@@ -113,7 +88,7 @@ const MarkdownRenderer: React.FC<{ content: string }> = React.memo(({ content })
             </div>
           ) : (
             <div
-              className="text-[var(--ctp-crust)] text-sm leading-tight font-sans"
+              className="text-foreground text-sm leading-tight font-sans"
               dangerouslySetInnerHTML={{ __html: applyInlineMarkdown(part.content) }}
             />
           )}
@@ -132,7 +107,9 @@ const LocalChatMessageItem: React.FC<{
   flipSides: boolean;
   showSuggestions?: boolean;
   onAddToContext?: (text: string) => void;
-}> = ({ message, onSuggestionClick, accentColorName: _, obsSources, onSourceSelect, flipSides, showSuggestions = false, onAddToContext }) => {
+  onRegenerate?: (messageId: string) => void;
+  extraDarkMode?: boolean;
+}> = ({ message, onSuggestionClick, accentColorName: _, obsSources, onSourceSelect, flipSides, showSuggestions = false, onAddToContext, onRegenerate, extraDarkMode = false }) => {
   const itemRef = useRef<HTMLDivElement>(null);
   const [isShrunk, setIsShrunk] = useState(false);
   const [forceExpand, setForceExpand] = useState(false);
@@ -196,6 +173,13 @@ const LocalChatMessageItem: React.FC<{
 
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
+  const isAssistant = message.role === 'model';
+
+  const handleRegenerate = () => {
+    if (onRegenerate && message.id) {
+      onRegenerate(message.id);
+    }
+  };
 
   // System messages are always centered
   const containerClasses = isSystem ? 'justify-center' : flipSides
@@ -205,7 +189,7 @@ const LocalChatMessageItem: React.FC<{
   return (
     <div ref={itemRef} className={`flex ${containerClasses} mb-3 font-sans ${isSystem ? 'px-4' : isUser ? 'pl-4' : 'pr-4'}`}>
       <div
-        className={`chat-message rounded-2xl shadow-xl border border-[var(--ctp-surface2)] bg-[var(--ctp-surface0)] relative font-sans group
+        className={`chat-message rounded-2xl shadow-xl border border-border bg-card relative font-sans group
           ${isSystem
             ? 'px-3 py-2 text-sm leading-tight max-w-xl'
             : 'p-3 text-sm leading-tight max-w-lg'}
@@ -213,9 +197,19 @@ const LocalChatMessageItem: React.FC<{
         // onMouseEnter={() => setIsHovered(true)}
         // onMouseLeave={() => setIsHovered(false)}
         style={{
-          backgroundColor: isSystem ? 'var(--dynamic-secondary-accent)' :
-            (isUser ? 'var(--user-chat-bubble-color)' : 'var(--model-chat-bubble-color)'),
-          color: isSystem ? 'var(--ctp-crust)' : 'var(--ctp-crust)',
+          backgroundColor: extraDarkMode
+            ? 'transparent'
+            : isSystem ? 'var(--dynamic-secondary-accent)' :
+              (isUser ? 'var(--user-chat-bubble-color)' : 'var(--model-chat-bubble-color)'),
+          borderColor: extraDarkMode
+            ? isSystem ? 'var(--dynamic-secondary-accent)' :
+              (isUser ? 'var(--user-chat-bubble-color)' : 'var(--model-chat-bubble-color)')
+            : undefined,
+          borderWidth: extraDarkMode ? '2px' : undefined,
+          color: extraDarkMode
+            ? isSystem ? 'var(--dynamic-secondary-accent)' :
+              (isUser ? 'var(--user-chat-bubble-color)' : 'var(--model-chat-bubble-color)')
+            : '#1e1e2e !important',
           fontStyle: isSystem ? 'italic' : 'normal',
           fontSize: '0.875rem',
           position: 'relative',
@@ -225,9 +219,9 @@ const LocalChatMessageItem: React.FC<{
               ? 'var(--model-chat-bubble-color)'
               : 'var(--dynamic-secondary-accent)',
           ['--bubble-scrollbar-thumb-hover' as any]: isUser
-            ? 'var(--ctp-blue)'
+            ? 'hsl(var(--primary))'
             : message.role === 'model'
-              ? 'var(--ctp-lavender)'
+              ? 'hsl(var(--secondary))'
               : 'var(--dynamic-secondary-accent)',
           ['--bubble-fade-color' as any]: isUser
             ? 'var(--user-chat-bubble-color)'
@@ -236,7 +230,16 @@ const LocalChatMessageItem: React.FC<{
               : 'var(--dynamic-secondary-accent)'
         }}
       >
-        <div style={{ position: 'relative' }}>
+        <div
+          style={{
+            position: 'relative',
+            color: extraDarkMode
+              ? isSystem ? 'var(--dynamic-secondary-accent) !important' :
+                (isUser ? 'var(--user-chat-bubble-color) !important' : 'var(--model-chat-bubble-color) !important')
+              : undefined
+          }}
+          className={extraDarkMode ? '[&_*]:!text-inherit' : '!text-ctp-base [&_*]:!text-ctp-base'}
+        >
           <div
             ref={bubbleRef}
             className={`chat-scrollable-content
@@ -250,11 +253,11 @@ const LocalChatMessageItem: React.FC<{
                 <div className="source-selection-header mb-2">
                   <div className="flex items-center gap-1.5 mb-1">
                     <span className="text-sm emoji">🎯</span>
-                    <div className="text-sm text-[var(--ctp-crust)] font-medium font-sans leading-tight">
+                    <div className="text-sm font-medium font-sans leading-tight">
                       Choose a source
                     </div>
                   </div>
-                  <div className="text-sm text-[var(--ctp-mantle)] font-normal font-sans">
+                  <div className="text-sm opacity-80 font-normal font-sans">
                     {message.sourcePrompt || message.text}
                   </div>
                 </div>
@@ -263,7 +266,7 @@ const LocalChatMessageItem: React.FC<{
                     <button
                       key={source.sourceName}
                       onClick={() => onSourceSelect(source.sourceName)}
-                      className="source-select-btn group flex items-center px-3 py-1.5 bg-[var(--ctp-surface0)] text-[var(--ctp-crust)] border border-[var(--ctp-surface1)] rounded transition-all duration-200 hover:bg-[var(--dynamic-accent)] hover:text-[var(--ctp-crust)] hover:border-[var(--dynamic-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--dynamic-accent)]"
+                      className="source-select-btn group flex items-center px-3 py-1.5 bg-background/80 text-foreground border border-border rounded transition-all duration-200 hover:bg-primary hover:text-primary-foreground hover:border-primary focus:outline-none focus:ring-1 focus:ring-primary shadow-sm"
                       tabIndex={0}
                       aria-label={`Select source ${source.sourceName}`}
                       data-tooltip={source.typeName || source.inputKind || 'Source'}
@@ -280,7 +283,7 @@ const LocalChatMessageItem: React.FC<{
                                         '🎯'}
                       </span>
                       <div className="flex-1 text-left min-w-0">
-                        <div className="font-medium text-sm text-[var(--ctp-crust)] group-hover:text-[var(--ctp-crust)] transition-colors duration-200 overflow-hidden text-ellipsis whitespace-nowrap">
+                        <div className="font-medium text-sm group-hover:text-background transition-colors duration-200 overflow-hidden text-ellipsis whitespace-nowrap">
                           {source.sourceName}
                         </div>
                       </div>
@@ -294,14 +297,15 @@ const LocalChatMessageItem: React.FC<{
 
                 {/* Show suggestion buttons for greeting system messages */}
                 {showSuggestions && isSystem && onSuggestionClick && (
-                  <div className="mt-3 pt-3 border-t border-[var(--ctp-yellow)] border-opacity-30">
-                    <div className="text-sm text-[var(--ctp-crust)] text-opacity-90 mb-3 font-normal font-sans"><span className="emoji">✨</span> Try these commands:</div>
+                  <div className="mt-3 pt-3 border-t border-yellow-500 border-opacity-30">
+                    <div className="text-sm opacity-90 mb-3 font-normal font-sans"><span className="emoji">✨</span> Try these commands:</div>
                     <div className="grid grid-cols-2 gap-2">
                       {memoizedSuggestions.map((suggestion) => (
                         <button
                           key={suggestion.id}
                           onClick={() => onSuggestionClick(suggestion.prompt)}
-                          className="text-xs px-2 py-1.5 bg-[var(--ctp-surface0)] text-[var(--ctp-crust)] hover:bg-[var(--dynamic-accent)] hover:text-[var(--ctp-crust)] rounded border border-[var(--ctp-surface1)] hover:border-[var(--dynamic-accent)] transition-all duration-200 text-left group"
+                          className="text-xs px-2 py-1.5 bg-background/80 hover:bg-primary hover:text-primary-foreground rounded border border-border hover:border-primary transition-all duration-200 text-left group shadow-sm"
+                          style={{ color: '#f1f5f9 !important' }}
                         >
                           <span className="mr-1.5 text-sm group-hover:scale-110 transition-transform duration-200 inline-block emoji">{suggestion.emoji}</span>
                           <span className="font-normal">{suggestion.label}</span>
@@ -312,15 +316,15 @@ const LocalChatMessageItem: React.FC<{
                 )}
 
                 {message.sources && message.sources.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-[var(--ctp-surface2)]">
-                    <div className="text-sm text-[var(--ctp-crust)] text-opacity-90 mb-2 font-normal font-sans"><span className="emoji">📚</span> Sources:</div>
+                  <div className="mt-3 pt-3 border-t border-border">
+                    <div className="text-sm opacity-90 mb-2 font-normal font-sans"><span className="emoji">📚</span> Sources:</div>
                     <div className="space-y-1">
                       {message.sources.map((source, idx) => (
                         <div key={idx} className="text-xs">                            <a
                           href={source.web?.uri}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-[var(--ctp-sky)] hover:text-[var(--ctp-sapphire)] hover:underline transition-colors duration-200"
+                          className="text-primary hover:text-primary/80 hover:underline transition-colors duration-200"
                         >
                           <span className="emoji">🔗</span> {source.web?.title || source.web?.uri}
                         </a>
@@ -332,8 +336,8 @@ const LocalChatMessageItem: React.FC<{
 
                 {/* Show choice buttons for model messages with choices */}
                 {message.type === "choice-prompt" && message.choices && onSuggestionClick && (
-                  <div className="mt-3 pt-3 border-t border-[var(--ctp-blue)] border-opacity-30">
-                    <div className="text-sm text-[var(--ctp-crust)] text-opacity-90 mb-3 font-normal font-sans">
+                  <div className="mt-3 pt-3 border-t border-primary border-opacity-30">
+                    <div className="text-sm opacity-90 mb-3 font-normal font-sans">
                       <span className="emoji">
                         {message.choiceType === 'scene' ? '🎬' :
                           message.choiceType === 'source' ? '🎯' :
@@ -366,9 +370,10 @@ const LocalChatMessageItem: React.FC<{
                               onSuggestionClick(choice);
                             }
                           }}
-                          className="text-sm px-3 py-2 bg-[var(--ctp-surface0)] text-[var(--ctp-crust)] hover:bg-[var(--dynamic-accent)] hover:text-[var(--ctp-crust)] rounded border border-[var(--ctp-surface1)] hover:border-[var(--dynamic-accent)] transition-all duration-200 text-left group"
+                          className="text-sm px-3 py-2 bg-background/80 hover:bg-primary hover:text-primary-foreground rounded border border-border hover:border-primary transition-all duration-200 text-left group shadow-sm"
+                          style={{ color: '#f1f5f9 !important' }}
                         >
-                          <span className="mr-2 text-sm font-medium text-[var(--ctp-blue)] group-hover:text-[var(--ctp-crust)]">
+                          <span className="mr-2 text-sm font-medium text-primary group-hover:text-primary-foreground">
                             {String.fromCharCode(65 + idx)})
                           </span>
                           <span className="font-normal">{choice}</span>
@@ -392,29 +397,52 @@ const LocalChatMessageItem: React.FC<{
         </div>
 
         {/* Timestamp outside of scrollable area */}
-        <div className="text-xs mt-1.5 text-[var(--ctp-crust)] text-opacity-90 relative z-20 font-normal">
+        <div
+          className="text-xs mt-1.5 relative z-20 tracking-wider"
+          style={{
+            fontFamily: 'Reddit Sans, -apple-system, BlinkMacSystemFont, sans-serif',
+            fontWeight: 500,
+            color: extraDarkMode
+              ? isSystem ? 'var(--dynamic-secondary-accent)' :
+                (isUser ? 'var(--user-chat-bubble-color)' : 'var(--model-chat-bubble-color)')
+              : '#1e293b', // text-slate-800 equivalent
+            fontStyle: 'normal' as React.CSSProperties['fontStyle'] // Prevent inheriting italics
+          }}
+        >
           {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>
 
         {/* Hover action buttons (top right, visible on hover) */}
         <div className="absolute top-2 right-2 z-30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex space-x-1">
+          {/* Regenerate button (only for assistant messages) */}
+          {isAssistant && onRegenerate && (
+            <button
+              onClick={handleRegenerate}
+              className="bg-card/90 backdrop-blur-sm text-muted-foreground hover:text-green-500 hover:bg-green-500/10 p-1 rounded-full shadow-md border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-green-500/50"
+              title="Regenerate response"
+              aria-label="Regenerate message"
+            >
+              <ArrowPathIcon className="w-3 h-3" />
+            </button>
+          )}
+
           <button
             onClick={handleCopyText}
-            className="bg-gradient-to-br from-[var(--ctp-base)]/90 to-[var(--ctp-surface2)]/90 text-[var(--ctp-text)] hover:text-[var(--dynamic-accent)] p-1.5 rounded-full shadow-lg border border-[var(--ctp-overlay1)] transition-all flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-[var(--dynamic-accent)]"
+            className="bg-card/90 backdrop-blur-sm text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 p-1 rounded-full shadow-md border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/50"
             title="Copy text"
             aria-label="Copy message text"
           >
-            <ClipboardDocumentIcon className="w-4 h-4" />
+            <ClipboardDocumentIcon className="w-3 h-3" />
           </button>
 
           {onAddToContext && (
             <button
               onClick={handleAddToContextLocal}
-              className="bg-gradient-to-br from-[var(--ctp-base)]/90 to-[var(--ctp-surface2)]/90 text-[var(--ctp-text)] hover:text-[var(--dynamic-accent)] p-1.5 rounded-full shadow-lg border border-[var(--ctp-overlay1)] transition-all flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-[var(--dynamic-accent)]"
+              className="bg-card/90 backdrop-blur-sm text-muted-foreground hover:text-purple-500 hover:bg-purple-500/10 p-1 rounded-full shadow-md border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-purple-500/50"
               title="Add to context"
               aria-label="Add message to context"
             >
-              <PlusCircleIcon className="w-4 h-4" />
+              <ChatBubbleLeftEllipsisIcon className="w-3 h-3" />
             </button>
           )}
         </div>
@@ -422,24 +450,22 @@ const LocalChatMessageItem: React.FC<{
         {/* Expand/collapse floating icon button (bottom right, more visible) */}
         {isShrunk && !forceExpand && (
           <button
-            className="absolute right-3 bottom-3 z-40 bg-gradient-to-br from-[var(--ctp-base)]/90 to-[var(--ctp-surface2)]/90 text-[var(--dynamic-accent)] hover:text-[var(--ctp-mauve)] p-2.5 rounded-full shadow-2xl border-2 border-[var(--ctp-overlay1)] transition-all flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-[var(--ctp-mauve)]"
-            style={{ fontSize: '1.7rem', lineHeight: 1, boxShadow: '0 6px 24px 0 rgba(0,0,0,0.22)' }}
+            className="absolute right-3 bottom-3 z-40 bg-card/90 backdrop-blur-sm text-primary hover:text-primary/80 hover:bg-primary/10 p-2 rounded-full shadow-xl border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/50"
             onClick={() => setForceExpand(true)}
             title="Expand bubble"
             aria-label="Expand chat bubble"
           >
-            <ChevronDownIcon className="w-7 h-7" />
+            <ChevronDownIcon className="w-5 h-5" />
           </button>
         )}
         {forceExpand && (
           <button
-            className="absolute right-3 bottom-3 z-40 bg-gradient-to-br from-[var(--ctp-base)]/90 to-[var(--ctp-surface2)]/90 text-[var(--ctp-overlay1)] hover:text-[var(--ctp-mauve)] p-2.5 rounded-full shadow-2xl border-2 border-[var(--ctp-overlay1)] transition-all flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-[var(--ctp-mauve)]"
-            style={{ fontSize: '1.7rem', lineHeight: 1, boxShadow: '0 6px 24px 0 rgba(0,0,0,0.22)' }}
+            className="absolute right-3 bottom-3 z-40 bg-card/90 backdrop-blur-sm text-muted-foreground hover:text-primary hover:bg-primary/10 p-2 rounded-full shadow-xl border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/50"
             onClick={() => setForceExpand(false)}
             title="Shrink bubble"
             aria-label="Shrink chat bubble"
           >
-            <ChevronUpIcon className="w-7 h-7" />
+            <ChevronUpIcon className="w-5 h-5" />
           </button>
         )}
       </div>
@@ -664,6 +690,21 @@ function detectObsChoiceQuestion(text: string, obsData: any): { hasChoices: bool
   return { hasChoices: false, choices: [], cleanText: text };
 }
 
+// This function can be removed or properly implemented later
+// function parseUserIntent(userMessage: string) {
+//   // Add intent classification before defaulting to OBS actions
+//   const obsKeywords = ['source', 'filter', 'scene', 'transition', 'open', 'hide'];
+//   const hasObsIntent = obsKeywords.some(keyword =>
+//     userMessage.toLowerCase().includes(keyword)
+//   );
+
+//   if (!hasObsIntent) {
+//     return 'general_conversation';
+//   }
+
+//   // Continue with existing OBS command parsing...
+// }
+
 export const GeminiChat: React.FC<GeminiChatProps> = ({
   geminiApiKeyFromInput,
   onRefreshData,
@@ -681,8 +722,9 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
   flipSides,
 }) => {
   // Use Zustand for OBS data and actions
-  const { scenes, currentProgramScene, sources, streamStatus, videoSettings, autoApplySuggestions, actions } = useAppStore();
-  const obsData = { scenes, currentProgramScene, sources, streamStatus, videoSettings };
+  const { scenes, currentProgramScene, sources, streamStatus, recordStatus, videoSettings, autoApplySuggestions, extraDarkMode, actions, isConnected } = useAppStore();
+  const obsData = { scenes, currentProgramScene, sources, streamStatus, recordStatus, videoSettings };
+  const { isLocked } = useLockStore();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [useGoogleSearch, setUseGoogleSearch] = useState<boolean>(false);
@@ -733,7 +775,16 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
     const sceneNames = obsData.scenes.map((s: any) => s.sceneName).join(', ');
     const sourceNames = obsData.sources.map((s: any) => s.sourceName).join(', ');
     const currentScene = obsData.currentProgramScene || 'None';
-    const streamStatus = obsData.streamStatus ? `Active (${obsData.streamStatus.outputDuration}s)` : 'Inactive';
+
+    // Fix stream and record status to check outputActive property
+    const streamStatus = obsData.streamStatus?.outputActive
+      ? `Active (${Math.floor((obsData.streamStatus.outputDuration || 0) / 60)}:${((obsData.streamStatus.outputDuration || 0) % 60).toString().padStart(2, '0')})`
+      : 'Inactive';
+
+    const recordStatus = obsData.recordStatus?.outputActive
+      ? `Recording (${Math.floor((obsData.recordStatus.outputDuration || 0) / 60)}:${((obsData.recordStatus.outputDuration || 0) % 60).toString().padStart(2, '0')})`
+      : 'Not Recording';
+
     const videoRes = obsData.videoSettings ? `${obsData.videoSettings.baseWidth}x${obsData.videoSettings.baseHeight}` : 'Unknown';
 
     return `
@@ -742,6 +793,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
 - Available Scenes: ${sceneNames}
 - Available Sources: ${sourceNames}
 - Stream Status: ${streamStatus}
+- Record Status: ${recordStatus}
 - Video Resolution: ${videoRes}
 
 When user asks for OBS actions, respond with a JSON object in your response containing an "obsAction" field. Example:
@@ -762,6 +814,12 @@ Use these action types: createInput, setInputSettings, setSceneItemEnabled, getI
 
   const handleSend = async () => {
     if (!chatInputValue.trim() || !ai.current || isLoading) return;
+
+    // If OBS is not connected, warn and block OBS actions
+    if (!isConnected && !useGoogleSearch) {
+      onAddMessage({ role: 'system', text: "Hey! I'm not connected to OBS right now, so I can't perform that action. Please connect OBS and try again when you're ready." });
+      return;
+    }
 
     const userMessageText = chatInputValue.trim();
     setIsLoading(true);
@@ -802,6 +860,9 @@ Use these action types: createInput, setInputSettings, setSceneItemEnabled, getI
 
       let displayText = modelResponseText;
 
+      // Store OBS action result for later (after adding Gemini response)
+      let obsActionResult: { success: boolean; message: string; error?: string } | null = null;
+
       if (!useGoogleSearch) {
         try {
           // Try to extract a JSON block (```json ... ``` or {...})
@@ -809,15 +870,26 @@ Use these action types: createInput, setInputSettings, setSceneItemEnabled, getI
           if (jsonMatch) {
             const jsonStr = jsonMatch[1] || jsonMatch[0];
             const parsed: GeminiActionResponse = JSON.parse(jsonStr);
+            // Enforce lock awareness for Gemini actions
             if (parsed.obsAction) {
-              const result = await actions.handleObsAction(parsed.obsAction);
-              if (result.success) {
-                onAddMessage({ role: 'system', text: result.message });
+              // Map action types to lock keys
+              const actionType = parsed.obsAction.type;
+              const lockMap: Record<string, string> = {
+                startStream: 'streamRecord',
+                stopStream: 'streamRecord',
+                toggleStream: 'streamRecord',
+                startRecord: 'streamRecord',
+                stopRecord: 'streamRecord',
+                toggleRecord: 'streamRecord',
+                setVideoSettings: 'videoSettings',
+              };
+              const lockKey = lockMap[actionType];
+              if (lockKey && isLocked(lockKey)) {
+                onAddMessage({ role: 'system', text: "Looks like you've locked this setting, so I won't change it for you. If you want me to help with this, just unlock it in the settings!" });
               } else {
-                onAddMessage({ role: 'system', text: result.message });
-                setErrorMessage(`OBS Action failed: ${result.error}`);
+                obsActionResult = await actions.handleObsAction(parsed.obsAction);
+                await onRefreshData();
               }
-              await onRefreshData();
             }
             // Prefer responseText for display if present
             if (typeof parsed.responseText === 'string') {
@@ -861,10 +933,117 @@ Use these action types: createInput, setInputSettings, setSceneItemEnabled, getI
       } else {
         onAddMessage({ role: 'model', text: displayText, sources: responseSources });
       }
+
+      // Add OBS action result after Gemini response (ensures proper message order)
+      if (obsActionResult) {
+        onAddMessage({ role: 'system', text: obsActionResult.message });
+        if (!obsActionResult.success) {
+          setErrorMessage(`OBS Action failed: ${obsActionResult.error}`);
+        }
+      }
     } catch (error: any) {
       console.error('Gemini API call failed:', error);
       const errorMessageText = error?.message || 'Unknown error occurred';
       onAddMessage({ role: 'system', text: `❗ Gemini API Error: ${errorMessageText}` });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRegenerate = async (messageId: string) => {
+    if (!ai.current || isLoading) return;
+
+    // Find the message to regenerate
+    const messageIndex = messages.findIndex(msg => msg.id === messageId);
+    if (messageIndex === -1) return;
+
+    const messageToRegenerate = messages[messageIndex];
+    if (messageToRegenerate.role !== 'model') return;
+
+    // Find the last user message before this assistant message
+    let userPrompt = '';
+    for (let i = messageIndex - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') {
+        userPrompt = messages[i].text;
+        break;
+      }
+    }
+
+    if (!userPrompt) return;
+
+    setIsLoading(true);
+
+    try {
+      const systemPrompt = useGoogleSearch
+        ? `${INITIAL_SYSTEM_PROMPT}\n\nYou can use Google Search to find current information. When you need to search for something, include it in your response. Focus on providing helpful, accurate, and up-to-date information.`
+        : `${INITIAL_SYSTEM_PROMPT}\n\n${buildObsSystemMessage()}`;
+
+      // Add context if available
+      const contextPrompt = contextMessages.length > 0
+        ? `\n\nContext from previous messages:\n${contextMessages.join('\n')}\n\n`
+        : '';
+
+      let finalPrompt = userPrompt;
+      if (useGoogleSearch) {
+        finalPrompt = `Please search for information about: ${userPrompt}`;
+      }
+
+      const response = await ai.current.models.generateContent({
+        model: GEMINI_MODEL_NAME,
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: `${systemPrompt}${contextPrompt}\n\n${finalPrompt}` }]
+          }
+        ]
+      });
+
+      let modelResponseText = response.text || 'No response received';
+      let responseSources: any[] | undefined;
+
+      // Handle OBS actions if not using Google Search
+      let obsActionResult: any = null;
+      if (!useGoogleSearch) {
+        try {
+          // Try to extract a JSON block (```json ... ``` or {...})
+          const jsonMatch = modelResponseText.match(/```json\n([\s\S]*?)\n```/) || modelResponseText.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const jsonStr = jsonMatch[1] || jsonMatch[0];
+            const parsed: GeminiActionResponse = JSON.parse(jsonStr);
+            if (parsed.obsAction) {
+              obsActionResult = await actions.handleObsAction(parsed.obsAction);
+              await onRefreshData();
+            }
+            // Prefer responseText for display if present
+            if (typeof parsed.responseText === 'string') {
+              modelResponseText = parsed.responseText;
+            }
+          }
+        } catch (err) {
+          // If parsing fails, just show the original text
+          console.warn('No valid OBS action found in response:', err);
+        }
+      }
+
+      // Replace the regenerated message
+      actions.replaceMessage(messageId, {
+        role: 'model',
+        text: modelResponseText,
+        sources: responseSources
+      });
+
+      // Add OBS action result if any
+      if (obsActionResult) {
+        onAddMessage({ role: 'system', text: obsActionResult.message });
+        if (!obsActionResult.success) {
+          setErrorMessage(`OBS Action failed: ${obsActionResult.error}`);
+        }
+      }
+
+    } catch (error: any) {
+      console.error('Error regenerating message:', error);
+      const errorMessageText = error?.message || 'Unknown error occurred';
+      onAddMessage({ role: 'system', text: `❗ Regeneration failed: ${errorMessageText}` });
     } finally {
       setIsLoading(false);
     }
@@ -946,15 +1125,17 @@ Use these action types: createInput, setInputSettings, setSceneItemEnabled, getI
     return () => btn.removeEventListener('mouseenter', onEnter);
   }, []);
 
-  return (
-    <div className="flex flex-col h-full bg-[var(--ctp-surface0)] rounded-lg shadow-lg border border-[var(--ctp-surface1)]">
-      <div
-        className="p-3 border-b border-[var(--ctp-surface1)] text-base font-semibold emoji-text bg-[var(--ctp-mantle)] rounded-t-lg font-sans"
-        style={{ color: 'var(--dynamic-accent)' }}
-      >
-        Gemini Assistant
-      </div>
+  const { customChatBackground } = useAppStore();
 
+  return (
+    <div
+      className="flex flex-col h-full bg-background border-l border-r border-b border-border rounded-b-lg shadow-lg"
+      style={{
+        backgroundImage: customChatBackground ? `url(${customChatBackground})` : undefined,
+        backgroundSize: 'cover',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
       <div className="flex-grow p-2 space-y-2 overflow-y-auto">
         {messages.map((msg, idx) => (
           <LocalChatMessageItem
@@ -964,6 +1145,10 @@ Use these action types: createInput, setInputSettings, setSceneItemEnabled, getI
             accentColorName={accentColorName}
             obsSources={msg.type === "source-prompt" ? obsData.sources : undefined}
             onAddToContext={handleAddToContext}
+            extraDarkMode={extraDarkMode}
+            flipSides={flipSides}
+            showSuggestions={msg.showSuggestions || false}
+            onRegenerate={handleRegenerate}
             onSourceSelect={
               msg.type === "source-prompt"
                 ? (srcName) => {
@@ -990,20 +1175,18 @@ Use these action types: createInput, setInputSettings, setSceneItemEnabled, getI
                 }
                 : undefined
             }
-            flipSides={flipSides}
-            showSuggestions={msg.showSuggestions || false}
           />
         ))}
         {isLoading && (
           <div className="flex justify-center items-center py-4">
             <LoadingSpinner size={5} />
-            <span className="ml-3 text-sm text-[var(--ctp-subtext0)] animate-pulse">Gemini is thinking...</span>
+            <span className="ml-3 text-sm text-muted-foreground animate-pulse">Gemini is thinking...</span>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="p-3 border-t border-[var(--ctp-surface1)] bg-[var(--ctp-mantle)] rounded-b-lg">
+      <div className="p-3 border-t border-border bg-background rounded-b-lg">
         <div className="flex items-center space-x-2">
           <TextInput
             id="gemini-input"
@@ -1035,20 +1218,20 @@ Use these action types: createInput, setInputSettings, setSceneItemEnabled, getI
           </Button>
         </div>
         <div className="mt-2">
-          <label className="flex items-center space-x-2 text-xs text-[var(--ctp-subtext0)] cursor-pointer group">
+          <label className="flex items-center space-x-2 text-xs text-muted-foreground cursor-pointer group">
             <input
               type="checkbox"
               checked={useGoogleSearch}
               onChange={(e) => setUseGoogleSearch(e.target.checked)}
-              className="appearance-none h-4 w-4 border-2 border-[var(--ctp-surface2)] rounded-sm bg-[var(--ctp-surface0)]
-                         checked:bg-[var(--dynamic-accent)] checked:border-transparent focus:outline-none 
-                         focus:ring-2 focus:ring-offset-0 focus:ring-[var(--dynamic-accent)] focus:ring-opacity-50
-                         transition duration-150 group-hover:border-[var(--ctp-overlay1)]"
+              className="appearance-none h-4 w-4 border-2 border-border rounded-sm bg-background
+                         checked:bg-primary checked:border-transparent focus:outline-none 
+                         focus:ring-2 focus:ring-offset-0 focus:ring-ring focus:ring-opacity-50
+                         transition duration-150 group-hover:border-border"
               disabled={!isGeminiClientInitialized}
             />
-            <span className="group-hover:text-[var(--ctp-text)] transition-colors duration-200">
+            <span className="group-hover:text-foreground transition-colors duration-200">
               <span className="mr-1">🌍</span>
-              Use Google Search <span className="text-[var(--ctp-subtext1)]">(disables OBS actions)</span>
+              Use Google Search <span className="text-muted-foreground">(disables OBS actions)</span>
             </span>
           </label>
         </div>

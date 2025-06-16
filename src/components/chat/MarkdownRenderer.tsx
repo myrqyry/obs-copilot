@@ -24,7 +24,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({ c
             highlightedCode = rawCode.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         }
         parts.push(
-            `<pre class="bg-[var(--ctp-crust)] p-2.5 text-xs my-1.5 overflow-x-auto text-[var(--ctp-subtext1)] border border-[var(--ctp-surface1)] shadow-inner rounded-md leading-relaxed"><code class="language-${lang || ''}">${highlightedCode}</code></pre>`
+            `<pre class="bg-muted p-2.5 text-xs my-1.5 overflow-x-auto text-muted-foreground border border-border shadow-inner rounded-md leading-relaxed"><code class="language-${lang || ''}">${highlightedCode}</code></pre>`
         );
         lastIndex = codeBlockRegex.lastIndex;
     }
@@ -33,7 +33,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({ c
         parts.push(applyInlineMarkdown(content.substring(lastIndex)));
     }
 
-    return <div dangerouslySetInnerHTML={{ __html: parts.join('') }} />;
+    return <div style={{ color: 'inherit' }} className="[&_*]:!text-inherit" dangerouslySetInnerHTML={{ __html: parts.join('') }} />;
 });
 
 MarkdownRenderer.displayName = 'MarkdownRenderer';

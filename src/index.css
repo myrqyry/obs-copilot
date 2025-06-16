@@ -1,302 +1,129 @@
-/* Custom scrollbars - Catppuccin Mocha */
-::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--ctp-mantle);
-  border-radius: 6px;
-}
-
-::-webkit-scrollbar-thumb {
-  background-color: var(--ctp-surface2);
-  border-radius: 6px;
-  border: 3px solid var(--ctp-mantle);
-  /* Creates padding around thumb */
-}
-
-/* Top fade effect for chat bubbles when scrolled from top */
-.bubble-fade-top {
-  pointer-events: none;
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 2.5rem;
-  z-index: 30;
-  background: linear-gradient(to bottom, var(--bubble-fade-color, var(--ctp-base)) 10%, rgba(0, 0, 0, 0) 100%);
-  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: 1;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background-color: var(--ctp-overlay0);
-}
-
-/* For Firefox */
-* {
-  scrollbar-width: auto;
-  /* Or 'thin' */
-  scrollbar-color: var(--ctp-surface2) var(--ctp-mantle);
-  /* thumb track */
-}
-
-/* Updated scrollbar styles for better visibility and modern look */
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: var(--bubble-scrollbar-thumb, var(--ctp-surface2)) transparent;
-  scrollbar-gutter: stable;
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-  background: transparent;
-  opacity: 0;
-  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, var(--bubble-scrollbar-thumb, var(--ctp-surface2)), var(--ctp-overlay1));
-  border-radius: 8px;
-  border: 2px solid rgba(0, 0, 0, 0.05);
-  min-height: 40px;
-  opacity: 0.85;
-  transition: background 0.2s, opacity 0.2s;
-  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.10);
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, var(--bubble-scrollbar-thumb-hover, var(--ctp-overlay1)), var(--ctp-mauve));
-  opacity: 1;
-}
-
-.custom-scrollbar.scrolling::-webkit-scrollbar {
-  opacity: 1;
-}
-
-/* Chat bubble fade effect - applied to the scrollable content area */
-.chat-scrollable-content {
-  position: relative;
-}
-
-.chat-scrollable-content.shrunk::after {
-  display: none;
-}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --ctp-rosewater: #f5e0dc;
-  --ctp-flamingo: #f2cdcd;
-  --ctp-pink: #f5c2e7;
-  --ctp-mauve: #cba6f7;
-  --ctp-red: #f38ba8;
-  --ctp-maroon: #eba0ac;
-  --ctp-peach: #fab387;
-  --ctp-yellow: #f9e2af;
-  --ctp-green: #a6e3a1;
-  --ctp-teal: #94e2d5;
-  --ctp-sky: #89dceb;
-  --ctp-sapphire: #74c7ec;
-  --ctp-blue: #89b4fa;
-  --ctp-lavender: #b4befe;
-  --ctp-text: #cdd6f4;
-  --ctp-subtext1: #bac2de;
-  --ctp-subtext0: #a6adc8;
-  --ctp-overlay2: #9399b2;
-  --ctp-overlay1: #7f849c;
-  --ctp-overlay0: '#6c7086';
-  --ctp-surface2: #585b70;
-  --ctp-surface1: #45475a;
-  --ctp-surface0: '#313244';
-  --ctp-base: #1e1e2e;
-  --ctp-mantle: #181825;
-  --ctp-crust: #11111b;
+@layer base {
+  :root {
+    --background: 240 20% 15%;
+    /* Catppuccin Mocha Base */
+    --foreground: 226 66% 88%;
+    /* Catppuccin Mocha Text - restored to proper light color for main UI */
 
-  /* Dynamic Colors */
-  --dynamic-accent: var(--ctp-mauve);
-  /* Default primary accent */
-  --dynamic-secondary-accent: var(--ctp-flamingo);
-  /* Default secondary accent */
-  --user-chat-bubble-color: var(--ctp-blue);
-  /* Default user chat bubble */
-  --model-chat-bubble-color: var(--ctp-lavender);
-  /* Default model chat bubble */
-}
+    --card: 233 12% 31%;
+    /* Catppuccin Mocha Surface1 */
+    --card-foreground: 226 66% 88%;
+    /* Catppuccin Mocha Text */
 
-body {
-  font-family: "Noto Sans", sans-serif;
-  background-color: var(--ctp-base);
-  color: var(--ctp-text);
-  overflow-x: hidden;
-  /* Prevent horizontal scroll */
-  margin: 0;
-  /* Ensure no default margin */
-  -webkit-font-smoothing: antialiased;
-  /* Smoother fonts */
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  /* Force text variant for numbers and regular characters */
-  font-variant-emoji: text;
-}
+    --popover: 233 12% 31%;
+    /* Catppuccin Mocha Surface1 */
+    --popover-foreground: 226 66% 88%;
+    /* Catppuccin Mocha Text */
 
-/* Logo Animations - Replaced with GSAP-based animations */
-/* All logo animations are now handled by GSAP for better performance and control */
+    --primary: 270 80% 85%;
+    /* Catppuccin Mocha Mauve */
+    --primary-foreground: 240 20% 15%;
+    /* Catppuccin Mocha Base (for contrast) */
 
-/* GSAP Animation Base Classes */
-.gsap-logo {
-  /* Base class for GSAP-animated logos */
-  transform-origin: center;
-  will-change: transform, opacity;
-}
+    --secondary: 237 13% 23%;
+    /* Catppuccin Mocha Surface0 */
+    --secondary-foreground: 227 27% 75%;
+    /* Catppuccin Mocha Subtext0 */
 
-.gsap-no-flicker {
-  /* Prevent FOUC (Flash of Unstyled Content) during GSAP animations */
-  opacity: 0;
-}
+    --muted: 230 11% 48%;
+    /* Catppuccin Mocha Overlay0 */
+    --muted-foreground: 225 42% 86%;
+    /* Catppuccin Mocha Subtext1 */
 
-.gsap-ready {
-  /* Applied when GSAP has initialized */
-  opacity: 1;
-}
+    --accent: 169 56% 76%;
+    /* Catppuccin Mocha Teal */
+    --accent-foreground: 240 20% 15%;
+    /* Catppuccin Mocha Base (for contrast) */
 
-/* Ensure root div takes full height */
-#root {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
+    --destructive: 340 82% 81%;
+    /* Catppuccin Mocha Red */
+    --destructive-foreground: 240 20% 15%;
+    /* Catppuccin Mocha Base (for contrast) */
 
-/* For modal animation */
-@keyframes modal-appear {
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
+    --border: 233 11% 39%;
+    /* Catppuccin Mocha Surface2 */
+    --input: 237 13% 23%;
+    /* Catppuccin Mocha Surface0 */
+    --ring: 270 80% 85%;
+    /* Catppuccin Mocha Mauve (Primary Accent) */
 
-/* Emoji styling for color support - only for actual emoji characters */
-.emoji,
-[data-emoji] {
-  font-family: "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Twemoji Mozilla", sans-serif !important;
-  font-variant-emoji: emoji;
-  text-rendering: optimizeLegibility;
-  font-feature-settings: "liga", "kern";
-  display: inline-block;
-  vertical-align: text-bottom;
-  line-height: 1;
-}
-
-/* For text that contains emojis but should preserve normal text rendering */
-.emoji-text {
-  font-variant-emoji: text;
-  /* Keep text normal */
-}
-
-/* Only apply emoji styling to specific emoji spans within text */
-.emoji-text .emoji {
-  font-family: "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Twemoji Mozilla", sans-serif !important;
-  font-variant-emoji: emoji;
-}
-
-/* Tab emojis - specific targeting */
-.tab-emoji {
-  font-family: "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Twemoji Mozilla", sans-serif !important;
-  font-variant-emoji: emoji;
-  display: inline-block;
-  vertical-align: text-bottom;
-}
-
-/* Remove broad emoji styling that affects numbers */
-/* Only apply emoji fonts to specific emoji elements */
-
-.animate-modal-appear {
-  animation: modal-appear 0.3s forwards;
-}
-
-/* Updated fade effect for chat bubbles */
-.bubble-fade-bottom {
-  pointer-events: none;
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 2.5rem;
-  z-index: 30;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, var(--bubble-fade-color, var(--ctp-base)) 100%);
-  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: 1;
-}
-
-.bubble-fade-bottom--hidden {
-  opacity: 0;
-}
-
-/* Custom styled tooltips */
-[data-tooltip] {
-  position: relative;
-}
-
-[data-tooltip]:hover {
-  cursor: pointer;
-}
-
-[data-tooltip]:hover::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: var(--ctp-surface0) !important;
-  color: var(--ctp-text) !important;
-  border: 1px solid var(--ctp-surface2);
-  border-radius: 6px;
-  padding: 8px 10px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  white-space: nowrap;
-  z-index: 1000;
-  box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.4);
-  animation: tooltip-appear 0.2s ease-out;
-  pointer-events: none;
-  max-width: 200px;
-  word-wrap: break-word;
-  white-space: normal;
-  font-family: "Noto Sans", sans-serif;
-  opacity: 1 !important;
-}
-
-[data-tooltip]:hover::before {
-  content: '';
-  position: absolute;
-  bottom: calc(100% + 3px);
-  left: 50%;
-  transform: translateX(-50%);
-  border: 5px solid transparent;
-  border-top-color: var(--ctp-surface0);
-  z-index: 1001;
-  pointer-events: none;
-  animation: tooltip-appear 0.2s ease-out;
-  opacity: 1 !important;
-}
-
-@keyframes tooltip-appear {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(4px);
+    --radius: 0.75rem;
+    /* 12px, matches original rounded-lg */
   }
 
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* Custom scrollbar styles using new variables */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.5);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--secondary-foreground) / 0.5);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--secondary-foreground) / 0.7);
+  }
+
+  .glow {
+    box-shadow: 0 0 5px hsl(var(--primary)), 0 0 10px hsl(var(--primary)), 0 0 15px hsl(var(--primary));
+  }
+
+  /* Smooth tab transitions */
+  .tab-transition {
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+    will-change: opacity, transform;
+  }
+
+  /* Prevent layout shift during tab transitions */
+  .tab-content-container {
+    min-height: 400px;
+    contain: layout style;
+    will-change: contents;
+  }
+
+  /* Smooth height transitions for dynamic content */
+  .height-transition {
+    transition: height 0.2s ease-out;
+    will-change: height;
+  }
+
+  /* Optimize tab content rendering */
+  .tab-content {
+    backface-visibility: hidden;
+    transform: translateZ(0);
+  }
+
+  /* Reduce motion for users who prefer it */
+  @media (prefers-reduced-motion: reduce) {
+
+    .tab-transition,
+    .height-transition {
+      transition: none;
+    }
+
+    .tab-content-container {
+      will-change: auto;
+    }
   }
 }

@@ -181,6 +181,83 @@ export const uiAnimations = {
         });
 
         return tl;
+    },
+
+    /**
+     * Tab content transition animation
+     */
+    tabContentTransition: (element: HTMLElement, options?: {
+        direction?: 'left' | 'right' | 'up' | 'down';
+        duration?: number;
+        delay?: number;
+    }) => {
+        const {
+            direction = 'up',
+            duration = ANIMATION_CONFIG.FAST,
+            delay = 0
+        } = options || {};
+
+        let fromVars: gsap.TweenVars = { opacity: 0 };
+        let toVars: gsap.TweenVars = { opacity: 1 };
+
+        switch (direction) {
+            case 'left':
+                fromVars.x = -15;
+                toVars.x = 0;
+                break;
+            case 'right':
+                fromVars.x = 15;
+                toVars.x = 0;
+                break;
+            case 'down':
+                fromVars.y = -10;
+                toVars.y = 0;
+                break;
+            case 'up':
+            default:
+                fromVars.y = 10;
+                toVars.y = 0;
+                break;
+        }
+
+        gsap.set(element, fromVars);
+
+        return gsap.to(element, {
+            ...toVars,
+            duration,
+            delay,
+            ease: ANIMATION_CONFIG.EASE_QUICK
+        });
+    },
+
+    /**
+     * Staggered children animation
+     */
+    staggerChildren: (parent: HTMLElement, options?: {
+        stagger?: number;
+        duration?: number;
+        from?: 'start' | 'center' | 'end';
+    }) => {
+        const {
+            stagger = 0.1,
+            duration = ANIMATION_CONFIG.FAST,
+            from = 'start'
+        } = options || {};
+
+        const children = Array.from(parent.children) as HTMLElement[];
+
+        gsap.set(children, { opacity: 0, y: 20 });
+
+        return gsap.to(children, {
+            opacity: 1,
+            y: 0,
+            duration,
+            stagger: {
+                amount: stagger * children.length,
+                from
+            },
+            ease: ANIMATION_CONFIG.EASE_BOUNCE
+        });
     }
 };
 

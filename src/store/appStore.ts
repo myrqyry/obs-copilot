@@ -42,6 +42,8 @@ interface AppState {
     // UI & Settings State
     flipSides: boolean;
     autoApplySuggestions: boolean;
+    extraDarkMode: boolean;
+    customChatBackground: string;
     theme: {
         accent: CatppuccinAccentColorName;
         secondaryAccent: CatppuccinSecondaryAccentColorName;
@@ -63,12 +65,15 @@ interface AppState {
         }) => void;
         setDisconnected: (error?: string | null) => void;
         addMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
+        replaceMessage: (messageId: string, newMessage: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
         setGeminiApiKey: (key: string) => void;
         setStreamerName: (name: string | null) => void;
         setGeminiClientInitialized: (initialized: boolean) => void;
         setGeminiInitializationError: (error: string | null) => void;
         toggleFlipSides: () => void;
         toggleAutoApplySuggestions: () => void;
+        toggleExtraDarkMode: () => void;
+        setCustomChatBackground: (background: string) => void;
         setThemeColor: (type: 'accent' | 'secondaryAccent' | 'userChatBubble' | 'modelChatBubble', color: any) => void;
         setObsServiceInstance: (instance: OBSWebSocketService | null) => void;
         updateOBSData: (data: Partial<{
@@ -105,6 +110,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     geminiInitializationError: null,
     flipSides: persistedSettings.flipSides || false,
     autoApplySuggestions: persistedSettings.autoApplySuggestions || false,
+    extraDarkMode: persistedSettings.extraDarkMode || false,
+    customChatBackground: persistedSettings.customChatBackground || '',
     theme: {
         accent: (persistedSettings.theme?.accent as CatppuccinAccentColorName) || 'mauve',
         secondaryAccent: (persistedSettings.theme?.secondaryAccent as CatppuccinSecondaryAccentColorName) || 'flamingo',
@@ -144,6 +151,13 @@ export const useAppStore = create<AppState>((set, get) => ({
                 timestamp: new Date()
             }]
         })),
+        replaceMessage: (messageId, newMessage) => set((state) => ({
+            geminiMessages: state.geminiMessages.map(msg =>
+                msg.id === messageId
+                    ? { ...newMessage, id: messageId, timestamp: new Date() }
+                    : msg
+            )
+        })),
         setGeminiApiKey: (key) => {
             set({ geminiApiKey: key });
             // Save API key to persistence if storage is available
@@ -176,6 +190,14 @@ export const useAppStore = create<AppState>((set, get) => ({
                 saveUserSettings({ autoApplySuggestions: newValue });
             }
         },
+        toggleExtraDarkMode: () => {
+            const newValue = !get().extraDarkMode;
+            set({ extraDarkMode: newValue });
+            // Save to persistence
+            if (isStorageAvailable()) {
+                saveUserSettings({ extraDarkMode: newValue });
+            }
+        },
         setThemeColor: (type, color) => {
             const currentTheme = get().theme;
             const newTheme = { ...currentTheme, [type]: color };
@@ -183,6 +205,12 @@ export const useAppStore = create<AppState>((set, get) => ({
             // Save to persistence
             if (isStorageAvailable()) {
                 saveUserSettings({ theme: newTheme });
+            }
+        },
+        setCustomChatBackground: (background) => {
+            set({ customChatBackground: background });
+            if (isStorageAvailable()) {
+                saveUserSettings({ customChatBackground: background });
             }
         },
         setObsServiceInstance: (instance) => set({ obsServiceInstance: instance }),
@@ -391,11 +419,11 @@ export const useAppStore = create<AppState>((set, get) => ({
                         const listResponse = await obsServiceInstance.getSceneItemList(getListAction.sceneName);
                         const enabledItems = listResponse.sceneItems.filter(item => item.sceneItemEnabled);
                         const disabledItems = listResponse.sceneItems.filter(item => !item.sceneItemEnabled);
-                        
+
                         actionFeedback = `\n✅ Fetched items for scene "${getListAction.sceneName}".`;
-                        
+
                         let itemsList = `📋 **Sources in Scene "${getListAction.sceneName}":**\n\n`;
-                        
+
                         if (enabledItems.length > 0) {
                             itemsList += `🟢 **Enabled Sources:**\n`;
                             enabledItems.forEach((item, index) => {
@@ -404,7 +432,7 @@ export const useAppStore = create<AppState>((set, get) => ({
                             });
                             itemsList += '\n';
                         }
-                        
+
                         if (disabledItems.length > 0) {
                             itemsList += `🔴 **Disabled Sources:**\n`;
                             disabledItems.forEach((item, index) => {
@@ -412,11 +440,11 @@ export const useAppStore = create<AppState>((set, get) => ({
                                 itemsList += `${index + 1}. ~~${item.sourceName}~~${kindDisplay}\n`;
                             });
                         }
-                        
+
                         if (enabledItems.length === 0 && disabledItems.length === 0) {
                             itemsList += `❌ No sources found in this scene.`;
                         }
-                        
+
                         additionalSystemMessage = itemsList;
                         break;
 

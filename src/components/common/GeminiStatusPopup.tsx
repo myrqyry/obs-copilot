@@ -10,17 +10,17 @@ interface GeminiStatusPopupProps {
 
 export const GeminiStatusPopup: React.FC<GeminiStatusPopupProps> = ({ status, message, onClose }) => {
     const statusColor = {
-        initializing: 'var(--ctp-yellow)',
-        connected: 'var(--ctp-green)',
-        error: 'var(--ctp-red)',
-        unavailable: 'var(--ctp-peach)',
-        'missing-key': 'var(--ctp-mauve)',
+        initializing: 'hsl(var(--secondary))',
+        connected: 'hsl(var(--primary))',
+        error: 'hsl(var(--destructive))',
+        unavailable: 'orange',
+        'missing-key': 'purple',
     }[status];
 
     return (
         <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50">
             <div
-                className="px-5 py-3 rounded-xl shadow-xl border border-[var(--ctp-surface1)] bg-[var(--ctp-mantle)] flex items-center space-x-3 animate-modal-appear"
+                className="px-5 py-3 rounded-xl shadow-xl border border-border bg-card flex items-center space-x-3 animate-modal-appear"
                 style={{ color: statusColor, minWidth: 280, maxWidth: 400 }}
             >
                 <span className="text-xl">
@@ -34,7 +34,7 @@ export const GeminiStatusPopup: React.FC<GeminiStatusPopupProps> = ({ status, me
                 {onClose && (
                     <button
                         onClick={onClose}
-                        className="ml-2 text-[var(--ctp-overlay1)] hover:text-[var(--ctp-text)] p-1 rounded-full hover:bg-[var(--ctp-surface0)] focus:outline-none"
+                        className="ml-2 text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-muted focus:outline-none"
                         aria-label="Close status popup"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -1,12 +1,12 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { CatppuccinAccentColorName, OBSVideoSettings } from '../types';
 import { OBSWebSocketService } from '../services/obsService';
 import { Button } from './common/Button';
+import { PlusCircleIcon } from '@heroicons/react/24/solid';
 import { TextInput } from './common/TextInput';
 import { LoadingSpinner } from './common/LoadingSpinner';
 import { useAppStore } from '../store/appStore';
+import { useLockStore } from '../store/lockStore';
 import { COMMON_RESOLUTIONS, COMMON_FPS } from '../constants';
 
 interface ObsMainControlsProps {
@@ -24,6 +24,11 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
   onSendToGeminiContext,
   accentColorName
 }) => {
+  // Collapsible state for each section
+  const [openStream, setOpenStream] = useState(true);
+  const [openScenes, setOpenScenes] = useState(true);
+  const [openSources, setOpenSources] = useState(true);
+  const [openVideo, setOpenVideo] = useState(true);
   // Use Zustand for OBS state
   const {
     scenes,
@@ -229,259 +234,286 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
     }
   };
 
+  // Locks
+  const { isLocked, setLock } = useLockStore();
+  const STREAM_RECORD_LOCK = 'streamRecord';
+  const VIDEO_SETTINGS_LOCK = 'videoSettings';
+
   if (isLoading && !scenes.length && !currentProgramScene) {
     return <div className="flex justify-center items-center h-64"><LoadingSpinner size={12} /></div>;
   }
 
+  // Lock toggle button
+  const LockToggle = ({ lockKey }: { lockKey: string }) => (
+    <label className="flex items-center space-x-2 text-xs text-muted-foreground cursor-pointer group">
+      <input
+        type="checkbox"
+        checked={isLocked(lockKey)}
+        onChange={(e) => {
+          e.stopPropagation();
+          setLock(lockKey, e.target.checked);
+        }}
+        className="appearance-none h-4 w-4 border-2 border-border rounded-sm bg-background
+                   checked:bg-primary checked:border-transparent focus:outline-none 
+                   focus:ring-2 focus:ring-offset-0 focus:ring-ring focus:ring-opacity-50
+                   transition duration-150 group-hover:border-border"
+        title={isLocked(lockKey) ? 'Unlock section' : 'Lock section'}
+      />
+      <span className="group-hover:text-foreground transition-colors duration-200">
+        <span className="mr-1">{isLocked(lockKey) ? '🔒' : '🔓'}</span>
+        {isLocked(lockKey) ? 'Locked' : 'Lock'}
+      </span>
+    </label>
+  );
+
+  // Add to chat context button (shared)
+  const AddToContextButton = ({
+    onClick,
+    title = 'Add to chat context',
+    disabled = false,
+    className = ''
+  }: { onClick: () => void; title?: string; disabled?: boolean; className?: string }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`ml-2 p-1 rounded-full border border-border bg-card/90 text-muted-foreground hover:text-purple-500 hover:bg-purple-500/10 shadow-md transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-purple-500/50 ${className}`}
+      title={title}
+      aria-label={title}
+    >
+      <PlusCircleIcon className="w-4 h-4" />
+    </button>
+  );
+
   return (
-    <div className="space-y-3 p-1">
-      <div className="bg-[var(--ctp-surface0)] p-2 rounded-lg shadow-lg border border-[var(--ctp-surface1)]">
-        <h3 className="text-base font-semibold mb-2" style={{ color: 'var(--dynamic-accent)' }}>📡 Stream & Record Controls</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <Button
-            onClick={toggleStream}
-            variant={streamStatus?.outputActive ? 'danger' : 'success'}
-            isLoading={isLoading}
-            className="w-full"
-            title={streamStatus?.outputActive ? `Streaming for ${streamStatus.outputTimecode}` : 'Start Streaming'}
-            accentColorName={accentColorName}
-            size="sm"
-          >
-            {streamStatus?.outputActive ? 'Stop Streaming' : 'Start Streaming'}
-            {streamStatus?.outputActive && <span className="ml-1.5 text-xs opacity-80">({streamStatus.outputTimecode})</span>}
-          </Button>
-          <Button
-            onClick={toggleRecord}
-            variant={recordStatus?.outputActive ? 'danger' : 'success'}
-            isLoading={isLoading}
-            className="w-full"
-            title={recordStatus?.outputActive ? `Recording for ${recordStatus.outputTimecode}` : 'Start Recording'}
-            accentColorName={accentColorName}
-            size="sm"
-          >
-            {recordStatus?.outputActive ? 'Stop Recording' : 'Start Recording'}
-            {recordStatus?.outputActive && <span className="ml-1.5 text-xs opacity-80">({recordStatus.outputTimecode})</span>}
-          </Button>
-        </div>
-      </div>
-
-      <div className="bg-[var(--ctp-surface0)] p-2 rounded-lg shadow-lg border border-[var(--ctp-surface1)]">
-        <h3 className="text-base font-semibold mb-2" style={{ color: 'var(--dynamic-accent)' }}>🎬 Scene Management</h3>
-        {scenes.length === 0 && !isLoading && <p className="text-[var(--ctp-subtext0)] text-xs">No scenes found.</p>}
-        <ul className="space-y-1 max-h-48 overflow-y-auto pr-1"> {/* Reduced max-h */}
-          {scenes.map((scene: import("../types").OBSScene) => (
-            <li key={scene.sceneName}
-              className="flex justify-between items-center space-x-1 p-1 rounded-md hover:bg-[var(--ctp-surface1)] transition-all duration-150 ease-in-out">
+    <div className="flex flex-col gap-2 p-2 max-h-full overflow-y-auto">
+      {/* Stream & Record Section */}
+      <div className="mb-2 border-b border-border last:border-b-0 rounded-lg bg-card shadow">
+        <button
+          className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted transition-colors rounded-t-lg group"
+          onClick={() => setOpenStream((v) => !v)}
+          aria-expanded={openStream}
+        >
+          <span className="text-foreground font-semibold text-base flex items-center gap-2">📡 Stream & Record</span>
+          <span className="flex items-center gap-2">
+            <LockToggle lockKey={STREAM_RECORD_LOCK} />
+            <span className="transition-transform duration-200 group-hover:text-primary">{openStream ? '▲' : '▼'}</span>
+          </span>
+        </button>
+        {openStream && (
+          <div className="px-6 pb-4 pt-2 animate-fade-in text-foreground">
+            <div className="flex gap-4 items-center mb-2">
               <Button
-                onClick={() => handleSetCurrentScene(scene.sceneName)}
-                variant={scene.sceneName === currentProgramScene ? 'primary' : 'secondary'}
-                size="sm"
-                className="flex-grow text-left justify-start"
-                disabled={isLoading}
-                title={`Switch to scene: ${scene.sceneName}`}
-                accentColorName={accentColorName}
-              >
-                {scene.sceneName === currentProgramScene ? `🌟 ${scene.sceneName}` : scene.sceneName}
-              </Button>
-              <Button
-                onClick={() => onSendToGeminiContext(`Regarding scene '${scene.sceneName}': `)}
-                variant="secondary"
-                size="sm"
-                className="p-1 bg-[var(--ctp-surface2)] hover:bg-[var(--ctp-overlay0)] text-xs"
-                title={`Send '${scene.sceneName}' context to Gemini Chat`}
-                aria-label={`Send scene ${scene.sceneName} context to chat`}
-                accentColorName={accentColorName}
-              >
-                💬
-              </Button>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {currentProgramScene && (
-        <div className="bg-[var(--ctp-surface0)] p-2 rounded-lg shadow-lg border border-[var(--ctp-surface1)]">
-          <h3 className="text-base font-semibold mb-2" style={{ color: 'var(--dynamic-accent)' }}>🖼️ Sources in '{currentProgramScene}'</h3>
-          {sources.length === 0 && !isLoading && <p className="text-[var(--ctp-subtext0)] text-xs">No sources in this scene.</p>}
-          <ul className="space-y-1 max-h-48 overflow-y-auto pr-1"> {/* Reduced max-h */}
-            {sources.map((source: import("../types").OBSSource) => (
-              <li key={source.sceneItemId} className="flex items-center justify-between p-1.5 bg-[var(--ctp-surface1)] rounded-md hover:bg-[var(--ctp-surface2)] transition-colors duration-150 ease-in-out">
-                <div className="flex items-center space-x-1 overflow-hidden mr-1">
-                  <span className={`truncate text-xs ${source.sceneItemEnabled ? 'text-[var(--ctp-text)]' : 'text-[var(--ctp-overlay0)] line-through italic'}`}>
-                    {source.sceneItemEnabled ? '👁️' : '🙈'} {source.sourceName}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <Button
-                    onClick={() => toggleSourceVisibility(currentProgramScene, source.sceneItemId, source.sceneItemEnabled)}
-                    variant={source.sceneItemEnabled ? 'secondary' : 'primary'}
-                    size="sm"
-                    isLoading={isLoading}
-                    title={source.sceneItemEnabled ? `Hide ${source.sourceName}` : `Show ${source.sourceName}`}
-                    accentColorName={accentColorName}
-                  >
-                    {source.sceneItemEnabled ? 'Hide' : 'Show'}
-                  </Button>
-                  <Button
-                    onClick={() => onSendToGeminiContext(`Regarding source '${source.sourceName}' in scene '${currentProgramScene}': `)}
-                    variant="secondary"
-                    size="sm"
-                    className="p-1 bg-[var(--ctp-surface2)] hover:bg-[var(--ctp-overlay0)] text-xs"
-                    title={`Send '${source.sourceName}' context to Gemini Chat`}
-                    aria-label={`Send source ${source.sourceName} context to chat`}
-                    accentColorName={accentColorName}
-                  >
-                    💬
-                  </Button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Video Settings Section */}
-      <div className="bg-[var(--ctp-surface0)] p-2 rounded-lg shadow-lg border border-[var(--ctp-surface1)]">
-        <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--dynamic-accent)' }}>🎞️ Video Settings</h3>
-
-        {!editableSettings && !isVideoSettingsLoading ? (
-          <p className="text-[var(--ctp-subtext0)] text-center p-4">🎥 Video settings not available or not loaded yet.</p>
-        ) : !editableSettings && isVideoSettingsLoading ? (
-          <div className="flex justify-center items-center py-8">
-            <LoadingSpinner size={8} />
-            <span className="ml-2 text-[var(--ctp-subtext0)]">Loading video settings...</span>
-          </div>
-        ) : editableSettings ? (
-          <>
-            <div className="space-y-3">
-              {/* Base (Canvas) Resolution */}
-              <div>
-                <label className="block text-sm font-medium mb-1 text-[var(--ctp-lavender)]">📺 Base (Canvas) Resolution</label>
-                <select
-                  value={selectedBaseResolution}
-                  onChange={handleBaseResolutionChange}
-                  disabled={isVideoSettingsLoading}
-                  className="w-full px-3 py-2 text-sm bg-[var(--ctp-surface1)] border border-[var(--ctp-surface2)] rounded-md text-[var(--ctp-text)] focus:outline-none focus:ring-2 focus:ring-[var(--dynamic-accent)] focus:border-transparent"
-                >
-                  {COMMON_RESOLUTIONS.map((res) => (
-                    <option key={res.label} value={res.label}>
-                      {res.label}
-                    </option>
-                  ))}
-                </select>
-                {selectedBaseResolution === 'Custom' && (
-                  <TextInput
-                    label="Custom Base Resolution (WxH)"
-                    id="customBaseResolution"
-                    name="customBaseResolution"
-                    type="text"
-                    value={customBaseResolution}
-                    onChange={(e) => handleCustomResolutionChange(e.target.value, 'base')}
-                    disabled={isVideoSettingsLoading}
-                    accentColorName={accentColorName}
-                    className="text-xs mt-2"
-                    placeholder="e.g., 1920x1080"
-                  />
-                )}
-              </div>
-
-              {/* Output (Scaled) Resolution */}
-              <div>
-                <label className="block text-sm font-medium mb-1 text-[var(--ctp-lavender)]">📤 Output (Scaled) Resolution</label>
-                <select
-                  value={selectedOutputResolution}
-                  onChange={handleOutputResolutionChange}
-                  disabled={isVideoSettingsLoading}
-                  className="w-full px-3 py-2 text-sm bg-[var(--ctp-surface1)] border border-[var(--ctp-surface2)] rounded-md text-[var(--ctp-text)] focus:outline-none focus:ring-2 focus:ring-[var(--dynamic-accent)] focus:border-transparent"
-                >
-                  {COMMON_RESOLUTIONS.map((res) => (
-                    <option key={res.label} value={res.label}>
-                      {res.label}
-                    </option>
-                  ))}
-                </select>
-                {selectedOutputResolution === 'Custom' && (
-                  <TextInput
-                    label="Custom Output Resolution (WxH)"
-                    id="customOutputResolution"
-                    name="customOutputResolution"
-                    type="text"
-                    value={customOutputResolution}
-                    onChange={(e) => handleCustomResolutionChange(e.target.value, 'output')}
-                    disabled={isVideoSettingsLoading}
-                    accentColorName={accentColorName}
-                    className="text-xs mt-2"
-                    placeholder="e.g., 1280x720"
-                  />
-                )}
-              </div>
-
-              {/* FPS */}
-              <div>
-                <label className="block text-sm font-medium mb-1 text-[var(--ctp-lavender)]">🎬 Frame Rate (FPS)</label>
-                <select
-                  value={selectedFPS}
-                  onChange={handleFPSChange}
-                  disabled={isVideoSettingsLoading}
-                  className="w-full px-3 py-2 text-sm bg-[var(--ctp-surface1)] border border-[var(--ctp-surface2)] rounded-md text-[var(--ctp-text)] focus:outline-none focus:ring-2 focus:ring-[var(--dynamic-accent)] focus:border-transparent"
-                >
-                  {COMMON_FPS.map((fps) => (
-                    <option key={fps.label} value={fps.label}>
-                      {fps.label}
-                    </option>
-                  ))}
-                </select>
-                {selectedFPS === 'Custom' && (
-                  <TextInput
-                    label="Custom FPS (numerator/denominator or just number)"
-                    id="customFPS"
-                    name="customFPS"
-                    type="text"
-                    value={customFPS}
-                    onChange={(e) => handleCustomFPSChange(e.target.value)}
-                    disabled={isVideoSettingsLoading}
-                    accentColorName={accentColorName}
-                    className="text-xs mt-2"
-                    placeholder="e.g., 60 or 30000/1001"
-                  />
-                )}
-              </div>
-            </div>
-            <div className="mt-3 flex justify-end">
-              <Button
-                onClick={handleSaveVideoSettings}
-                isLoading={isVideoSettingsLoading}
-                disabled={isVideoSettingsLoading}
+                onClick={toggleStream}
+                disabled={isLocked(STREAM_RECORD_LOCK)}
                 variant="primary"
-                size="sm"
-                title="Save current video settings to OBS"
                 accentColorName={accentColorName}
+                size="sm"
               >
-                Save Video Settings 💾
+                {streamStatus?.outputActive ? 'Stop Streaming' : 'Start Streaming'}
+              </Button>
+              <Button
+                onClick={toggleRecord}
+                disabled={isLocked(STREAM_RECORD_LOCK)}
+                variant="primary"
+                accentColorName={accentColorName}
+                size="sm"
+              >
+                {recordStatus?.outputActive ? 'Stop Recording' : 'Start Recording'}
               </Button>
             </div>
-            <p className="text-xs text-[var(--ctp-subtext0)] mt-1.5">
-              Note: Modifying settings can impact OBS performance. Ensure values are valid. Some settings may require an OBS restart to take full effect (not handled by this UI).
-            </p>
-          </>
-        ) : (
-          <div className="flex justify-center items-center h-64">
-            <LoadingSpinner size={10} />
+            <div className="text-xs text-foreground">
+              Stream: {streamStatus?.outputActive ? '🟢 Live' : '🔴 Stopped'} | Record: {recordStatus?.outputActive ? '🟢 Recording' : '🔴 Stopped'}
+            </div>
           </div>
         )}
       </div>
 
-      <div className="mt-2 flex justify-end"> {/* Reduced mt */}
-        <Button
-          onClick={onRefreshData}
-          variant="secondary"
-          isLoading={isLoading}
-          size="sm"
-          title="Refresh all OBS data"
-          accentColorName={accentColorName}
+      {/* Scenes Section */}
+      <div className="mb-2 border-b border-border last:border-b-0 rounded-lg bg-card shadow">
+        <button
+          className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted transition-colors rounded-t-lg group"
+          onClick={() => setOpenScenes((v) => !v)}
+          aria-expanded={openScenes}
         >
-          Refresh Data 🔄
-        </Button>
+          <span className="text-foreground font-semibold text-base flex items-center gap-2">🎬 Scenes</span>
+          <span className="flex items-center gap-2">
+            <LockToggle lockKey="scenes" />
+            <span className="transition-transform duration-200 group-hover:text-primary">{openScenes ? '▲' : '▼'}</span>
+          </span>
+        </button>
+        {openScenes && (
+          <div className="px-6 pb-4 pt-2 animate-fade-in text-foreground">
+            <ul className="space-y-2">
+              {scenes.map((scene) => (
+                <li key={scene.sceneName} className="flex items-center justify-between gap-2">
+                  <span className={`truncate ${scene.sceneName === currentProgramScene ? 'font-bold text-accent' : ''}`}>{scene.sceneName}</span>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      onClick={() => handleSetCurrentScene(scene.sceneName)}
+                      disabled={isLocked('scenes') || scene.sceneName === currentProgramScene}
+                      variant="secondary"
+                      accentColorName={accentColorName}
+                      size="sm"
+                    >
+                      {scene.sceneName === currentProgramScene ? 'Active' : 'Switch'}
+                    </Button>
+                    <AddToContextButton
+                      onClick={() => onSendToGeminiContext(`OBS Scene: '${scene.sceneName}'${scene.sceneName === currentProgramScene ? ' (currently active)' : ''}`)}
+                      disabled={isLocked('scenes')}
+                      title={`Add scene '${scene.sceneName}' to chat context`}
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      {/* Sources Section */}
+      <div className="mb-2 border-b border-border last:border-b-0 rounded-lg bg-card shadow">
+        <button
+          className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted transition-colors rounded-t-lg group"
+          onClick={() => setOpenSources((v) => !v)}
+          aria-expanded={openSources}
+        >
+          <span className="text-foreground font-semibold text-base flex items-center gap-2">🖼️ Sources</span>
+          <span className="flex items-center gap-2">
+            <LockToggle lockKey="sources" />
+            <span className="transition-transform duration-200 group-hover:text-primary">{openSources ? '▲' : '▼'}</span>
+          </span>
+        </button>
+        {openSources && (
+          <div className="px-6 pb-4 pt-2 animate-fade-in text-foreground">
+            <ul className="space-y-2">
+              {sources.map((source) => (
+                <li key={source.sceneItemId} className="flex items-center justify-between gap-2">
+                  <span className="truncate">{source.sourceName}</span>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      onClick={() => {
+                        if (currentProgramScene) toggleSourceVisibility(currentProgramScene, source.sceneItemId, source.sceneItemEnabled);
+                      }}
+                      disabled={isLocked('sources') || !currentProgramScene}
+                      variant={source.sceneItemEnabled ? 'primary' : 'secondary'}
+                      accentColorName={accentColorName}
+                      size="sm"
+                    >
+                      {source.sceneItemEnabled ? 'Hide' : 'Show'}
+                    </Button>
+                    <AddToContextButton
+                      onClick={() => onSendToGeminiContext(`OBS Source: '${source.sourceName}' is ${source.sceneItemEnabled ? 'visible' : 'hidden'} in scene '${currentProgramScene || ''}'`)}
+                      disabled={isLocked('sources') || !currentProgramScene}
+                      title={`Add source '${source.sourceName}' to chat context`}
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      {/* Video Settings Section */}
+      <div className="mb-2 border-b border-border last:border-b-0 rounded-lg bg-card shadow">
+        <button
+          className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted transition-colors rounded-t-lg group"
+          onClick={() => setOpenVideo((v) => !v)}
+          aria-expanded={openVideo}
+        >
+          <span className="text-foreground font-semibold text-base flex items-center gap-2">🎥 Video Settings</span>
+          <span className="flex items-center gap-2">
+            <LockToggle lockKey={VIDEO_SETTINGS_LOCK} />
+            <span className="transition-transform duration-200 group-hover:text-primary">{openVideo ? '▲' : '▼'}</span>
+          </span>
+        </button>
+        {openVideo && (
+          <div className="px-6 pb-4 pt-2 animate-fade-in text-foreground">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <label className="w-40 text-sm">Base (Canvas) Resolution</label>
+                <select
+                  className="input input-sm w-32"
+                  value={selectedBaseResolution}
+                  onChange={handleBaseResolutionChange}
+                  disabled={isLocked(VIDEO_SETTINGS_LOCK)}
+                >
+                  {COMMON_RESOLUTIONS.map(res => (
+                    <option key={res.label} value={res.label}>{res.label}</option>
+                  ))}
+                  <option value="Custom">Custom</option>
+                </select>
+                {selectedBaseResolution === 'Custom' && (
+                  <TextInput
+                    value={customBaseResolution}
+                    onChange={e => handleCustomResolutionChange(e.target.value, 'base')}
+                    disabled={isLocked(VIDEO_SETTINGS_LOCK)}
+                    placeholder="e.g. 1920x1080"
+                    className="input input-sm w-32 ml-2"
+                  />
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="w-40 text-sm">Output (Scaled) Resolution</label>
+                <select
+                  className="input input-sm w-32"
+                  value={selectedOutputResolution}
+                  onChange={handleOutputResolutionChange}
+                  disabled={isLocked(VIDEO_SETTINGS_LOCK)}
+                >
+                  {COMMON_RESOLUTIONS.map(res => (
+                    <option key={res.label} value={res.label}>{res.label}</option>
+                  ))}
+                  <option value="Custom">Custom</option>
+                </select>
+                {selectedOutputResolution === 'Custom' && (
+                  <TextInput
+                    value={customOutputResolution}
+                    onChange={e => handleCustomResolutionChange(e.target.value, 'output')}
+                    disabled={isLocked(VIDEO_SETTINGS_LOCK)}
+                    placeholder="e.g. 1280x720"
+                    className="input input-sm w-32 ml-2"
+                  />
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="w-40 text-sm">FPS</label>
+                <select
+                  className="input input-sm w-32"
+                  value={selectedFPS}
+                  onChange={handleFPSChange}
+                  disabled={isLocked(VIDEO_SETTINGS_LOCK)}
+                >
+                  {COMMON_FPS.map(fps => (
+                    <option key={fps.label} value={fps.label}>{fps.label}</option>
+                  ))}
+                  <option value="Custom">Custom</option>
+                </select>
+                {selectedFPS === 'Custom' && (
+                  <TextInput
+                    value={customFPS}
+                    onChange={e => handleCustomFPSChange(e.target.value)}
+                    disabled={isLocked(VIDEO_SETTINGS_LOCK)}
+                    placeholder="e.g. 60 or 30000/1001"
+                    className="input input-sm w-32 ml-2"
+                  />
+                )}
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <Button
+                  onClick={handleSaveVideoSettings}
+                  disabled={isLocked(VIDEO_SETTINGS_LOCK) || isVideoSettingsLoading}
+                  variant="primary"
+                  accentColorName={accentColorName}
+                  size="sm"
+                >
+                  {isVideoSettingsLoading ? 'Saving...' : 'Save Video Settings'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

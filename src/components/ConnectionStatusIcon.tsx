@@ -12,17 +12,17 @@ interface ConnectionStatusIconProps {
 export const ConnectionStatusIcon: React.FC<ConnectionStatusIconProps> = ({ isConnected, isConnecting, error, onClick }) => {
   const statusDotRef = useRef<HTMLDivElement>(null);
 
-  let dotColor = 'bg-[var(--ctp-red)]'; // Default to red (disconnected/error)
+  let dotColor = 'bg-destructive'; // Default to red (disconnected/error)
   let title = 'OBS Disconnected';
 
   if (isConnecting) {
-    dotColor = 'bg-[var(--ctp-yellow)]';
+    dotColor = 'bg-yellow-500';
     title = 'OBS Connecting...';
   } else if (isConnected) {
-    dotColor = 'bg-[var(--ctp-green)]';
+    dotColor = 'bg-green-500';
     title = 'OBS Connected';
   } else if (error) {
-    dotColor = 'bg-[var(--ctp-red)]';
+    dotColor = 'bg-destructive';
     title = 'OBS Connection Error';
   }
 
@@ -40,7 +40,7 @@ export const ConnectionStatusIcon: React.FC<ConnectionStatusIconProps> = ({ isCo
         });
       } else {
         gsap.killTweensOf(dot);
-        gsap.set(dot, { scale: 1, opacity: 1 }); 
+        gsap.set(dot, { scale: 1, opacity: 1 });
       }
     }
     return () => {
@@ -51,16 +51,16 @@ export const ConnectionStatusIcon: React.FC<ConnectionStatusIconProps> = ({ isCo
   return (
     <button
       onClick={onClick}
-      className="relative p-2 rounded-full hover:bg-[var(--ctp-surface1)] focus:outline-none focus:ring-2 focus:ring-[var(--dynamic-accent)] focus:ring-offset-2 focus:ring-offset-[var(--ctp-base)] transition-all duration-150 ease-in-out"
+      className="relative p-2 rounded-full hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background transition-all duration-150 ease-in-out"
       aria-label="Open Connection Settings"
       title={title}
     >
-      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[var(--ctp-overlay2)] group-hover:text-[var(--ctp-text)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-muted-foreground hover:text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
         <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
       </svg>
-      <div 
+      <div
         ref={statusDotRef}
-        className={`absolute top-0.5 right-0.5 w-2.5 h-2.5 rounded-full border border-[var(--ctp-base)] ${dotColor} transition-colors duration-200`}
+        className={`absolute top-0.5 right-0.5 w-2.5 h-2.5 rounded-full border border-background ${dotColor} transition-colors duration-200`}
         aria-hidden="true"
       />
     </button>

@@ -308,7 +308,23 @@ export class OBSWebSocketService {
   }
 
   async toggleStudioMode(): Promise<void> {
-    await this.obs.call('ToggleStudioMode' as any);
+    try {
+      // First try the direct toggle method if it exists
+      await this.obs.call('ToggleStudioMode' as any);
+    } catch (error) {
+      // If ToggleStudioMode doesn't exist, use SetStudioModeEnabled
+      // We need to get the current state first, then toggle it
+      try {
+        const studioModeStatus = await this.obs.call('GetStudioModeEnabled' as any);
+        const currentEnabled = studioModeStatus?.studioModeEnabled || false;
+        await this.setStudioModeEnabled(!currentEnabled);
+      } catch (fallbackError) {
+        // If we can't get the status, try toggling with setStudioModeEnabled
+        // This is a fallback - we'll assume it's currently disabled and enable it
+        console.warn('Could not get studio mode status, attempting to enable studio mode');
+        await this.setStudioModeEnabled(true);
+      }
+    }
   }
 
   // Hotkeys

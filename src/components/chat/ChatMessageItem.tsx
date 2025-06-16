@@ -70,18 +70,17 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                 }`}
         >
             <div
-                className={`chat-message max-w-xl rounded-2xl shadow-xl border border-[var(--ctp-surface2)] bg-[var(--ctp-surface0)] relative
+                className={`chat-message max-w-lg rounded-2xl shadow-xl border border-border bg-card relative
           ${message.role === 'system'
-                        ? 'px-4 py-2 text-xs font-extrabold leading-tight'
-                        : 'p-4 leading-relaxed'}
+                        ? 'px-3 py-2 text-sm font-normal leading-snug'
+                        : 'p-2 leading-relaxed'}
         `}
                 style={{
                     backgroundColor: message.role === 'user' ? 'var(--user-chat-bubble-color)' :
                         message.role === 'model' ? 'var(--model-chat-bubble-color)' :
                             'var(--dynamic-secondary-accent)',
-                    color: 'var(--ctp-base)',
-                    fontStyle: message.role === 'system' ? 'italic' : 'normal',
-                    fontSize: message.role === 'system' ? '0.85rem' : '1rem',
+                    fontStyle: message.role === 'system' ? 'normal' : 'normal',
+                    fontSize: message.role === 'system' ? '0.9rem' : '1rem',
                     position: 'relative',
                     ['--bubble-scrollbar-thumb' as any]: message.role === 'user'
                         ? 'var(--user-chat-bubble-color)'
@@ -89,9 +88,9 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                             ? 'var(--model-chat-bubble-color)'
                             : 'var(--dynamic-secondary-accent)',
                     ['--bubble-scrollbar-thumb-hover' as any]: message.role === 'user'
-                        ? 'var(--ctp-blue)'
+                        ? 'hsl(var(--primary))'
                         : message.role === 'model'
-                            ? 'var(--ctp-lavender)'
+                            ? 'hsl(var(--secondary))'
                             : 'var(--dynamic-secondary-accent)',
                     ['--bubble-fade-color' as any]: message.role === 'user'
                         ? 'var(--user-chat-bubble-color)'
@@ -100,11 +99,14 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                             : 'var(--dynamic-secondary-accent)'
                 }}
             >
-                <div style={{ position: 'relative' }}>
+                <div style={{
+                    position: 'relative',
+                    color: '#1e1e2e !important'
+                }} className={`!text-ctp-base [&_*]:!text-ctp-base`}>
                     <div
                         ref={bubbleRef}
                         className={`chat-scrollable-content
-              ${isShrunk ? 'max-h-80 overflow-y-auto custom-scrollbar shrunk' : ''}
+              ${isShrunk ? 'max-h-60 overflow-y-auto custom-scrollbar shrunk' : ''}
               ${isScrolling ? 'scrolling' : ''}
             `}
                         onScroll={isShrunk ? handleBubbleScroll : undefined}
@@ -122,14 +124,16 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                 </div>
 
                 {/* Timestamp outside of scrollable area */}
-                <div className="text-xs mt-1.5 text-[var(--ctp-crust)] text-opacity-90 relative z-20">
+                <div className={`text-xxs mt-1 opacity-75 relative z-20 ${message.role === 'user' ? 'text-white/70' :
+                    'text-ctp-subtext0'
+                    }`}>
                     {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
 
                 {/* Expand/collapse floating icon button (bottom right, more visible) */}
                 {isShrunk && !forceExpand && (
                     <button
-                        className="absolute right-3 bottom-3 z-40 bg-gradient-to-br from-[var(--ctp-base)]/90 to-[var(--ctp-surface2)]/90 text-[var(--dynamic-accent)] hover:text-[var(--ctp-mauve)] p-2.5 rounded-full shadow-2xl border-2 border-[var(--ctp-overlay1)] transition-all flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-[var(--ctp-mauve)]"
+                        className="absolute right-3 bottom-3 z-40 bg-gradient-to-br from-background/90 to-muted/90 text-primary hover:text-purple-500 p-2.5 rounded-full shadow-2xl border-2 border-border transition-all flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-purple-500"
                         style={{ fontSize: '1.7rem', lineHeight: 1, boxShadow: '0 6px 24px 0 rgba(0,0,0,0.22)' }}
                         onClick={() => setForceExpand(true)}
                         title="Expand bubble"
@@ -140,7 +144,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                 )}
                 {forceExpand && (
                     <button
-                        className="absolute right-3 bottom-3 z-40 bg-gradient-to-br from-[var(--ctp-base)]/90 to-[var(--ctp-surface2)]/90 text-[var(--ctp-overlay1)] hover:text-[var(--ctp-mauve)] p-2.5 rounded-full shadow-2xl border-2 border-[var(--ctp-overlay1)] transition-all flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-[var(--ctp-mauve)]"
+                        className="absolute right-3 bottom-3 z-40 bg-gradient-to-br from-background/90 to-muted/90 text-muted-foreground hover:text-purple-500 p-2.5 rounded-full shadow-2xl border-2 border-border transition-all flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-purple-500"
                         style={{ fontSize: '1.7rem', lineHeight: 1, boxShadow: '0 6px 24px 0 rgba(0,0,0,0.22)' }}
                         onClick={() => setForceExpand(false)}
                         title="Shrink bubble"

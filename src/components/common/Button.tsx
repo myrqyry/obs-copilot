@@ -1,13 +1,13 @@
 
 
 import React from 'react';
-import { CatppuccinAccentColorName } from '../../types'; 
+import { CatppuccinAccentColorName } from '../../types';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'warning';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
-  accentColorName?: CatppuccinAccentColorName; 
+  accentColorName?: CatppuccinAccentColorName;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -16,31 +16,31 @@ export const Button: React.FC<ButtonProps> = ({
   size = 'md',
   isLoading = false,
   className = '',
-  accentColorName, 
+  accentColorName,
   ...props
 }) => {
-  const baseStyles = 'font-semibold rounded-lg focus:outline-none transition-all duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg flex items-center justify-center focus:ring-2 focus:ring-offset-2 focus:ring-offset-[var(--ctp-base)]';
-  
+  const baseStyles = 'font-semibold rounded-lg focus:outline-none transition-all duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg flex items-center justify-center focus:ring-2 focus:ring-offset-2 focus:ring-offset-background';
+
   const getVariantStyles = () => {
     let styles = '';
     switch (variant) {
       case 'primary':
-        styles = `bg-[var(--dynamic-accent)] text-[var(--ctp-base)] hover:brightness-110 focus:ring-[var(--dynamic-accent)]`;
+        styles = `bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-ring`;
         break;
       case 'secondary':
-        styles = `bg-[var(--ctp-surface0)] text-[var(--ctp-text)] hover:bg-[var(--ctp-surface1)] focus:ring-[var(--ctp-overlay1)]`;
+        styles = `bg-secondary text-secondary-foreground hover:bg-secondary/80 focus:ring-ring`;
         break;
       case 'danger':
-        styles = `bg-[var(--ctp-red)] text-[var(--ctp-base)] hover:brightness-110 focus:ring-[var(--ctp-red)]`;
+        styles = `bg-destructive text-destructive-foreground hover:bg-destructive/90 focus:ring-ring`;
         break;
       case 'success':
-        styles = `bg-[var(--ctp-green)] text-[var(--ctp-base)] hover:brightness-110 focus:ring-[var(--ctp-green)]`;
+        styles = `bg-green-600 text-white hover:bg-green-700 focus:ring-ring`;
         break;
       case 'warning':
-        styles = `bg-[var(--ctp-peach)] text-[var(--ctp-base)] hover:brightness-110 focus:ring-[var(--ctp-peach)]`;
+        styles = `bg-orange-600 text-white hover:bg-orange-700 focus:ring-ring`;
         break;
       default:
-        styles = `bg-[var(--dynamic-accent)] text-[var(--ctp-base)] hover:brightness-110 focus:ring-[var(--dynamic-accent)]`;
+        styles = `bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-ring`;
     }
     return `${styles} hover:scale-[1.03] hover:-translate-y-0.5 focus:scale-[1.03] focus:-translate-y-0.5 active:scale-[0.98]`;
   };
@@ -56,9 +56,9 @@ export const Button: React.FC<ButtonProps> = ({
     "Connect to OBS": "🔗",
     "Disconnect from OBS": "🔌",
     "Start Streaming": "▶️",
-    "Stop Streaming": "⏹️", 
+    "Stop Streaming": "⏹️",
     "Start Recording": "🔴",
-    "Stop Recording": "⏹️", 
+    "Stop Recording": "⏹️",
     "Refresh Data": "🔄",
     "Save Video Settings": "💾",
     "Send": "➡️",
@@ -72,8 +72,8 @@ export const Button: React.FC<ButtonProps> = ({
   let buttonContent = children;
   if (typeof children === 'string' && emojiMap[children]) {
     buttonContent = <><span role="img" aria-hidden="true" className="mr-1.5">{emojiMap[children]}</span> {children}</>;
-  } else if (typeof children === 'string' && emojiMap[children.replace(/ [🔽🔼️]/, '')]) { 
-     buttonContent = <><span role="img" aria-hidden="true" className="mr-1.5">{emojiMap[children.replace(/ [🔽🔼️]/, '')]}</span> {children}</>;
+  } else if (typeof children === 'string' && emojiMap[children.replace(/ [🔽🔼️]/, '')]) {
+    buttonContent = <><span role="img" aria-hidden="true" className="mr-1.5">{emojiMap[children.replace(/ [🔽🔼️]/, '')]}</span> {children}</>;
   }
 
 

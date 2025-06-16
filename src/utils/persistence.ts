@@ -14,6 +14,8 @@ export interface UserSettings {
     };
     flipSides: boolean;
     autoApplySuggestions: boolean;
+    extraDarkMode: boolean;
+    customChatBackground?: string;
     streamerName?: string;
     geminiApiKey?: string; // Optional - user can choose to persist this
 }
@@ -22,6 +24,7 @@ export interface ConnectionSettings {
     obsWebSocketUrl: string;
     obsPassword?: string; // Optional - might be sensitive
     rememberApiKey: boolean; // User preference for persisting API key
+    autoConnect: boolean; // Auto-connect to OBS on app reload
 }
 
 /**
