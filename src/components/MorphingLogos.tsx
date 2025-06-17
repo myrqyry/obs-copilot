@@ -26,12 +26,7 @@ const MorphingLogos: React.FC = () => {
         const finalAccent1 = accent1 || '#cba6f7'; // mauve
         const finalAccent2 = accent2 || '#f2cdcd'; // flamingo
 
-        console.log('Logo colors debug:', {
-            raw1: accent1,
-            raw2: accent2,
-            final1: finalAccent1,
-            final2: finalAccent2
-        });
+
 
         return { accent1: finalAccent1, accent2: finalAccent2 };
     };
@@ -44,7 +39,7 @@ const MorphingLogos: React.FC = () => {
 
         const { accent1, accent2 } = getAccentColors();
 
-        console.log('Updating colors to:', { accent1, accent2 });
+
 
         // Kill existing color animation completely
         if (colorAnimationRef.current) {
@@ -157,7 +152,7 @@ const MorphingLogos: React.FC = () => {
                 const currentStop2Color = stop2.getAttribute('stop-color');
 
                 if (currentStop1Color !== currentAccent1 || currentStop2Color !== currentAccent2) {
-                    console.log('Color change detected via polling');
+
                     updateColors();
                 }
             }

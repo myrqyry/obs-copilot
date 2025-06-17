@@ -186,9 +186,17 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
     <div className="space-y-2">
       {/* OBS Connection Section */}
       <Card className="border-border">
-        <button
+        <div
+          role="button"
+          tabIndex={0}
           onClick={() => setObsExpanded(!obsExpanded)}
-          className="w-full p-2 flex items-center justify-between text-left hover:bg-muted transition-colors rounded-t-lg group"
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setObsExpanded(v => !v);
+            }
+          }}
+          className="w-full p-2 flex items-center justify-between text-left hover:bg-muted transition-colors rounded-t-lg group cursor-pointer"
         >
           <div className="flex items-center space-x-2">
             <span className="emoji">🎬</span>
@@ -254,7 +262,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </div>
-        </button>
+        </div>
 
         {obsExpanded && (
           <CardContent className="px-2 pb-2">

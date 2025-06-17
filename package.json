@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@giphy/js-fetch-api": "^5.6.0",
+    "@giphy/react-components": "^10.0.1",
     "@google/genai": "^1.4.0",
     "@heroicons/react": "^2.2.0",
     "class-variance-authority": "^0.7.1",

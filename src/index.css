@@ -126,4 +126,29 @@
       will-change: auto;
     }
   }
+
+  /* SVG scaling and rendering styles for streaming assets */
+  .svg-container svg {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    fill: currentColor !important;
+    stroke: currentColor !important;
+  }
+
+  .svg-modal-container svg {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 8rem !important;
+    max-height: 8rem !important;
+    fill: currentColor !important;
+    stroke: currentColor !important;
+  }
+
+  /* Ensure SVG icons inherit color properly */
+  .svg-container,
+  .svg-modal-container {
+    color: inherit;
+  }
 }

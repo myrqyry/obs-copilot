@@ -75,7 +75,8 @@ export enum AppTab {
   CONNECTIONS = "Connections",
   OBS_STUDIO = "OBS Studio",
   SETTINGS = "Settings",
-  GEMINI = "Gemini"
+  GEMINI = "Gemini",
+  STREAMING_ASSETS = "Streaming Assets"
 }
 
 // Catppuccin Theming

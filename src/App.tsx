@@ -8,6 +8,7 @@ import { ObsSettingsPanel } from './components/ObsSettingsPanel';
 import { GeminiChat } from './components/GeminiChat';
 import { LoadingSpinner } from './components/common/LoadingSpinner';
 import { Modal } from './components/common/Modal';
+import StreamingAssetsTab from './components/StreamingAssetsTab';
 import {
     AppTab,
     OBSScene,
@@ -43,7 +44,7 @@ const App: React.FC = () => {
     const [geminiChatInput, setGeminiChatInput] = useState<string>('');
 
     const tabContentRef = useRef<HTMLDivElement>(null);
-    const tabOrder: AppTab[] = [AppTab.GEMINI, AppTab.OBS_STUDIO, AppTab.SETTINGS, AppTab.CONNECTIONS];
+    const tabOrder: AppTab[] = [AppTab.GEMINI, AppTab.OBS_STUDIO, AppTab.STREAMING_ASSETS, AppTab.SETTINGS, AppTab.CONNECTIONS];
     const headerRef = useRef<HTMLDivElement>(null);
     const [headerHeight, setHeaderHeight] = useState(64);
 
@@ -311,6 +312,7 @@ const App: React.FC = () => {
         [AppTab.GEMINI]: '✨',
         [AppTab.OBS_STUDIO]: '🎬',
         [AppTab.SETTINGS]: '⚙️',
+        [AppTab.STREAMING_ASSETS]: '🌈',
     };
 
     const handleSendToGeminiContext = useCallback((contextText: string) => {
@@ -363,6 +365,15 @@ const App: React.FC = () => {
                                     accentColorName={theme.accent}
                                 />
                             )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Streaming Assets Tab */}
+                <div className={`h-full tab-content ${activeTab === AppTab.STREAMING_ASSETS ? 'block' : 'hidden'}`}>
+                    <div className="flex flex-col h-full bg-background border-l border-r border-b border-border rounded-b-lg shadow-lg">
+                        <div className="flex-grow p-3 overflow-y-auto">
+                            <StreamingAssetsTab />
                         </div>
                     </div>
                 </div>

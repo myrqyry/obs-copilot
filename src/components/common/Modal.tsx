@@ -3,18 +3,26 @@ import React from 'react';
 import { Button } from './Button';
 import { CatppuccinAccentColorName } from '../../types';
 
+interface ModalAction {
+  label: string;
+  onClick: () => void;
+  variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'warning';
+  disabled?: boolean;
+}
+
 interface ModalProps {
   title: string;
   children: React.ReactNode;
   onClose: () => void;
   isOpen?: boolean;
   accentColorName?: CatppuccinAccentColorName;
+  actions?: ModalAction[];
 }
 
-export const Modal: React.FC<ModalProps> = ({ title, children, onClose, accentColorName }) => {
+export const Modal: React.FC<ModalProps> = ({ title, children, onClose, accentColorName, actions }) => {
   return (
     <div className="fixed inset-0 bg-background/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm transition-opacity duration-300 ease-in-out">
-      <div className="bg-card p-6 rounded-xl shadow-2xl w-full max-w-md border border-border transform transition-all duration-300 ease-out scale-95 opacity-0 animate-modal-appear">
+      <div className="bg-card p-6 rounded-xl shadow-2xl w-full max-w-md border border-border transform transition-all duration-300 ease-out animate-modal-appear">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-semibold emoji-text text-primary">{title}</h3>
           <button
@@ -30,14 +38,39 @@ export const Modal: React.FC<ModalProps> = ({ title, children, onClose, accentCo
         <div className="text-muted-foreground text-sm">
           {children}
         </div>
-        <div className="mt-6 flex justify-end">
-          <Button
-            onClick={onClose}
-            variant="primary"
-            accentColorName={accentColorName}
-          >
-            Close
-          </Button>
+        <div className="mt-6 flex justify-end gap-2 flex-wrap">
+          {actions && actions.length > 0 ? (
+            <>
+              {actions.map((action, index) => (
+                <Button
+                  key={index}
+                  onClick={action.onClick}
+                  variant={action.variant || 'secondary'}
+                  accentColorName={accentColorName}
+                  disabled={action.disabled}
+                  className="text-sm"
+                >
+                  {action.label}
+                </Button>
+              ))}
+              <Button
+                onClick={onClose}
+                variant="secondary"
+                accentColorName={accentColorName}
+                className="text-sm"
+              >
+                Close
+              </Button>
+            </>
+          ) : (
+            <Button
+              onClick={onClose}
+              variant="primary"
+              accentColorName={accentColorName}
+            >
+              Close
+            </Button>
+          )}
         </div>
       </div>
       {/* Keyframes are now in src/index.css 
