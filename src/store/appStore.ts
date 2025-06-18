@@ -39,7 +39,24 @@ interface AppState {
     isGeminiClientInitialized: boolean;
     geminiInitializationError: string | null;
 
-    // UI & Settings State
+    // Memory Context State
+    userDefinedContext: string[];
+
+    // UI & Settings State - wrapped in userSettings for component compatibility
+    userSettings: {
+        flipSides: boolean;
+        autoApplySuggestions: boolean;
+        extraDarkMode: boolean;
+        customChatBackground: string;
+        theme: {
+            accent: CatppuccinAccentColorName;
+            secondaryAccent: CatppuccinSecondaryAccentColorName;
+            userChatBubble: CatppuccinChatBubbleColorName;
+            modelChatBubble: CatppuccinChatBubbleColorName;
+        };
+    };
+
+    // Legacy theme access for backward compatibility
     flipSides: boolean;
     autoApplySuggestions: boolean;
     extraDarkMode: boolean;
@@ -70,6 +87,9 @@ interface AppState {
         setStreamerName: (name: string | null) => void;
         setGeminiClientInitialized: (initialized: boolean) => void;
         setGeminiInitializationError: (error: string | null) => void;
+        addToUserDefinedContext: (context: string) => void;
+        removeFromUserDefinedContext: (context: string) => void;
+        clearUserDefinedContext: () => void;
         toggleFlipSides: () => void;
         toggleAutoApplySuggestions: () => void;
         toggleExtraDarkMode: () => void;
@@ -108,6 +128,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     geminiApiKey: persistedSettings.geminiApiKey || '',
     isGeminiClientInitialized: false,
     geminiInitializationError: null,
+    userDefinedContext: persistedSettings.userDefinedContext || [],
+
+    // Legacy properties for backward compatibility
     flipSides: persistedSettings.flipSides || false,
     autoApplySuggestions: persistedSettings.autoApplySuggestions || false,
     extraDarkMode: persistedSettings.extraDarkMode || false,
@@ -117,6 +140,20 @@ export const useAppStore = create<AppState>((set, get) => ({
         secondaryAccent: (persistedSettings.theme?.secondaryAccent as CatppuccinSecondaryAccentColorName) || 'flamingo',
         userChatBubble: (persistedSettings.theme?.userChatBubble as CatppuccinChatBubbleColorName) || 'blue',
         modelChatBubble: (persistedSettings.theme?.modelChatBubble as CatppuccinChatBubbleColorName) || 'lavender',
+    },
+
+    // New userSettings wrapper for component compatibility
+    userSettings: {
+        flipSides: persistedSettings.flipSides || false,
+        autoApplySuggestions: persistedSettings.autoApplySuggestions || false,
+        extraDarkMode: persistedSettings.extraDarkMode || false,
+        customChatBackground: persistedSettings.customChatBackground || '',
+        theme: {
+            accent: (persistedSettings.theme?.accent as CatppuccinAccentColorName) || 'mauve',
+            secondaryAccent: (persistedSettings.theme?.secondaryAccent as CatppuccinSecondaryAccentColorName) || 'flamingo',
+            userChatBubble: (persistedSettings.theme?.userChatBubble as CatppuccinChatBubbleColorName) || 'blue',
+            modelChatBubble: (persistedSettings.theme?.modelChatBubble as CatppuccinChatBubbleColorName) || 'lavender',
+        },
     },
 
     // Actions
@@ -174,9 +211,34 @@ export const useAppStore = create<AppState>((set, get) => ({
         },
         setGeminiClientInitialized: (initialized) => set({ isGeminiClientInitialized: initialized }),
         setGeminiInitializationError: (error) => set({ geminiInitializationError: error }),
+        addToUserDefinedContext: (context) => {
+            const updatedContext = [...get().userDefinedContext, context];
+            set({ userDefinedContext: updatedContext });
+            if (isStorageAvailable()) {
+                saveUserSettings({ userDefinedContext: updatedContext });
+            }
+        },
+        removeFromUserDefinedContext: (context) => {
+            const updatedContext = get().userDefinedContext.filter(item => item !== context);
+            set({ userDefinedContext: updatedContext });
+            if (isStorageAvailable()) {
+                saveUserSettings({ userDefinedContext: updatedContext });
+            }
+        },
+        clearUserDefinedContext: () => {
+            set({ userDefinedContext: [] });
+            if (isStorageAvailable()) {
+                saveUserSettings({ userDefinedContext: [] });
+            }
+        },
         toggleFlipSides: () => {
             const newValue = !get().flipSides;
-            set({ flipSides: newValue });
+            const state = get();
+            const newUserSettings = { ...state.userSettings, flipSides: newValue };
+            set({
+                flipSides: newValue,
+                userSettings: newUserSettings
+            });
             // Save to persistence
             if (isStorageAvailable()) {
                 saveUserSettings({ flipSides: newValue });
@@ -184,7 +246,12 @@ export const useAppStore = create<AppState>((set, get) => ({
         },
         toggleAutoApplySuggestions: () => {
             const newValue = !get().autoApplySuggestions;
-            set({ autoApplySuggestions: newValue });
+            const state = get();
+            const newUserSettings = { ...state.userSettings, autoApplySuggestions: newValue };
+            set({
+                autoApplySuggestions: newValue,
+                userSettings: newUserSettings
+            });
             // Save to persistence
             if (isStorageAvailable()) {
                 saveUserSettings({ autoApplySuggestions: newValue });
@@ -192,23 +259,38 @@ export const useAppStore = create<AppState>((set, get) => ({
         },
         toggleExtraDarkMode: () => {
             const newValue = !get().extraDarkMode;
-            set({ extraDarkMode: newValue });
+            const state = get();
+            const newUserSettings = { ...state.userSettings, extraDarkMode: newValue };
+            set({
+                extraDarkMode: newValue,
+                userSettings: newUserSettings
+            });
             // Save to persistence
             if (isStorageAvailable()) {
                 saveUserSettings({ extraDarkMode: newValue });
             }
         },
         setThemeColor: (type, color) => {
-            const currentTheme = get().theme;
+            const state = get();
+            const currentTheme = state.theme;
             const newTheme = { ...currentTheme, [type]: color };
-            set({ theme: newTheme });
+            const newUserSettings = { ...state.userSettings, theme: newTheme };
+            set({
+                theme: newTheme,
+                userSettings: newUserSettings
+            });
             // Save to persistence
             if (isStorageAvailable()) {
                 saveUserSettings({ theme: newTheme });
             }
         },
         setCustomChatBackground: (background) => {
-            set({ customChatBackground: background });
+            const state = get();
+            const newUserSettings = { ...state.userSettings, customChatBackground: background };
+            set({
+                customChatBackground: background,
+                userSettings: newUserSettings
+            });
             if (isStorageAvailable()) {
                 saveUserSettings({ customChatBackground: background });
             }
@@ -446,6 +528,25 @@ export const useAppStore = create<AppState>((set, get) => ({
                         }
 
                         additionalSystemMessage = itemsList;
+                        break;
+
+                    case 'getSourceScreenshot':
+                        const screenshotAction = action;
+                        const screenshotData = await obsServiceInstance.getSourceScreenshot(
+                            screenshotAction.sourceName,
+                            screenshotAction.imageFormat as 'png' | 'jpg',
+                            screenshotAction.imageWidth,
+                            screenshotAction.imageHeight,
+                            screenshotAction.imageCompressionQuality
+                        );
+                        actionFeedback = `\n✅ Successfully captured screenshot of "${screenshotAction.sourceName}".`;
+
+                        // The screenshot data is base64 encoded, so we can display it as an image
+                        const imageType = screenshotAction.imageFormat === 'jpg' ? 'jpeg' : 'png';
+                        const cleanBase64 = screenshotData.replace(/^data:image\/[a-z]+;base64,/, '');
+
+                        // Create a more compact message with a properly constrained image
+                        additionalSystemMessage = `📸 **Screenshot captured of "${screenshotAction.sourceName}"**\n\n<div style="max-width: 100%; overflow: hidden;"><img src="data:image/${imageType};base64,${cleanBase64}" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" alt="OBS Screenshot" /></div>\n\n*Screenshot added to context for AI analysis.*`;
                         break;
 
                     // Add more action types as needed...

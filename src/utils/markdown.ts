@@ -18,6 +18,13 @@ export function highlightJsonSyntax(rawJsonString: string): string {
 export function applyInlineMarkdown(text: string): string {
     let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+    // Process base64 images first (before other markdown processing)
+    // Match data:image/[type];base64,[data] patterns
+    html = html.replace(/data:image\/([^;]+);base64,([A-Za-z0-9+/=]+)/g, (match, imageType, base64Data) => {
+        const fullDataUri = `data:image/${imageType};base64,${base64Data}`;
+        return `<div class="my-3 flex justify-center"><img src="${fullDataUri}" alt="Base64 Image" class="max-w-full h-auto rounded-lg shadow-md border border-border" style="max-height: 400px; object-fit: contain;" /></div>`;
+    });
+
     // Special effect syntax: {{effect:text}} - Process these first before other markdown
     // Glow effects
     html = html.replace(/\{\{glow:([^}]+)\}\}/g, '<span class="text-primary font-semibold animate-pulse drop-shadow-md" style="text-shadow: 0 0 8px currentColor, 0 0 16px currentColor;">$1</span>');

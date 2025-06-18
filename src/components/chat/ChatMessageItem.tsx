@@ -76,9 +76,11 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                         : 'p-2 leading-relaxed'}
         `}
                 style={{
-                    backgroundColor: message.role === 'user' ? 'var(--user-chat-bubble-color)' :
-                        message.role === 'model' ? 'var(--model-chat-bubble-color)' :
-                            'var(--dynamic-secondary-accent)',
+                    backgroundColor: message.role === 'user'
+                        ? `rgba(var(--user-chat-bubble-color-rgb), ${isShrunk ? 0.1 : 0.2})` // Apply slight opacity in extra dark mode
+                        : message.role === 'model'
+                            ? `rgba(var(--model-chat-bubble-color-rgb), ${isShrunk ? 0.1 : 0.2})` // Apply slight opacity in extra dark mode
+                            : 'var(--dynamic-secondary-accent)',
                     fontStyle: message.role === 'system' ? 'normal' : 'normal',
                     fontSize: message.role === 'system' ? '0.9rem' : '1rem',
                     position: 'relative',

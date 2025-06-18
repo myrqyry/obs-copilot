@@ -55,6 +55,12 @@
 
     --radius: 0.75rem;
     /* 12px, matches original rounded-lg */
+
+    /* RGB values for chat bubble colors */
+    --user-chat-bubble-color-rgb: 245, 224, 220;
+    /* Defaulting to rosewater RGB */
+    --model-chat-bubble-color-rgb: 180, 191, 222;
+    /* Defaulting to lavender RGB */
   }
 
   * {

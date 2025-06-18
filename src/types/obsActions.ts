@@ -2,7 +2,11 @@ import type { OBSVideoSettings, GroundingChunk } from '../types';
 
 export interface GeminiActionResponse {
     obsAction?: ObsAction;
-    responseText: string;
+    responseText?: string;
+    streamerBotAction?: {
+        type: string;
+        args?: Record<string, any>;
+    };
     sources?: GroundingChunk[];
 }
 

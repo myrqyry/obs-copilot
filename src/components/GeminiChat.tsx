@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
-import { ChevronDownIcon, ChevronUpIcon, ClipboardDocumentIcon, ArrowPathIcon, ChatBubbleLeftEllipsisIcon } from '@heroicons/react/24/solid';
+import { ChevronDownIcon, ChevronUpIcon, ClipboardDocumentIcon, ArrowPathIcon, ChatBubbleLeftEllipsisIcon, GlobeAltIcon, CameraIcon } from '@heroicons/react/24/solid';
 import { gsap } from 'gsap';
 import { GoogleGenAI } from '@google/genai';
 import { Button } from './common/Button';
@@ -42,6 +42,7 @@ interface GeminiChatProps {
   onSetGeminiInitializationError: (error: string | null) => void;
   activeTab: AppTab;
   streamerName: string | null;
+  onStreamerBotAction: (action: { type: string, args?: Record<string, any> }) => Promise<void>;
 }
 
 const MarkdownRenderer: React.FC<{ content: string }> = React.memo(({ content }) => {
@@ -720,6 +721,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
   onSetGeminiInitializationError,
   streamerName,
   flipSides,
+  onStreamerBotAction,
 }) => {
   // Use Zustand for OBS data and actions
   const { scenes, currentProgramScene, sources, streamStatus, recordStatus, videoSettings, autoApplySuggestions, extraDarkMode, actions, isConnected } = useAppStore();
@@ -812,32 +814,62 @@ Use these action types: createInput, setInputSettings, setSceneItemEnabled, getI
 `;
   }, [obsData]);
 
+  // In src/components/GeminiChat.tsx  // Add this function alongside your existing buildObsSystemMessage const buildStreamerBotSystemMessage = useCallback(() => {   // In the future, we can dynamically fetch and cache actions from Streamer.bot here   // For now, we'll provide a static guide.   return ` **Streamer.bot Context:** - You can control Streamer.bot to perform complex stream automation. - To do this, respond with a JSON object containing a "streamerBotAction" field. - The `type` should be the Streamer.bot request name (e.g., 'DoAction', 'GetActions'). - The `args` object contains the parameters for that request.  **Key Action Types:** 1.  **DoAction**: To run an existing action. Use the action's name or ID.     - Example: { "streamerBotAction": { "type": "DoAction", "args": { "action": { "name": "My Cool Action" } } } } 2.  **CreateAction**: To create a new, simple action.     - Example: { "streamerBotAction": { "type": "CreateAction", "args": { "name": "New Greeting" } } }     - (Note: Complex action creation requires multiple steps) 3.  **Twitch Actions**: Streamer.bot has built-in Twitch actions. You can call them directly.     - **Create Poll**: { "streamerBotAction": { "type": "DoAction", "args": { "action": { "name": "Twitch Create Poll" }, "args": { "title": "Poll Title", "choices": ["A", "B"], "duration": 120 } } } }     - **Send Chat Message**: { "streamerBotAction": { "type": "DoAction", "args": { "action": { "name": "Twitch Send Message" }, "args": { "message": "Hello from the bot!" } } } }  When a user asks for a Streamer.bot action, use this format. `; }, []);
+  const buildStreamerBotSystemMessage = useCallback(() => {
+    // In the future, we can dynamically fetch and cache actions from Streamer.bot here
+    // For now, we'll provide a static guide.
+    return `
+**Streamer.bot Context:**
+- You can control Streamer.bot to perform complex stream automation.
+- To do this, respond with a JSON object containing a "streamerBotAction" field.
+- The \`type\` should be the Streamer.bot request name (e.g., 'DoAction', 'GetActions').
+- The \`args\` object contains the parameters for that request.
+
+**Key Action Types:**
+1.  **DoAction**: To run an existing action. Use the action's name or ID.
+    - Example: { "streamerBotAction": { "type": "DoAction", "args": { "action": { "name": "My Cool Action" } } } }
+2.  **CreateAction**: To create a new, simple action.
+    - Example: { "streamerBotAction": { "type": "CreateAction", "args": { "name": "New Greeting" } } }
+    - (Note: Complex action creation requires multiple steps)
+3.  **Twitch Actions**: Streamer.bot has built-in Twitch actions. You can call them directly.
+    - **Create Poll**: { "streamerBotAction": { "type": "DoAction", "args": { "action": { "name": "Twitch Create Poll" }, "args": { "title": "Poll Title", "choices": ["A", "B"], "duration": 120 } } } }
+    - **Send Chat Message**: { "streamerBotAction": { "type": "DoAction", "args": { "action": { "name": "Twitch Send Message" }, "args": { "message": "Hello from the bot!" } } } }
+
+When a user asks for a Streamer.bot action, use this format.
+`;
+  }, []);
+
   const handleSend = async () => {
     if (!chatInputValue.trim() || !ai.current || isLoading) return;
 
-    // If OBS is not connected, warn and block OBS actions
-    if (!isConnected && !useGoogleSearch) {
-      onAddMessage({ role: 'system', text: "Hey! I'm not connected to OBS right now, so I can't perform that action. Please connect OBS and try again when you're ready." });
+    // Remove the previous limitation - now both OBS and web search can work together
+    // Only warn if OBS is not connected AND the user is trying to do OBS actions specifically
+    const userMessageText = chatInputValue.trim();
+    const hasObsIntent = /\b(scene|source|filter|stream|record|obs|hide|show|volume|mute|transition)\b/i.test(userMessageText);
+
+    if (!isConnected && hasObsIntent && !useGoogleSearch) {
+      onAddMessage({ role: 'system', text: "Hey! I'm not connected to OBS right now, so I can't perform that OBS action. Please connect OBS and try again when you're ready." });
       return;
     }
 
-    const userMessageText = chatInputValue.trim();
     setIsLoading(true);
     onChatInputChange('');
     onAddMessage({ role: 'user', text: userMessageText });
 
     try {
       let finalPrompt = userMessageText;
+      // Now include both OBS and web search capabilities in the system prompt
+      const baseSystemPrompt = `${INITIAL_SYSTEM_PROMPT}\n\n${buildObsSystemMessage()}\n\n${buildStreamerBotSystemMessage()}`;
       const systemPrompt = useGoogleSearch
-        ? `${INITIAL_SYSTEM_PROMPT}\n\nYou can use Google Search to find current information. When you need to search for something, include it in your response. Focus on providing helpful, accurate, and up-to-date information.`
-        : `${INITIAL_SYSTEM_PROMPT}\n\n${buildObsSystemMessage()}`;
+        ? `${baseSystemPrompt}\n\nYou can also use Google Search to find current information when needed. When you need to search for something, include it in your response. You can provide both OBS actions AND web search results in the same response when appropriate.`
+        : baseSystemPrompt;
 
       // Add context if available
       const contextPrompt = contextMessages.length > 0
         ? `\n\nContext from previous messages:\n${contextMessages.join('\n')}\n\n`
         : '';
 
-      if (useGoogleSearch) {
+      if (useGoogleSearch && !hasObsIntent) {
         finalPrompt = `Please search for information about: ${userMessageText}`;
       }
 
@@ -863,58 +895,91 @@ Use these action types: createInput, setInputSettings, setSceneItemEnabled, getI
       // Store OBS action result for later (after adding Gemini response)
       let obsActionResult: { success: boolean; message: string; error?: string } | null = null;
 
-      if (!useGoogleSearch) {
-        try {
-          // Try to extract a JSON block (```json ... ``` or {...})
-          const jsonMatch = modelResponseText.match(/```json\n([\s\S]*?)\n```/) || modelResponseText.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            const jsonStr = jsonMatch[1] || jsonMatch[0];
-            const parsed: GeminiActionResponse = JSON.parse(jsonStr);
-            // Enforce lock awareness for Gemini actions
-            if (parsed.obsAction) {
-              // Map action types to lock keys
-              const actionType = parsed.obsAction.type;
-              const lockMap: Record<string, string> = {
-                startStream: 'streamRecord',
-                stopStream: 'streamRecord',
-                toggleStream: 'streamRecord',
-                startRecord: 'streamRecord',
-                stopRecord: 'streamRecord',
-                toggleRecord: 'streamRecord',
-                setVideoSettings: 'videoSettings',
-              };
-              const lockKey = lockMap[actionType];
-              if (lockKey && isLocked(lockKey)) {
-                onAddMessage({ role: 'system', text: "Looks like you've locked this setting, so I won't change it for you. If you want me to help with this, just unlock it in the settings!" });
-              } else {
-                obsActionResult = await actions.handleObsAction(parsed.obsAction);
-                await onRefreshData();
+      // Always try to process OBS actions regardless of useGoogleSearch setting
+      try {
+        // Try to extract a JSON block - be more careful about what we consider valid JSON
+        let jsonStr = '';
+        let foundValidJson = false;
+
+        // First, try to extract from ```json code blocks
+        const codeBlockMatch = modelResponseText.match(/```json\s*\n([\s\S]*?)\n```/);
+        if (codeBlockMatch) {
+          jsonStr = codeBlockMatch[1].trim();
+          foundValidJson = true;
+        } else {
+          // Look for JSON objects, but be more selective
+          // Only match if it looks like it starts with proper JSON structure
+          const jsonObjectMatches = modelResponseText.match(/\{\s*["'](?:obsAction|streamerBotAction|responseText)["'][\s\S]*?\}/g);
+          if (jsonObjectMatches) {
+            // Take the first complete JSON object that contains our expected keys
+            for (const match of jsonObjectMatches) {
+              try {
+                const testParse = JSON.parse(match);
+                if (testParse.obsAction || testParse.streamerBotAction || testParse.responseText) {
+                  jsonStr = match;
+                  foundValidJson = true;
+                  break;
+                }
+              } catch (e) {
+                // This match wasn't valid JSON, continue to next
+                continue;
               }
             }
-            // Prefer responseText for display if present
-            if (typeof parsed.responseText === 'string') {
-              displayText = parsed.responseText;
+          }
+        }
+
+        if (foundValidJson && jsonStr) {
+          const parsed: GeminiActionResponse = JSON.parse(jsonStr);
+          // Enforce lock awareness for Gemini actions
+          if (parsed.obsAction && isConnected) {
+            // Map action types to lock keys
+            const actionType = parsed.obsAction.type;
+            const lockMap: Record<string, string> = {
+              startStream: 'streamRecord',
+              stopStream: 'streamRecord',
+              toggleStream: 'streamRecord',
+              startRecord: 'streamRecord',
+              stopRecord: 'streamRecord',
+              toggleRecord: 'streamRecord',
+              setVideoSettings: 'videoSettings',
+            };
+            const lockKey = lockMap[actionType];
+            if (lockKey && isLocked(lockKey)) {
+              onAddMessage({ role: 'system', text: "Looks like you've locked this setting, so I won't change it for you. If you want me to help with this, just unlock it in the settings!" });
             } else {
-              displayText = JSON.stringify(parsed, null, 2);
+              obsActionResult = await actions.handleObsAction(parsed.obsAction);
+              await onRefreshData();
             }
           }
-        } catch (err) {
-          // If parsing fails, just show the original text
-          console.warn('No valid OBS action found in response:', err);
+          if (parsed.streamerBotAction) {
+            await onStreamerBotAction(parsed.streamerBotAction);
+          }
+          // Prefer responseText for display if present
+          if (typeof parsed.responseText === 'string') {
+            displayText = parsed.responseText;
+          } else if (parsed.obsAction || parsed.streamerBotAction) {
+            // Only show JSON if it's purely action-based with no readable response
+            displayText = JSON.stringify(parsed, null, 2);
+          }
         }
-      } else {
-        // For Google Search responses, clean up any JSON artifacts
+      } catch (err) {
+        // If parsing fails, just show the original text
+        console.warn('No valid OBS action found in response:', err);
+      }
+
+      // For responses that might be JSON artifacts, clean them up
+      if (useGoogleSearch || modelResponseText.startsWith('{')) {
         try {
           // Check if the response is pure JSON and try to extract readable content
           const parsed = JSON.parse(modelResponseText);
           if (parsed.responseText || parsed.text || parsed.content) {
             displayText = parsed.responseText || parsed.text || parsed.content;
-          } else {
-            // If it's structured data, format it nicely
+          } else if (!parsed.obsAction && !parsed.streamerBotAction) {
+            // If it's structured data without actions, format it nicely
             displayText = modelResponseText; // Keep original if it's already readable
           }
         } catch (err) {
-          // Not JSON, use as-is (which is good for Google search responses)
+          // Not JSON, use as-is (which is good for search responses)
           displayText = modelResponseText;
         }
       }
@@ -974,9 +1039,10 @@ Use these action types: createInput, setInputSettings, setSceneItemEnabled, getI
     setIsLoading(true);
 
     try {
+      const baseSystemPrompt = `${INITIAL_SYSTEM_PROMPT}\n\n${buildObsSystemMessage()}`;
       const systemPrompt = useGoogleSearch
-        ? `${INITIAL_SYSTEM_PROMPT}\n\nYou can use Google Search to find current information. When you need to search for something, include it in your response. Focus on providing helpful, accurate, and up-to-date information.`
-        : `${INITIAL_SYSTEM_PROMPT}\n\n${buildObsSystemMessage()}`;
+        ? `${baseSystemPrompt}\n\nYou can also use Google Search to find current information when needed. When you need to search for something, include it in your response. You can provide both OBS actions AND web search results in the same response when appropriate.`
+        : baseSystemPrompt;
 
       // Add context if available
       const contextPrompt = contextMessages.length > 0
@@ -984,7 +1050,8 @@ Use these action types: createInput, setInputSettings, setSceneItemEnabled, getI
         : '';
 
       let finalPrompt = userPrompt;
-      if (useGoogleSearch) {
+      const hasObsIntent = /\b(scene|source|filter|stream|record|obs|hide|show|volume|mute|transition)\b/i.test(userPrompt);
+      if (useGoogleSearch && !hasObsIntent) {
         finalPrompt = `Please search for information about: ${userPrompt}`;
       }
 
@@ -1005,10 +1072,38 @@ Use these action types: createInput, setInputSettings, setSceneItemEnabled, getI
       let obsActionResult: any = null;
       if (!useGoogleSearch) {
         try {
-          // Try to extract a JSON block (```json ... ``` or {...})
-          const jsonMatch = modelResponseText.match(/```json\n([\s\S]*?)\n```/) || modelResponseText.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            const jsonStr = jsonMatch[1] || jsonMatch[0];
+          // Try to extract a JSON block - be more careful about what we consider valid JSON
+          let jsonStr = '';
+          let foundValidJson = false;
+
+          // First, try to extract from ```json code blocks
+          const codeBlockMatch = modelResponseText.match(/```json\s*\n([\s\S]*?)\n```/);
+          if (codeBlockMatch) {
+            jsonStr = codeBlockMatch[1].trim();
+            foundValidJson = true;
+          } else {
+            // Look for JSON objects, but be more selective
+            // Only match if it looks like it starts with proper JSON structure
+            const jsonObjectMatches = modelResponseText.match(/\{\s*["'](?:obsAction|streamerBotAction|responseText)["'][\s\S]*?\}/g);
+            if (jsonObjectMatches) {
+              // Take the first complete JSON object that contains our expected keys
+              for (const match of jsonObjectMatches) {
+                try {
+                  const testParse = JSON.parse(match);
+                  if (testParse.obsAction || testParse.streamerBotAction || testParse.responseText) {
+                    jsonStr = match;
+                    foundValidJson = true;
+                    break;
+                  }
+                } catch (e) {
+                  // This match wasn't valid JSON, continue to next
+                  continue;
+                }
+              }
+            }
+          }
+
+          if (foundValidJson && jsonStr) {
             const parsed: GeminiActionResponse = JSON.parse(jsonStr);
             if (parsed.obsAction) {
               obsActionResult = await actions.handleObsAction(parsed.obsAction);
@@ -1068,6 +1163,7 @@ Use these action types: createInput, setInputSettings, setSceneItemEnabled, getI
       handleAddToContext(`User selected: ${prompt}`);
     }
 
+    let handledSourcePrompt = false;
     if (genericSourcePrompts.includes(prompt)) {
       // Create more descriptive messages for different actions
       let actionDescription = "";
@@ -1093,21 +1189,20 @@ Use these action types: createInput, setInputSettings, setSceneItemEnabled, getI
         type: "source-prompt",
         sourcePrompt: prompt,
       });
+      handledSourcePrompt = true;
+    }
+
+    // For all suggestions, including source prompts, auto-apply if enabled
+    if (autoApplySuggestions) {
+      onChatInputChange(prompt);
+      setTimeout(() => {
+        if (!isLoading && isGeminiClientInitialized && prompt.trim()) {
+          handleSend();
+        }
+      }, 100);
     } else {
-      // Check autoApplySuggestions setting
-      if (autoApplySuggestions) {
-        // Auto-apply: send the message immediately
-        onChatInputChange(prompt);
-        setTimeout(() => {
-          if (!isLoading && isGeminiClientInitialized && prompt.trim()) {
-            handleSend();
-          }
-        }, 100); // Small delay to ensure input is updated
-      } else {
-        // Regular behavior: just fill the input
-        onChatInputChange(prompt);
-        document.getElementById('gemini-input')?.focus();
-      }
+      onChatInputChange(prompt);
+      document.getElementById('gemini-input')?.focus();
     }
   };
 
@@ -1188,18 +1283,70 @@ Use these action types: createInput, setInputSettings, setSceneItemEnabled, getI
 
       <div className="p-3 border-t border-border bg-background rounded-b-lg">
         <div className="flex items-center space-x-2">
-          <TextInput
-            id="gemini-input"
-            type="text"
-            value={chatInputValue}
-            onChange={(e) => onChatInputChange(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && !isLoading && isGeminiClientInitialized && handleSend()}
-            placeholder={!isGeminiClientInitialized ? (geminiInitializationError || "Gemini not ready...") : "Ask Gemini or command OBS..."}
-            className="flex-grow text-sm"
-            disabled={isLoading || !isGeminiClientInitialized}
-            accentColorName={accentColorName}
-            autoComplete="off"
-          />
+          {/* Custom input with integrated web search toggle */}
+          <div className="relative flex-grow">
+            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 z-10 flex items-center space-x-1">
+              <button
+                onClick={() => setUseGoogleSearch(!useGoogleSearch)}
+                disabled={!isGeminiClientInitialized}
+                className={`p-1 rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary/50 ${useGoogleSearch
+                  ? 'text-primary bg-primary/10 hover:bg-primary/20'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                  } ${!isGeminiClientInitialized ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                title={useGoogleSearch ? "Web search enabled" : "Click to enable web search"}
+                aria-label={useGoogleSearch ? "Disable web search" : "Enable web search"}
+              >
+                <GlobeAltIcon className="w-4 h-4" />
+              </button>
+              <button
+                onClick={async () => {
+                  if (!isConnected || !currentProgramScene) {
+                    onAddMessage({ role: 'system', text: "📸 Need to be connected to OBS with an active scene to take screenshots!" });
+                    return;
+                  }
+                  try {
+                    const screenshot = await actions.handleObsAction({
+                      type: 'getSourceScreenshot',
+                      sourceName: currentProgramScene,
+                      imageFormat: 'png'
+                    });
+                    if (screenshot.success) {
+                      onAddMessage({ role: 'system', text: screenshot.message });
+                      // Also add the screenshot info to context for AI analysis
+                      handleAddToContext(`Screenshot of current scene "${currentProgramScene}" has been captured and is available for analysis.`);
+                    } else {
+                      onAddMessage({ role: 'system', text: `📸 Screenshot failed: ${screenshot.error}` });
+                    }
+                  } catch (error: any) {
+                    onAddMessage({ role: 'system', text: `📸 Screenshot error: ${error.message}` });
+                  }
+                }}
+                disabled={!isGeminiClientInitialized || !isConnected || !currentProgramScene}
+                className={`p-1 rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-orange-500/50 ${isConnected && currentProgramScene
+                  ? 'text-orange-500 hover:text-orange-600 hover:bg-orange-500/10'
+                  : 'text-muted-foreground cursor-not-allowed opacity-50'
+                  }`}
+                title={isConnected && currentProgramScene ? "Take screenshot of current scene" : "Connect to OBS to take screenshots"}
+                aria-label="Take screenshot of current scene"
+              >
+                <CameraIcon className="w-4 h-4" />
+              </button>
+            </div>
+            <input
+              id="gemini-input"
+              type="text"
+              value={chatInputValue}
+              onChange={(e) => onChatInputChange(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && !isLoading && isGeminiClientInitialized && handleSend()}
+              placeholder={!isGeminiClientInitialized ? (geminiInitializationError || "Gemini not ready...") : "Ask Gemini or command OBS..."}
+              className="w-full pl-16 pr-4 py-2 text-sm bg-background border border-border rounded-md 
+                         focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50
+                         disabled:opacity-50 disabled:cursor-not-allowed
+                         placeholder:text-muted-foreground"
+              disabled={isLoading || !isGeminiClientInitialized}
+              autoComplete="off"
+            />
+          </div>
           <Button
             onClick={handleSend}
             disabled={isLoading || !chatInputValue.trim() || !isGeminiClientInitialized}
@@ -1217,24 +1364,7 @@ Use these action types: createInput, setInputSettings, setSceneItemEnabled, getI
             )}
           </Button>
         </div>
-        <div className="mt-2">
-          <label className="flex items-center space-x-2 text-xs text-muted-foreground cursor-pointer group">
-            <input
-              type="checkbox"
-              checked={useGoogleSearch}
-              onChange={(e) => setUseGoogleSearch(e.target.checked)}
-              className="appearance-none h-4 w-4 border-2 border-border rounded-sm bg-background
-                         checked:bg-primary checked:border-transparent focus:outline-none 
-                         focus:ring-2 focus:ring-offset-0 focus:ring-ring focus:ring-opacity-50
-                         transition duration-150 group-hover:border-border"
-              disabled={!isGeminiClientInitialized}
-            />
-            <span className="group-hover:text-foreground transition-colors duration-200">
-              <span className="mr-1">🌍</span>
-              Use Google Search <span className="text-muted-foreground">(disables OBS actions)</span>
-            </span>
-          </label>
-        </div>
+        {/* Removed status text per user request */}
       </div>
     </div>
   );

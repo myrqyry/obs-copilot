@@ -18,6 +18,7 @@ export interface UserSettings {
     customChatBackground?: string;
     streamerName?: string;
     geminiApiKey?: string; // Optional - user can choose to persist this
+    userDefinedContext?: string[]; // Array to store user-added contexts
 }
 
 export interface ConnectionSettings {
@@ -96,6 +97,30 @@ export function clearAllSettings(): void {
     } catch (error) {
         console.warn('Failed to clear settings:', error);
     }
+}
+
+/**
+ * Copies text to the clipboard.
+ * @param text The text to copy.
+ */
+export async function copyToClipboard(text: string): Promise<void> {
+    if (!navigator.clipboard) {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed'; // Avoid scrolling to bottom
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            document.execCommand('copy');
+        } catch (err) {
+            console.error('Fallback: Oops, unable to copy', err);
+        }
+        document.body.removeChild(textArea);
+        return;
+    }
+    await navigator.clipboard.writeText(text);
 }
 
 /**

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import { Button } from './common/Button';
@@ -20,6 +19,10 @@ interface ConnectionFormProps {
   onGeminiApiKeyChange: (key: string) => void;
   isGeminiClientInitialized: boolean;
   geminiInitializationError: string | null;
+  streamerBotAddress: string;
+  setStreamerBotAddress: (value: string) => void;
+  streamerBotPort: string;
+  setStreamerBotPort: (value: string) => void;
   accentColorName?: CatppuccinAccentColorName;
 }
 
@@ -35,6 +38,10 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
   onGeminiApiKeyChange,
   isGeminiClientInitialized,
   geminiInitializationError,
+  streamerBotAddress,
+  setStreamerBotAddress,
+  streamerBotPort,
+  setStreamerBotPort,
   accentColorName,
 }) => {
   // Load persisted connection settings
@@ -58,6 +65,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
   );
   const [obsExpanded, setObsExpanded] = useState<boolean>(true);
   const [geminiExpanded, setGeminiExpanded] = useState<boolean>(true);
+  const [streamerBotExpanded, setStreamerBotExpanded] = useState<boolean>(false);
   const obsConnectingDotRef = useRef<HTMLSpanElement>(null);
   const geminiStatusDotRef = useRef<HTMLSpanElement>(null);
 
@@ -179,7 +187,6 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
       if (dot) gsap.killTweensOf(dot);
     };
   }, [isGeminiClientInitialized, geminiInitializationError]);
-
 
 
   return (
@@ -364,6 +371,69 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
                 </div>
               )}
             </form>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Streamer.bot Section */}
+      <Card className="border-border">
+        <button
+          onClick={() => setStreamerBotExpanded(!streamerBotExpanded)}
+          className="w-full p-2 flex items-center justify-between text-left hover:bg-muted transition-colors rounded-t-lg"
+        >
+          <div className="flex items-center space-x-2">
+            <span className="emoji">🤖</span>
+            <span className="text-sm font-semibold text-foreground">Streamer.bot Connection</span>
+            <span
+              className="inline-block w-2 h-2 rounded-full border border-white bg-muted"
+              title="Configuration"
+            />
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className="text-xs text-muted-foreground">
+              Optional
+            </span>
+            <svg
+              className={cn(
+                "w-4 h-4 text-muted-foreground transition-transform duration-200",
+                streamerBotExpanded ? 'rotate-180' : ''
+              )}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </button>
+
+        {streamerBotExpanded && (
+          <CardContent className="px-2 pb-2">
+            <div className="space-y-2">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+                <TextInput
+                  label="Streamer.bot Address"
+                  id="streamerbot-address"
+                  type="text"
+                  value={streamerBotAddress}
+                  onChange={(e) => setStreamerBotAddress(e.target.value)}
+                  placeholder="localhost"
+                  accentColorName={accentColorName}
+                />
+                <TextInput
+                  label="Port"
+                  id="streamerbot-port"
+                  type="text"
+                  value={streamerBotPort}
+                  onChange={(e) => setStreamerBotPort(e.target.value)}
+                  placeholder="8080"
+                  accentColorName={accentColorName}
+                />
+              </div>
+              <div className="text-xs text-muted-foreground bg-card p-2 rounded border border-border">
+                <p>Connect to Streamer.bot for enhanced automation and action triggers.</p>
+              </div>
+            </div>
           </CardContent>
         )}
       </Card>

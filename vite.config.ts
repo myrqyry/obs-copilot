@@ -17,6 +17,7 @@ export default defineConfig(({ mode }) => {
       // For local development, you can use a .env.local file (e.g., VITE_GEMINI_API_KEY=your_actual_key_here)
       'process.env.API_KEY': JSON.stringify(env.API_KEY),
       'process.env.VITE_GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY),
+      'process.env.VITE_GIPHY_API_KEY': JSON.stringify(env.VITE_GIPHY_API_KEY),
       // You can define other environment variables here if needed
       // 'process.env.NODE_ENV': JSON.stringify(mode),
     },

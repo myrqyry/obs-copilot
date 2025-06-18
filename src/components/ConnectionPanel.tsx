@@ -16,6 +16,10 @@ interface ConnectionPanelProps {
     onGeminiApiKeyChange: (key: string) => void;
     isGeminiClientInitialized: boolean;
     geminiInitializationError: string | null;
+    streamerBotAddress: string;
+    setStreamerBotAddress: (value: string) => void;
+    streamerBotPort: string;
+    setStreamerBotPort: (value: string) => void;
     accentColorName?: CatppuccinAccentColorName;
 }
 
@@ -29,6 +33,10 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({
     geminiApiKey,
     envGeminiApiKey,
     onGeminiApiKeyChange,
+    streamerBotAddress,
+    setStreamerBotAddress,
+    streamerBotPort,
+    setStreamerBotPort,
     isGeminiClientInitialized,
     geminiInitializationError,
     accentColorName,
@@ -50,6 +58,10 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({
                 onGeminiApiKeyChange={onGeminiApiKeyChange}
                 isGeminiClientInitialized={isGeminiClientInitialized}
                 geminiInitializationError={geminiInitializationError}
+                streamerBotAddress={streamerBotAddress}
+                setStreamerBotAddress={setStreamerBotAddress}
+                streamerBotPort={streamerBotPort}
+                setStreamerBotPort={setStreamerBotPort}
                 accentColorName={accentColorName}
             />
 

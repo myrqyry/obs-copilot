@@ -12,11 +12,9 @@ interface HtmlTemplateBuilderProps {
     accentColorName: CatppuccinAccentColorName;
 }
 
-const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({
-    accentColorName,
-}) => {
-    const { obsServiceInstance, currentProgramScene, isConnected } = useAppStore();
 
+const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({ accentColorName }) => {
+    const { obsServiceInstance, currentProgramScene, isConnected } = useAppStore();
     const [selectedPreset, setSelectedPreset] = useState<string>('assets-showcase');
     const [customConfig, setCustomConfig] = useState<Partial<TemplateConfig>>({
         layout: 'overlay',
@@ -43,7 +41,6 @@ const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({
             },
         },
     });
-
     const [sourceName, setSourceName] = useState('Gemini-Template');
     const [sourceWidth, setSourceWidth] = useState(800);
     const [sourceHeight, setSourceHeight] = useState(600);
@@ -54,7 +51,7 @@ const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [htmlContent, setHtmlContent] = useState('');
     const [customCss, setCustomCss] = useState('');
-
+    const [collapsed, setCollapsed] = useState(false);
     const presets = HtmlTemplateService.getPresetTemplates();
 
     useEffect(() => {
@@ -103,7 +100,7 @@ const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({
                 obsServiceInstance,
                 sourceName,
                 currentProgramScene,
-                customConfig,
+                customConfig, // now includes customHtml and customCss
                 sourceWidth,
                 sourceHeight
             );
@@ -148,256 +145,250 @@ const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({
             const reader = new FileReader();
             reader.onload = (event) => {
                 setHtmlContent(event.target?.result as string || '');
+                setCustomConfig((prev) => ({
+                    ...prev,
+                    customHtml: event.target?.result as string || '',
+                }));
             };
             reader.readAsText(selectedFile);
         }
     }, [selectedFile]);
 
+    useEffect(() => {
+        setCustomConfig((prev) => ({
+            ...prev,
+            customCss,
+        }));
+    }, [customCss]);
+
     return (
         <div className="space-y-6">
             <Card>
-                <CardContent className="p-6">
-                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                        {/* 📝 HTML Template Builder */}
-                        <span role="img" aria-label="template">📝</span> HTML Template Builder
-                    </h3>
-
-                    {/* External HTML File Input */}
-                    <div className="mb-6">
-                        <label className="block text-sm font-medium mb-2">
-                            Load External HTML:
-                        </label>
-                        <input
-                            type="file"
-                            accept=".html"
-                            className="w-full p-2 border border-border rounded-md bg-background text-foreground"
-                            onChange={(e) => {
-                                setSelectedFile(e.target.files?.[0] || null);
-                            }}
-                        />
-                    </div>
-
-                    {/* Custom CSS Input */}
-                    <div className="mb-6">
-                        <label className="block text-sm font-medium mb-2">
-                            Custom CSS:
-                        </label>
-                        <textarea
-                            className="w-full p-2 border border-border rounded-md bg-background text-foreground h-20 resize-none"
-                            placeholder="Enter custom CSS"
-                            value={customCss}
-                            onChange={(e) => setCustomCss(e.target.value)}
-                        />
-                    </div>
-
-                    {/* Preset Selection */}
-                    <div className="mb-6">
-                        <label className="block text-sm font-medium mb-2">Choose a Preset:</label>
-                        <select
-                            value={selectedPreset}
-                            onChange={(e) => handlePresetChange(e.target.value)}
-                            className="w-full p-2 border border-border rounded-md bg-background text-foreground"
-                        >
-                            {Object.keys(presets).map((key) => (
-                                <option key={key} value={key}>
-                                    {key.split('-').map(word =>
-                                        word.charAt(0).toUpperCase() + word.slice(1)
-                                    ).join(' ')}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Content Configuration */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Title:</label>
-                            <TextInput
-                                value={customConfig.content?.title || ''}
-                                onChange={(e) => handleConfigChange('content', 'title', e.target.value)}
-                                placeholder="Enter title"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Subtitle:</label>
-                            <TextInput
-                                value={customConfig.content?.subtitle || ''}
-                                onChange={(e) => handleConfigChange('content', 'subtitle', e.target.value)}
-                                placeholder="Enter subtitle"
-                            />
-                        </div>
-                    </div>
-                    <div className="mb-6">
-                        <label className="block text-sm font-medium mb-1">Body Text:</label>
-                        <textarea
-                            value={customConfig.content?.body || ''}
-                            onChange={(e) => handleConfigChange('content', 'body', e.target.value)}
-                            className="w-full p-2 border border-border rounded-md bg-background text-foreground h-20 resize-none"
-                            placeholder="Enter body content (supports HTML)"
-                        />
-                    </div>
-
-                    {/* Layout Configuration */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Layout:</label>
-                            <select
-                                value={customConfig.layout || 'overlay'}
-                                onChange={(e) => handleConfigChange('layout', 'layout', e.target.value)}
-                                className="w-full p-2 border border-border rounded-md bg-background text-foreground"
-                            >
-                                <option value="overlay">Overlay</option>
-                                <option value="fullscreen">Fullscreen</option>
-                                <option value="corner">Corner</option>
-                                <option value="sidebar">Sidebar</option>
-                            </select>
-                        </div>
-                        {customConfig.layout === 'corner' && (
+                <CardContent className="p-2">
+                    <button
+                        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted transition-colors rounded-t-lg group text-[1.08em]"
+                        onClick={() => setCollapsed((v) => !v)}
+                        aria-expanded={!collapsed}
+                    >
+                        <span className="text-primary font-semibold flex items-center gap-2 text-[1em]">🛠️ Create HTML Template</span>
+                        <span className="transition-transform duration-200 group-hover:text-primary">
+                            {!collapsed ? '▲' : '▼'}
+                        </span>
+                    </button>
+                    {!collapsed && (
+                        <div className="px-2 pb-2 pt-1 space-y-2 animate-fade-in">
+                            <div className="flex flex-col md:flex-row gap-2">
+                                <div className="flex-1">
+                                    <label className="block text-xs font-medium mb-1">Title</label>
+                                    <TextInput
+                                        value={customConfig.content?.title || ''}
+                                        onChange={(e) => handleConfigChange('content', 'title', e.target.value)}
+                                        placeholder="Enter title"
+                                    />
+                                </div>
+                                <div className="flex-1">
+                                    <label className="block text-xs font-medium mb-1">Subtitle</label>
+                                    <TextInput
+                                        value={customConfig.content?.subtitle || ''}
+                                        onChange={(e) => handleConfigChange('content', 'subtitle', e.target.value)}
+                                        placeholder="Enter subtitle"
+                                    />
+                                </div>
+                            </div>
                             <div>
-                                <label className="block text-sm font-medium mb-1">Position:</label>
-                                <select
-                                    value={customConfig.position || 'bottom-right'}
-                                    onChange={(e) => handleConfigChange('position', 'position', e.target.value)}
-                                    className="w-full p-2 border border-border rounded-md bg-background text-foreground"
+                                <label className="block text-xs font-medium mb-1">Body Text</label>
+                                <textarea
+                                    value={customConfig.content?.body || ''}
+                                    onChange={(e) => handleConfigChange('content', 'body', e.target.value)}
+                                    className="w-full p-1 border border-border rounded-md bg-background text-foreground h-16 resize-none text-xs"
+                                    placeholder="Enter body content (supports HTML)"
+                                />
+                            </div>
+                            <div className="flex flex-col md:flex-row gap-2">
+                                <div className="flex-1">
+                                    <label className="block text-xs font-medium mb-1">Layout</label>
+                                    <select
+                                        value={customConfig.layout || 'overlay'}
+                                        onChange={(e) => handleConfigChange('layout', 'layout', e.target.value)}
+                                        className="w-full p-1 border border-border rounded-md bg-background text-foreground text-xs"
+                                    >
+                                        <option value="overlay">Overlay</option>
+                                        <option value="fullscreen">Fullscreen</option>
+                                        <option value="corner">Corner</option>
+                                        <option value="sidebar">Sidebar</option>
+                                    </select>
+                                </div>
+                                {customConfig.layout === 'corner' && (
+                                    <div className="flex-1">
+                                        <label className="block text-xs font-medium mb-1">Position</label>
+                                        <select
+                                            value={customConfig.position || 'bottom-right'}
+                                            onChange={(e) => handleConfigChange('position', 'position', e.target.value)}
+                                            className="w-full p-1 border border-border rounded-md bg-background text-foreground text-xs"
+                                        >
+                                            <option value="top-left">Top Left</option>
+                                            <option value="top-right">Top Right</option>
+                                            <option value="bottom-left">Bottom Left</option>
+                                            <option value="bottom-right">Bottom Right</option>
+                                        </select>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="flex flex-col md:flex-row gap-2">
+                                <div className="flex-1">
+                                    <label className="block text-xs font-medium mb-1">Preset</label>
+                                    <select
+                                        value={selectedPreset}
+                                        onChange={(e) => handlePresetChange(e.target.value)}
+                                        className="w-full p-1 border border-border rounded-md bg-background text-foreground text-xs"
+                                    >
+                                        {Object.keys(presets).map((key) => (
+                                            <option key={key} value={key}>
+                                                {key.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="flex-1">
+                                    <label className="block text-xs font-medium mb-1">Load External HTML</label>
+                                    <input
+                                        type="file"
+                                        accept=".html"
+                                        className="w-full p-1 border border-border rounded-md bg-background text-foreground text-xs"
+                                        onChange={(e) => {
+                                            setSelectedFile(e.target.files?.[0] || null);
+                                        }}
+                                    />
+                                </div>
+                                <div className="flex-1">
+                                    <label className="block text-xs font-medium mb-1">Custom CSS</label>
+                                    <textarea
+                                        className="w-full p-1 border border-border rounded-md bg-background text-foreground h-8 resize-none text-xs"
+                                        placeholder="Enter custom CSS"
+                                        value={customCss}
+                                        onChange={(e) => setCustomCss(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex flex-col md:flex-row gap-2">
+                                <div className="flex-1">
+                                    <label className="block text-xs font-medium mb-1">Source Name</label>
+                                    <TextInput
+                                        value={sourceName}
+                                        onChange={(e) => setSourceName(e.target.value)}
+                                        placeholder="Browser source name"
+                                    />
+                                </div>
+                                <div className="flex-1">
+                                    <label className="block text-xs font-medium mb-1">Width</label>
+                                    <TextInput
+                                        type="number"
+                                        value={sourceWidth.toString()}
+                                        onChange={(e) => setSourceWidth(parseInt(e.target.value) || 800)}
+                                        placeholder="800"
+                                    />
+                                </div>
+                                <div className="flex-1">
+                                    <label className="block text-xs font-medium mb-1">Height</label>
+                                    <TextInput
+                                        type="number"
+                                        value={sourceHeight.toString()}
+                                        onChange={(e) => setSourceHeight(parseInt(e.target.value) || 600)}
+                                        placeholder="600"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex flex-col md:flex-row gap-2">
+                                <div className="flex-1">
+                                    <label className="block text-xs font-medium mb-1">Animation Effects</label>
+                                    <div className="flex gap-2 items-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={customConfig.animations?.effects?.rainbow || false}
+                                            onChange={(e) => handleConfigChange('animations', 'effects', {
+                                                ...customConfig.animations?.effects,
+                                                rainbow: e.target.checked,
+                                            })}
+                                            className="rounded"
+                                        />
+                                        <span className="text-xs">🌈 Rainbow</span>
+                                        <input
+                                            type="checkbox"
+                                            checked={customConfig.animations?.effects?.pulse || false}
+                                            onChange={(e) => handleConfigChange('animations', 'effects', {
+                                                ...customConfig.animations?.effects,
+                                                pulse: e.target.checked,
+                                            })}
+                                            className="rounded ml-2"
+                                        />
+                                        <span className="text-xs">💓 Pulse</span>
+                                        <label className="text-xs ml-2">🔥 Glow:</label>
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="5"
+                                            step="0.5"
+                                            value={customConfig.animations?.effects?.glow || 0}
+                                            onChange={(e) => handleConfigChange('animations', 'effects', {
+                                                ...customConfig.animations?.effects,
+                                                glow: parseFloat(e.target.value),
+                                            })}
+                                            className="flex-1 mx-1"
+                                        />
+                                        <span className="text-xs text-muted-foreground">
+                                            {customConfig.animations?.effects?.glow || 0}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                <Button
+                                    onClick={handleCreateBrowserSource}
+                                    disabled={!isConnected || isCreating}
+                                    variant="primary"
+                                    accentColorName={accentColorName}
+                                    size="sm"
                                 >
-                                    <option value="top-left">Top Left</option>
-                                    <option value="top-right">Top Right</option>
-                                    <option value="bottom-left">Bottom Left</option>
-                                    <option value="bottom-right">Bottom Right</option>
-                                </select>
+                                    {isCreating ? 'Creating...' : '✨ Create'}
+                                </Button>
+                                <Button
+                                    onClick={handleUpdateExistingSource}
+                                    disabled={!isConnected || isCreating}
+                                    variant="secondary"
+                                    accentColorName={accentColorName}
+                                    size="sm"
+                                >
+                                    {isCreating ? 'Updating...' : '🛠 Update'}
+                                </Button>
+                                <Button
+                                    onClick={() => setShowPreview(true)}
+                                    variant="secondary"
+                                    accentColorName={accentColorName}
+                                    size="sm"
+                                >
+                                    🖥 Preview
+                                </Button>
+                                <Button
+                                    onClick={copyTemplateUrl}
+                                    variant="secondary"
+                                    accentColorName={accentColorName}
+                                    size="sm"
+                                >
+                                    📋 Copy URL
+                                </Button>
                             </div>
-                        )}
-                    </div>
-
-                    {/* Animation Effects */}
-                    <div className="mb-6">
-                        <label className="block text-sm font-medium mb-2">Animation Effects:</label>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="checkbox"
-                                    checked={customConfig.animations?.effects?.rainbow || false}
-                                    onChange={(e) =>
-                                        handleConfigChange('animations', 'effects', {
-                                            ...customConfig.animations?.effects,
-                                            rainbow: e.target.checked,
-                                        })
-                                    }
-                                    className="rounded"
-                                />
-                                <span className="text-sm">🌈 Rainbow</span>
+                            {feedbackMessage && (
+                                <div className="mt-2 p-2 bg-muted rounded-md">
+                                    <p className="text-xs">{feedbackMessage}</p>
+                                </div>
+                            )}
+                            <div className="mt-2">
+                                <ExternalHtmlRenderer htmlContent={htmlContent} customCss={customCss} />
                             </div>
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="checkbox"
-                                    checked={customConfig.animations?.effects?.pulse || false}
-                                    onChange={(e) =>
-                                        handleConfigChange('animations', 'effects', {
-                                            ...customConfig.animations?.effects,
-                                            pulse: e.target.checked,
-                                        })
-                                    }
-                                    className="rounded"
-                                />
-                                <span className="text-sm">💓 Pulse</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <label className="text-sm">🔥 Glow:</label>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="5"
-                                    step="0.5"
-                                    value={customConfig.animations?.effects?.glow || 0}
-                                    onChange={(e) =>
-                                        handleConfigChange('animations', 'effects', {
-                                            ...customConfig.animations?.effects,
-                                            glow: parseFloat(e.target.value),
-                                        })
-                                    }
-                                    className="flex-1"
-                                />
-                                <span className="text-xs text-muted-foreground">
-                                    {customConfig.animations?.effects?.glow || 0}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Source Configuration */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Source Name:</label>
-                            <TextInput
-                                value={sourceName}
-                                onChange={(e) => setSourceName(e.target.value)}
-                                placeholder="Browser source name"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Width:</label>
-                            <TextInput
-                                type="number"
-                                value={sourceWidth.toString()}
-                                onChange={(e) => setSourceWidth(parseInt(e.target.value) || 800)}
-                                placeholder="800"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Height:</label>
-                            <TextInput
-                                type="number"
-                                value={sourceHeight.toString()}
-                                onChange={(e) => setSourceHeight(parseInt(e.target.value) || 600)}
-                                placeholder="600"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex flex-wrap gap-3">
-                        <Button
-                            onClick={handleCreateBrowserSource}
-                            disabled={!isConnected || isCreating}
-                            variant="primary"
-                            accentColorName={accentColorName}
-                        >
-                            {isCreating ? 'Creating...' : '✨ Create Browser Source'}
-                        </Button>
-                        <Button
-                            onClick={handleUpdateExistingSource}
-                            disabled={!isConnected || isCreating}
-                            variant="secondary"
-                            accentColorName={accentColorName}
-                        >
-                            {isCreating ? 'Updating...' : '🛠 Update Existing'}
-                        </Button>
-                        <Button
-                            onClick={() => setShowPreview(true)}
-                            variant="secondary"
-                            accentColorName={accentColorName}
-                        >
-                            🖥 Preview
-                        </Button>
-                        <Button
-                            onClick={copyTemplateUrl}
-                            variant="secondary"
-                            accentColorName={accentColorName}
-                        >
-                            📋 Copy URL
-                        </Button>
-                    </div>
-
-                    {/* Feedback Message */}
-                    {feedbackMessage && (
-                        <div className="mt-4 p-3 bg-muted rounded-md">
-                            <p className="text-sm">{feedbackMessage}</p>
                         </div>
                     )}
-                    <ExternalHtmlRenderer htmlContent={htmlContent} customCss={customCss} />
                 </CardContent>
             </Card>
-
             {/* Preview Modal */}
             {showPreview && (
                 <Modal
@@ -412,7 +403,6 @@ const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({
                                 {previewUrl}
                             </code>
                         </div>
-
                         <div className="border border-border rounded-md overflow-hidden">
                             <iframe
                                 src={previewUrl}
@@ -422,7 +412,6 @@ const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({
                                 title="Template Preview"
                             />
                         </div>
-
                         <div className="text-xs text-muted-foreground">
                             🛈 This preview shows how your template will look in OBS browser source
                         </div>

@@ -233,343 +233,186 @@ export class OBSWebSocketService {
     await this.obs.call('StopVirtualCam');
   }
 
-  // Screenshots
-  // saveScreenshot is not supported by your obs-websocket-js version or type definitions.
-  // Method removed due to missing type support.
-
-  // Replay Buffer
-  async getReplayBufferStatus(): Promise<any> {
-    return this.obs.call('GetReplayBufferStatus');
-  }
-
-  async startReplayBuffer(): Promise<void> {
-    await this.obs.call('StartReplayBuffer');
-  }
-
-  async stopReplayBuffer(): Promise<void> {
-    await this.obs.call('StopReplayBuffer');
-  }
-
-  async saveReplayBuffer(): Promise<void> {
-    await this.obs.call('SaveReplayBuffer');
-  }
-
-  // Profile/Scene Collection Management
-  async getCurrentProfile(): Promise<any> {
-    return this.obs.call('GetProfileList');
-  }
-
-  async setCurrentProfile(profileName: string): Promise<void> {
-    await this.obs.call('SetCurrentProfile', { profileName });
-  }
-
-  async getCurrentSceneCollection(): Promise<any> {
-    return this.obs.call('GetSceneCollectionList');
-  }
-
-  async setCurrentSceneCollection(sceneCollectionName: string): Promise<void> {
-    await this.obs.call('SetCurrentSceneCollection', { sceneCollectionName });
-  }
-
-  // Studio Mode Transition
-  async triggerStudioModeTransition(): Promise<void> {
-    // Note: obs-websocket-js type definitions do not support parameters for this call.
-    await this.obs.call('TriggerStudioModeTransition');
-  }
-
-  // Audio Monitoring
-  async setInputAudioMonitorType(inputName: string, monitorType: "OBS_MONITORING_TYPE_NONE" | "OBS_MONITORING_TYPE_MONITOR_ONLY" | "OBS_MONITORING_TYPE_MONITOR_AND_OUTPUT"): Promise<void> {
-    await this.obs.call('SetInputAudioMonitorType', { inputName, monitorType });
-  }
-
-  // Scene Item Blend Mode
-  async setSceneItemBlendMode(sceneName: string, sceneItemId: number, sceneItemBlendMode: string): Promise<void> {
-    await this.obs.call('SetSceneItemBlendMode', { sceneName, sceneItemId, sceneItemBlendMode });
-  }
-
-  // Refresh Browser Source
-  async refreshBrowserSource(inputName: string): Promise<void> {
-    await this.obs.call('PressInputPropertiesButton', { inputName, propertyName: "refresh" });
-  }
-
-  // Note: OBS WebSocket API does not provide log file access functionality
-  // Log files must be accessed through the operating system or OBS Studio UI directly
-  async getLogFileList(): Promise<any> {
-    throw new Error('Log file access is not available through OBS WebSocket API. Please access log files through OBS Studio menu: Help → Log Files');
-  }
-
-  async getLogFile(_logFile: string): Promise<any> {
-    throw new Error('Log file access is not available through OBS WebSocket API. Please access log files through OBS Studio menu: Help → Log Files');
-  }
-
-  // Studio Mode
-  async setStudioModeEnabled(enabled: boolean): Promise<void> {
-    await this.obs.call('SetStudioModeEnabled', { studioModeEnabled: enabled });
-  }
-
-  async toggleStudioMode(): Promise<void> {
-    try {
-      // First try the direct toggle method if it exists
-      await this.obs.call('ToggleStudioMode' as any);
-    } catch (error) {
-      // If ToggleStudioMode doesn't exist, use SetStudioModeEnabled
-      // We need to get the current state first, then toggle it
-      try {
-        const studioModeStatus = await this.obs.call('GetStudioModeEnabled' as any);
-        const currentEnabled = studioModeStatus?.studioModeEnabled || false;
-        await this.setStudioModeEnabled(!currentEnabled);
-      } catch (fallbackError) {
-        // If we can't get the status, try toggling with setStudioModeEnabled
-        // This is a fallback - we'll assume it's currently disabled and enable it
-        console.warn('Could not get studio mode status, attempting to enable studio mode');
-        await this.setStudioModeEnabled(true);
-      }
-    }
-  }
-
-  // Hotkeys
-  async triggerHotkeyByName(hotkeyName: string): Promise<void> {
-    await this.obs.call('TriggerHotkeyByName' as any, { hotkeyName });
-  }
-  async triggerHotkeyByKeySequence(
-    keyId: string,
-    keyModifiers: { shift: boolean; control: boolean; alt: boolean; command: boolean }
-  ): Promise<void> {
-    await this.obs.call('TriggerHotkeyByKeySequence' as any, { keyId, keyModifiers });
-  }
-
-  // Filters
-  async getSourceFilterDefaultSettings(filterKind: string): Promise<any> {
-    return this.obs.call('GetSourceFilterDefaultSettings' as any, { filterKind });
-  }
-  async getSourceFilterSettings(sourceName: string, filterName: string): Promise<any> {
-    return this.obs.call('GetSourceFilterSettings' as any, { sourceName, filterName });
-  }
-
-  // Source Properties
-  async getInputDefaultSettings(inputKind: string): Promise<any> {
-    return this.obs.call('GetInputDefaultSettings' as any, { inputKind });
-  }
-
-  // Optionally, if you want Gemini to be able to toggle stream/record:
+  // Toggle methods for convenience
   async toggleStream(): Promise<void> {
-    await this.obs.call('ToggleStream' as any);
-  }
-  async toggleRecord(): Promise<void> {
-    await this.obs.call('ToggleRecord' as any);
-  }
-
-  // Output Management
-  async getOutputList(): Promise<any> {
-    return this.obs.call('GetOutputList' as any);
-  }
-
-  async getOutputStatus(outputName: string): Promise<any> {
-    return this.obs.call('GetOutputStatus' as any, { outputName });
-  }
-
-  async startOutput(outputName: string): Promise<void> {
-    await this.obs.call('StartOutput' as any, { outputName });
-  }
-
-  async stopOutput(outputName: string): Promise<void> {
-    await this.obs.call('StopOutput' as any, { outputName });
-  }
-
-  async getOutputSettings(outputName: string): Promise<any> {
-    return this.obs.call('GetOutputSettings' as any, { outputName });
-  }
-
-  async setOutputSettings(outputName: string, outputSettings: Record<string, any>): Promise<void> {
-    await this.obs.call('SetOutputSettings' as any, { outputName, outputSettings });
-  }
-
-  // Transition Management
-  async getSceneTransitionList(): Promise<any> {
-    return this.obs.call('GetSceneTransitionList' as any);
-  }
-
-  async getCurrentSceneTransition(): Promise<any> {
-    return this.obs.call('GetCurrentSceneTransition' as any);
-  }
-
-  async setCurrentSceneTransition(transitionName: string): Promise<void> {
-    await this.obs.call('SetCurrentSceneTransition' as any, { transitionName });
-  }
-
-  async setSceneTransitionDuration(transitionDuration: number): Promise<void> {
-    // This actually sets the current transition's duration
-    await this.obs.call('SetCurrentSceneTransitionDuration' as any, { transitionDuration });
-  }
-
-  async getSceneTransitionCursor(): Promise<any> {
-    // GetTBarPosition has been replaced by GetSceneTransitionCursor in newer OBS versions.
-    // Assuming obs-websocket-js uses GetSceneTransitionCursor or similar.
-    // If using an older OBS version, this might need to be GetTBarPosition.
-    return this.obs.call('GetSceneTransitionCursor' as any);
-  }
-
-  // Media Controls
-  async getMediaInputStatus(inputName: string): Promise<any> {
-    return this.obs.call('GetMediaInputStatus' as any, { inputName });
-  }
-
-  async setMediaInputCursor(inputName: string, mediaCursor: number): Promise<void> {
-    await this.obs.call('SetMediaInputCursor' as any, { inputName, mediaCursor });
-  }
-
-  async offsetMediaInputCursor(inputName: string, mediaCursorOffset: number): Promise<void> {
-    await this.obs.call('OffsetMediaInputCursor' as any, { inputName, mediaCursorOffset });
-  }
-
-  async triggerMediaInputAction(inputName: string, mediaAction: string): Promise<void> {
-    await this.obs.call('TriggerMediaInputAction' as any, { inputName, mediaAction });
-  }
-
-  // Preview Scene (Studio Mode)
-  async getCurrentPreviewScene(): Promise<any> {
-    return this.obs.call('GetCurrentPreviewScene' as any);
-  }
-
-  async setCurrentPreviewScene(sceneName: string): Promise<void> {
-    await this.obs.call('SetCurrentPreviewScene' as any, { sceneName });
-  }
-
-  // Scene Item Advanced Controls
-  async getSceneItemLocked(sceneName: string, sceneItemId: number): Promise<any> {
-    return this.obs.call('GetSceneItemLocked' as any, { sceneName, sceneItemId });
-  }
-
-  async setSceneItemLocked(sceneName: string, sceneItemId: number, sceneItemLocked: boolean): Promise<void> {
-    await this.obs.call('SetSceneItemLocked' as any, { sceneName, sceneItemId, sceneItemLocked });
-  }
-
-  async getSceneItemIndex(sceneName: string, sceneItemId: number): Promise<any> {
-    return this.obs.call('GetSceneItemIndex' as any, { sceneName, sceneItemId });
-  }
-
-  async setSceneItemIndex(sceneName: string, sceneItemId: number, sceneItemIndex: number): Promise<void> {
-    await this.obs.call('SetSceneItemIndex' as any, { sceneName, sceneItemId, sceneItemIndex });
-  }
-
-  async createSceneItem(sceneName: string, sourceName: string, sceneItemEnabled: boolean = true): Promise<any> {
-    return this.obs.call('CreateSceneItem' as any, { sceneName, sourceName, sceneItemEnabled });
-  }
-
-  async removeSceneItem(sceneName: string, sceneItemId: number): Promise<void> {
-    await this.obs.call('RemoveSceneItem' as any, { sceneName, sceneItemId });
-  }
-
-  // Statistics & System Info
-  async getStats(): Promise<any> {
-    return this.obs.call('GetStats' as any);
-  }
-
-  async getVersion(): Promise<any> {
-    return this.obs.call('GetVersion' as any);
-  }
-
-  async getHotkeyList(): Promise<any> {
-    return this.obs.call('GetHotkeyList' as any);
-  }
-
-  // Advanced Input Controls
-  async getInputPropertiesListPropertyItems(inputName: string, propertyName: string): Promise<any> {
-    return this.obs.call('GetInputPropertiesListPropertyItems' as any, { inputName, propertyName });
-  }
-
-  async pressInputPropertiesButton(inputName: string, propertyName: string): Promise<void> {
-    await this.obs.call('PressInputPropertiesButton' as any, { inputName, propertyName });
-  }
-
-  // Audio Advanced
-  async getInputAudioBalance(inputName: string): Promise<any> {
-    return this.obs.call('GetInputAudioBalance' as any, { inputName });
-  }
-
-  async setInputAudioBalance(inputName: string, inputAudioBalance: number): Promise<void> {
-    await this.obs.call('SetInputAudioBalance' as any, { inputName, inputAudioBalance });
-  }
-
-  async getInputAudioSyncOffset(inputName: string): Promise<any> {
-    return this.obs.call('GetInputAudioSyncOffset' as any, { inputName });
-  }
-
-  async setInputAudioSyncOffset(inputName: string, inputAudioSyncOffset: number): Promise<void> {
-    await this.obs.call('SetInputAudioSyncOffset' as any, { inputName, inputAudioSyncOffset });
-  }
-
-  async getInputAudioTracks(inputName: string): Promise<any> {
-    return this.obs.call('GetInputAudioTracks' as any, { inputName });
-  }
-
-  async setInputAudioTracks(inputName: string, inputAudioTracks: Record<string, boolean>): Promise<void> {
-    await this.obs.call('SetInputAudioTracks' as any, { inputName, inputAudioTracks });
-  }
-
-  // New OBS Actions
-  async duplicateScene(sceneName: string, duplicateSceneName?: string): Promise<void> {
-    const params: any = { sceneName };
-    if (duplicateSceneName) {
-      params.duplicateSceneName = duplicateSceneName;
+    const status = await this.getStreamStatus();
+    if (status.outputActive) {
+      await this.stopStream();
+    } else {
+      await this.startStream();
     }
-    await this.obs.call('DuplicateScene' as any, params);
   }
 
-  async getSourceScreenshot(
-    sourceName: string,
-    imageFormat: string,
-    imageWidth?: number,
-    imageHeight?: number,
-    imageCompressionQuality?: number
-  ): Promise<OBSResponseTypes['GetSourceScreenshot']> {
-    const params: OBSRequestTypes['GetSourceScreenshot'] = {
-      sourceName,
-      imageFormat,
-    };
-    if (imageWidth !== undefined) params.imageWidth = imageWidth;
-    if (imageHeight !== undefined) params.imageHeight = imageHeight;
-    if (imageCompressionQuality !== undefined) params.imageCompressionQuality = imageCompressionQuality;
-    return this.obs.call('GetSourceScreenshot', params);
+  async toggleRecord(): Promise<void> {
+    const status = await this.getRecordStatus();
+    if (status.outputActive) {
+      await this.stopRecord();
+    } else {
+      await this.startRecord();
+    }
   }
 
-  async setCurrentSceneTransitionSettings(transitionSettings: object, overlay?: boolean): Promise<void> {
-    await this.obs.call('SetCurrentSceneTransitionSettings' as any, { transitionSettings, overlay });
+  // UI Dialog methods
+  async openInputFiltersDialog(inputName: string): Promise<void> {
+    await this.obs.call('OpenInputFiltersDialog', { inputName });
   }
 
   async openInputPropertiesDialog(inputName: string): Promise<void> {
-    await this.obs.call('OpenInputPropertiesDialog' as any, { inputName });
-  }
-
-  async openInputFiltersDialog(inputName: string): Promise<void> {
-    await this.obs.call('OpenInputFiltersDialog' as any, { inputName });
+    await this.obs.call('OpenInputPropertiesDialog', { inputName });
   }
 
   async openInputInteractDialog(inputName: string): Promise<void> {
-    await this.obs.call('OpenInputInteractDialog' as any, { inputName });
+    await this.obs.call('OpenInputInteractDialog', { inputName });
   }
 
-  async setSceneName(sceneName: string, newSceneName: string): Promise<void> {
-    await this.obs.call('SetSceneName', { sceneName, newSceneName });
+  // Studio mode
+  async toggleStudioMode(): Promise<void> {
+    const studioMode = await this.getStudioModeEnabled();
+    await this.obs.call('SetStudioModeEnabled', { studioModeEnabled: !studioMode.studioModeEnabled });
   }
 
-  /**
-   * Fetches the configured streaming service settings and extracts the username.
-   * Note: The exact key for the username might vary by service, but 'username' or 'user_name' is common.
-   * @returns {Promise<string>} The streamer's username or an empty string if not found.
-   */
-  async getStreamerUsername(): Promise<string> {
+  async getStudioModeEnabled(): Promise<any> {
+    return this.obs.call('GetStudioModeEnabled');
+  }
+
+  // Output status
+  async getOutputStatus(outputName: string): Promise<any> {
+    return this.obs.call('GetOutputStatus', { outputName });
+  }
+
+  // Streamer username (this might need to be implemented based on your specific needs)
+  async getStreamerUsername(): Promise<string | null> {
+    // This is a placeholder - you may need to implement this based on your specific requirements
+    // It could be from OBS profile info, stream service settings, etc.
     try {
-      const response = await this.obs.call('GetStreamServiceSettings');
-      // The settings object contains various details. We look for a username key.
-      // This is a safe way to access a potentially nested and unknown property.
-      const settings = response.streamServiceSettings || {};
-      const username = settings.username || settings.user_name || '';
-      return typeof username === 'string' ? username : '';
+      const profile = await this.obs.call('GetProfileList');
+      return profile.currentProfileName || null;
     } catch (error) {
-      console.error("Could not fetch stream service settings:", error);
-      // Return an empty string if the call fails or username is not found
-      return '';
+      console.warn('Could not get streamer username:', error);
+      return null;
     }
   }
+
+  // Screenshot functionality
+  async getSourceScreenshot(sourceName: string, imageFormat: 'png' | 'jpg' = 'png', imageWidth?: number, imageHeight?: number, imageCompressionQuality?: number): Promise<string> {
+    const params: any = {
+      sourceName,
+      imageFormat
+    };
+
+    if (imageWidth) params.imageWidth = imageWidth;
+    if (imageHeight) params.imageHeight = imageHeight;
+    if (imageCompressionQuality) params.imageCompressionQuality = imageCompressionQuality;
+
+    const response = await this.obs.call('GetSourceScreenshot', params);
+    return response.imageData;
+  }
+
+  async getCurrentSceneScreenshot(imageFormat: 'png' | 'jpg' = 'png', imageWidth?: number, imageHeight?: number, imageCompressionQuality?: number): Promise<string> {
+    const currentScene = await this.getCurrentProgramScene();
+    return this.getSourceScreenshot(currentScene.currentProgramSceneName, imageFormat, imageWidth, imageHeight, imageCompressionQuality);
+  }
 }
+
+// #region Helper functions for adding sources
+
+/**
+ * Adds a browser source to the current scene in OBS.
+ */
+export const addBrowserSource = async (
+  obsService: OBSWebSocketService,
+  sceneName: string,
+  url: string,
+  sourceName: string,
+  dimensions: { width: number, height: number } = { width: 1920, height: 1080 }
+) => {
+  await obsService.createInput(
+    sourceName,
+    'browser_source',
+    {
+      url: url,
+      width: dimensions.width,
+      height: dimensions.height,
+      css: '',
+    },
+    sceneName,
+    true
+  );
+};
+
+/**
+ * Adds an image source to the current scene in OBS.
+ */
+export const addImageSource = async (
+  obsService: OBSWebSocketService,
+  sceneName: string,
+  imageUrl: string,
+  sourceName: string
+) => {
+  await obsService.createInput(
+    sourceName,
+    'image_source',
+    {
+      file: imageUrl,
+      url: imageUrl,
+    },
+    sceneName,
+    true
+  );
+};
+
+/**
+ * Adds a media source (like a GIF or video) to the current scene in OBS.
+ */
+export const addMediaSource = async (
+  obsService: OBSWebSocketService,
+  sceneName: string,
+  mediaUrl: string,
+  sourceName: string
+) => {
+  await obsService.createInput(
+    sourceName,
+    'ffmpeg_source',
+    {
+      is_local_file: false,
+      input: mediaUrl,
+      looping: true,
+    },
+    sceneName,
+    true
+  );
+};
+
+/**
+ * Adds an SVG as a browser source with a data URI.
+ */
+export const addSvgAsBrowserSource = async (
+  obsService: OBSWebSocketService,
+  sceneName: string,
+  svgContent: string,
+  sourceName: string
+) => {
+  const dataUri = `data:image/svg+xml;base64,${btoa(svgContent)}`;
+  await addBrowserSource(obsService, sceneName, dataUri, sourceName);
+};
+
+/**
+ * Adds an emoji as a browser source using a simple HTML template.
+ */
+export const addEmojiAsBrowserSource = async (
+  obsService: OBSWebSocketService,
+  sceneName: string,
+  emoji: string,
+  sourceName: string
+) => {
+  const htmlContent = `
+    <style>
+      body { margin: 0; padding: 0; font-size: 200px; text-align: center; line-height: 1; }
+    </style>
+    <body>${emoji}</body>
+  `;
+  const dataUri = `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`;
+  await addBrowserSource(obsService, sceneName, dataUri, sourceName, { width: 250, height: 250 });
+};
+
+// #endregion
