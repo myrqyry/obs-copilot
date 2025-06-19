@@ -142,44 +142,40 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
         return `rgba(${r},${g},${b},${alpha})`;
     }
 
+    // Helper to convert hex to RGB
+    function hexToRgb(hex: string): string {
+        let c = hex.replace('#', '');
+        if (c.length === 3) {
+            c = c[0] + c[0] + c[1] + c[1] + c[2] + c[2];
+        }
+        const r = parseInt(c.substring(0, 2), 16);
+        const g = parseInt(c.substring(2, 4), 16);
+        const b = parseInt(c.substring(4, 6), 16);
+        return `${r},${g},${b}`;
+    }
+
     const userColor = catppuccinChatBubbleColorsHexMap[userChatBubbleColorName as keyof typeof catppuccinChatBubbleColorsHexMap];
     const modelColor = catppuccinChatBubbleColorsHexMap[modelChatBubbleColorName as keyof typeof catppuccinChatBubbleColorsHexMap];
 
     const bubbleStyle: React.CSSProperties = {
-        backgroundColor: extraDarkMode
-            ? 'transparent'
-            : isSystem
-                ? `rgba(var(--dynamic-secondary-accent-rgb), ${bubbleFillOpacity})`
-                : (isUser
-                    ? hexToRgba(userColor, bubbleFillOpacity)
-                    : hexToRgba(modelColor, bubbleFillOpacity)),
-        borderColor: extraDarkMode
-            ? isSystem
-                ? 'var(--dynamic-secondary-accent)'
-                : (isUser
-                    ? userColor
-                    : modelColor)
-            : 'transparent',
+        backgroundColor: isUser ? hexToRgba(userColor, bubbleFillOpacity) : hexToRgba(modelColor, bubbleFillOpacity),
+        borderColor: isUser ? hexToRgba(userColor, 0.6) : hexToRgba(modelColor, 0.6),
         borderWidth: extraDarkMode ? '2px' : '1px',
         borderStyle: 'solid',
         fontStyle: isSystem ? 'italic' : 'normal',
         fontSize: '0.875rem',
-        position: 'relative' as React.CSSProperties['position'],
-        ['--bubble-scrollbar-thumb' as any]: isUser
-            ? userColor
-            : message.role === 'model'
-                ? modelColor
-                : 'var(--dynamic-secondary-accent)',
-        ['--bubble-scrollbar-thumb-hover' as any]: isUser
-            ? userColor
-            : message.role === 'model'
-                ? modelColor
-                : 'var(--dynamic-secondary-accent)',
-        ['--bubble-fade-color' as any]: isUser
-            ? userColor
-            : message.role === 'model'
-                ? modelColor
-                : 'var(--dynamic-secondary-accent)'
+        color: isSystem ? 'var(--dynamic-secondary-accent)' : extraDarkMode ? hexToRgba(userColor, 1) : '#1e1e2e',
+        position: 'relative',
+        boxShadow: extraDarkMode
+            ? `0 4px 12px 0 rgba(0,0,0,0.25), inset 0 1px 0 rgba(${isUser ? hexToRgb(userColor) : hexToRgb(modelColor)}, 0.20)`
+            : '0 2px 8px 0 rgba(0,0,0,0.08)',
+        borderRadius: '1rem',
+        padding: '0.5rem 1rem',
+        maxWidth: isSystem ? '320px' : '480px',
+        minWidth: '60px',
+        margin: '0.25rem 0',
+        overflow: 'hidden',
+        transition: 'background 0.3s, box-shadow 0.3s',
     };
 
     return (

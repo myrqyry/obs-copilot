@@ -68,6 +68,8 @@ const App: React.FC = () => {
     const headerRef = useRef<HTMLDivElement>(null);
     const [headerHeight, setHeaderHeight] = useState(64);
 
+    const { extraDarkMode } = useAppStore();
+
     useEffect(() => {
         if (headerRef.current) {
             setHeaderHeight(headerRef.current.offsetHeight);
@@ -76,38 +78,20 @@ const App: React.FC = () => {
 
     // Update CSS custom properties when theme changes
     useEffect(() => {
+        // Adjust colors for extra dark mode
+        const adjustForExtraDarkMode = (rgb: string): string => {
+            if (!extraDarkMode) return rgb;
+            const [r, g, b] = rgb.split(',').map(Number);
+            return `${Math.max(r - 50, 0)}, ${Math.max(g - 50, 0)}, ${Math.max(b - 50, 0)}`;
+        };
+
         // Set legacy dynamic accent properties (for components not yet migrated)
         document.documentElement.style.setProperty('--dynamic-accent', catppuccinAccentColorsHexMap[theme.accent]);
         document.documentElement.style.setProperty('--dynamic-secondary-accent', catppuccinSecondaryAccentColorsHexMap[theme.secondaryAccent]);
         document.documentElement.style.setProperty('--user-chat-bubble-color', catppuccinChatBubbleColorsHexMap[theme.userChatBubble]);
         document.documentElement.style.setProperty('--model-chat-bubble-color', catppuccinChatBubbleColorsHexMap[theme.modelChatBubble]);
 
-        // Convert hex to HSL for semantic design system variables
-        const hexToHsl = (hex: string): string => {
-            const r = parseInt(hex.slice(1, 3), 16) / 255;
-            const g = parseInt(hex.slice(3, 5), 16) / 255;
-            const b = parseInt(hex.slice(5, 7), 16) / 255;
-
-            const max = Math.max(r, g, b);
-            const min = Math.min(r, g, b);
-            let h = 0, s = 0, l = (max + min) / 2;
-
-            if (max !== min) {
-                const d = max - min;
-                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-
-                switch (max) {
-                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-                    case g: h = (b - r) / d + 2; break;
-                    case b: h = (r - g) / d + 4; break;
-                }
-                h /= 6;
-            }
-
-            return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
-        };
-
-        // Convert hex to RGB for chat bubble opacity
+        // Update RGB variables for chat bubble opacity
         const hexToRgb = (hex: string): string => {
             const r = parseInt(hex.slice(1, 3), 16);
             const g = parseInt(hex.slice(3, 5), 16);
@@ -115,16 +99,10 @@ const App: React.FC = () => {
             return `${r}, ${g}, ${b}`;
         };
 
-        // Update semantic variables with dynamic accent colors
-        document.documentElement.style.setProperty('--primary', hexToHsl(catppuccinAccentColorsHexMap[theme.accent]));
-        document.documentElement.style.setProperty('--ring', hexToHsl(catppuccinAccentColorsHexMap[theme.accent]));
-
-        // Update RGB variables for chat bubble opacity
-        document.documentElement.style.setProperty('--user-chat-bubble-color-rgb', hexToRgb(catppuccinChatBubbleColorsHexMap[theme.userChatBubble]));
-        document.documentElement.style.setProperty('--model-chat-bubble-color-rgb', hexToRgb(catppuccinChatBubbleColorsHexMap[theme.modelChatBubble]));
-        document.documentElement.style.setProperty('--dynamic-secondary-accent-rgb', hexToRgb(catppuccinSecondaryAccentColorsHexMap[theme.secondaryAccent]));
-
-    }, [theme.accent, theme.secondaryAccent, theme.userChatBubble, theme.modelChatBubble]);
+        document.documentElement.style.setProperty('--user-chat-bubble-color-rgb', adjustForExtraDarkMode(hexToRgb(catppuccinChatBubbleColorsHexMap[theme.userChatBubble])));
+        document.documentElement.style.setProperty('--model-chat-bubble-color-rgb', adjustForExtraDarkMode(hexToRgb(catppuccinChatBubbleColorsHexMap[theme.modelChatBubble])));
+        document.documentElement.style.setProperty('--dynamic-secondary-accent-rgb', adjustForExtraDarkMode(hexToRgb(catppuccinSecondaryAccentColorsHexMap[theme.secondaryAccent])));
+    }, [theme.accent, theme.secondaryAccent, theme.userChatBubble, theme.modelChatBubble, extraDarkMode]);
 
     // Handle initial Gemini messages - removed geminiMessages from dependencies to prevent infinite loop
     useEffect(() => {
@@ -537,7 +515,6 @@ const App: React.FC = () => {
                         flipSides={flipSides}
                         setFlipSides={actions.toggleFlipSides}
                         onStreamerBotAction={handleStreamerBotAction}
-                        theme={theme}
                     />
                 </div>
             </>

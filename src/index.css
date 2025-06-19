@@ -64,12 +64,93 @@
   }
 
   * {
-    @apply border-border;
+    border-color: hsl(var(--border));
+  }
+
+  :root {
+    --background: 240 20% 15%;
+    /* Catppuccin Mocha Base */
+    --foreground: 226 66% 88%;
+    /* Catppuccin Mocha Text - restored to proper light color for main UI */
+
+    --card: 233 12% 31%;
+    /* Catppuccin Mocha Surface1 */
+    --card-foreground: 226 66% 88%;
+    /* Catppuccin Mocha Text */
+
+    --popover: 233 12% 31%;
+    /* Catppuccin Mocha Surface1 */
+    --popover-foreground: 226 66% 88%;
+    /* Catppuccin Mocha Text */
+
+    --primary: 270 80% 85%;
+    /* Catppuccin Mocha Mauve */
+    --primary-foreground: 240 20% 15%;
+    /* Catppuccin Mocha Base (for contrast) */
+
+    --secondary: 237 13% 23%;
+    /* Catppuccin Mocha Surface0 */
+    --secondary-foreground: 227 27% 75%;
+    /* Catppuccin Mocha Subtext0 */
+
+    --muted: 230 11% 48%;
+    /* Catppuccin Mocha Overlay0 */
+    --muted-foreground: 225 42% 86%;
+    /* Catppuccin Mocha Subtext1 */
+
+    --accent: 169 56% 76%;
+    /* Catppuccin Mocha Teal */
+    --accent-foreground: 240 20% 15%;
+    /* Catppuccin Mocha Base (for contrast) */
+
+    --destructive: 340 82% 81%;
+    /* Catppuccin Mocha Red */
+    --destructive-foreground: 240 20% 15%;
+    /* Catppuccin Mocha Base (for contrast) */
+
+    --border: 233 11% 39%;
+    /* Catppuccin Mocha Surface2 */
+    --input: 237 13% 23%;
+    /* Catppuccin Mocha Surface0 */
+    --ring: 270 80% 85%;
+    /* Catppuccin Mocha Mauve (Primary Accent) */
+
+    --radius: 0.75rem;
+    /* 12px, matches original rounded-lg */
+
+    /* RGB values for chat bubble colors */
+    --user-chat-bubble-color-rgb: 245, 224, 220;
+    /* Defaulting to rosewater RGB */
+    --model-chat-bubble-color-rgb: 180, 191, 222;
+    /* Defaulting to lavender RGB */
   }
 
   body {
-    @apply bg-background text-foreground;
+    color: hsl(var(--foreground));
+    background-color: hsl(var(--background));
     font-family: 'Inter', sans-serif;
+  }
+
+  [data-extra-dark-mode="true"] {
+    --background: 10 10% 10%;
+    --foreground: 90 90% 90%;
+    --card: 20 20% 20%;
+    --card-foreground: 90 90% 90%;
+    --popover: 20 20% 20%;
+    --popover-foreground: 90 90% 90%;
+    --primary: 40 40% 40%;
+    --primary-foreground: 90 90% 90%;
+    --secondary: 25 25% 25%;
+    --secondary-foreground: 90 90% 90%;
+    --muted: 15 15% 15%;
+    --muted-foreground: 80 80% 80%;
+    --accent: 30 30% 30%;
+    --accent-foreground: 90 90% 90%;
+    --destructive: 50 50% 50%;
+    --destructive-foreground: 90 90% 90%;
+    --border: 15 15% 15%;
+    --input: 25 25% 25%;
+    --ring: 40 40% 40%;
   }
 
   /* Custom scrollbar styles using new variables */
@@ -204,8 +285,14 @@
 
   /* Input styling for forms */
   .input {
-    @apply bg-input border border-border text-foreground placeholder-muted-foreground;
     @apply text-sm rounded-lg block w-full p-1.5 transition-all duration-200 ease-in-out shadow-sm;
+    background-color: hsl(var(--input));
+    color: hsl(var(--foreground));
+    border: 1px solid hsl(var(--border));
+  }
+
+  .input::placeholder {
+    color: hsl(var(--muted-foreground));
   }
 
   .input:focus {
