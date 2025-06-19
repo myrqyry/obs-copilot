@@ -312,6 +312,88 @@ export class OBSWebSocketService {
     const currentScene = await this.getCurrentProgramScene();
     return this.getSourceScreenshot(currentScene.currentProgramSceneName, imageFormat, imageWidth, imageHeight, imageCompressionQuality);
   }
+
+  // Replay Buffer
+  async startReplayBuffer(): Promise<void> {
+    await this.obs.call('StartReplayBuffer');
+  }
+
+  async saveReplayBuffer(): Promise<void> {
+    await this.obs.call('SaveReplayBuffer');
+  }
+
+  async stopReplayBuffer(): Promise<void> {
+    await this.obs.call('StopReplayBuffer');
+  }
+
+  async getReplayBufferStatus(): Promise<any> {
+    return await this.obs.call('GetReplayBufferStatus');
+  }
+
+  // Studio Mode
+  async triggerStudioModeTransition(): Promise<void> {
+    await this.obs.call('TriggerStudioModeTransition');
+  }
+
+  async setStudioModeEnabled(enabled: boolean): Promise<void> {
+    await this.obs.call('SetStudioModeEnabled', { studioModeEnabled: enabled });
+  }
+
+  // Audio Monitoring
+  async setInputAudioMonitorType(inputName: string, monitorType: "OBS_MONITORING_TYPE_NONE" | "OBS_MONITORING_TYPE_MONITOR_ONLY" | "OBS_MONITORING_TYPE_MONITOR_AND_OUTPUT"): Promise<void> {
+    await this.obs.call('SetInputAudioMonitorType', { inputName, monitorType });
+  }
+
+  // Scene Item Blend Mode (OBS 29+)
+  async setSceneItemBlendMode(sceneName: string, sceneItemId: number, blendMode: string): Promise<void> {
+    await this.obs.call('SetSceneItemBlendMode', { sceneName, sceneItemId, sceneItemBlendMode: blendMode });
+  }
+
+  // Browser Source
+  async refreshBrowserSource(inputName: string): Promise<void> {
+    await this.obs.call('PressInputPropertiesButton', { inputName, propertyName: 'refresh' });
+  }
+
+  // Hotkeys
+  async triggerHotkeyByName(hotkeyName: string): Promise<void> {
+    await this.obs.call('TriggerHotkeyByName', { hotkeyName });
+  }
+
+  async triggerHotkeyByKeySequence(keyId: string, keyModifiers: { shift: boolean, control: boolean, alt: boolean, command: boolean }): Promise<void> {
+    await this.obs.call('TriggerHotkeyByKeySequence', { keyId, keyModifiers });
+  }
+
+  // Source Filter Settings
+  async getSourceFilterSettings(sourceName: string, filterName: string): Promise<any> {
+    return await (this.obs as any).call('GetSourceFilterSettings', { sourceName, filterName });
+  }
+
+  async getSourceFilterDefaultSettings(filterKind: string): Promise<any> {
+    return await this.obs.call('GetSourceFilterDefaultSettings', { filterKind });
+  }
+
+  // Scene Name
+  async setSceneName(sceneName: string, newSceneName: string): Promise<void> {
+    await this.obs.call('SetSceneName', { sceneName, newSceneName });
+  }
+
+  // Profile
+  async getCurrentProfile(): Promise<any> {
+    return await this.obs.call('GetCurrentProfile' as keyof OBSRequestTypes);
+  }
+
+  async setCurrentProfile(profileName: string): Promise<void> {
+    await this.obs.call('SetCurrentProfile', { profileName });
+  }
+
+  // Scene Collection
+  async getCurrentSceneCollection(): Promise<any> {
+    return await this.obs.call('GetCurrentSceneCollection' as keyof OBSRequestTypes);
+  }
+
+  async setCurrentSceneCollection(sceneCollectionName: string): Promise<void> {
+    await this.obs.call('SetCurrentSceneCollection', { sceneCollectionName });
+  }
 }
 
 // #region Helper functions for adding sources

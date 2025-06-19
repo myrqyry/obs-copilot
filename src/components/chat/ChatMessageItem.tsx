@@ -1,5 +1,5 @@
 import React, { useState, useRef, useLayoutEffect, useMemo } from 'react';
-import { catppuccinChatBubbleColorsHexMap } from '../../types';
+import { catppuccinChatBubbleColorsHexMap, catppuccinMochaColors, catppuccinSecondaryAccentColorsHexMap } from '../../types';
 import { ChevronDownIcon, ChevronUpIcon, ClipboardDocumentIcon, ArrowPathIcon, ChatBubbleLeftEllipsisIcon } from '@heroicons/react/24/solid';
 import { gsap } from 'gsap';
 import { MarkdownRenderer } from './MarkdownRenderer';
@@ -20,13 +20,8 @@ interface ChatMessageItemProps {
     onRegenerate?: (messageId: string) => void;
     userChatBubbleColorName: CatppuccinChatBubbleColorName;
     modelChatBubbleColorName: CatppuccinChatBubbleColorName;
-}
-
-
-// Solid color backgrounds with opacity for both modes
-function solidBg(opacity: number = 0.85) {
-    // Use the actual secondary color HSL values: hsl(214, 13%, 14%)
-    return `hsla(214, 13%, 14%, ${opacity})`;
+    customChatBackground?: string;
+    backgroundOpacity?: number;
 }
 
 export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
@@ -42,6 +37,8 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     onRegenerate,
     userChatBubbleColorName,
     modelChatBubbleColorName,
+    customChatBackground,
+    backgroundOpacity = 1,
 }) => {
     const itemRef = useRef<HTMLDivElement>(null);
     const [isShrunk, setIsShrunk] = useState(false);
@@ -53,6 +50,9 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
 
     // Get styling from store using individual selectors to prevent infinite re-renders
     const bubbleFillOpacity = useAppStore(state => state.bubbleFillOpacity);
+    const accentColorName = useAppStore(state => state.theme.accent);
+    const secondaryAccentColorName = useAppStore(state => state.theme.secondaryAccent);
+    // Use the passed-in bubble color names for user/model
     // theme is no longer needed
 
     // Remove excessive debugging logs to prevent unnecessary updates
@@ -129,7 +129,6 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
         ? (isUser ? 'justify-start' : 'justify-end')
         : (isUser ? 'justify-end' : 'justify-start');
 
-    // Ensure bubbleFillOpacity and backgroundOpacity are applied correctly
     // Helper to convert hex to rgba
     function hexToRgba(hex: string, alpha: number) {
         let c = hex.replace('#', '');
@@ -142,89 +141,89 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
         return `rgba(${r},${g},${b},${alpha})`;
     }
 
-    const userColor = catppuccinChatBubbleColorsHexMap[userChatBubbleColorName as keyof typeof catppuccinChatBubbleColorsHexMap];
-    const modelColor = catppuccinChatBubbleColorsHexMap[modelChatBubbleColorName as keyof typeof catppuccinChatBubbleColorsHexMap];
+    // Get color mappings from store and types
+    const userColor = catppuccinChatBubbleColorsHexMap[userChatBubbleColorName];
+    const modelColor = catppuccinChatBubbleColorsHexMap[modelChatBubbleColorName];
+    const accentColor = catppuccinChatBubbleColorsHexMap[accentColorName];
+    const secondaryAccentColor = catppuccinSecondaryAccentColorsHexMap[secondaryAccentColorName];
+
+    // Determine if glass effect should be applied
+    const shouldUseGlassEffect = customChatBackground && customChatBackground !== 'none' &&
+        (bubbleFillOpacity < 1 || backgroundOpacity < 1);
+
+    // Get the appropriate colors for this message type
+    let bubbleColorHex: string;
+    if (isSystem) {
+        bubbleColorHex = secondaryAccentColor;
+    } else if (isUser) {
+        bubbleColorHex = userColor;
+    } else if (isAssistant) {
+        bubbleColorHex = modelColor;
+    } else {
+        bubbleColorHex = accentColor;
+    }
+
+    // Dark base color for outlines and dark fills
+    const darkColor = catppuccinMochaColors.base; // #1e1e2e
+
+    // Apply color logic based on mode
+    let backgroundColor: string;
+    let borderColor: string;
+    let textColor: string;
+
+    if (extraDarkMode) {
+        // Extra dark mode: dark fill, chosen color for text and border
+        backgroundColor = hexToRgba(darkColor, bubbleFillOpacity);
+        borderColor = hexToRgba(bubbleColorHex, 0.8);
+        textColor = bubbleColorHex;
+    } else {
+        // Regular mode: chosen color fill, dark text and border
+        backgroundColor = hexToRgba(bubbleColorHex, bubbleFillOpacity);
+        borderColor = hexToRgba(darkColor, 0.8);
+        textColor = darkColor;
+    }
+
+    // Apply glass effect classes if needed
+    const glassEffectClass = shouldUseGlassEffect
+        ? extraDarkMode
+            ? 'chat-bubble-glass-extra-dark'
+            : 'chat-bubble-glass'
+        : '';
 
     const bubbleStyle: React.CSSProperties = {
-        backgroundColor: extraDarkMode
-            ? 'transparent'
-            : isSystem
-                ? `rgba(var(--dynamic-secondary-accent-rgb), ${bubbleFillOpacity})`
-                : (isUser
-                    ? hexToRgba(userColor, bubbleFillOpacity)
-                    : hexToRgba(modelColor, bubbleFillOpacity)),
-        borderColor: extraDarkMode
-            ? isSystem
-                ? 'var(--dynamic-secondary-accent)'
-                : (isUser
-                    ? userColor
-                    : modelColor)
-            : 'transparent',
-        borderWidth: extraDarkMode ? '2px' : '1px',
+        backgroundColor,
+        borderColor,
+        borderWidth: isSystem ? '1.5px' : extraDarkMode ? '2px' : '1px',
         borderStyle: 'solid',
+        color: textColor,
         fontStyle: isSystem ? 'italic' : 'normal',
         fontSize: '0.875rem',
-        position: 'relative' as React.CSSProperties['position'],
-        ['--bubble-scrollbar-thumb' as any]: isUser
-            ? userColor
-            : message.role === 'model'
-                ? modelColor
-                : 'var(--dynamic-secondary-accent)',
-        ['--bubble-scrollbar-thumb-hover' as any]: isUser
-            ? userColor
-            : message.role === 'model'
-                ? modelColor
-                : 'var(--dynamic-secondary-accent)',
-        ['--bubble-fade-color' as any]: isUser
-            ? userColor
-            : message.role === 'model'
-                ? modelColor
-                : 'var(--dynamic-secondary-accent)'
+        position: 'relative',
+        boxShadow: '0 2px 8px 0 rgba(0,0,0,0.08)',
+        borderRadius: '1rem',
+        padding: '0.5rem 1rem',
+        maxWidth: isSystem ? '320px' : '480px',
+        minWidth: '60px',
+        margin: '0.25rem 0',
+        overflow: 'hidden',
+        transition: 'background 0.3s, box-shadow 0.3s, border-color 0.3s',
     };
 
     return (
         <div ref={itemRef} className={`flex ${containerClasses} mb-3 font-sans ${isSystem ? 'px-8' : isUser ? 'pl-4' : 'pr-4'}`}>
             <div
-                className={`chat-message rounded-2xl shadow-xl border relative font-sans group
+                className={`chat-message rounded-2xl shadow-xl border relative font-sans group ${glassEffectClass}
           ${isSystem
                         ? 'px-3 py-2 text-sm leading-tight max-w-md'
                         : 'p-3 text-sm leading-tight max-w-lg'}
         `}
                 style={bubbleStyle}
             >
-                {/* Dark fill effect for extra dark mode, not for system messages */}
-                {extraDarkMode && !isSystem && (
-                    <div
-                        style={{
-                            position: 'absolute',
-                            inset: 0,
-                            zIndex: 0,
-                            background: solidBg(bubbleFillOpacity),
-                            backdropFilter: 'blur(8px) saturate(1.1)',
-                            WebkitBackdropFilter: 'blur(8px) saturate(1.1)',
-                            borderRadius: '1rem',
-                            boxShadow: `0 4px 12px 0 rgba(0,0,0,0.25), inset 0 1px 0 rgba(var(${isUser ? '--user-chat-bubble-color-rgb' : '--model-chat-bubble-color-rgb'}), 0.20)`,
-                            transition: 'background 0.3s, box-shadow 0.3s',
-                            pointerEvents: 'none',
-                        }}
-                    />
-                )}
                 <div
                     style={{
                         position: 'relative',
-                        color: extraDarkMode
-                            ? isSystem
-                                ? 'var(--dynamic-secondary-accent)'
-                                : (isUser
-                                    ? userColor
-                                    : modelColor)
-                            : isSystem
-                                ? 'var(--dynamic-secondary-accent)'
-                                : (isUser
-                                    ? userColor
-                                    : modelColor)
+                        color: textColor
                     }}
-                    className="[&_*]:text-inherit"
                 >
                     <div
                         ref={bubbleRef}
@@ -279,7 +278,9 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                             </div>
                         ) : (
                             <div className="relative">
-                                <MarkdownRenderer content={message.text} />
+                                <div style={{ color: textColor, fontStyle: isSystem ? 'italic' : 'normal', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
+                                    <MarkdownRenderer content={message.text} />
+                                </div>
 
                                 {/* Show suggestion buttons for greeting system messages */}
                                 {showSuggestions && isSystem && onSuggestionClick && (
@@ -387,13 +388,9 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                     style={{
                         fontFamily: 'Reddit Sans, -apple-system, BlinkMacSystemFont, sans-serif',
                         fontWeight: 500,
-                        color: extraDarkMode
-                            ? isSystem ? 'var(--dynamic-secondary-accent)' :
-                                (isUser ? userColor : modelColor)
-                            : isSystem ? 'var(--dynamic-secondary-accent)' :
-                                (isUser ? userColor : modelColor),
+                        color: textColor,
                         opacity: 0.8,
-                        fontStyle: 'normal' as React.CSSProperties['fontStyle'] // Prevent inheriting italics
+                        fontStyle: 'normal' as React.CSSProperties['fontStyle']
                     }}
                 >
                     {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

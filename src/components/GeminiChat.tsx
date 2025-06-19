@@ -19,15 +19,11 @@ import { OBSWebSocketService } from '../services/obsService';
 import { useAppStore } from '../store/appStore';
 import { useLockStore } from '../store/lockStore';
 import { logoAnimations } from '../utils/gsapAnimations';
-import { uiAnimations } from '../utils/gsapAnimations'; // Add this import
-
-import type { CatppuccinChatBubbleColorName } from '../types';
+import { uiAnimations } from '../utils/gsapAnimations';
 
 interface GeminiChatProps {
   geminiApiKeyFromInput?: string;
   obsService: OBSWebSocketService;
-  flipSides: boolean;
-  setFlipSides: (value: boolean) => void;
   onRefreshData: () => Promise<void>;
   setErrorMessage: (message: string | null) => void;
   chatInputValue: string;
@@ -41,12 +37,7 @@ interface GeminiChatProps {
   onSetGeminiInitializationError: (error: string | null) => void;
   activeTab: AppTab;
   onStreamerBotAction: (action: { type: string, args?: Record<string, any> }) => Promise<void>;
-  theme: {
-    accent: CatppuccinAccentColorName;
-    secondaryAccent: string;
-    userChatBubble: CatppuccinChatBubbleColorName;
-    modelChatBubble: CatppuccinChatBubbleColorName;
-  };
+  // theme prop is no longer needed, will use selectors below
 }
 
 export const GeminiChat: React.FC<GeminiChatProps> = ({
@@ -62,12 +53,31 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
   geminiInitializationError,
   onSetIsGeminiClientInitialized,
   onSetGeminiInitializationError,
-  flipSides,
   onStreamerBotAction,
-  theme,
 }) => {
-  // Use Zustand for OBS data and actions, but DO NOT get theme from store here
-  const { scenes, currentProgramScene, sources, streamStatus, recordStatus, videoSettings, autoApplySuggestions, extraDarkMode, actions, isConnected, userDefinedContext } = useAppStore();
+  // Merge all needed state into a single useAppStore call for efficiency
+  const {
+    userSettings: {
+      bubbleFillOpacity,
+      backgroundOpacity,
+      extraDarkMode,
+      customChatBackground,
+      autoApplySuggestions,
+      flipSides,
+    },
+    scenes,
+    currentProgramScene,
+    sources,
+    streamStatus,
+    recordStatus,
+    videoSettings,
+    actions,
+    isConnected,
+    userDefinedContext,
+  } = useAppStore();
+
+  const userChatBubbleColorName = useAppStore(state => state.theme.userChatBubble);
+  const modelChatBubbleColorName = useAppStore(state => state.theme.modelChatBubble);
   const obsData = { scenes, currentProgramScene, sources, streamStatus, recordStatus, videoSettings };
   const { isLocked } = useLockStore();
 
@@ -561,20 +571,44 @@ When a user asks for a Streamer.bot action, use this format.
     return () => btn.removeEventListener('mouseenter', onEnter);
   }, []);
 
-  const { customChatBackground, backgroundOpacity } = useAppStore();
+  const validatedBackgroundOpacity = Math.min(Math.max(backgroundOpacity, 0), 1); // Ensure opacity is between 0 and 1
+  const validatedCustomChatBackground = customChatBackground || 'none'; // Fallback to 'none' if empty
+
+  useEffect(() => {
+    const root = document.documentElement;
+    // Update CSS variables dynamically when appearance-related state values change
+    root.style.setProperty('--bubble-fill-opacity', bubbleFillOpacity.toString());
+    root.style.setProperty('--background-opacity', backgroundOpacity.toString());
+
+    // Adjust text and outline colors based on extraDarkMode and backgroundOpacity
+    if (extraDarkMode) {
+      // Apply specific colors for extra dark mode
+      root.style.setProperty('--text-color', 'rgba(255, 255, 255, 0.7)');
+      root.style.setProperty('--outline-color', 'rgba(255, 255, 255, 0.3)');
+    } else {
+      // Apply dynamic colors based on background opacity
+      const adjustedTextColor = `rgba(255, 255, 255, ${backgroundOpacity})`;
+      const adjustedOutlineColor = `rgba(255, 255, 255, ${backgroundOpacity * 0.5})`;
+      root.style.setProperty('--text-color', adjustedTextColor);
+      root.style.setProperty('--outline-color', adjustedOutlineColor);
+    }
+
+    // Enhance glass effect to respect opacity slider
+    root.style.setProperty('--glass-opacity', backgroundOpacity.toString());
+  }, [bubbleFillOpacity, backgroundOpacity, extraDarkMode]);
 
   return (
     <div className="flex flex-col h-full bg-background border-l border-r border-b border-border rounded-b-lg shadow-lg relative">
       {/* Background image with opacity - separate from content */}
-      {customChatBackground && (
+      {validatedCustomChatBackground !== 'none' && (
         <div
           className="absolute inset-0 rounded-b-lg"
           style={{
-            backgroundImage: `url(${customChatBackground})`,
+            backgroundImage: `url(${validatedCustomChatBackground})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
-            opacity: backgroundOpacity,
+            opacity: validatedBackgroundOpacity,
             zIndex: 0,
           }}
         />
@@ -592,34 +626,10 @@ When a user asks for a Streamer.bot action, use this format.
             flipSides={flipSides}
             showSuggestions={msg.showSuggestions || false}
             onRegenerate={handleRegenerate}
-            userChatBubbleColorName={theme.userChatBubble}
-            modelChatBubbleColorName={theme.modelChatBubble}
-            onSourceSelect={
-              msg.type === "source-prompt"
-                ? (srcName: string) => {
-                  let specificPrompt = "";
-                  if (msg.sourcePrompt === "Hide a source in the current scene.") {
-                    specificPrompt = `Hide the source named '${srcName}' in the current scene`;
-                  } else if (msg.sourcePrompt === "Show a source in the current scene.") {
-                    specificPrompt = `Show the source named '${srcName}' in the current scene`;
-                  } else if (msg.sourcePrompt === "Set the text of a source in the current scene.") {
-                    specificPrompt = `I want to change the text content of the source '${srcName}'. What should the new text say and what style should it have?`;
-                  } else if (msg.sourcePrompt === "Add a color correction filter to a source.") {
-                    specificPrompt = `I want to add a color correction filter to the source '${srcName}'. What type of color adjustment should I apply?`;
-                  } else if (msg.sourcePrompt === "Get a PNG screenshot of a source in the current scene.") {
-                    specificPrompt = `I want to take a screenshot of the source '${srcName}'. What resolution or size should it be?`;
-                  } else if (msg.sourcePrompt === "Open the filters dialog for a source.") {
-                    specificPrompt = `Open the filters dialog for the source '${srcName}'`;
-                  }
-
-                  // Add the current request to context automatically
-                  handleAddToContext(`User wants to: ${msg.sourcePrompt} Selected source: ${srcName}`);
-
-                  onChatInputChange(specificPrompt);
-                  document.getElementById('gemini-input')?.focus();
-                }
-                : undefined
-            }
+            userChatBubbleColorName={userChatBubbleColorName}
+            modelChatBubbleColorName={modelChatBubbleColorName}
+            customChatBackground={validatedCustomChatBackground}
+            backgroundOpacity={validatedBackgroundOpacity}
           />
         ))}
         {isLoading && (

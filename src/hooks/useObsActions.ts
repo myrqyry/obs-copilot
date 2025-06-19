@@ -416,9 +416,15 @@ export const useObsActions = ({
                 }
                 case 'getSourceScreenshot': {
                     const { sourceName, imageFormat, imageWidth, imageHeight, imageCompressionQuality } = action;
-                    const screenshot = await obsService.getSourceScreenshot(sourceName, imageFormat, imageWidth, imageHeight, imageCompressionQuality);
+                    const screenshot = await obsService.getSourceScreenshot(
+                        sourceName,
+                        imageFormat as "png" | "jpg" | undefined,
+                        imageWidth,
+                        imageHeight,
+                        imageCompressionQuality
+                    );
                     actionFeedback = `\n✅ Captured screenshot of source "${sourceName}".`;
-                    additionalSystemMessage = `ℹ️ Screenshot captured as ${imageFormat} format. Image data: ${screenshot.imageData.substring(0, 100)}...`;
+                    additionalSystemMessage = `ℹ️ Screenshot captured as ${imageFormat} format. Image data: ${screenshot.substring(0, 100)}...`;
                     break;
                 }
                 case 'stopReplayBuffer': {

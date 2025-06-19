@@ -87,10 +87,17 @@ module.exports = {
           foreground: "hsl(var(--card-foreground))",
         },
       },
+      boxShadow: {
+        glow: '0 0 5px hsl(var(--primary)), 0 0 10px hsl(var(--primary)), 0 0 15px hsl(var(--primary))',
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      transitionProperty: {
+        'height': 'height',
+        'opacity-transform': 'opacity, transform',
       },
       keyframes: {
         "accordion-down": {
@@ -104,7 +111,7 @@ module.exports = {
         "modal-appear": {
           "0%": {
             opacity: "0",
-            transform: "scale(0.95) translateY(-10px)"
+            transform: "scale(0.9) translateY(-10px)"
           },
           "100%": {
             opacity: "1",
@@ -115,9 +122,12 @@ module.exports = {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "modal-appear": "modal-appear 0.2s ease-out forwards",
+        "modal-appear": "modal-appear 0.3s ease-out forwards",
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    require('tailwind-scrollbar'),
+  ],
 }
