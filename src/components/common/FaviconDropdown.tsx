@@ -41,7 +41,7 @@ export function FaviconDropdown({ options, value, onChange, className = '', plac
         <div className={`relative ${className}`} ref={dropdownRef}>
             <button
                 type="button"
-                className="w-full border rounded px-2 py-1 bg-background text-left flex items-center justify-between hover:bg-accent hover:text-accent-foreground transition-colors"
+                className="w-full border rounded px-2 py-1 bg-background text-left flex items-center justify-between hover:bg-accent hover:text-accent-foreground transition-colors text-sm h-8"
                 onClick={() => setIsOpen(!isOpen)}
             >
                 <div className="flex items-center gap-2">
@@ -66,7 +66,7 @@ export function FaviconDropdown({ options, value, onChange, className = '', plac
                         <button
                             key={option.value}
                             type="button"
-                            className="w-full px-2 py-2 text-left hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-2"
+                            className="w-full px-2 py-1.5 text-left hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-2 text-sm"
                             onClick={() => handleOptionClick(option.value)}
                         >
                             {option.domain && (

@@ -5,11 +5,11 @@ import './utils/gsapTest';
 import { ConnectionPanel } from './components/ConnectionPanel';
 import { ObsMainControls } from './components/ObsMainControls';
 import { ObsSettingsPanel } from './components/ObsSettingsPanel';
+import AdvancedPanel from './components/AdvancedPanel';
 import { GeminiChat } from './components/GeminiChat';
 import { LoadingSpinner } from './components/common/LoadingSpinner';
 import { Modal } from './components/common/Modal';
 import StreamingAssetsTab from './components/StreamingAssetsTab';
-import HtmlTemplateBuilder from './components/HtmlTemplateBuilder';
 import {
     AppTab,
     OBSScene,
@@ -22,7 +22,7 @@ import { StreamerBotService } from './services/streamerBotService';
 import { useAppStore } from './store/appStore';
 import { DEFAULT_OBS_WEBSOCKET_URL } from './constants';
 import { AnimatedTitleLogos } from './components/common/AnimatedTitleLogos';
-import { loadConnectionSettings, isStorageAvailable } from './utils/persistence';
+import { loadConnectionSettings, saveConnectionSettings, isStorageAvailable } from './utils/persistence';
 import { useStreamerBotActions } from './hooks/useStreamerBotActions';
 import { gsap } from 'gsap';
 
@@ -44,8 +44,15 @@ const App: React.FC = () => {
     const [activeTab, setActiveTab] = useState<AppTab>(AppTab.GEMINI);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [geminiChatInput, setGeminiChatInput] = useState<string>('');
-    const [streamerBotAddress, setStreamerBotAddress] = useState<string>('');
-    const [streamerBotPort, setStreamerBotPort] = useState<string>('');
+
+    // Initialize StreamerBot settings from localStorage with defaults
+    const persistedConnectionSettings = isStorageAvailable() ? loadConnectionSettings() : {};
+    const [streamerBotAddress, setStreamerBotAddress] = useState<string>(
+        persistedConnectionSettings.streamerBotAddress || 'localhost'
+    );
+    const [streamerBotPort, setStreamerBotPort] = useState<string>(
+        persistedConnectionSettings.streamerBotPort || '8080'
+    );
     const [isStreamerBotConnected, setIsStreamerBotConnected] = useState<boolean>(false);
 
     const streamerBotService = useRef(new StreamerBotService()).current;
@@ -57,7 +64,7 @@ const App: React.FC = () => {
     });
 
     const tabContentRef = useRef<HTMLDivElement>(null);
-    const tabOrder: AppTab[] = [AppTab.GEMINI, AppTab.OBS_STUDIO, AppTab.STREAMING_ASSETS, AppTab.CREATE, AppTab.SETTINGS, AppTab.CONNECTIONS];
+    const tabOrder: AppTab[] = [AppTab.GEMINI, AppTab.OBS_STUDIO, AppTab.STREAMING_ASSETS, AppTab.SETTINGS, AppTab.CONNECTIONS, AppTab.ADVANCED];
     const headerRef = useRef<HTMLDivElement>(null);
     const [headerHeight, setHeaderHeight] = useState(64);
 
@@ -115,6 +122,7 @@ const App: React.FC = () => {
         // Update RGB variables for chat bubble opacity
         document.documentElement.style.setProperty('--user-chat-bubble-color-rgb', hexToRgb(catppuccinChatBubbleColorsHexMap[theme.userChatBubble]));
         document.documentElement.style.setProperty('--model-chat-bubble-color-rgb', hexToRgb(catppuccinChatBubbleColorsHexMap[theme.modelChatBubble]));
+        document.documentElement.style.setProperty('--dynamic-secondary-accent-rgb', hexToRgb(catppuccinSecondaryAccentColorsHexMap[theme.secondaryAccent]));
 
     }, [theme.accent, theme.secondaryAccent, theme.userChatBubble, theme.modelChatBubble]);
 
@@ -227,11 +235,13 @@ const App: React.FC = () => {
             await fetchData(newObsService); // Pass the newObsService instance
 
             // Attempt to connect to Streamer.bot if address and port are provided
-            if (streamerBotAddress && streamerBotPort) {
+            const finalAddress = streamerBotAddress || 'localhost';
+            const finalPort = streamerBotPort || '8080';
+            if (finalAddress.trim() && finalPort.trim()) {
                 try {
-                    await streamerBotService.connect(streamerBotAddress, parseInt(streamerBotPort, 10));
+                    await streamerBotService.connect(finalAddress, parseInt(finalPort, 10));
                     setIsStreamerBotConnected(true);
-                    actions.addMessage({ role: 'system', text: '✅ Streamer.bot connection successful! Enhanced automation features are now available.' });
+                    actions.addMessage({ role: 'system', text: '<img src="https://www.google.com/s2/favicons?domain=streamer.bot" alt="Streamer.bot" style="display:inline-block;width:16px;height:16px;vertical-align:text-bottom;margin-right:4px;" />✅ Streamer.bot connection successful! Enhanced automation features are now available.' });
                 } catch (error: any) {
                     console.error('Streamer.bot connection failed:', error);
                     actions.addMessage({ role: 'system', text: `⚠️ Streamer.bot connection failed: ${error.message}. OBS features will still work, but Streamer.bot actions won't be available.` });
@@ -261,13 +271,16 @@ const App: React.FC = () => {
 
     // Standalone Streamer.bot connection function
     const handleStreamerBotConnect = useCallback(async () => {
-        if (!streamerBotAddress || !streamerBotPort) {
+        const finalAddress = (streamerBotAddress || 'localhost').trim();
+        const finalPort = (streamerBotPort || '8080').trim();
+
+        if (!finalAddress || !finalPort) {
             actions.addMessage({ role: 'system', text: '⚠️ Please provide both Streamer.bot address and port.' });
             return;
         }
 
         try {
-            await streamerBotService.connect(streamerBotAddress, parseInt(streamerBotPort, 10));
+            await streamerBotService.connect(finalAddress, parseInt(finalPort, 10));
             setIsStreamerBotConnected(true);
             actions.addMessage({ role: 'system', text: '✅ Streamer.bot connection successful! Enhanced automation features are now available.' });
         } catch (error: any) {
@@ -283,6 +296,21 @@ const App: React.FC = () => {
             actions.addMessage({ role: 'system', text: '🤖 Streamer.bot disconnected.' });
         }
     }, [isStreamerBotConnected, streamerBotService, actions]);
+
+    // Enhanced StreamerBot settings handlers with persistence
+    const handleStreamerBotAddressChange = useCallback((address: string) => {
+        setStreamerBotAddress(address);
+        if (isStorageAvailable()) {
+            saveConnectionSettings({ streamerBotAddress: address });
+        }
+    }, []);
+
+    const handleStreamerBotPortChange = useCallback((port: string) => {
+        setStreamerBotPort(port);
+        if (isStorageAvailable()) {
+            saveConnectionSettings({ streamerBotPort: port });
+        }
+    }, []);
 
     // Auto-connect to OBS on app load if settings are saved and auto-connect is enabled
     useEffect(() => {
@@ -362,14 +390,23 @@ const App: React.FC = () => {
     useEffect(() => {
         if (tabContentRef.current) {
             // Smooth crossfade transition instead of slide
-            gsap.fromTo(tabContentRef.current,
+            gsap.fromTo(
+                tabContentRef.current,
                 { opacity: 0 },
                 {
                     opacity: 1,
                     duration: 0.2,
-                    ease: 'power2.out'
+                    ease: 'power2.out',
+                    onComplete: () => {
+                        // Ensure opacity is set to 1 after animation
+                        if (tabContentRef.current) {
+                            tabContentRef.current.style.opacity = '1';
+                        }
+                    },
                 }
             );
+        } else {
+            console.warn('tabContentRef is null during animation');
         }
     }, [activeTab]);
 
@@ -379,7 +416,7 @@ const App: React.FC = () => {
         [AppTab.OBS_STUDIO]: '🎬',
         [AppTab.SETTINGS]: '⚙️',
         [AppTab.STREAMING_ASSETS]: '🌈',
-        [AppTab.CREATE]: '🛠️',
+        [AppTab.ADVANCED]: '🛠️',
     };
 
     const handleSendToGeminiContext = useCallback((contextText: string) => {
@@ -413,9 +450,12 @@ const App: React.FC = () => {
                                 geminiInitializationError={geminiInitializationError}
                                 accentColorName={theme.accent}
                                 streamerBotAddress={streamerBotAddress}
-                                setStreamerBotAddress={setStreamerBotAddress}
+                                setStreamerBotAddress={handleStreamerBotAddressChange}
                                 streamerBotPort={streamerBotPort}
-                                setStreamerBotPort={setStreamerBotPort}
+                                setStreamerBotPort={handleStreamerBotPortChange}
+                                onStreamerBotConnect={handleStreamerBotConnect}
+                                onStreamerBotDisconnect={handleStreamerBotDisconnect}
+                                isStreamerBotConnected={isStreamerBotConnected}
                             />
                         </div>
                     </div>
@@ -451,22 +491,6 @@ const App: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Create Tab */}
-                <div className={`h-full tab-content ${activeTab === AppTab.CREATE ? 'block' : 'hidden'}`}>
-                    <div className="flex flex-col h-full bg-background border-l border-r border-b border-border rounded-b-lg shadow-lg">
-                        <div className="flex-grow p-3 overflow-y-auto">
-                            <div className="flex items-center gap-2 text-lg font-semibold text-foreground mb-2">
-                                <span>🛠️</span>
-                                <span>Create HTML Template</span>
-                            </div>
-                            <div className="text-sm text-muted-foreground mb-4">
-                                Use the builder below to create dynamic HTML templates for OBS browser sources, overlays, and more.
-                            </div>
-                            <HtmlTemplateBuilder accentColorName={theme.accent} />
-                        </div>
-                    </div>
-                </div>
-
                 {/* Settings Tab */}
                 <div className={`h-full tab-content ${activeTab === AppTab.SETTINGS ? 'block' : 'hidden'}`}>
                     <div className="flex flex-col h-full bg-background border-l border-r border-b border-border rounded-b-lg shadow-lg">
@@ -478,7 +502,17 @@ const App: React.FC = () => {
                                 selectedModelChatBubbleColorName={theme.modelChatBubble}
                                 flipSides={flipSides}
                                 actions={actions}
+                                hideMemoryAndReset={true}
                             />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Advanced Tab */}
+                <div className={`h-full tab-content ${activeTab === AppTab.ADVANCED ? 'block' : 'hidden'}`}>
+                    <div className="flex flex-col h-full bg-background border-l border-r border-b border-border rounded-b-lg shadow-lg">
+                        <div className="flex-grow p-3 overflow-y-auto">
+                            <AdvancedPanel />
                         </div>
                     </div>
                 </div>
@@ -500,10 +534,10 @@ const App: React.FC = () => {
                         onSetIsGeminiClientInitialized={actions.setGeminiClientInitialized}
                         onSetGeminiInitializationError={actions.setGeminiInitializationError}
                         activeTab={activeTab}
-                        streamerName={streamerName}
                         flipSides={flipSides}
                         setFlipSides={actions.toggleFlipSides}
                         onStreamerBotAction={handleStreamerBotAction}
+                        theme={theme}
                     />
                 </div>
             </>
@@ -521,8 +555,8 @@ const App: React.FC = () => {
                 className="sticky z-10 px-1 pt-1"
                 style={{ top: `${headerHeight}px` }}
             >
-                <div className="py-2 px-3 border-b border-border text-base font-semibold emoji-text bg-background rounded-t-lg font-sans text-primary shadow-lg">
-                    <div className="flex items-center justify-center gap-1">
+                <div className="py-1 px-3 border-b border-border text-base font-semibold emoji-text bg-background rounded-t-lg font-sans text-primary shadow-lg">
+                    <div className="flex items-center justify-center gap-1 min-w-0">
                         {tabOrder.map((tab) => {
                             const isActive = activeTab === tab;
 
@@ -548,10 +582,23 @@ const App: React.FC = () => {
                             // Get the full title for the active tab
                             const getTabTitle = (tabName: AppTab) => {
                                 switch (tabName) {
-                                    case AppTab.GEMINI: return 'Gemini Assistant';
+                                    case AppTab.GEMINI: return 'Assistant';
                                     case AppTab.OBS_STUDIO: return 'OBS Studio Controls';
+                                    case AppTab.STREAMING_ASSETS: return 'Streaming Assets';
                                     case AppTab.SETTINGS: return 'Settings & Preferences';
                                     case AppTab.CONNECTIONS: return 'Connection Manager';
+                                    default: return tabName;
+                                }
+                            };
+
+                            // Get shorter titles for mobile
+                            const getMobileTabTitle = (tabName: AppTab) => {
+                                switch (tabName) {
+                                    case AppTab.GEMINI: return 'Assistant';
+                                    case AppTab.OBS_STUDIO: return 'OBS Studio';
+                                    case AppTab.STREAMING_ASSETS: return 'Assets';
+                                    case AppTab.SETTINGS: return 'Settings';
+                                    case AppTab.CONNECTIONS: return 'Connect';
                                     default: return tabName;
                                 }
                             };
@@ -561,7 +608,7 @@ const App: React.FC = () => {
                                     key={tab}
                                     onClick={() => setActiveTab(tab)}
                                     className={`
-                                        flex items-center gap-2 px-3 py-1.5 rounded-md font-medium
+                                        flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 rounded-md font-medium
                                         transition-all duration-300 ease-out relative whitespace-nowrap
                                         ${isActive
                                             ? 'bg-primary/20 text-primary border border-primary/30 shadow-sm text-base'
@@ -573,10 +620,11 @@ const App: React.FC = () => {
                                         {tabEmojis[tab]}
                                     </span>
                                     <span className={`
-                                        transition-all duration-300 overflow-hidden
-                                        ${isActive ? 'max-w-48 opacity-100' : 'max-w-0 opacity-0'}
+                                        transition-all duration-300 overflow-hidden text-sm sm:text-base
+                                        ${isActive ? 'max-w-24 sm:max-w-48 opacity-100' : 'max-w-0 opacity-0'}
                                     `}>
-                                        {getTabTitle(tab)}
+                                        <span className="hidden sm:inline">{getTabTitle(tab)}</span>
+                                        <span className="inline sm:hidden">{getMobileTabTitle(tab)}</span>
                                     </span>
                                 </button>
                             );

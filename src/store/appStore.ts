@@ -48,6 +48,8 @@ interface AppState {
         autoApplySuggestions: boolean;
         extraDarkMode: boolean;
         customChatBackground: string;
+        bubbleFillOpacity: number;
+        backgroundOpacity: number;
         theme: {
             accent: CatppuccinAccentColorName;
             secondaryAccent: CatppuccinSecondaryAccentColorName;
@@ -61,6 +63,8 @@ interface AppState {
     autoApplySuggestions: boolean;
     extraDarkMode: boolean;
     customChatBackground: string;
+    bubbleFillOpacity: number;
+    backgroundOpacity: number;
     theme: {
         accent: CatppuccinAccentColorName;
         secondaryAccent: CatppuccinSecondaryAccentColorName;
@@ -94,6 +98,8 @@ interface AppState {
         toggleAutoApplySuggestions: () => void;
         toggleExtraDarkMode: () => void;
         setCustomChatBackground: (background: string) => void;
+        setBubbleFillOpacity: (opacity: number) => void;
+        setBackgroundOpacity: (opacity: number) => void;
         setThemeColor: (type: 'accent' | 'secondaryAccent' | 'userChatBubble' | 'modelChatBubble', color: any) => void;
         setObsServiceInstance: (instance: OBSWebSocketService | null) => void;
         updateOBSData: (data: Partial<{
@@ -135,6 +141,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     autoApplySuggestions: persistedSettings.autoApplySuggestions || false,
     extraDarkMode: persistedSettings.extraDarkMode || false,
     customChatBackground: persistedSettings.customChatBackground || '',
+    bubbleFillOpacity: persistedSettings.bubbleFillOpacity || 0.85,
+    backgroundOpacity: persistedSettings.backgroundOpacity || 0.7,
     theme: {
         accent: (persistedSettings.theme?.accent as CatppuccinAccentColorName) || 'mauve',
         secondaryAccent: (persistedSettings.theme?.secondaryAccent as CatppuccinSecondaryAccentColorName) || 'flamingo',
@@ -148,6 +156,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         autoApplySuggestions: persistedSettings.autoApplySuggestions || false,
         extraDarkMode: persistedSettings.extraDarkMode || false,
         customChatBackground: persistedSettings.customChatBackground || '',
+        bubbleFillOpacity: persistedSettings.bubbleFillOpacity || 0.85,
+        backgroundOpacity: persistedSettings.backgroundOpacity || 0.7,
         theme: {
             accent: (persistedSettings.theme?.accent as CatppuccinAccentColorName) || 'mauve',
             secondaryAccent: (persistedSettings.theme?.secondaryAccent as CatppuccinSecondaryAccentColorName) || 'flamingo',
@@ -293,6 +303,28 @@ export const useAppStore = create<AppState>((set, get) => ({
             });
             if (isStorageAvailable()) {
                 saveUserSettings({ customChatBackground: background });
+            }
+        },
+        setBubbleFillOpacity: (opacity) => {
+            const state = get();
+            const newUserSettings = { ...state.userSettings, bubbleFillOpacity: opacity };
+            set({
+                bubbleFillOpacity: opacity,
+                userSettings: newUserSettings
+            });
+            if (isStorageAvailable()) {
+                saveUserSettings({ bubbleFillOpacity: opacity });
+            }
+        },
+        setBackgroundOpacity: (opacity) => {
+            const state = get();
+            const newUserSettings = { ...state.userSettings, backgroundOpacity: opacity };
+            set({
+                backgroundOpacity: opacity,
+                userSettings: newUserSettings
+            });
+            if (isStorageAvailable()) {
+                saveUserSettings({ backgroundOpacity: opacity });
             }
         },
         setObsServiceInstance: (instance) => set({ obsServiceInstance: instance }),

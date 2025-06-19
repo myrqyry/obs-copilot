@@ -77,7 +77,7 @@ export enum AppTab {
   SETTINGS = "Settings",
   GEMINI = "Gemini",
   STREAMING_ASSETS = "Streaming Assets",
-  CREATE = "Create"
+  ADVANCED = "Advanced"
 }
 
 // Catppuccin Theming

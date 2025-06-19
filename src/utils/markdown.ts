@@ -16,11 +16,26 @@ export function highlightJsonSyntax(rawJsonString: string): string {
 }
 
 export function applyInlineMarkdown(text: string): string {
-    let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    // If the text looks like raw HTML (contains HTML tags), return as-is
+    const trimmed = text.trim();
+
+    // Check for complete HTML blocks
+    if ((/^<div[\s>]/i.test(trimmed) && /<\/div>\s*$/i.test(trimmed)) ||
+        (/^<img[\s>]/i.test(trimmed) && />\s*$/i.test(trimmed)) ||
+        (/^<.*?style\s*=.*?>.*$/i.test(trimmed))) {
+        return text;
+    }
+
+    // Check if this looks like base64 image HTML
+    if (/<img[^>]*src\s*=\s*["']data:image\/[^"']+["'][^>]*>/i.test(trimmed)) {
+        return text;
+    }
+
+    let html = text;
 
     // Process base64 images first (before other markdown processing)
     // Match data:image/[type];base64,[data] patterns
-    html = html.replace(/data:image\/([^;]+);base64,([A-Za-z0-9+/=]+)/g, (match, imageType, base64Data) => {
+    html = html.replace(/data:image\/([^;]+);base64,([A-Za-z0-9+/=]+)/g, (_, imageType, base64Data) => {
         const fullDataUri = `data:image/${imageType};base64,${base64Data}`;
         return `<div class="my-3 flex justify-center"><img src="${fullDataUri}" alt="Base64 Image" class="max-w-full h-auto rounded-lg shadow-md border border-border" style="max-height: 400px; object-fit: contain;" /></div>`;
     });
@@ -47,7 +62,7 @@ export function applyInlineMarkdown(text: string): string {
     html = html.replace(/\{\{stream-offline:([^}]+)\}\}/g, '<span class="text-gray-500 font-medium bg-gray-100 px-2 py-0.5 rounded-md border border-gray-300">⚫ $1</span>');
 
     // Rainbow text effect
-    html = html.replace(/\{\{rainbow:([^}]+)\}\}/g, '<span class="font-bold bg-gradient-to-r from-red-500 via-yellow-500 via-green-500 via-blue-500 to-purple-500 bg-clip-text text-transparent animate-pulse">$1</span>');
+    html = html.replace(/\{\{rainbow:([^}]+)\}\}/g, '<span class="font-bold bg-gradient-to-r from-red-500 to-purple-500 bg-clip-text text-transparent animate-pulse">$1</span>');
 
     // Sparkle effect
     html = html.replace(/\{\{sparkle:([^}]+)\}\}/g, '<span class="font-semibold text-primary relative">✨ $1 ✨</span>');

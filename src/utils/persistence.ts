@@ -16,6 +16,8 @@ export interface UserSettings {
     autoApplySuggestions: boolean;
     extraDarkMode: boolean;
     customChatBackground?: string;
+    bubbleFillOpacity?: number;
+    backgroundOpacity?: number;
     streamerName?: string;
     geminiApiKey?: string; // Optional - user can choose to persist this
     userDefinedContext?: string[]; // Array to store user-added contexts
@@ -26,6 +28,8 @@ export interface ConnectionSettings {
     obsPassword?: string; // Optional - might be sensitive
     rememberApiKey: boolean; // User preference for persisting API key
     autoConnect: boolean; // Auto-connect to OBS on app reload
+    streamerBotAddress?: string; // Streamer.bot connection address
+    streamerBotPort?: string; // Streamer.bot connection port
 }
 
 /**

@@ -1,5 +1,6 @@
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from './Button';
 import { CatppuccinAccentColorName } from '../../types';
 
@@ -17,12 +18,55 @@ interface ModalProps {
   isOpen?: boolean;
   accentColorName?: CatppuccinAccentColorName;
   actions?: ModalAction[];
+  size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
-export const Modal: React.FC<ModalProps> = ({ title, children, onClose, accentColorName, actions }) => {
-  return (
-    <div className="fixed inset-0 bg-background/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm transition-opacity duration-300 ease-in-out">
-      <div className="bg-card p-6 rounded-xl shadow-2xl w-full max-w-md border border-border transform transition-all duration-300 ease-out animate-modal-appear">
+export const Modal: React.FC<ModalProps> = ({ title, children, onClose, accentColorName, actions, size = 'md' }) => {
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  const sizeClasses = {
+    sm: 'max-w-sm',
+    md: 'max-w-md',
+    lg: 'max-w-lg',
+    xl: 'max-w-2xl'
+  };
+
+  // Handle escape key
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+
+    // Prevent body scroll when modal is open
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'unset';
+    };
+  }, [onClose]);
+
+  // Handle click outside
+  const handleBackdropClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.target === event.currentTarget) {
+      onClose();
+    }
+  };
+
+  const modalContent = (
+    <div
+      className="fixed inset-0 bg-background/80 flex items-center justify-center z-[9999] p-4 backdrop-blur-sm transition-opacity duration-300 ease-in-out"
+      onClick={handleBackdropClick}
+    >
+      <div
+        ref={modalRef}
+        className={`bg-card p-6 rounded-xl shadow-2xl w-full ${sizeClasses[size]} border border-border transform transition-all duration-300 ease-out animate-modal-appear`}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-semibold emoji-text text-primary">{title}</h3>
           <button
@@ -78,4 +122,7 @@ export const Modal: React.FC<ModalProps> = ({ title, children, onClose, accentCo
       */}
     </div>
   );
+
+  // Use createPortal to render the modal directly to document.body
+  return createPortal(modalContent, document.body);
 };

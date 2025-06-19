@@ -6,6 +6,12 @@ interface MarkdownRendererProps {
 }
 
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({ content }) => {
+    // If the content is already HTML (contains img tags with src), render as-is
+    if (/<img[^>]*src\s*=\s*["'][^"']+["'][^>]*>/i.test(content.trim()) ||
+        /^<div[\s>].*<\/div>\s*$/is.test(content.trim())) {
+        return <div style={{ color: 'inherit' }} className="[&_*]:!text-inherit" dangerouslySetInnerHTML={{ __html: content }} />;
+    }
+
     const parts = [];
     let lastIndex = 0;
     const codeBlockRegex = /```(\w*)\s*\n?([\s\S]*?)\n?\s*```/g;

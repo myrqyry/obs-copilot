@@ -8,6 +8,8 @@ import { Card, CardContent } from './ui/Card';
 import HtmlTemplateBuilder from './HtmlTemplateBuilder';
 import { Modal } from './common/Modal';
 import { Button } from './ui/Button';
+import { FaviconIcon } from './common/FaviconIcon';
+import { FaviconDropdown } from './common/FaviconDropdown';
 import { cn } from '../lib/utils';
 
 const giphyApiKey = import.meta.env.VITE_GIPHY_API_KEY || '';
@@ -26,6 +28,37 @@ const SVG_APIS = [
     { label: 'Material Symbols', value: 'material-symbols', domain: 'fonts.google.com' },
     { label: 'Tabler Icons', value: 'tabler', domain: 'tabler-icons.io' },
 ];
+
+// Common SVG icons for header display
+const COMMON_SVGS = [
+    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>', // star
+    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>', // check circle
+    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l.09.98c.6.05 1.19.16 1.77.32l.72-1.71c-.8-.24-1.62-.4-2.46-.48L12 2zm4.64 2.64l-1.37 1.37c.47.33.9.73 1.28 1.17l1.71-.72c-.54-.65-1.15-1.24-1.85-1.82l.23-.0z"/></svg>', // settings
+    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 11H7v3h2v-3zm4 0h-2v3h2v-3zm4 0h-2v3h2v-3zm2-7h-1V2h-2v2H8V2H6v2H5c-1.1 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/></svg>', // calendar
+    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>', // menu
+    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm3.5 6L12 10.5 8.5 8 12 5.5 15.5 8zM8.5 16L12 13.5 15.5 16 12 18.5 8.5 16z"/></svg>', // diamond
+    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1L13.5 2.5L16.17 5.17L10.5 10.84C10.19 11.15 10 11.57 10 12C10 12.43 10.19 12.85 10.5 13.16L16.17 18.83L13.5 21.5L15 23L21 17V15H19L17.17 16.83L12.83 12.5L17.17 8.17L19 10H21Z"/></svg>', // brush
+    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0L19.2 12l-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>' // code
+];
+
+const getRandomSvg = () => {
+    return COMMON_SVGS[Math.floor(Math.random() * COMMON_SVGS.length)];
+};
+
+// Common emojis for header display
+const COMMON_EMOJIS = [
+    '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇',
+    '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚',
+    '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔',
+    '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '🤥',
+    '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢', '🤮', '🤧',
+    '🥵', '🥶', '🥴', '😵', '🤯', '🤠', '🥳', '😎', '🤓', '🧐'
+];
+
+const getRandomEmoji = () => {
+    return COMMON_EMOJIS[Math.floor(Math.random() * COMMON_EMOJIS.length)];
+};
+
 const EMOJI_APIS = [
     { label: 'EmojiHub API', value: 'emojihub', domain: 'emojihub.yurace.pro' },
     { label: 'Emoji Family API', value: 'emojifamily', domain: 'emojifamily.com' },
@@ -43,6 +76,12 @@ export default function StreamingAssetsTab() {
         svg: false,
         emoji: false,
     });
+
+    // Random SVG for header - generate once per component render
+    const [randomHeaderSvg] = useState(() => getRandomSvg());
+
+    // Random emoji for header - generate once per component render
+    const [randomHeaderEmoji] = useState(() => getRandomEmoji());
 
     const [giphyQuery, setGiphyQuery] = useState('');
     const [giphyResults, setGiphyResults] = useState<any[]>([]);
@@ -265,16 +304,25 @@ export default function StreamingAssetsTab() {
         cardKey: keyof typeof openCards,
         title: string,
         emoji: string,
-        content: React.ReactNode
+        content: React.ReactNode,
+        domain?: string,
+        customSvg?: string
     ) => (
         <Card className="border-border">
             <button
                 onClick={() => toggleCard(cardKey)}
-                className="w-full p-3 flex items-center justify-between text-left hover:bg-muted transition-colors rounded-lg"
+                className="w-full p-1.5 flex items-center justify-between text-left hover:bg-muted transition-colors rounded-t-lg group"
             >
                 <div className="flex items-center space-x-2">
-                    <span className="emoji">{emoji}</span>
-                    <span className="text-sm font-medium text-primary">{title}</span>
+                    {emoji && <span className="emoji text-sm">{emoji}</span>}
+                    {domain && <FaviconIcon domain={domain} size={16} />}
+                    {customSvg && (
+                        <div
+                            className="w-4 h-4 text-muted-foreground"
+                            dangerouslySetInnerHTML={{ __html: customSvg }}
+                        />
+                    )}
+                    <span className="text-sm font-semibold text-foreground">{title}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                     <span className="text-xs text-muted-foreground">{openCards[cardKey] ? 'Hide' : 'Show'}</span>
@@ -291,9 +339,11 @@ export default function StreamingAssetsTab() {
         <div className="space-y-3 max-w-4xl mx-auto p-1">
             {feedbackMessage && <div className="fixed bottom-4 right-4 bg-success text-success-foreground p-3 rounded-lg shadow-lg z-50">{feedbackMessage}</div>}
 
-            {renderCollapsibleCard('html', 'HTML Templates', '📄', <HtmlTemplateBuilder accentColorName={accentColorName} />)}
+            {renderCollapsibleCard('html', 'HTML Templates', '📄', (
+                <HtmlTemplateBuilder accentColorName={accentColorName} />
+            ))}
 
-            {renderCollapsibleCard('giphy', 'Giphy GIFs', '🖼️', (
+            {renderCollapsibleCard('giphy', 'Giphy GIFs', '', (
                 <div>
                     <form onSubmit={handleGiphySearch} className="flex items-center space-x-2 mb-4">
                         <input type="text" value={giphyQuery} onChange={(e) => setGiphyQuery(e.target.value)} placeholder="Search for GIFs..." className="input flex-grow" />
@@ -303,8 +353,8 @@ export default function StreamingAssetsTab() {
                     {!giphyLoading && giphySearched && giphyResults.length === 0 && <div className="text-center text-muted-foreground">No results found.</div>}
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                         {getPaginatedItems(giphyResults, giphyPage).map((gif) => (
-                            <div key={gif.id} className="relative group cursor-pointer" onClick={() => setModalContent({ type: 'gif', data: gif })}>
-                                <img src={gif.images.fixed_height_small.url} alt={gif.title} className="w-full h-32 object-cover rounded-md" />
+                            <div key={gif.id} className="relative group cursor-pointer bg-slate-800 rounded-md overflow-hidden" onClick={() => setModalContent({ type: 'gif', data: gif })}>
+                                <img src={gif.images.fixed_height_small.url} alt={gif.title} className="w-full h-32 object-cover" />
                                 <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                     <p className="text-white text-center text-xs p-1">{gif.title}</p>
                                 </div>
@@ -319,23 +369,26 @@ export default function StreamingAssetsTab() {
                         </div>
                     )}
                 </div>
-            ))}
+            ), 'giphy.com')}
 
-            {renderCollapsibleCard('svg', 'SVG Icons', '🎨', (
+            {renderCollapsibleCard('svg', 'SVG Icons', '', (
                 <div>
                     <form onSubmit={handleSvgSearch} className="flex items-center space-x-2 mb-4">
                         <input type="text" value={svgQuery} onChange={(e) => setSvgQuery(e.target.value)} placeholder="Search for SVG icons..." className="input flex-grow" />
-                        <select value={svgApi} onChange={(e) => setSvgApi(e.target.value)} className="input">
-                            {SVG_APIS.map(api => <option key={api.value} value={api.value}>{api.label}</option>)}
-                        </select>
+                        <FaviconDropdown
+                            options={SVG_APIS}
+                            value={svgApi}
+                            onChange={setSvgApi}
+                            className="min-w-[140px]"
+                        />
                         <Button type="submit" disabled={svgLoading || !svgQuery.trim()}>{svgLoading ? 'Searching...' : 'Search'}</Button>
                     </form>
                     {svgLoading && <div className="text-center">Loading...</div>}
                     {!svgLoading && svgSearched && svgResults.length === 0 && <div className="text-center text-muted-foreground">No results found.</div>}
                     <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
                         {getPaginatedItems(svgResults, svgPage).map((result) => (
-                            <div key={result.name} className="relative group cursor-pointer p-2 bg-muted rounded-md flex items-center justify-center" onClick={() => setModalContent({ type: 'svg', data: result })}>
-                                <div className="w-12 h-12" dangerouslySetInnerHTML={{ __html: result.svg }} />
+                            <div key={result.name} className="relative group cursor-pointer p-2 bg-slate-800 rounded-md flex items-center justify-center aspect-square" onClick={() => setModalContent({ type: 'svg', data: result })}>
+                                <div className="w-full h-full svg-container" dangerouslySetInnerHTML={{ __html: result.svg }} />
                             </div>
                         ))}
                     </div>
@@ -347,22 +400,25 @@ export default function StreamingAssetsTab() {
                         </div>
                     )}
                 </div>
-            ))}
+            ), undefined, randomHeaderSvg)}
 
-            {renderCollapsibleCard('emoji', 'Emojis', '😀', (
+            {renderCollapsibleCard('emoji', 'Emojis', randomHeaderEmoji, (
                 <div>
                     <form onSubmit={handleEmojiSearch} className="flex items-center space-x-2 mb-4">
                         <input type="text" value={emojiQuery} onChange={(e) => setEmojiQuery(e.target.value)} placeholder="Search for emojis..." className="input flex-grow" />
-                        <select value={emojiApi} onChange={(e) => setEmojiApi(e.target.value)} className="input">
-                            {EMOJI_APIS.map(api => <option key={api.value} value={api.value}>{api.label}</option>)}
-                        </select>
+                        <FaviconDropdown
+                            options={EMOJI_APIS}
+                            value={emojiApi}
+                            onChange={setEmojiApi}
+                            className="min-w-[160px]"
+                        />
                         <Button type="submit" disabled={emojiLoading || !emojiQuery.trim()}>{emojiLoading ? 'Searching...' : 'Search'}</Button>
                     </form>
                     {emojiLoading && <div className="text-center">Loading...</div>}
                     {!emojiLoading && emojiSearched && emojiResults.length === 0 && <div className="text-center text-muted-foreground">No results found.</div>}
                     <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
                         {getPaginatedItems(emojiResults, emojiPage).map((emoji, index) => (
-                            <div key={`${emoji.slug}-${index}`} className="relative group cursor-pointer p-2 bg-muted rounded-md flex items-center justify-center text-4xl" onClick={() => setModalContent({ type: 'emoji', data: emoji })}>
+                            <div key={`${emoji.slug}-${index}`} className="relative group cursor-pointer p-2 bg-slate-800 rounded-md flex items-center justify-center aspect-square text-5xl sm:text-6xl md:text-7xl" onClick={() => setModalContent({ type: 'emoji', data: emoji })}>
                                 {getEmojiChar(emoji)}
                             </div>
                         ))}
@@ -389,8 +445,8 @@ export default function StreamingAssetsTab() {
                     actions={getModalActions(modalContent.type, modalContent.data)}
                 >
                     {modalContent.type === 'gif' && <img src={modalContent.data.images.original.url} alt={modalContent.data.title} className="max-w-full max-h-[70vh] mx-auto" />}
-                    {modalContent.type === 'svg' && <div className="p-4 bg-white rounded-md flex justify-center items-center"><div className="w-64 h-64" dangerouslySetInnerHTML={{ __html: modalContent.data.svg }} /></div>}
-                    {modalContent.type === 'emoji' && <div className="p-4 flex justify-center items-center"><div className="text-9xl">{getEmojiChar(modalContent.data)}</div></div>}
+                    {modalContent.type === 'svg' && <div className="p-4 bg-slate-800 rounded-md flex justify-center items-center aspect-square max-w-xs mx-auto"><div className="w-full h-full svg-modal-container" dangerouslySetInnerHTML={{ __html: modalContent.data.svg }} /></div>}
+                    {modalContent.type === 'emoji' && <div className="p-4 bg-slate-800 rounded-md flex justify-center items-center aspect-square max-w-xs mx-auto"><div className="text-[12rem] leading-none">{getEmojiChar(modalContent.data)}</div></div>}
                 </Modal>
             )}
         </div>

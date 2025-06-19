@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import { Button } from './common/Button';
 import { TextInput } from './common/TextInput';
+import { FaviconIcon } from './common/FaviconIcon';
 import { CatppuccinAccentColorName } from '../types';
 import { loadConnectionSettings, saveConnectionSettings, isStorageAvailable } from '../utils/persistence';
 import { Card, CardContent } from './ui';
@@ -23,6 +24,9 @@ interface ConnectionFormProps {
   setStreamerBotAddress: (value: string) => void;
   streamerBotPort: string;
   setStreamerBotPort: (value: string) => void;
+  onStreamerBotConnect?: () => void;
+  onStreamerBotDisconnect?: () => void;
+  isStreamerBotConnected?: boolean;
   accentColorName?: CatppuccinAccentColorName;
 }
 
@@ -42,6 +46,9 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
   setStreamerBotAddress,
   streamerBotPort,
   setStreamerBotPort,
+  onStreamerBotConnect,
+  onStreamerBotDisconnect,
+  isStreamerBotConnected = false,
   accentColorName,
 }) => {
   // Load persisted connection settings
@@ -203,10 +210,10 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
               setObsExpanded(v => !v);
             }
           }}
-          className="w-full p-2 flex items-center justify-between text-left hover:bg-muted transition-colors rounded-t-lg group cursor-pointer"
+          className="w-full p-1.5 flex items-center justify-between text-left hover:bg-muted transition-colors rounded-t-lg group cursor-pointer"
         >
           <div className="flex items-center space-x-2">
-            <span className="emoji">🎬</span>
+            <FaviconIcon domain="obsproject.com" size={18} className="mr-1" alt="OBS favicon" />
             <span className="text-sm font-semibold text-foreground">OBS Studio Connection</span>
             <span
               ref={obsConnectingDotRef}
@@ -377,21 +384,63 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
 
       {/* Streamer.bot Section */}
       <Card className="border-border">
-        <button
+        <div
+          role="button"
+          tabIndex={0}
           onClick={() => setStreamerBotExpanded(!streamerBotExpanded)}
-          className="w-full p-2 flex items-center justify-between text-left hover:bg-muted transition-colors rounded-t-lg"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setStreamerBotExpanded(v => !v);
+            }
+          }}
+          className="w-full p-1.5 flex items-center justify-between text-left hover:bg-muted transition-colors rounded-t-lg group cursor-pointer"
         >
           <div className="flex items-center space-x-2">
-            <span className="emoji">🤖</span>
-            <span className="text-sm font-semibold text-foreground">Streamer.bot Connection</span>
+            <FaviconIcon domain="streamer.bot" size={18} className="mr-1" alt="Streamer.bot favicon" />
+            <span className="text-sm font-semibold text-foreground">Streamer.bot</span>
             <span
-              className="inline-block w-2 h-2 rounded-full border border-white bg-muted"
-              title="Configuration"
+              className={`inline-block w-2 h-2 rounded-full border border-white ${isStreamerBotConnected
+                ? 'bg-green-500'
+                : 'bg-muted'
+                }`}
+              title={isStreamerBotConnected ? 'Connected' : 'Disconnected'}
             />
           </div>
           <div className="flex items-center space-x-2">
+            {/* Connection Action Icons - appear on hover */}
+            {isStreamerBotConnected && (
+              <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onStreamerBotConnect) onStreamerBotConnect();
+                  }}
+                  className="p-1 rounded hover:bg-secondary transition-colors"
+                  title="Reconnect"
+                >
+                  <svg className="w-3 h-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onStreamerBotDisconnect) onStreamerBotDisconnect();
+                  }}
+                  className="p-1 rounded hover:bg-secondary transition-colors"
+                  title="Disconnect"
+                >
+                  <svg className="w-3 h-3 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            )}
             <span className="text-xs text-muted-foreground">
-              Optional
+              {isStreamerBotConnected ? 'Connected' : 'Optional'}
             </span>
             <svg
               className={cn(
@@ -405,33 +454,60 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </div>
-        </button>
+        </div>
 
         {streamerBotExpanded && (
-          <CardContent className="px-2 pb-2">
-            <div className="space-y-2">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+          <CardContent className="px-2 pb-1.5">
+            <div className="space-y-1.5">
+              <div className="grid grid-cols-2 gap-2">
                 <TextInput
-                  label="Streamer.bot Address"
+                  label="Address"
                   id="streamerbot-address"
                   type="text"
-                  value={streamerBotAddress}
-                  onChange={(e) => setStreamerBotAddress(e.target.value)}
-                  placeholder="localhost"
+                  value={streamerBotAddress || 'localhost'}
+                  onChange={(e) => setStreamerBotAddress(e.target.value || 'localhost')}
                   accentColorName={accentColorName}
+                  className="text-sm"
                 />
                 <TextInput
                   label="Port"
                   id="streamerbot-port"
                   type="text"
-                  value={streamerBotPort}
-                  onChange={(e) => setStreamerBotPort(e.target.value)}
-                  placeholder="8080"
+                  value={streamerBotPort || '8080'}
+                  onChange={(e) => setStreamerBotPort(e.target.value || '8080')}
                   accentColorName={accentColorName}
+                  className="text-sm"
                 />
               </div>
-              <div className="text-xs text-muted-foreground bg-card p-2 rounded border border-border">
-                <p>Connect to Streamer.bot for enhanced automation and action triggers.</p>
+
+              {/* StreamerBot Connection Button */}
+              <div className="flex space-x-2">
+                {!isStreamerBotConnected ? (
+                  <Button
+                    onClick={onStreamerBotConnect}
+                    disabled={!(streamerBotAddress || 'localhost').trim() || !(streamerBotPort || '8080').trim()}
+                    size="sm"
+                    className="flex-1"
+                    accentColorName={accentColorName}
+                  >
+                    Connect
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={onStreamerBotDisconnect}
+                    variant="secondary"
+                    size="sm"
+                    className="flex-1"
+                    accentColorName={accentColorName}
+                  >
+                    Disconnect
+                  </Button>
+                )}
+              </div>
+
+              <div className="text-xs text-muted-foreground bg-card p-1.5 rounded border border-border flex items-center gap-2">
+                <FaviconIcon domain="streamer.bot" size={16} className="mr-1" alt="Streamer.bot favicon" />
+                <span>Enhanced automation & triggers {isStreamerBotConnected && <span className="text-green-600 font-medium">✅</span>}</span>
               </div>
             </div>
           </CardContent>
@@ -440,12 +516,14 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
 
       {/* Gemini AI Section */}
       <Card className="border-border">
-        <button
+        <div
+          role="button"
+          tabIndex={0}
           onClick={() => setGeminiExpanded(!geminiExpanded)}
-          className="w-full p-2 flex items-center justify-between text-left hover:bg-muted transition-colors rounded-t-lg"
+          className="w-full p-1.5 flex items-center justify-between text-left hover:bg-muted transition-colors rounded-t-lg group cursor-pointer"
         >
           <div className="flex items-center space-x-2">
-            <span className="emoji">✨</span>
+            <FaviconIcon domain="gemini.google.com" size={18} className="mr-1" alt="Gemini favicon" />
             <span className="text-sm font-semibold text-foreground">Gemini AI Integration</span>
             <span
               ref={geminiStatusDotRef}
@@ -461,22 +539,27 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
             />
           </div>
           <div className="flex items-center space-x-2">
-            <span className="text-xs text-muted-foreground">
-              {isGeminiClientInitialized ? 'Ready' : 'Setup needed'}
-            </span>
-            <svg
-              className={cn(
-                "w-4 h-4 text-muted-foreground transition-transform duration-200",
-                geminiExpanded ? 'rotate-180' : ''
-              )}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
+            {/* Connection Action Icons - appear on hover */}
+            {(isGeminiClientInitialized || geminiInitializationError) && (
+              <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Trigger re-initialization by setting the same API key
+                    onGeminiApiKeyChange(localGeminiKey || geminiApiKey);
+                  }}
+                  className="p-1 rounded hover:bg-secondary transition-colors"
+                  title="Reconnect/Reinitialize"
+                >
+                  <svg className="w-3 h-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+              </div>
+            )}
           </div>
-        </button>
+        </div>
 
         {geminiExpanded && (
           <CardContent className="px-2 pb-2 space-y-2">

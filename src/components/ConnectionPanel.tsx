@@ -20,6 +20,9 @@ interface ConnectionPanelProps {
     setStreamerBotAddress: (value: string) => void;
     streamerBotPort: string;
     setStreamerBotPort: (value: string) => void;
+    onStreamerBotConnect?: () => void;
+    onStreamerBotDisconnect?: () => void;
+    isStreamerBotConnected?: boolean;
     accentColorName?: CatppuccinAccentColorName;
 }
 
@@ -37,6 +40,9 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({
     setStreamerBotAddress,
     streamerBotPort,
     setStreamerBotPort,
+    onStreamerBotConnect,
+    onStreamerBotDisconnect,
+    isStreamerBotConnected = false,
     isGeminiClientInitialized,
     geminiInitializationError,
     accentColorName,
@@ -62,6 +68,9 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({
                 setStreamerBotAddress={setStreamerBotAddress}
                 streamerBotPort={streamerBotPort}
                 setStreamerBotPort={setStreamerBotPort}
+                onStreamerBotConnect={onStreamerBotConnect}
+                onStreamerBotDisconnect={onStreamerBotDisconnect}
+                isStreamerBotConnected={isStreamerBotConnected}
                 accentColorName={accentColorName}
             />
 
@@ -69,11 +78,11 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({
             <Card className="border-border">
                 <button
                     onClick={() => setShowTips(!showTips)}
-                    className="w-full p-3 flex items-center justify-between text-left hover:bg-muted transition-colors rounded-lg"
+                    className="w-full p-1.5 flex items-center justify-between text-left hover:bg-muted transition-colors rounded-t-lg group"
                 >
                     <div className="flex items-center space-x-2">
-                        <span className="emoji">💡</span>
-                        <span className="text-sm font-medium text-primary">Quick Setup Guide</span>
+                        <span className="emoji text-sm">💡</span>
+                        <span className="text-sm font-semibold text-foreground">Quick Setup Guide</span>
                     </div>
                     <div className="flex items-center space-x-2">
                         <span className="text-xs text-muted-foreground">
@@ -95,7 +104,7 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({
 
                 {showTips && (
                     <CardContent className="px-3 pb-3">
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 text-xs text-muted-foreground">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 text-xs text-muted-foreground">
                             <div className="bg-card p-2 rounded border border-border">
                                 <h4 className="font-medium text-foreground mb-1">OBS WebSocket Setup:</h4>
                                 <ul className="space-y-0.5">
@@ -113,6 +122,16 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({
                                     <li>• Create/sign in to Google account</li>
                                     <li>• Generate new API key</li>
                                     <li>• Copy and paste into field above</li>
+                                </ul>
+                            </div>
+                            <div className="bg-card p-2 rounded border border-border">
+                                <h4 className="font-medium text-foreground mb-1">Streamer.bot Setup:</h4>
+                                <ul className="space-y-0.5">
+                                    <li>• Download from <a href="https://streamer.bot" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">streamer.bot</a></li>
+                                    <li>• Enable WebSocket server in Settings</li>
+                                    <li>• Set host/port (default: localhost:8080)</li>
+                                    <li>• Import actions for enhanced automation</li>
+                                    <li>• Connect to enable advanced triggers</li>
                                 </ul>
                             </div>
                         </div>
