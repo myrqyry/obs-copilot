@@ -512,8 +512,6 @@ const App: React.FC = () => {
                         onSetIsGeminiClientInitialized={actions.setGeminiClientInitialized}
                         onSetGeminiInitializationError={actions.setGeminiInitializationError}
                         activeTab={activeTab}
-                        flipSides={flipSides}
-                        setFlipSides={actions.toggleFlipSides}
                         onStreamerBotAction={handleStreamerBotAction}
                     />
                 </div>

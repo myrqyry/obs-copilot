@@ -6,8 +6,10 @@ import { clearAllSettings } from '../utils/persistence';
 import { Card, CardContent } from './ui';
 import { cn } from '../lib/utils';
 
+import { CatppuccinAccentColorName } from '../types';
+
 interface AdvancedSettingsPanelProps {
-    accentColorName: string;
+    accentColorName: CatppuccinAccentColorName;
     actions: any;
 }
 

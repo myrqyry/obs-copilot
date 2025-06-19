@@ -21,13 +21,9 @@ import { useLockStore } from '../store/lockStore';
 import { logoAnimations } from '../utils/gsapAnimations';
 import { uiAnimations } from '../utils/gsapAnimations';
 
-import type { CatppuccinChatBubbleColorName } from '../types';
-
 interface GeminiChatProps {
   geminiApiKeyFromInput?: string;
   obsService: OBSWebSocketService;
-  flipSides: boolean;
-  setFlipSides: (value: boolean) => void;
   onRefreshData: () => Promise<void>;
   setErrorMessage: (message: string | null) => void;
   chatInputValue: string;
@@ -57,18 +53,17 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
   geminiInitializationError,
   onSetIsGeminiClientInitialized,
   onSetGeminiInitializationError,
-  flipSides,
   onStreamerBotAction,
 }) => {
   // Merge all needed state into a single useAppStore call for efficiency
   const {
     userSettings: {
-      theme,
       bubbleFillOpacity,
       backgroundOpacity,
       extraDarkMode,
       customChatBackground,
       autoApplySuggestions,
+      flipSides,
     },
     scenes,
     currentProgramScene,
@@ -579,8 +574,6 @@ When a user asks for a Streamer.bot action, use this format.
   const validatedBackgroundOpacity = Math.min(Math.max(backgroundOpacity, 0), 1); // Ensure opacity is between 0 and 1
   const validatedCustomChatBackground = customChatBackground || 'none'; // Fallback to 'none' if empty
 
-  const isExtraDarkMode = useAppStore(state => state.extraDarkMode);
-
   useEffect(() => {
     const root = document.documentElement;
     // Update CSS variables dynamically when appearance-related state values change
@@ -635,6 +628,8 @@ When a user asks for a Streamer.bot action, use this format.
             onRegenerate={handleRegenerate}
             userChatBubbleColorName={userChatBubbleColorName}
             modelChatBubbleColorName={modelChatBubbleColorName}
+            customChatBackground={validatedCustomChatBackground}
+            backgroundOpacity={validatedBackgroundOpacity}
           />
         ))}
         {isLoading && (
