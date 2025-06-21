@@ -1,3 +1,4 @@
+import Tooltip from '../ui/Tooltip'; // correct path for common/
 import { useState } from 'react';
 
 interface FaviconIconProps {
@@ -39,13 +40,14 @@ export function FaviconIcon({ domain, alt, className = '', size = 16 }: FaviconI
     // If all sources failed, show a fallback icon
     if (error && currentSource >= faviconSources.length - 1) {
         return (
-            <div
-                className={`inline-flex items-center justify-center bg-gray-200 text-gray-600 text-xs font-bold rounded-sm ${className}`}
-                style={{ width: size, height: size }}
-                title={alt || `${domain} favicon`}
-            >
-                {domain.charAt(0).toUpperCase()}
-            </div>
+            <Tooltip content={alt || `${domain} favicon`}>
+                <div
+                    className={`inline-flex items-center justify-center bg-gray-200 text-gray-600 text-xs font-bold rounded-sm ${className}`}
+                    style={{ width: size, height: size }}
+                >
+                    {domain.charAt(0).toUpperCase()}
+                </div>
+            </Tooltip>
         );
     }
 

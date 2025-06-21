@@ -1,8 +1,12 @@
+import Tooltip from './ui/Tooltip';
 import React, { useState, useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import { Button } from './common/Button';
 import { TextInput } from './common/TextInput';
 import { FaviconIcon } from './common/FaviconIcon';
+import { CogIcon } from './common/CogIcon';
+import { Modal } from './common/Modal';
+import { useAppStore } from '../store/appStore';
 import { CatppuccinAccentColorName } from '../types';
 import { loadConnectionSettings, saveConnectionSettings, isStorageAvailable } from '../utils/persistence';
 import { Card, CardContent } from './ui';
@@ -70,6 +74,11 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
   const [showApiKeyOverride, setShowApiKeyOverride] = useState<boolean>(
     Boolean(geminiApiKey) // Start with true if there's already an API key
   );
+  // Cog/settings modal state
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  // Get backgroundOpacity and setter from store
+  const backgroundOpacity = useAppStore(state => state.backgroundOpacity);
+  const setBackgroundOpacity = useAppStore(state => state.actions.setBackgroundOpacity);
   const [obsExpanded, setObsExpanded] = useState<boolean>(true);
   const [geminiExpanded, setGeminiExpanded] = useState<boolean>(true);
   const [streamerBotExpanded, setStreamerBotExpanded] = useState<boolean>(false);
@@ -232,33 +241,35 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
             {/* Connection Action Icons - appear on hover */}
             {isConnected && (
               <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onConnect(address, showPasswordField ? password : undefined);
-                  }}
-                  disabled={isConnecting}
-                  className="p-1 rounded hover:bg-secondary transition-colors"
-                  title="Reconnect"
-                >
-                  <svg className="w-3 h-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDisconnect();
-                  }}
-                  className="p-1 rounded hover:bg-secondary transition-colors"
-                  title="Disconnect"
-                >
-                  <svg className="w-3 h-3 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+                <Tooltip content="Reconnect">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onConnect(address, showPasswordField ? password : undefined);
+                    }}
+                    disabled={isConnecting}
+                    className="p-1 rounded hover:bg-secondary transition-colors"
+                  >
+                    <svg className="w-3 h-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </button>
+                </Tooltip>
+                <Tooltip content="Disconnect">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDisconnect();
+                    }}
+                    className="p-1 rounded hover:bg-secondary transition-colors"
+                  >
+                    <svg className="w-3 h-3 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </Tooltip>
               </div>
             )}
             <span className="text-xs text-muted-foreground">
@@ -283,7 +294,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
             <form onSubmit={handleSubmit} className="space-y-2">
               {/* URL and Password Checkbox Row */}
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-2 items-end">
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-2 flex items-center gap-2">
                   <TextInput
                     label="WebSocket URL"
                     id="obs-address"
@@ -294,7 +305,44 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
                     placeholder="ws://localhost:4455"
                     accentColorName={accentColorName}
                   />
+                  <Tooltip content="Chat background opacity settings">
+                    <button
+                      type="button"
+                      className="ml-1 p-1 rounded hover:bg-accent/20 transition-colors"
+                      aria-label="Open background opacity settings"
+                      onClick={() => setShowSettingsModal(true)}
+                    >
+                      <CogIcon className="w-5 h-5 text-accent" />
+                    </button>
+                  </Tooltip>
                 </div>
+                {/* Background Opacity Modal */}
+                <Modal
+                  title="Chat Background Opacity"
+                  isOpen={showSettingsModal}
+                  onClose={() => setShowSettingsModal(false)}
+                  accentColorName={accentColorName}
+                  size="sm"
+                  blendMode="multiply" // Example: use any CSS blend mode you want
+                >
+                  <div className="flex flex-col gap-4 items-center py-2">
+                    <label className="text-sm font-medium text-primary flex items-center gap-2">
+                      🖼️ Background Opacity
+                      <span className="text-xs text-muted-foreground">({Math.round(backgroundOpacity * 100)}%)</span>
+                    </label>
+                    <div className="flex items-center gap-2 w-full">
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={backgroundOpacity}
+                        onChange={e => setBackgroundOpacity(parseFloat(e.target.value))}
+                        className="w-full h-1 bg-border rounded-lg appearance-none cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                </Modal>
                 <div className="flex items-center space-x-2 lg:col-span-1">
                   <label className="flex items-center space-x-2 text-xs text-muted-foreground cursor-pointer group">
                     <input

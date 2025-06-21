@@ -8,6 +8,22 @@ export class OBSWebSocketService {
     this.obs = obsInstance;
   }
 
+  /**
+   * Subscribe to OBS events. Example usage:
+   *   obsService.subscribeToEvents({
+   *     CurrentPreviewSceneChanged: handler,
+   *     SceneCreated: handler,
+   *     ...
+   *   })
+   */
+  subscribeToEvents(eventHandlers: Partial<Record<string, (...args: any[]) => void>>): void {
+    for (const [event, handler] of Object.entries(eventHandlers)) {
+      if (typeof handler === 'function') {
+        this.obs.on(event, handler);
+      }
+    }
+  }
+
   async getSceneList(): Promise<OBSResponseTypes['GetSceneList']> {
     return this.obs.call('GetSceneList');
   }

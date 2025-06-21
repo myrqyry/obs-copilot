@@ -9,6 +9,8 @@ interface ChatBubblePreviewProps {
     customBackground?: string;
     bubbleFillOpacity?: number;
     backgroundOpacity?: number;
+    chatBackgroundBlendMode?: React.CSSProperties['mixBlendMode'];
+    chatBubbleBlendMode?: React.CSSProperties['mixBlendMode']; // New: blend mode for chat bubble fills
 }
 
 export const ChatBubblePreview: React.FC<ChatBubblePreviewProps> = ({
@@ -19,6 +21,8 @@ export const ChatBubblePreview: React.FC<ChatBubblePreviewProps> = ({
     customBackground,
     bubbleFillOpacity = 0.85,
     backgroundOpacity = 0.7,
+    chatBackgroundBlendMode = 'normal',
+    chatBubbleBlendMode = 'normal',
 }) => {
     // Helper to convert hex to rgba
     function hexToRgba(hex: string, alpha: number) {
@@ -100,6 +104,7 @@ export const ChatBubblePreview: React.FC<ChatBubblePreviewProps> = ({
         position: 'relative',
         overflow: 'hidden',
         transition: 'background 0.3s, box-shadow 0.3s, border-color 0.3s',
+        mixBlendMode: chatBubbleBlendMode,
     };
 
     const modelStyle: React.CSSProperties = {
@@ -119,6 +124,7 @@ export const ChatBubblePreview: React.FC<ChatBubblePreviewProps> = ({
         position: 'relative',
         overflow: 'hidden',
         transition: 'background 0.3s, box-shadow 0.3s, border-color 0.3s',
+        mixBlendMode: chatBubbleBlendMode,
     };
     return (
         <div className="flex flex-col items-stretch justify-center w-full py-2 px-1 mb-2 rounded-lg border border-border bg-background/70 relative overflow-hidden">
@@ -132,6 +138,7 @@ export const ChatBubblePreview: React.FC<ChatBubblePreviewProps> = ({
                         backgroundPosition: 'center',
                         borderRadius: 'inherit',
                         zIndex: 0,
+                        mixBlendMode: chatBackgroundBlendMode,
                     }}
                 >
                     {/* Opacity layer */}

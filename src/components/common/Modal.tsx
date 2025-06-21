@@ -19,9 +19,19 @@ interface ModalProps {
   accentColorName?: CatppuccinAccentColorName;
   actions?: ModalAction[];
   size?: 'sm' | 'md' | 'lg' | 'xl';
+  blendMode?: React.CSSProperties['mixBlendMode'];
 }
 
-export const Modal: React.FC<ModalProps> = ({ title, children, onClose, accentColorName, actions, size = 'md' }) => {
+export const Modal: React.FC<ModalProps> = ({
+  title,
+  children,
+  onClose,
+  isOpen = true,
+  accentColorName,
+  actions,
+  size = 'md',
+  blendMode
+}) => {
   const modalRef = useRef<HTMLDivElement>(null);
 
   const sizeClasses = {
@@ -57,10 +67,13 @@ export const Modal: React.FC<ModalProps> = ({ title, children, onClose, accentCo
     }
   };
 
+  if (!isOpen) return null;
+
   const modalContent = (
     <div
       className="fixed inset-0 bg-background/80 flex items-center justify-center z-[9999] p-4 backdrop-blur-sm transition-opacity duration-300 ease-in-out"
       onClick={handleBackdropClick}
+      style={blendMode ? { mixBlendMode: blendMode } : undefined}
     >
       <div
         ref={modalRef}

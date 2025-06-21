@@ -107,5 +107,11 @@ export function applyInlineMarkdown(text: string): string {
     html = html.replace(/(<h[1-6][^>]*>.*?<\/h[1-6]>)/g, '<div class="mb-3">$1</div>');
     html = html.replace(/(<hr[^>]*>)/g, '<div class="my-4">$1</div>');
 
+    // Collapse effect
+    html = html.replace(/\{\{collapse:([^}]+)\}\}/g, '<details><summary>$1</summary>');
+
+    // Custom action syntax
+    html = html.replace(/\{\{custom-action:([^}]+)\}\}/g, '<span class="text-indigo-600 font-medium bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200">🎯 $1</span>');
+
     return html;
 }

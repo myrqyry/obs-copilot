@@ -397,13 +397,6 @@ const App: React.FC = () => {
         [AppTab.ADVANCED]: '🛠️',
     };
 
-    const handleSendToGeminiContext = useCallback((contextText: string) => {
-        const userContext = useAppStore.getState().userDefinedContext.join(' ');
-        const fullContext = userContext ? `${userContext} ${contextText}` : contextText;
-        setGeminiChatInput(prevInput => `${fullContext}${prevInput}`);
-        setActiveTab(AppTab.GEMINI);
-        setTimeout(() => document.getElementById('gemini-input')?.focus(), 0);
-    }, []);
 
     const renderTabContent = () => {
         const envApiKey = (process.env as any).VITE_GEMINI_API_KEY || (process.env as any).API_KEY;
@@ -452,7 +445,6 @@ const App: React.FC = () => {
                                     obsService={obsServiceInstance!}
                                     onRefreshData={fetchData}
                                     setErrorMessage={setErrorMessage}
-                                    onSendToGeminiContext={handleSendToGeminiContext}
                                     accentColorName={theme.accent}
                                 />
                             )}
@@ -500,6 +492,7 @@ const App: React.FC = () => {
                     <GeminiChat
                         geminiApiKeyFromInput={envApiKey || geminiApiKey}
                         obsService={obsServiceInstance!}
+                        streamerBotService={streamerBotService}
                         onRefreshData={fetchData}
                         setErrorMessage={setErrorMessage}
                         chatInputValue={geminiChatInput}

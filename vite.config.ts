@@ -23,6 +23,13 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 5173, // Use Vite's default port for consistency
+      proxy: {
+        '/api': {
+          target: 'http://localhost:3001',
+          changeOrigin: true,
+          secure: false,
+        },
+      },
     },
     build: {
       outDir: 'dist', // Optional: specify output directory

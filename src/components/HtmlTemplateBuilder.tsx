@@ -1,3 +1,4 @@
+import Tooltip from './ui/Tooltip';
 import React, { useState, useEffect } from 'react';
 import { Button } from './common/Button';
 import { TextInput } from './common/TextInput';
@@ -387,13 +388,15 @@ const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({ accentColorNa
                             </code>
                         </div>
                         <div className="border border-border rounded-md overflow-hidden">
-                            <iframe
-                                src={previewUrl}
-                                width="100%"
-                                height="400"
-                                className="border-none"
-                                title="Template Preview"
-                            />
+                            <Tooltip content="Template Preview">
+                                <iframe
+                                    src={previewUrl}
+                                    width="100%"
+                                    height="400"
+                                    className="border-none"
+                                    title="Template Preview"
+                                />
+                            </Tooltip>
                         </div>
                         <div className="text-xs text-muted-foreground">
                             🛈 This preview shows how your template will look in OBS browser source

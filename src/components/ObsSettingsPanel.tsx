@@ -1,4 +1,7 @@
+import Tooltip from './ui/Tooltip';
 import React, { useState } from 'react';
+import { Modal } from './common/Modal';
+import { CogIcon } from './common/CogIcon';
 import { TextInput } from './common/TextInput';
 import {
   CatppuccinAccentColorName,
@@ -8,10 +11,8 @@ import {
   CatppuccinChatBubbleColorName,
   catppuccinChatBubbleColorsHexMap
 } from '../types';
-import { Button } from './common/Button';
 import { ChatBubblePreview } from './common/ChatBubblePreview';
 import { useAppStore } from '../store/appStore';
-import { clearAllSettings } from '../utils/persistence';
 import { Card, CardContent } from './ui';
 import { cn } from '../lib/utils';
 
@@ -23,7 +24,6 @@ interface ObsSettingsPanelProps {
   selectedModelChatBubbleColorName: CatppuccinChatBubbleColorName;
   flipSides: boolean;
   actions: any;
-  hideMemoryAndReset?: boolean;
 }
 
 
@@ -33,15 +33,16 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
   selectedUserChatBubbleColorName,
   selectedModelChatBubbleColorName,
   flipSides,
-  actions,
-  hideMemoryAndReset
+  actions
 }) => {
   // Extract all Zustand selectors at the top
   const autoApplySuggestions = useAppStore(state => state.autoApplySuggestions);
   const extraDarkMode = useAppStore(state => state.extraDarkMode);
   const customChatBackground = useAppStore(state => state.customChatBackground);
   const bubbleFillOpacity = useAppStore(state => state.bubbleFillOpacity);
+  const chatBubbleBlendMode = useAppStore(state => state.chatBubbleBlendMode);
   const backgroundOpacity = useAppStore(state => state.backgroundOpacity);
+  const chatBackgroundBlendMode = useAppStore(state => state.chatBackgroundBlendMode);
   const storeActions = useAppStore(state => state.actions);
 
   const ColorChooser: React.FC<{
@@ -64,22 +65,22 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
           {Object.keys(colorsHexMap).map((colorNameIter) => {
             if (!colorNameTypeGuard(colorNameIter)) return null;
             return (
-              <button
-                key={colorNameIter}
-                title={colorNameIter.charAt(0).toUpperCase() + colorNameIter.slice(1)}
-                onClick={() => actions.setThemeColor(themeKey, colorNameIter)}
-                className={cn(
-                  "w-5 h-5 rounded-full border-2 transition-all duration-150 focus:outline-none",
-                  selectedColorName === colorNameIter
-                    ? 'ring-2 ring-offset-2 ring-offset-background border-border'
-                    : 'border-border hover:border-muted-foreground'
-                )}
-                style={{
-                  backgroundColor: colorsHexMap[colorNameIter],
-                  borderColor: selectedColorName === colorNameIter ? colorsHexMap[colorNameIter] : undefined
-                }}
-                aria-label={`Select ${colorNameIter} for ${label}`}
-              />
+              <Tooltip content={colorNameIter.charAt(0).toUpperCase() + colorNameIter.slice(1)} key={colorNameIter}>
+                <button
+                  onClick={() => actions.setThemeColor(themeKey, colorNameIter)}
+                  className={cn(
+                    "w-5 h-5 rounded-full border-2 transition-all duration-150 focus:outline-none",
+                    selectedColorName === colorNameIter
+                      ? 'ring-2 ring-offset-2 ring-offset-background border-border'
+                      : 'border-border hover:border-muted-foreground'
+                  )}
+                  style={{
+                    backgroundColor: colorsHexMap[colorNameIter],
+                    borderColor: selectedColorName === colorNameIter ? colorsHexMap[colorNameIter] : undefined
+                  }}
+                  aria-label={`Select ${colorNameIter} for ${label}`}
+                />
+              </Tooltip>
             );
           })}
         </div>
@@ -90,12 +91,11 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
   // Collapsible state for each section
   const [openTheme, setOpenTheme] = useState(true);
   const [openChat, setOpenChat] = useState(true);
-  const [openMemory, setOpenMemory] = useState(true);
-  const [openReset, setOpenReset] = useState(false);
-
-  // Memory context state
-  const userDefinedContext = useAppStore(state => state.userDefinedContext);
-  const [userInput, setUserInput] = useState('');
+  // Modal state for chat background settings
+  const [showBgSettingsModal, setShowBgSettingsModal] = useState(false);
+  // Modal state for chat bubble fill settings
+  const [showBubbleSettingsModal, setShowBubbleSettingsModal] = useState(false);
+  // ...existing code...
 
   return (
     <div className="space-y-3 max-w-4xl mx-auto">
@@ -189,6 +189,8 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
               customBackground={customChatBackground}
               bubbleFillOpacity={bubbleFillOpacity}
               backgroundOpacity={backgroundOpacity}
+              chatBackgroundBlendMode={chatBackgroundBlendMode as React.CSSProperties['mixBlendMode']}
+              chatBubbleBlendMode={chatBubbleBlendMode as React.CSSProperties['mixBlendMode']}
             />
             <div className="space-y-4">
               {/* User Chat Bubble Color with Opacity Slider */}
@@ -198,19 +200,65 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
                     💬 User Chat Bubble Color
                   </label>
                   <div className="flex items-center space-x-2">
-                    <span className="text-xs text-muted-foreground">Fill:</span>
+                    {/* Removed old bubble fill opacity slider, now only cog/modal controls opacity and blend mode */}
+                    <button
+                      className="ml-1 p-1 rounded hover:bg-accent/20 transition-colors"
+                      aria-label="Open chat bubble fill settings"
+                      onClick={() => setShowBubbleSettingsModal(true)}
+                    >
+                      <CogIcon className="w-5 h-5 text-accent" />
+                    </button>
+                  </div>
+                </div>
+                {/* Chat Bubble Fill Settings Modal */}
+                <Modal
+                  title="Chat Bubble Fill Settings"
+                  isOpen={showBubbleSettingsModal}
+                  onClose={() => setShowBubbleSettingsModal(false)}
+                  accentColorName={selectedAccentColorName}
+                  size="sm"
+                >
+                  <div className="flex flex-col gap-2 items-center py-2 w-56">
+                    <label className="text-xs font-medium text-primary flex items-center gap-2">
+                      💬 Opacity
+                      <span className="text-xs text-muted-foreground">({Math.round(bubbleFillOpacity * 100)}%)</span>
+                    </label>
                     <input
                       type="range"
                       min="0"
                       max="1"
                       step="0.05"
                       value={bubbleFillOpacity}
-                      onChange={(e) => storeActions.setBubbleFillOpacity(parseFloat(e.target.value))}
-                      className="w-16 h-1 bg-border rounded-lg appearance-none cursor-pointer"
+                      onChange={e => storeActions.setBubbleFillOpacity(parseFloat(e.target.value))}
+                      className="w-full h-1 bg-border rounded-lg appearance-none cursor-pointer"
                     />
-                    <span className="text-xs text-muted-foreground w-8 text-right">{Math.round(bubbleFillOpacity * 100)}%</span>
+                    <label className="text-xs font-medium text-primary flex items-center gap-2 mt-2">
+                      🎨 Blend Mode
+                    </label>
+                    <select
+                      value={chatBubbleBlendMode}
+                      onChange={e => storeActions.setChatBubbleBlendMode(e.target.value)}
+                      className="w-full p-1 rounded border border-border bg-background text-foreground text-xs"
+                    >
+                      <option value="normal">Normal</option>
+                      <option value="multiply">Multiply</option>
+                      <option value="screen">Screen</option>
+                      <option value="overlay">Overlay</option>
+                      <option value="darken">Darken</option>
+                      <option value="lighten">Lighten</option>
+                      <option value="color-dodge">Color Dodge</option>
+                      <option value="color-burn">Color Burn</option>
+                      <option value="hard-light">Hard Light</option>
+                      <option value="soft-light">Soft Light</option>
+                      <option value="difference">Difference</option>
+                      <option value="exclusion">Exclusion</option>
+                      <option value="hue">Hue</option>
+                      <option value="saturation">Saturation</option>
+                      <option value="color">Color</option>
+                      <option value="luminosity">Luminosity</option>
+                    </select>
                   </div>
-                </div>
+                </Modal>
                 <div className="flex flex-wrap gap-1.5">
                   {Object.keys(catppuccinChatBubbleColorsHexMap).map((colorNameIter) => (
                     <button
@@ -260,24 +308,7 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
                 </div>
               </div>
 
-              {/* Background Opacity Slider */}
-              <div className="flex items-center justify-between py-2">
-                <label className="text-sm font-medium text-primary">
-                  🖼️ Background Opacity
-                </label>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.05"
-                    value={backgroundOpacity}
-                    onChange={(e) => storeActions.setBackgroundOpacity(parseFloat(e.target.value))}
-                    className="w-20 h-1 bg-border rounded-lg appearance-none cursor-pointer"
-                  />
-                  <span className="text-xs text-muted-foreground w-8 text-right">{Math.round(backgroundOpacity * 100)}%</span>
-                </div>
-              </div>
+
               <div className="space-y-2 mt-2 mb-2">
                 <label className="flex items-center space-x-2 text-xs text-muted-foreground cursor-pointer group">
                   <input
@@ -324,7 +355,7 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
                     Extra Dark mode <span className="text-muted-foreground">(outlined chat bubbles)</span>
                   </span>
                 </label>
-                <div className="mt-2">
+                <div className="mt-2 flex items-center gap-2 relative">
                   <TextInput
                     label="Custom Chat Background URL"
                     id="custom-chat-background"
@@ -334,167 +365,102 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
                     placeholder="Enter a URL for a custom chat background"
                     accentColorName={selectedAccentColorName}
                   />
+                  {/* Paste/Clear button inside the field */}
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
+                    {customChatBackground ? (
+                      <button
+                        type="button"
+                        className="p-1 rounded hover:bg-accent/20 transition-colors"
+                        aria-label="Clear chat background URL"
+                        onClick={() => actions.setCustomChatBackground('')}
+                        tabIndex={0}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="p-1 rounded hover:bg-accent/20 transition-colors"
+                        aria-label="Paste from clipboard"
+                        onClick={async () => {
+                          try {
+                            const text = await navigator.clipboard.readText();
+                            if (text) actions.setCustomChatBackground(text);
+                          } catch (err) {
+                            // Optionally show error
+                          }
+                        }}
+                        tabIndex={0}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 17l4 4 4-4m-4-5v9" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2v-7" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 6V4a2 2 0 00-2-2H10a2 2 0 00-2 2v2" /></svg>
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    className="ml-1 p-1 rounded hover:bg-accent/20 transition-colors"
+                    aria-label="Open chat background settings"
+                    onClick={() => setShowBgSettingsModal(true)}
+                  >
+                    <CogIcon className="w-5 h-5 text-accent" />
+                  </button>
                 </div>
+
+                {/* Chat Background Settings Modal */}
+                <Modal
+                  title="Chat Background Settings"
+                  isOpen={showBgSettingsModal}
+                  onClose={() => setShowBgSettingsModal(false)}
+                  accentColorName={selectedAccentColorName}
+                  size="sm"
+                >
+                  <div className="flex flex-col gap-2 items-center py-2 w-56">
+                    <label className="text-xs font-medium text-primary flex items-center gap-2">
+                      🖼️ Opacity
+                      <span className="text-xs text-muted-foreground">({Math.round(backgroundOpacity * 100)}%)</span>
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={backgroundOpacity}
+                      onChange={e => storeActions.setBackgroundOpacity(parseFloat(e.target.value))}
+                      className="w-full h-1 bg-border rounded-lg appearance-none cursor-pointer"
+                    />
+                    <label className="text-xs font-medium text-primary flex items-center gap-2 mt-2">
+                      🎨 Blend Mode
+                    </label>
+                    <select
+                      value={chatBackgroundBlendMode}
+                      onChange={e => storeActions.setChatBackgroundBlendMode(e.target.value)}
+                      className="w-full p-1 rounded border border-border bg-background text-foreground text-xs"
+                    >
+                      <option value="normal">Normal</option>
+                      <option value="multiply">Multiply</option>
+                      <option value="screen">Screen</option>
+                      <option value="overlay">Overlay</option>
+                      <option value="darken">Darken</option>
+                      <option value="lighten">Lighten</option>
+                      <option value="color-dodge">Color Dodge</option>
+                      <option value="color-burn">Color Burn</option>
+                      <option value="hard-light">Hard Light</option>
+                      <option value="soft-light">Soft Light</option>
+                      <option value="difference">Difference</option>
+                      <option value="exclusion">Exclusion</option>
+                      <option value="hue">Hue</option>
+                      <option value="saturation">Saturation</option>
+                      <option value="color">Color</option>
+                      <option value="luminosity">Luminosity</option>
+                    </select>
+                  </div>
+                </Modal>
               </div>
             </div>
           </CardContent>
         )}
       </Card>
 
-      {/* Memory Context Section */}
-      {typeof hideMemoryAndReset === 'undefined' || !hideMemoryAndReset ? (
-        <>
-          <Card className="border-border">
-            <button
-              className="w-full p-1.5 flex items-center justify-between text-left hover:bg-muted transition-colors rounded-t-lg group"
-              onClick={() => setOpenMemory((v) => !v)}
-              aria-expanded={openMemory}
-            >
-              <div className="flex items-center space-x-2">
-                <span className="emoji text-sm">🧠</span>
-                <span className="text-sm font-semibold text-foreground">Memory Context</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-xs text-muted-foreground">
-                  {openMemory ? 'Hide' : 'Show'} options
-                </span>
-                <svg
-                  className={cn(
-                    "w-4 h-4 text-muted-foreground transition-transform duration-200",
-                    openMemory ? 'rotate-180' : ''
-                  )}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </button>
-
-            {openMemory && (
-              <CardContent className="px-3 pb-3">
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Add custom context that will be included with all Gemini conversations. Great for streaming details, community info, or personal preferences.
-                  </p>
-                  <div className="flex gap-2">
-                    <TextInput
-                      label=""
-                      id="memory-context-input"
-                      type="text"
-                      value={userInput}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserInput(e.target.value)}
-                      placeholder="Enter stream/community details"
-                      accentColorName={selectedAccentColorName}
-                    />
-                    <Button
-                      onClick={() => {
-                        if (userInput.trim()) {
-                          actions.addToUserDefinedContext(userInput.trim());
-                          setUserInput('');
-                        }
-                      }}
-                      disabled={!userInput.trim()}
-                      size="sm"
-                      accentColorName={selectedAccentColorName}
-                      className="mt-1"
-                    >
-                      Add
-                    </Button>
-                  </div>
-                  {userDefinedContext.length > 0 && (
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-primary">Current Context:</label>
-                      <div className="space-y-1 max-h-32 overflow-y-auto">
-                        {userDefinedContext.map((context, index) => (
-                          <div key={index} className="flex items-center justify-between bg-muted/30 px-3 py-2 rounded text-sm">
-                            <span className="text-foreground flex-1 mr-2">{context}</span>
-                            <Button
-                              onClick={() => actions.removeFromUserDefinedContext(context)}
-                              variant="danger"
-                              size="sm"
-                              accentColorName={selectedAccentColorName}
-                            >
-                              Remove
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                      <Button
-                        onClick={() => {
-                          if (confirm('Are you sure you want to clear all memory context?')) {
-                            actions.clearUserDefinedContext();
-                          }
-                        }}
-                        variant="secondary"
-                        size="sm"
-                        accentColorName={selectedAccentColorName}
-                      >
-                        Clear All Context
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            )}
-          </Card>
-
-          {/* Reset Section */}
-          <Card className="border-border">
-            <button
-              className="w-full p-1.5 flex items-center justify-between text-left hover:bg-muted transition-colors rounded-t-lg group"
-              onClick={() => setOpenReset((v) => !v)}
-              aria-expanded={openReset}
-            >
-              <div className="flex items-center space-x-2">
-                <span className="emoji text-sm">🔄</span>
-                <span className="text-sm font-semibold text-foreground">Reset Settings</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-xs text-muted-foreground">
-                  {openReset ? 'Hide' : 'Show'} options
-                </span>
-                <svg
-                  className={cn(
-                    "w-4 h-4 text-muted-foreground transition-transform duration-200",
-                    openReset ? 'rotate-180' : ''
-                  )}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </button>
-
-            {openReset && (
-              <CardContent className="px-3 pb-3">
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Clear all saved preferences and return to defaults. This will reset theme colors, connection settings, and other preferences.
-                  </p>
-                  <Button
-                    onClick={() => {
-                      if (confirm('Are you sure you want to reset all settings to defaults? This will clear your saved connection details, theme preferences, and other settings.')) {
-                        clearAllSettings();
-                        // Reload the page to reset the store state
-                        window.location.reload();
-                      }
-                    }}
-                    variant="danger"
-                    size="sm"
-                    accentColorName={selectedAccentColorName}
-                  >
-                    Reset All Settings
-                  </Button>
-                </div>
-              </CardContent>
-            )}
-          </Card>
-        </>
-      ) : null}
     </div>
   );
 };

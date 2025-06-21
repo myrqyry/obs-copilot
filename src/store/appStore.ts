@@ -50,6 +50,8 @@ interface AppState {
         customChatBackground: string;
         bubbleFillOpacity: number;
         backgroundOpacity: number;
+        chatBackgroundBlendMode: string;
+        chatBubbleBlendMode: string;
         theme: {
             accent: CatppuccinAccentColorName;
             secondaryAccent: CatppuccinSecondaryAccentColorName;
@@ -65,6 +67,8 @@ interface AppState {
     customChatBackground: string;
     bubbleFillOpacity: number;
     backgroundOpacity: number;
+    chatBackgroundBlendMode: string;
+    chatBubbleBlendMode: string;
     theme: {
         accent: CatppuccinAccentColorName;
         secondaryAccent: CatppuccinSecondaryAccentColorName;
@@ -100,6 +104,8 @@ interface AppState {
         setCustomChatBackground: (background: string) => void;
         setBubbleFillOpacity: (opacity: number) => void;
         setBackgroundOpacity: (opacity: number) => void;
+        setChatBackgroundBlendMode: (mode: string) => void;
+        setChatBubbleBlendMode: (mode: string) => void;
         setThemeColor: (type: 'accent' | 'secondaryAccent' | 'userChatBubble' | 'modelChatBubble', color: any) => void;
         setObsServiceInstance: (instance: OBSWebSocketService | null) => void;
         updateOBSData: (data: Partial<{
@@ -111,6 +117,9 @@ interface AppState {
             videoSettings: OBSVideoSettings | null;
         }>) => void;
         handleObsAction: (action: ObsAction) => Promise<{ success: boolean; message: string; error?: string }>;
+
+        // Central handler for adding context to Gemini/chat, used by AddToContextButton and others
+        onSendToGeminiContext: (contextText: string) => void;
     };
 }
 
@@ -143,6 +152,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     customChatBackground: persistedSettings.customChatBackground || '',
     bubbleFillOpacity: persistedSettings.bubbleFillOpacity || 0.85,
     backgroundOpacity: persistedSettings.backgroundOpacity || 0.7,
+    chatBackgroundBlendMode: persistedSettings.chatBackgroundBlendMode || 'normal',
+    chatBubbleBlendMode: persistedSettings.chatBubbleBlendMode || 'normal',
     theme: {
         accent: (persistedSettings.theme?.accent as CatppuccinAccentColorName) || 'mauve',
         secondaryAccent: (persistedSettings.theme?.secondaryAccent as CatppuccinSecondaryAccentColorName) || 'flamingo',
@@ -158,6 +169,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         customChatBackground: persistedSettings.customChatBackground || '',
         bubbleFillOpacity: persistedSettings.bubbleFillOpacity || 0.85,
         backgroundOpacity: persistedSettings.backgroundOpacity || 0.7,
+        chatBackgroundBlendMode: persistedSettings.chatBackgroundBlendMode || 'normal',
+        chatBubbleBlendMode: persistedSettings.chatBubbleBlendMode || 'normal',
         theme: {
             accent: (persistedSettings.theme?.accent as CatppuccinAccentColorName) || 'mauve',
             secondaryAccent: (persistedSettings.theme?.secondaryAccent as CatppuccinSecondaryAccentColorName) || 'flamingo',
@@ -325,6 +338,28 @@ export const useAppStore = create<AppState>((set, get) => ({
             });
             if (isStorageAvailable()) {
                 saveUserSettings({ backgroundOpacity: opacity });
+            }
+        },
+        setChatBackgroundBlendMode: (mode) => {
+            const state = get();
+            const newUserSettings = { ...state.userSettings, chatBackgroundBlendMode: mode };
+            set({
+                chatBackgroundBlendMode: mode,
+                userSettings: newUserSettings
+            });
+            if (isStorageAvailable()) {
+                saveUserSettings({ chatBackgroundBlendMode: mode });
+            }
+        },
+        setChatBubbleBlendMode: (mode) => {
+            const state = get();
+            const newUserSettings = { ...state.userSettings, chatBubbleBlendMode: mode };
+            set({
+                chatBubbleBlendMode: mode,
+                userSettings: newUserSettings
+            });
+            if (isStorageAvailable()) {
+                saveUserSettings({ chatBubbleBlendMode: mode });
             }
         },
         setObsServiceInstance: (instance) => set({ obsServiceInstance: instance }),
@@ -603,6 +638,13 @@ export const useAppStore = create<AppState>((set, get) => ({
                 // Return error result - components can handle messaging
                 return { success: false, message: actionAttemptMessage, error: err.message };
             }
+        },
+        onSendToGeminiContext: (contextText) => {
+            // For now, just add as a system message. You can expand this to route to Gemini, etc.
+            set((state) => {
+                state.actions.addMessage({ role: 'system', text: contextText });
+                return state;
+            });
         },
     }
 }));

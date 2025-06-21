@@ -1,3 +1,4 @@
+import Tooltip from './ui/Tooltip';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { GlobeAltIcon, CameraIcon } from '@heroicons/react/24/solid';
 import { GoogleGenAI } from '@google/genai';
@@ -24,6 +25,7 @@ import { uiAnimations } from '../utils/gsapAnimations';
 interface GeminiChatProps {
   geminiApiKeyFromInput?: string;
   obsService: OBSWebSocketService;
+  streamerBotService: any;
   onRefreshData: () => Promise<void>;
   setErrorMessage: (message: string | null) => void;
   chatInputValue: string;
@@ -37,11 +39,12 @@ interface GeminiChatProps {
   onSetGeminiInitializationError: (error: string | null) => void;
   activeTab: AppTab;
   onStreamerBotAction: (action: { type: string, args?: Record<string, any> }) => Promise<void>;
-  // theme prop is no longer needed, will use selectors below
 }
 
 export const GeminiChat: React.FC<GeminiChatProps> = ({
   geminiApiKeyFromInput,
+  obsService,
+  streamerBotService,
   onRefreshData,
   setErrorMessage,
   chatInputValue,
@@ -56,6 +59,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
   onStreamerBotAction,
 }) => {
   // Merge all needed state into a single useAppStore call for efficiency
+
   const {
     userSettings: {
       bubbleFillOpacity,
@@ -65,6 +69,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
       autoApplySuggestions,
       flipSides,
     },
+    chatBackgroundBlendMode,
     scenes,
     currentProgramScene,
     sources,
@@ -81,9 +86,14 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
   const obsData = { scenes, currentProgramScene, sources, streamStatus, recordStatus, videoSettings };
   const { isLocked } = useLockStore();
 
+  // Visual indicator for context
+  const hasContext = userDefinedContext && userDefinedContext.length > 0;
+
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [useGoogleSearch, setUseGoogleSearch] = useState<boolean>(false);
   const [contextMessages, setContextMessages] = useState<string[]>([]);
+  const [isGeminiInitializing, setIsGeminiInitializing] = useState<boolean>(false);
+  const [streamerBotActions, setStreamerBotActions] = useState<{ id: string; name: string }[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const ai = useRef<GoogleGenAI | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
@@ -98,25 +108,48 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Enhancement 6: Show progress indicator during Gemini initialization
   useEffect(() => {
     if (geminiApiKeyFromInput) {
-      try {
-        ai.current = new GoogleGenAI({ apiKey: geminiApiKeyFromInput });
-        onSetIsGeminiClientInitialized(true);
-        onSetGeminiInitializationError(null);
-        // Greeting message is now handled in App.tsx to avoid duplicates
-      } catch (error) {
-        console.error('Gemini client initialization error:', error);
-        const errorMsg = `❗ Failed to initialize Gemini: ${(error as Error).message}`;
-        onAddMessage({ role: 'system', text: errorMsg });
-        onSetIsGeminiClientInitialized(false);
-        onSetGeminiInitializationError(errorMsg);
-      }
+      setIsGeminiInitializing(true);
+      setTimeout(() => {
+        try {
+          ai.current = new GoogleGenAI({ apiKey: geminiApiKeyFromInput });
+          onSetIsGeminiClientInitialized(true);
+          onSetGeminiInitializationError(null);
+        } catch (error) {
+          console.error('Gemini client initialization error:', error);
+          const errorMsg = `❗ Failed to initialize Gemini: ${(error as Error).message}`;
+          onAddMessage({ role: 'system', text: errorMsg });
+          onSetIsGeminiClientInitialized(false);
+          onSetGeminiInitializationError(errorMsg);
+        } finally {
+          setIsGeminiInitializing(false);
+        }
+      }, 500); // Simulate loading for UX
     } else {
       onSetIsGeminiClientInitialized(false);
       onSetGeminiInitializationError('❗ Missing Gemini API key. Please provide a valid API key to use Gemini features.');
+      setIsGeminiInitializing(false);
     }
   }, [geminiApiKeyFromInput, onSetIsGeminiClientInitialized, onSetGeminiInitializationError, onAddMessage]);
+
+  // Enhancement 8: Fetch Streamer.bot actions for suggestions
+  useEffect(() => {
+    async function fetchStreamerBotActions() {
+      try {
+        if (streamerBotService && typeof streamerBotService.getActions === 'function') {
+          const actions = await streamerBotService.getActions();
+          if (Array.isArray(actions)) {
+            setStreamerBotActions(actions);
+          }
+        }
+      } catch (e) {
+        // Ignore errors
+      }
+    }
+    fetchStreamerBotActions();
+  }, [streamerBotService]);
 
   const buildObsSystemMessage = useCallback(() => {
     const sceneNames = obsData.scenes.map((s: any) => s.sceneName).join(', ');
@@ -348,10 +381,12 @@ When a user asks for a Streamer.bot action, use this format.
         onAddMessage({ role: 'model', text: displayText, sources: responseSources });
       }
 
-      // Add OBS action result after Gemini response (ensures proper message order)
+      // Enhancement 7: Add visual feedback for OBS actions
       if (obsActionResult) {
-        onAddMessage({ role: 'system', text: obsActionResult.message });
-        if (!obsActionResult.success) {
+        if (obsActionResult.success) {
+          onAddMessage({ role: 'system', text: `{{success:${obsActionResult.message}}}` });
+        } else {
+          onAddMessage({ role: 'system', text: `{{error:OBS Action failed: ${obsActionResult.error}}}` });
           setErrorMessage(`OBS Action failed: ${obsActionResult.error}`);
         }
       }
@@ -610,6 +645,7 @@ When a user asks for a Streamer.bot action, use this format.
             backgroundRepeat: 'no-repeat',
             opacity: validatedBackgroundOpacity,
             zIndex: 0,
+            mixBlendMode: (chatBackgroundBlendMode || 'normal') as React.CSSProperties['mixBlendMode'],
           }}
         />
       )}
@@ -642,55 +678,88 @@ When a user asks for a Streamer.bot action, use this format.
       </div>
 
       <div className="p-3 border-t border-border bg-background rounded-b-lg">
-        <div className="flex items-center space-x-2">
+        {/* Enhancement 6: Gemini initialization progress indicator */}
+        {isGeminiInitializing && (
+          <div className="flex items-center justify-center mb-2">
+            <LoadingSpinner size={4} />
+            <span className="ml-2 text-sm text-muted-foreground animate-pulse">Initializing Gemini...</span>
+          </div>
+        )}
+        <div className="flex items-center space-x-2 relative">
+          {/* Visual indicator if context is present */}
+          {hasContext && (
+            <div className="absolute left-0 -top-7 flex items-center space-x-1 z-20">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200 shadow-sm animate-pulse">
+                <svg className="w-3 h-3 mr-1 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.707a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" /></svg>
+                Context Active
+              </span>
+            </div>
+          )}
           {/* Custom input with integrated web search toggle */}
           <div className="relative flex-grow">
+            {/* Enhancement 8: Streamer.bot action suggestions */}
+            {streamerBotActions.length > 0 && (
+              <div className="absolute right-0 top-0 z-20 flex flex-col items-end space-y-1 pr-2 pt-1">
+                <div className="text-xs text-muted-foreground mb-1">Streamer.bot Actions:</div>
+                {streamerBotActions.slice(0, 3).map((action) => (
+                  <button
+                    key={action.id}
+                    className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs mb-1 hover:bg-indigo-100 transition"
+                    onClick={() => handleSuggestionClick(`Trigger Streamer.bot action: ${action.name}`)}
+                  >
+                    🎯 {action.name}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="absolute left-3 top-1/2 transform -translate-y-1/2 z-10 flex items-center space-x-1">
-              <button
-                onClick={() => setUseGoogleSearch(!useGoogleSearch)}
-                disabled={!isGeminiClientInitialized}
-                className={`p-1 rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary/50 ${useGoogleSearch
-                  ? 'text-primary bg-primary/10 hover:bg-primary/20'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                  } ${!isGeminiClientInitialized ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                title={useGoogleSearch ? "Web search enabled" : "Click to enable web search"}
-                aria-label={useGoogleSearch ? "Disable web search" : "Enable web search"}
-              >
-                <GlobeAltIcon className="w-4 h-4" />
-              </button>
-              <button
-                onClick={async () => {
-                  if (!isConnected || !currentProgramScene) {
-                    onAddMessage({ role: 'system', text: "📸 Need to be connected to OBS with an active scene to take screenshots!" });
-                    return;
-                  }
-                  try {
-                    const screenshot = await actions.handleObsAction({
-                      type: 'getSourceScreenshot',
-                      sourceName: currentProgramScene,
-                      imageFormat: 'png'
-                    });
-                    if (screenshot.success) {
-                      onAddMessage({ role: 'system', text: screenshot.message });
-                      // Also add the screenshot info to context for AI analysis
-                      handleAddToContext(`Screenshot of current scene "${currentProgramScene}" has been captured and is available for analysis.`);
-                    } else {
-                      onAddMessage({ role: 'system', text: `📸 Screenshot failed: ${screenshot.error}` });
+              <Tooltip content={useGoogleSearch ? "Web search enabled" : "Click to enable web search"}>
+                <button
+                  onClick={() => setUseGoogleSearch(!useGoogleSearch)}
+                  disabled={!isGeminiClientInitialized}
+                  className={`p-1 rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary/50 ${useGoogleSearch
+                    ? 'text-primary bg-primary/10 hover:bg-primary/20'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                    } ${!isGeminiClientInitialized ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  aria-label={useGoogleSearch ? "Disable web search" : "Enable web search"}
+                >
+                  <GlobeAltIcon className="w-4 h-4" />
+                </button>
+              </Tooltip>
+              <Tooltip content={isConnected && currentProgramScene ? "Take screenshot of current scene" : "Connect to OBS to take screenshots"}>
+                <button
+                  onClick={async () => {
+                    if (!isConnected || !currentProgramScene) {
+                      onAddMessage({ role: 'system', text: "📸 Need to be connected to OBS with an active scene to take screenshots!" });
+                      return;
                     }
-                  } catch (error: any) {
-                    onAddMessage({ role: 'system', text: `📸 Screenshot error: ${error.message}` });
-                  }
-                }}
-                disabled={!isGeminiClientInitialized || !isConnected || !currentProgramScene}
-                className={`p-1 rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-orange-500/50 ${isConnected && currentProgramScene
-                  ? 'text-orange-500 hover:text-orange-600 hover:bg-orange-500/10'
-                  : 'text-muted-foreground cursor-not-allowed opacity-50'
-                  }`}
-                title={isConnected && currentProgramScene ? "Take screenshot of current scene" : "Connect to OBS to take screenshots"}
-                aria-label="Take screenshot of current scene"
-              >
-                <CameraIcon className="w-4 h-4" />
-              </button>
+                    try {
+                      const screenshot = await actions.handleObsAction({
+                        type: 'getSourceScreenshot',
+                        sourceName: currentProgramScene,
+                        imageFormat: 'png'
+                      });
+                      if (screenshot.success) {
+                        onAddMessage({ role: 'system', text: screenshot.message });
+                        // Also add the screenshot info to context for AI analysis
+                        handleAddToContext(`Screenshot of current scene \"${currentProgramScene}\" has been captured and is available for analysis.`);
+                      } else {
+                        onAddMessage({ role: 'system', text: `📸 Screenshot failed: ${screenshot.error}` });
+                      }
+                    } catch (error: any) {
+                      onAddMessage({ role: 'system', text: `📸 Screenshot error: ${error.message}` });
+                    }
+                  }}
+                  disabled={!isGeminiClientInitialized || !isConnected || !currentProgramScene}
+                  className={`p-1 rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-orange-500/50 ${isConnected && currentProgramScene
+                    ? 'text-orange-500 hover:text-orange-600 hover:bg-orange-500/10'
+                    : 'text-muted-foreground cursor-not-allowed opacity-50'
+                    }`}
+                  aria-label="Take screenshot of current scene"
+                >
+                  <CameraIcon className="w-4 h-4" />
+                </button>
+              </Tooltip>
             </div>
             <input
               id="gemini-input"

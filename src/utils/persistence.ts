@@ -18,6 +18,8 @@ export interface UserSettings {
     customChatBackground?: string;
     bubbleFillOpacity?: number;
     backgroundOpacity?: number;
+    chatBackgroundBlendMode?: string;
+    chatBubbleBlendMode?: string; // New: blend mode for chat bubble fills
     streamerName?: string;
     geminiApiKey?: string; // Optional - user can choose to persist this
     userDefinedContext?: string[]; // Array to store user-added contexts

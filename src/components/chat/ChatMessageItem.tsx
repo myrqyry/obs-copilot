@@ -6,6 +6,7 @@ import { MarkdownRenderer } from './MarkdownRenderer';
 import { getRandomSuggestions } from '../../constants/chatSuggestions';
 import { ChatMessage, CatppuccinAccentColorName, OBSSource, CatppuccinChatBubbleColorName } from '../../types';
 import { useAppStore } from '../../store/appStore';
+import Tooltip from '../ui/Tooltip';
 
 interface ChatMessageItemProps {
     message: ChatMessage;
@@ -50,6 +51,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
 
     // Get styling from store using individual selectors to prevent infinite re-renders
     const bubbleFillOpacity = useAppStore(state => state.bubbleFillOpacity);
+    const chatBubbleBlendMode = useAppStore(state => state.chatBubbleBlendMode);
     const accentColorName = useAppStore(state => state.theme.accent);
     const secondaryAccentColorName = useAppStore(state => state.theme.secondaryAccent);
     // Use the passed-in bubble color names for user/model
@@ -184,7 +186,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     }
 
     // Apply glass effect classes if needed
-    const glassEffectClass = shouldUseGlassEffect
+    const glassEffectClass = customChatBackground && customChatBackground !== 'none' && bubbleFillOpacity < 1
         ? extraDarkMode
             ? 'chat-bubble-glass-extra-dark'
             : 'chat-bubble-glass'
@@ -207,6 +209,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
         margin: '0.25rem 0',
         overflow: 'hidden',
         transition: 'background 0.3s, box-shadow 0.3s, border-color 0.3s',
+        mixBlendMode: (chatBubbleBlendMode || 'normal') as React.CSSProperties['mixBlendMode'],
     };
 
     return (
@@ -248,31 +251,31 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                                 </div>
                                 <div className="source-selection-grid grid grid-cols-2 gap-2">
                                     {obsSources.map((source) => (
-                                        <button
-                                            key={source.sourceName}
-                                            onClick={() => onSourceSelect(source.sourceName)}
-                                            className="source-select-btn group flex items-center px-3 py-1.5 bg-background/80 text-foreground border border-border rounded transition-all duration-200 hover:bg-primary hover:text-primary-foreground hover:border-primary focus:outline-none focus:ring-1 focus:ring-primary shadow-sm"
-                                            tabIndex={0}
-                                            aria-label={`Select source ${source.sourceName}`}
-                                            data-tooltip={source.typeName || source.inputKind || 'Source'}
-                                        >
-                                            <span className="text-sm mr-2 group-hover:scale-105 transition-transform duration-200 flex-shrink-0 emoji">
-                                                {source.inputKind === 'text_gdiplus_v2' || source.inputKind === 'text_ft2_source_v2' ? '📝' :
-                                                    source.inputKind === 'image_source' ? '🖼️' :
-                                                        source.inputKind === 'browser_source' ? '🌐' :
-                                                            source.inputKind === 'window_capture' ? '🪟' :
-                                                                source.inputKind === 'monitor_capture' ? '🖥️' :
-                                                                    source.inputKind === 'game_capture' ? '🎮' :
-                                                                        source.inputKind === 'dshow_input' ? '📹' :
-                                                                            source.inputKind === 'wasapi_input_capture' || source.inputKind === 'wasapi_output_capture' ? '🎵' :
-                                                                                '🎯'}
-                                            </span>
-                                            <div className="flex-1 text-left min-w-0">
-                                                <div className="font-medium text-sm group-hover:text-background transition-colors duration-200 overflow-hidden text-ellipsis whitespace-nowrap">
-                                                    {source.sourceName}
+                                        <Tooltip key={source.sourceName} content={source.typeName || source.inputKind || 'Source'}>
+                                            <button
+                                                onClick={() => onSourceSelect(source.sourceName)}
+                                                className="source-select-btn group flex items-center px-3 py-1.5 bg-background/80 text-foreground border border-border rounded transition-all duration-200 hover:bg-primary hover:text-primary-foreground hover:border-primary focus:outline-none focus:ring-1 focus:ring-primary shadow-sm"
+                                                tabIndex={0}
+                                                aria-label={`Select source ${source.sourceName}`}
+                                            >
+                                                <span className="text-sm mr-2 group-hover:scale-105 transition-transform duration-200 flex-shrink-0 emoji">
+                                                    {source.inputKind === 'text_gdiplus_v2' || source.inputKind === 'text_ft2_source_v2' ? '📝' :
+                                                        source.inputKind === 'image_source' ? '🖼️' :
+                                                            source.inputKind === 'browser_source' ? '🌐' :
+                                                                source.inputKind === 'window_capture' ? '🪟' :
+                                                                    source.inputKind === 'monitor_capture' ? '🖥️' :
+                                                                        source.inputKind === 'game_capture' ? '🎮' :
+                                                                            source.inputKind === 'dshow_input' ? '📹' :
+                                                                                source.inputKind === 'wasapi_input_capture' || source.inputKind === 'wasapi_output_capture' ? '🎵' :
+                                                                                    '🎯'}
+                                                </span>
+                                                <div className="flex-1 text-left min-w-0">
+                                                    <div className="font-medium text-sm group-hover:text-background transition-colors duration-200 overflow-hidden text-ellipsis whitespace-nowrap">
+                                                        {source.sourceName}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </button>
+                                            </button>
+                                        </Tooltip>
                                     ))}
                                 </div>
                             </div>
@@ -400,58 +403,63 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                 <div className="absolute top-2 right-2 z-30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex space-x-1">
                     {/* Regenerate button (only for assistant messages) */}
                     {isAssistant && onRegenerate && (
-                        <button
-                            onClick={handleRegenerate}
-                            className="bg-card/90 backdrop-blur-sm text-muted-foreground hover:text-green-500 hover:bg-green-500/10 p-1 rounded-full shadow-md border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-green-500/50"
-                            title="Regenerate response"
-                            aria-label="Regenerate message"
-                        >
-                            <ArrowPathIcon className="w-3 h-3" />
-                        </button>
+                        <Tooltip content="Regenerate response">
+                            <button
+                                onClick={handleRegenerate}
+                                className="bg-card/90 backdrop-blur-sm text-muted-foreground hover:text-green-500 hover:bg-green-500/10 p-1 rounded-full shadow-md border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                                aria-label="Regenerate message"
+                            >
+                                <ArrowPathIcon className="w-3 h-3" />
+                            </button>
+                        </Tooltip>
                     )}
 
-                    <div
-                        role="button"
-                        onClick={handleCopyText}
-                        className="bg-card/90 backdrop-blur-sm text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 p-1 rounded-full shadow-md border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                        title="Copy text"
-                        aria-label="Copy message text"
-                    >
-                        <ClipboardDocumentIcon className="w-3 h-3" />
-                    </div>
+                    <Tooltip content="Copy text">
+                        <div
+                            role="button"
+                            onClick={handleCopyText}
+                            className="bg-card/90 backdrop-blur-sm text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 p-1 rounded-full shadow-md border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                            aria-label="Copy message text"
+                        >
+                            <ClipboardDocumentIcon className="w-3 h-3" />
+                        </div>
+                    </Tooltip>
 
                     {onAddToContext && (
-                        <button
-                            onClick={handleAddToContextLocal}
-                            className="bg-card/90 backdrop-blur-sm text-muted-foreground hover:text-purple-500 hover:bg-purple-500/10 p-1 rounded-full shadow-md border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-                            title="Add to context"
-                            aria-label="Add message to context"
-                        >
-                            <ChatBubbleLeftEllipsisIcon className="w-3 h-3" />
-                        </button>
+                        <Tooltip content="Add to context">
+                            <button
+                                onClick={handleAddToContextLocal}
+                                className="bg-card/90 backdrop-blur-sm text-accent hover:bg-accent/20 p-1 rounded-full shadow-md border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-accent/50"
+                                aria-label="Add message to context"
+                            >
+                                <ChatBubbleLeftEllipsisIcon className="w-4 h-4 text-accent" />
+                            </button>
+                        </Tooltip>
                     )}
                 </div>
 
                 {/* Expand/collapse floating icon button (bottom right, more visible) */}
                 {isShrunk && !forceExpand && (
-                    <button
-                        className="absolute right-3 bottom-3 z-40 bg-card/90 backdrop-blur-sm text-primary hover:text-primary/80 hover:bg-primary/10 p-2 rounded-full shadow-xl border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/50"
-                        onClick={() => setForceExpand(true)}
-                        title="Expand bubble"
-                        aria-label="Expand chat bubble"
-                    >
-                        <ChevronDownIcon className="w-5 h-5" />
-                    </button>
+                    <Tooltip content="Expand bubble">
+                        <button
+                            className="absolute right-3 bottom-3 z-40 bg-card/90 backdrop-blur-sm text-primary hover:text-primary/80 hover:bg-primary/10 p-2 rounded-full shadow-xl border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/50"
+                            onClick={() => setForceExpand(true)}
+                            aria-label="Expand chat bubble"
+                        >
+                            <ChevronDownIcon className="w-5 h-5" />
+                        </button>
+                    </Tooltip>
                 )}
                 {forceExpand && (
-                    <button
-                        className="absolute right-3 bottom-3 z-40 bg-card/90 backdrop-blur-sm text-muted-foreground hover:text-primary hover:bg-primary/10 p-2 rounded-full shadow-xl border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/50"
-                        onClick={() => setForceExpand(false)}
-                        title="Shrink bubble"
-                        aria-label="Shrink chat bubble"
-                    >
-                        <ChevronUpIcon className="w-5 h-5" />
-                    </button>
+                    <Tooltip content="Shrink bubble">
+                        <button
+                            className="absolute right-3 bottom-3 z-40 bg-card/90 backdrop-blur-sm text-muted-foreground hover:text-primary hover:bg-primary/10 p-2 rounded-full shadow-xl border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/50"
+                            onClick={() => setForceExpand(false)}
+                            aria-label="Shrink chat bubble"
+                        >
+                            <ChevronUpIcon className="w-5 h-5" />
+                        </button>
+                    </Tooltip>
                 )}
             </div>
         </div>

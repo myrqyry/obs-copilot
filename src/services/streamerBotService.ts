@@ -2,6 +2,21 @@
 
 import { StreamerbotClient } from '@streamerbot/client';
 
+// Define our own Action interface based on expected structure
+interface Action {
+    id: string;
+    name: string;
+    // Add other properties as needed based on actual response structure
+}
+
+// Define our own Broadcaster interface
+interface Broadcaster {
+    id?: string;
+    username?: string;
+    displayName?: string;
+    // Add other properties as needed based on actual response structure
+}
+
 export class StreamerBotService {
     public client: StreamerbotClient | null = null;
 
@@ -28,9 +43,31 @@ export class StreamerBotService {
     }
 
     /**
+     * Subscribes to all events from Streamer.bot and registers a callback
+     * @param callback The function to call when any event is received
+     */
+    onEvent(callback: (event: any) => void): void {
+        if (!this.client) throw new Error('Streamer.bot client is not initialized.');
+
+        // The client's `on` method can listen to all events using '*'
+        this.client.on('*', (message) => {
+            callback(message.data.event);
+        });
+        console.log('Subscribed to all Streamer.bot events.');
+    }
+
+    /**
+     * Fetches broadcaster information
+     */
+    async getBroadcaster(): Promise<Broadcaster | undefined> {
+        if (!this.client) throw new Error('Streamer.bot client is not initialized.');
+        return this.client.getBroadcaster() as Broadcaster;
+    }
+
+    /**
      * Fetches all available actions from Streamer.bot
      */
-    async getActions(): Promise<any[]> {
+    async getActions(): Promise<Action[]> {
         if (!this.client) throw new Error('Streamer.bot client is not initialized.');
         // getActions returns an object, not an array, so extract the actions array
         const response = await this.client.getActions();

@@ -1,8 +1,9 @@
+import Tooltip from './ui/Tooltip';
 import React, { useState, useEffect } from 'react';
 import { CatppuccinAccentColorName, OBSVideoSettings } from '../types';
 import { OBSWebSocketService } from '../services/obsService';
 import { Button } from './common/Button';
-import { PlusCircleIcon } from '@heroicons/react/24/solid';
+import AddToContextButton from './common/AddToContextButton';
 import { TextInput } from './common/TextInput';
 import { LoadingSpinner } from './common/LoadingSpinner';
 import { useAppStore } from '../store/appStore';
@@ -13,7 +14,6 @@ interface ObsMainControlsProps {
   obsService: OBSWebSocketService;
   onRefreshData: () => Promise<void>;
   setErrorMessage: (message: string | null) => void;
-  onSendToGeminiContext: (contextText: string) => void;
   accentColorName?: CatppuccinAccentColorName;
 }
 
@@ -21,7 +21,6 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
   obsService,
   onRefreshData,
   setErrorMessage,
-  onSendToGeminiContext,
   accentColorName
 }) => {
   // Collapsible state for each section
@@ -245,45 +244,30 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
 
   // Lock toggle button
   const LockToggle = ({ lockKey }: { lockKey: string }) => (
-    <label className="flex items-center space-x-2 text-xs text-muted-foreground cursor-pointer group">
-      <input
-        type="checkbox"
-        checked={isLocked(lockKey)}
-        onChange={(e) => {
-          e.stopPropagation();
-          setLock(lockKey, e.target.checked);
-        }}
-        className="appearance-none h-4 w-4 border-2 border-border rounded-sm bg-background
-                   checked:bg-primary checked:border-transparent focus:outline-none 
-                   focus:ring-2 focus:ring-offset-0 focus:ring-ring focus:ring-opacity-50
-                   transition duration-150 group-hover:border-border"
-        title={isLocked(lockKey) ? 'Unlock section' : 'Lock section'}
-      />
-      <span className="group-hover:text-foreground transition-colors duration-200">
-        <span className="mr-1">{isLocked(lockKey) ? '🔒' : '🔓'}</span>
-        {isLocked(lockKey) ? 'Locked' : 'Lock'}
-      </span>
-    </label>
+    <Tooltip content={isLocked(lockKey) ? 'Unlock section' : 'Lock section'}>
+      <label className="flex items-center space-x-2 text-xs text-muted-foreground cursor-pointer group">
+        <input
+          type="checkbox"
+          checked={isLocked(lockKey)}
+          onChange={(e) => {
+            e.stopPropagation();
+            setLock(lockKey, e.target.checked);
+          }}
+          className="appearance-none h-4 w-4 border-2 border-border rounded-sm bg-background
+                     checked:bg-primary checked:border-transparent focus:outline-none 
+                     focus:ring-2 focus:ring-offset-0 focus:ring-ring focus:ring-opacity-50
+                     transition duration-150 group-hover:border-border"
+        />
+        <span className="group-hover:text-foreground transition-colors duration-200">
+          <span className="mr-1">{isLocked(lockKey) ? '🔒' : '🔓'}</span>
+          {isLocked(lockKey) ? 'Locked' : 'Lock'}
+        </span>
+      </label>
+    </Tooltip>
   );
 
-  // Add to chat context button (shared)
-  const AddToContextButton = ({
-    onClick,
-    title = 'Add to chat context',
-    disabled = false,
-    className = ''
-  }: { onClick: () => void; title?: string; disabled?: boolean; className?: string }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={`ml-2 p-1 rounded-full border border-border bg-card/90 text-muted-foreground hover:text-purple-500 hover:bg-purple-500/10 shadow-md transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-purple-500/50 ${className}`}
-      title={title}
-      aria-label={title}
-    >
-      <PlusCircleIcon className="w-4 h-4" />
-    </button>
-  );
+  // Use the central handler from Zustand store for AddToContextButton
+
 
   return (
     <div className="flex flex-col gap-2 p-2 max-h-full overflow-y-auto">
@@ -359,7 +343,7 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
                       {scene.sceneName === currentProgramScene ? 'Active' : 'Switch'}
                     </Button>
                     <AddToContextButton
-                      onClick={() => onSendToGeminiContext(`OBS Scene: '${scene.sceneName}'${scene.sceneName === currentProgramScene ? ' (currently active)' : ''}`)}
+                      contextText={`OBS Scene: '${scene.sceneName}'${scene.sceneName === currentProgramScene ? ' (currently active)' : ''}`}
                       disabled={isLocked('scenes')}
                       title={`Add scene '${scene.sceneName}' to chat context`}
                     />
@@ -403,7 +387,7 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
                       {source.sceneItemEnabled ? 'Hide' : 'Show'}
                     </Button>
                     <AddToContextButton
-                      onClick={() => onSendToGeminiContext(`OBS Source: '${source.sourceName}' is ${source.sceneItemEnabled ? 'visible' : 'hidden'} in scene '${currentProgramScene || ''}'`)}
+                      contextText={`OBS Source: '${source.sourceName}' is ${source.sceneItemEnabled ? 'visible' : 'hidden'} in scene '${currentProgramScene || ''}'`}
                       disabled={isLocked('sources') || !currentProgramScene}
                       title={`Add source '${source.sourceName}' to chat context`}
                     />
