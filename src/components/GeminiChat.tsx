@@ -512,32 +512,50 @@ When a user asks for a Streamer.bot action, use this format.
 
           if (foundValidJson && jsonStr) {
             const parsed: GeminiActionResponse = JSON.parse(jsonStr);
+            // Enforce lock awareness for Gemini actions
             if (parsed.obsAction) {
-              // Fix: Check if obsAction is an array before accessing .type
+              const lockMap: Record<string, string> = {
+                startStream: 'streamRecord',
+                stopStream: 'streamRecord',
+                toggleStream: 'streamRecord',
+                startRecord: 'streamRecord',
+                stopRecord: 'streamRecord',
+                toggleRecord: 'streamRecord',
+                setVideoSettings: 'videoSettings',
+              };
+              const checkLocked = (action: any) => {
+                if (!action || !action.type) return false;
+                const lockKey = lockMap[action.type];
+                return lockKey && isLocked(lockKey);
+              };
               if (Array.isArray(parsed.obsAction)) {
-                // Handle array of actions
-                parsed.obsAction.forEach((action) => {
-                  // Now action is ObsAction, safe to access .type
-                  if (action.type === 'setCurrentProgramScene') {
-                    // ...handle setCurrentProgramScene...
+                for (const action of parsed.obsAction) {
+                  if (checkLocked(action)) {
+                    onAddMessage({ role: 'system', text: `🔒 Action "${action.type}" is locked and cannot be performed right now.` });
+                    continue;
                   }
-                  // ...handle other action types...
-                });
-              } else {
-                // Single action, safe to access .type
-                if (parsed.obsAction.type === 'setCurrentProgramScene') {
-                  // ...handle setCurrentProgramScene...
+                  // ...handle setCurrentProgramScene or other actions if needed...
                 }
-                // ...handle other action types...
+              } else {
+                if (checkLocked(parsed.obsAction)) {
+                  onAddMessage({ role: 'system', text: `🔒 Action "${parsed.obsAction.type}" is locked and cannot be performed right now.` });
+                } else {
+                  // ...handle setCurrentProgramScene or other actions if needed...
+                }
               }
             }
             if (parsed.obsAction !== undefined) {
               obsActionResult = await actions.handleObsAction(parsed.obsAction);
               await onRefreshData();
             }
+            if (parsed.streamerBotAction) {
+              await onStreamerBotAction(parsed.streamerBotAction);
+            }
             // Prefer responseText for display if present
             if (typeof parsed.responseText === 'string') {
               modelResponseText = parsed.responseText;
+            } else if (parsed.obsAction || parsed.streamerBotAction) {
+              modelResponseText = JSON.stringify(parsed, null, 2);
             }
           }
         } catch (err) {
@@ -735,10 +753,15 @@ When a user asks for a Streamer.bot action, use this format.
                 {streamerBotActions.slice(0, 3).map((action) => (
                   <button
                     key={action.id}
-                    className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs mb-1 hover:bg-indigo-100 transition"
+                    className="px-2 py-1 rounded-lg bg-[rgba(80,90,255,0.10)] text-indigo-400 border border-indigo-300 text-xs mb-1 hover:bg-indigo-200/30 hover:text-indigo-600 transition-colors duration-150 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
                     onClick={() => handleSuggestionClick(`Trigger Streamer.bot action: ${action.name}`)}
+                    style={{
+                      background: 'var(--background-color, rgba(80,90,255,0.10))',
+                      color: 'var(--accent-color, #6366f1)',
+                      borderColor: 'var(--outline-color, #6366f1, #a5b4fc)',
+                    }}
                   >
-                    🎯 {action.name}
+                    <span role="img" aria-label="StreamerBot Action" className="mr-1">🎯</span>{action.name}
                   </button>
                 ))}
               </div>
@@ -750,14 +773,21 @@ When a user asks for a Streamer.bot action, use this format.
                 type="text"
                 value={chatInputValue}
                 onChange={(e) => onChatInputChange(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter' && !isLoading) {
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !isLoading && isGeminiClientInitialized && chatInputValue.trim()) {
                     handleSend();
                   }
                 }}
-                className="w-full px-3 py-2 border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="Type your message..."
-                disabled={isLoading}
+                className="w-full px-3 py-2 rounded-lg bg-[rgba(30,30,40,0.85)] border border-border text-[var(--text-color)] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-accent transition-colors duration-150 shadow-sm"
+                placeholder={isLoading ? 'Waiting for Gemini...' : 'Type your message...'}
+                disabled={isLoading || !isGeminiClientInitialized}
+                autoComplete="off"
+                spellCheck={true}
+                style={{
+                  background: 'var(--background-color, rgba(30,30,40,0.85))',
+                  color: 'var(--text-color, #fff)',
+                  borderColor: 'var(--outline-color, #444)',
+                }}
               />
               <Button
                 type="button"

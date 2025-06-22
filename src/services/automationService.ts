@@ -239,7 +239,7 @@ export class AutomationService {
         for (let i = 0; i < rule.actions.length; i++) {
             const action = rule.actions[i];
             try {
-                await this.executeAction(action, rule.name, i + 1);
+                await this.executeAction(action, rule.name);
             } catch (error) {
                 console.error(`Error executing action ${i + 1} of rule "${rule.name}":`, error);
                 this.addMessage?.({
@@ -253,7 +253,7 @@ export class AutomationService {
     /**
      * Execute a single action
      */
-    private async executeAction(action: any, ruleName: string, actionIndex: number): Promise<void> {
+    private async executeAction(action: any, ruleName: string): Promise<void> {
         if (action.type === 'obs') {
             if (!this.handleObsAction) {
                 throw new Error('OBS action handler not available');
