@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import OBSWebSocket, { EventSubscription } from 'obs-websocket-js';
+import OBSWebSocket from 'obs-websocket-js';
 // Import GSAP test for development verification
 import './utils/gsapTest';
 import { ConnectionPanel } from './components/ConnectionPanel';
@@ -40,7 +40,7 @@ const App: React.FC = () => {
     const flipSides = useAppStore(state => state.flipSides);
     const theme = useAppStore(state => state.theme);
     const actions = useAppStore(state => state.actions);    // Local UI state (now much simpler!)
-    const [obs, setObs] = useState<OBSWebSocket | null>(null);
+    const [obs, setObs] = useState<any>(null);
     const [activeTab, setActiveTab] = useState<AppTab>(AppTab.GEMINI);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [geminiChatInput, setGeminiChatInput] = useState<string>('');
@@ -78,6 +78,9 @@ const App: React.FC = () => {
 
     // Update CSS custom properties when theme changes
     useEffect(() => {
+        // Set the data attribute for extra dark mode CSS selectors
+        document.documentElement.setAttribute('data-extra-dark-mode', extraDarkMode.toString());
+
         // Adjust colors for extra dark mode
         const adjustForExtraDarkMode = (rgb: string): string => {
             if (!extraDarkMode) return rgb;
@@ -90,6 +93,12 @@ const App: React.FC = () => {
         document.documentElement.style.setProperty('--dynamic-secondary-accent', catppuccinSecondaryAccentColorsHexMap[theme.secondaryAccent]);
         document.documentElement.style.setProperty('--user-chat-bubble-color', catppuccinChatBubbleColorsHexMap[theme.userChatBubble]);
         document.documentElement.style.setProperty('--model-chat-bubble-color', catppuccinChatBubbleColorsHexMap[theme.modelChatBubble]);
+
+        // Set theme colors as CSS variables for markdown effects
+        document.documentElement.style.setProperty('--theme-accent', catppuccinAccentColorsHexMap[theme.accent]);
+        document.documentElement.style.setProperty('--theme-secondary-accent', catppuccinSecondaryAccentColorsHexMap[theme.secondaryAccent]);
+        document.documentElement.style.setProperty('--theme-user-bubble', catppuccinChatBubbleColorsHexMap[theme.userChatBubble]);
+        document.documentElement.style.setProperty('--theme-model-bubble', catppuccinChatBubbleColorsHexMap[theme.modelChatBubble]);
 
         // Update RGB variables for chat bubble opacity
         const hexToRgb = (hex: string): string => {
@@ -200,10 +209,17 @@ const App: React.FC = () => {
     // Your `handleConnect` and `handleDisconnect` functions now call actions from the store
     const handleConnect = useCallback(async (address: string, password?: string) => {
         actions.setConnecting();
-        const newObs = new OBSWebSocket();
+        // Fix: Support both ESM and CJS builds of obs-websocket-js
+        let NewOBSWebSocket: any = OBSWebSocket;
+        // If the import is an object with a .default property, use that
+        if (OBSWebSocket && typeof OBSWebSocket === 'object' && 'default' in OBSWebSocket) {
+            NewOBSWebSocket = (OBSWebSocket as any).default;
+        }
+        const newObs = new NewOBSWebSocket();
         try {
+            // Per obs-websocket-js v5+ docs, use 0xFFFFFFFF to subscribe to all events
             await newObs.connect(address, password, {
-                eventSubscriptions: EventSubscription.All
+                eventSubscriptions: 0xFFFFFFFF // Subscribe to all events
             });
             setObs(newObs);
             const newObsService = new OBSWebSocketService(newObs);
@@ -472,7 +488,6 @@ const App: React.FC = () => {
                                 selectedModelChatBubbleColorName={theme.modelChatBubble}
                                 flipSides={flipSides}
                                 actions={actions}
-                                hideMemoryAndReset={true}
                             />
                         </div>
                     </div>
@@ -491,7 +506,6 @@ const App: React.FC = () => {
                 <div className={`h-full tab-content ${activeTab === AppTab.GEMINI ? 'block' : 'hidden'}`}>
                     <GeminiChat
                         geminiApiKeyFromInput={envApiKey || geminiApiKey}
-                        obsService={obsServiceInstance!}
                         streamerBotService={streamerBotService}
                         onRefreshData={fetchData}
                         setErrorMessage={setErrorMessage}

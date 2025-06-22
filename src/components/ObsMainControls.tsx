@@ -28,6 +28,7 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
   const [openScenes, setOpenScenes] = useState(true);
   const [openSources, setOpenSources] = useState(true);
   const [openVideo, setOpenVideo] = useState(true);
+  const [openStats, setOpenStats] = useState(false);
   // Use Zustand for OBS state
   const {
     scenes,
@@ -36,7 +37,9 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
     streamStatus,
     recordStatus,
     videoSettings: initialVideoSettings,
+    obsStats,
   } = useAppStore();
+  const { getStats } = useAppStore((state) => state.actions);
   const [isLoading, setIsLoading] = React.useState(false);
 
   // Video settings state
@@ -496,6 +499,92 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
                 </Button>
               </div>
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* Performance Stats Section */}
+      <div className="mb-2 border-b border-border last:border-b-0 rounded-lg bg-card shadow">
+        <button
+          className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted transition-colors rounded-t-lg group"
+          onClick={() => setOpenStats((v) => !v)}
+          aria-expanded={openStats}
+        >
+          <span className="text-foreground font-semibold text-base flex items-center gap-2">📊 Performance Stats</span>
+          <span className="flex items-center gap-2">
+            <LockToggle lockKey="stats" />
+            <span className="transition-transform duration-200 group-hover:text-primary">{openStats ? '▲' : '▼'}</span>
+          </span>
+        </button>
+        {openStats && (
+          <div className="px-6 pb-4 pt-2 animate-fade-in text-foreground">
+            <div className="flex items-center gap-2 mb-3">
+              <Button
+                onClick={async () => {
+                  try {
+                    await getStats();
+                  } catch (error: any) {
+                    setErrorMessage(`Failed to fetch stats: ${error.message}`);
+                  }
+                }}
+                disabled={isLocked('stats')}
+                variant="secondary"
+                accentColorName={accentColorName}
+                size="sm"
+              >
+                Refresh Stats
+              </Button>
+            </div>
+            {obsStats ? (
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">CPU Usage:</span>
+                    <span className={`font-mono ${obsStats.cpuUsage > 80 ? 'text-red-500' :
+                        obsStats.cpuUsage > 60 ? 'text-yellow-500' : 'text-green-500'
+                      }`}>
+                      {obsStats.cpuUsage?.toFixed(1) || 'N/A'}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Memory:</span>
+                    <span className="font-mono">
+                      {obsStats.memoryUsage ? `${(obsStats.memoryUsage / 1024 / 1024).toFixed(0)} MB` : 'N/A'}
+                    </span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Frame Time:</span>
+                    <span className={`font-mono ${obsStats.averageFrameTime > 33 ? 'text-red-500' :
+                        obsStats.averageFrameTime > 16.67 ? 'text-yellow-500' : 'text-green-500'
+                      }`}>
+                      {obsStats.averageFrameTime?.toFixed(1) || 'N/A'} ms
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Dropped Frames:</span>
+                    <span className={`font-mono ${(obsStats.outputSkippedFrames || 0) > 0 ? 'text-red-500' : 'text-green-500'
+                      }`}>
+                      {obsStats.outputSkippedFrames || 0}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center text-muted-foreground py-4">
+                <p>No stats available. Click "Refresh Stats" to fetch performance data.</p>
+              </div>
+            )}
+            {obsStats && (
+              <div className="mt-3 pt-2 border-t border-border">
+                <AddToContextButton
+                  contextText={`OBS Performance Stats: CPU: ${obsStats.cpuUsage?.toFixed(1)}%, Memory: ${obsStats.memoryUsage ? (obsStats.memoryUsage / 1024 / 1024).toFixed(0) + ' MB' : 'N/A'}, Frame Time: ${obsStats.averageFrameTime?.toFixed(1)}ms, Dropped Frames: ${obsStats.outputSkippedFrames || 0}`}
+                  disabled={isLocked('stats')}
+                  title="Add performance stats to chat context"
+                />
+              </div>
+            )}
           </div>
         )}
       </div>

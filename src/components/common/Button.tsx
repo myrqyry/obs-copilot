@@ -1,13 +1,14 @@
 
-
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
+import { gsap } from 'gsap';
 import { CatppuccinAccentColorName } from '../../types';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'warning';
+  variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'warning' | 'glass';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
   accentColorName?: CatppuccinAccentColorName;
+  withAnimation?: boolean;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -17,32 +18,94 @@ export const Button: React.FC<ButtonProps> = ({
   isLoading = false,
   className = '',
   accentColorName,
+  withAnimation = true,
   ...props
 }) => {
-  const baseStyles = 'font-semibold rounded-lg focus:outline-none transition-all duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg flex items-center justify-center focus:ring-2 focus:ring-offset-2 focus:ring-offset-background';
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  // GSAP animations
+  useEffect(() => {
+    if (!withAnimation || !buttonRef.current) return;
+
+    const button = buttonRef.current;
+
+    // Entrance animation
+    gsap.set(button, { scale: 0.95, opacity: 0 });
+    gsap.to(button, {
+      scale: 1,
+      opacity: 1,
+      duration: 0.3,
+      ease: 'back.out(1.7)',
+      delay: Math.random() * 0.1 // Slight stagger for multiple buttons
+    });
+
+    // Hover animations
+    const handleMouseEnter = () => {
+      gsap.to(button, {
+        scale: 1.05,
+        y: -2,
+        duration: 0.2,
+        ease: 'power2.out'
+      });
+    };
+
+    const handleMouseLeave = () => {
+      gsap.to(button, {
+        scale: 1,
+        y: 0,
+        duration: 0.2,
+        ease: 'power2.out'
+      });
+    };
+
+    const handleMouseDown = () => {
+      gsap.to(button, {
+        scale: 0.98,
+        duration: 0.1,
+        ease: 'power2.out'
+      });
+    };
+
+    const handleMouseUp = () => {
+      gsap.to(button, {
+        scale: 1.05,
+        duration: 0.1,
+        ease: 'power2.out'
+      });
+    };
+
+    button.addEventListener('mouseenter', handleMouseEnter);
+    button.addEventListener('mouseleave', handleMouseLeave);
+    button.addEventListener('mousedown', handleMouseDown);
+    button.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      button.removeEventListener('mouseenter', handleMouseEnter);
+      button.removeEventListener('mouseleave', handleMouseLeave);
+      button.removeEventListener('mousedown', handleMouseDown);
+      button.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [withAnimation]);
+
+  const baseStyles = 'font-semibold rounded-lg transition-colors duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center focus-ring enhanced-focus will-change-transform';
 
   const getVariantStyles = () => {
-    let styles = '';
     switch (variant) {
       case 'primary':
-        styles = `bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-ring`;
-        break;
+        return 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:shadow-xl';
       case 'secondary':
-        styles = `bg-secondary text-secondary-foreground hover:bg-secondary/80 focus:ring-ring`;
-        break;
+        return 'bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-md hover:shadow-lg';
       case 'danger':
-        styles = `bg-destructive text-destructive-foreground hover:bg-destructive/90 focus:ring-ring`;
-        break;
+        return 'bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-lg hover:shadow-xl';
       case 'success':
-        styles = `bg-green-600 text-white hover:bg-green-700 focus:ring-ring`;
-        break;
+        return 'bg-green-600 text-white hover:bg-green-700 shadow-lg hover:shadow-xl';
       case 'warning':
-        styles = `bg-orange-600 text-white hover:bg-orange-700 focus:ring-ring`;
-        break;
+        return 'bg-orange-600 text-white hover:bg-orange-700 shadow-lg hover:shadow-xl';
+      case 'glass':
+        return 'glass-button text-primary border hover:text-primary-foreground';
       default:
-        styles = `bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-ring`;
+        return 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:shadow-xl';
     }
-    return `${styles} hover:scale-[1.03] hover:-translate-y-0.5 focus:scale-[1.03] focus:-translate-y-0.5 active:scale-[0.98]`;
   };
 
 
@@ -79,15 +142,19 @@ export const Button: React.FC<ButtonProps> = ({
 
   return (
     <button
+      ref={buttonRef}
       className={`${baseStyles} ${getVariantStyles()} ${sizeStyles[size]} ${className}`}
       disabled={isLoading || props.disabled}
       {...props}
     >
       {isLoading ? (
-        <svg className="animate-spin h-5 w-5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
+        <>
+          <svg className="animate-spin h-4 w-4 mr-2 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Loading...
+        </>
       ) : buttonContent}
     </button>
   );

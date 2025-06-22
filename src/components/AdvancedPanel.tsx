@@ -5,8 +5,10 @@ import { useAppStore } from '../store/appStore';
 import { Button } from './common/Button';
 import { Card, CardContent } from './ui';
 import { cn } from '../lib/utils';
-import { PlusCircleIcon } from '@heroicons/react/24/solid';
 import AddToContextButton from './common/AddToContextButton';
+import AutomationRuleBuilder from './AutomationRuleBuilder';
+import { automationService } from '../services/automationService';
+import type { AutomationRule } from '../types/automation';
 
 const API_KEY_SERVICES = [
     { id: 'giphy', label: 'Giphy' },
@@ -61,8 +63,31 @@ export function removeCustomApiKey(service: string) {
 const OBS_SUBSCRIPTIONS_KEY = 'obsEventSubscriptions';
 
 const AdvancedPanel: React.FC = () => {
+    // Automation Rules State
+    const automationRules = useAppStore((state) => state.automationRules);
+    const obsLogFiles = useAppStore((state) => state.obsLogFiles);
+    const {
+        // addAutomationRule,
+        // updateAutomationRule,
+        deleteAutomationRule,
+        toggleAutomationRule,
+        handleObsAction,
+        // setStreamerBotServiceInstance,
+        getLogFiles,
+        uploadLog
+    } = useAppStore((state) => state.actions);
+    const streamerBotServiceInstance = useAppStore((state) => state.streamerBotServiceInstance);
+
+    const [openAutomation, setOpenAutomation] = useState(false);
+    const [showRuleBuilder, setShowRuleBuilder] = useState(false);
+    const [editingRule, setEditingRule] = useState<AutomationRule | null>(null);
+    const [ruleBuilderInitialEvent, setRuleBuilderInitialEvent] = useState<string | undefined>();
+
     // OBS Event Subscriptions State
     const [openObsEvents, setOpenObsEvents] = useState(false);
+    const [openLogs, setOpenLogs] = useState(false);
+    const [isUploadingLog, setIsUploadingLog] = useState(false);
+    const [uploadResult, setUploadResult] = useState<{ success: boolean; url?: string; message: string } | null>(null);
     const [obsEventSubscriptions, setObsEventSubscriptions] = useState<string[]>(() => {
         try {
             const stored = localStorage.getItem(OBS_SUBSCRIPTIONS_KEY);
@@ -170,6 +195,18 @@ const AdvancedPanel: React.FC = () => {
         }
     };
 
+    // Initialize automation service when services are available
+    useEffect(() => {
+        if (obsServiceInstance || streamerBotServiceInstance) {
+            automationService.initialize(
+                automationRules,
+                streamerBotServiceInstance,
+                handleObsAction,
+                addMessage
+            );
+        }
+    }, [obsServiceInstance, streamerBotServiceInstance, automationRules, handleObsAction, addMessage]);
+
     // Wire up event subscriptions when obsServiceInstance or obsEventSubscriptions change
     useEffect(() => {
         if (!obsServiceInstance) return;
@@ -182,13 +219,184 @@ const AdvancedPanel: React.FC = () => {
                     role: 'system',
                     text: `OBS Event: **${eventName}**\n\n\`\`\`json\n${JSON.stringify(event, null, 2)}\n\`\`\``,
                 });
+
+                // Process automation rules for this event
+                automationService.processEvent(eventName, event);
             };
         });
         obsServiceInstance.subscribeToEvents(handlers);
     }, [obsServiceInstance, obsEventSubscriptions, addMessage]);
 
+    // Automation rule handlers
+    const handleCreateRule = (eventName?: string) => {
+        setRuleBuilderInitialEvent(eventName);
+        setEditingRule(null);
+        setShowRuleBuilder(true);
+    };
+
+    const handleEditRule = (rule: AutomationRule) => {
+        setEditingRule(rule);
+        setRuleBuilderInitialEvent(undefined);
+        setShowRuleBuilder(true);
+    };
+
+    const handleDeleteRule = (ruleId: string) => {
+        if (window.confirm('Are you sure you want to delete this automation rule?')) {
+            deleteAutomationRule(ruleId);
+        }
+    };
+
+    const handleCloseRuleBuilder = () => {
+        setShowRuleBuilder(false);
+        setEditingRule(null);
+        setRuleBuilderInitialEvent(undefined);
+    };
+
+    // Get automation statistics
+    const automationStats = automationService.getStatistics();
+
     return (
         <div className="space-y-3 max-w-2xl mx-auto">
+            {/* Automation Rules Section */}
+            <Card className="border-border">
+                <button
+                    className="w-full p-1.5 flex items-center justify-between text-left hover:bg-muted transition-colors rounded-t-lg group"
+                    onClick={() => setOpenAutomation((v) => !v)}
+                    aria-expanded={openAutomation}
+                >
+                    <div className="flex items-center space-x-2">
+                        <span className="emoji text-sm">🤖</span>
+                        <span className="text-sm font-semibold text-foreground">Automation Rules</span>
+                        <span className="text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded-full">
+                            {automationStats.enabledRules}/{automationStats.totalRules}
+                        </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <span className="text-xs text-muted-foreground">
+                            {openAutomation ? 'Hide' : 'Show'} rules
+                        </span>
+                        <svg
+                            className={cn(
+                                "w-4 h-4 text-muted-foreground transition-transform duration-200",
+                                openAutomation ? 'rotate-180' : ''
+                            )}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+                </button>
+                {openAutomation && (
+                    <CardContent className="px-3 pb-3">
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <p className="text-sm text-muted-foreground">
+                                    Create automated responses to OBS events. Rules can trigger OBS actions or Streamer.bot actions when specific events occur.
+                                </p>
+                                <Button onClick={() => handleCreateRule()} size="sm">
+                                    Create Rule
+                                </Button>
+                            </div>
+
+                            {automationStats.totalTriggers > 0 && (
+                                <div className="text-xs text-muted-foreground">
+                                    📊 Total triggers: {automationStats.totalTriggers}
+                                </div>
+                            )}
+
+                            {automationRules.length === 0 ? (
+                                <div className="text-center py-8 text-muted-foreground">
+                                    <p className="mb-2">No automation rules created yet.</p>
+                                    <Button onClick={() => handleCreateRule()} size="sm" variant="secondary">
+                                        Create Your First Rule
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="space-y-2 max-h-64 overflow-y-auto">
+                                    {automationRules.map((rule) => (
+                                        <div key={rule.id} className="border rounded p-3 bg-muted/20">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="flex items-center space-x-2">
+                                                    <span className={cn(
+                                                        "w-2 h-2 rounded-full",
+                                                        rule.enabled ? "bg-green-500" : "bg-gray-400"
+                                                    )} />
+                                                    <span className="text-sm font-medium text-foreground">
+                                                        {rule.name}
+                                                    </span>
+                                                    {rule.triggerCount && rule.triggerCount > 0 && (
+                                                        <span className="text-xs bg-muted px-2 py-0.5 rounded">
+                                                            {rule.triggerCount} triggers
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center space-x-1">
+                                                    <Tooltip content={rule.enabled ? 'Disable rule' : 'Enable rule'}>
+                                                        <button
+                                                            onClick={() => toggleAutomationRule(rule.id)}
+                                                            className={cn(
+                                                                "w-6 h-6 rounded text-xs transition-colors",
+                                                                rule.enabled
+                                                                    ? "bg-green-100 text-green-700 hover:bg-green-200"
+                                                                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                                                            )}
+                                                        >
+                                                            {rule.enabled ? '✓' : '○'}
+                                                        </button>
+                                                    </Tooltip>
+                                                    <Button
+                                                        onClick={() => handleEditRule(rule)}
+                                                        size="sm"
+                                                        variant="secondary"
+                                                    >
+                                                        Edit
+                                                    </Button>
+                                                    <Button
+                                                        onClick={() => handleDeleteRule(rule.id)}
+                                                        size="sm"
+                                                        variant="danger"
+                                                    >
+                                                        Delete
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                                <div className="mb-1">
+                                                    <strong>Trigger:</strong> {rule.trigger.eventName}
+                                                    {Object.keys(rule.trigger.eventData || {}).length > 0 && (
+                                                        <span> (with filters)</span>
+                                                    )}
+                                                </div>
+                                                {rule.conditions && rule.conditions.length > 0 && (
+                                                    <div className="mb-1">
+                                                        <strong>Conditions:</strong> {rule.conditions.length} condition(s)
+                                                    </div>
+                                                )}
+                                                <div>
+                                                    <strong>Actions:</strong> {rule.actions.length} action(s)
+                                                    {rule.actions.map((action, index) => (
+                                                        <span key={index} className="ml-1">
+                                                            {action.type === 'obs' ? '🎛️' : '🤖'}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                                {rule.lastTriggered && (
+                                                    <div className="mt-1 text-xs opacity-75">
+                                                        Last triggered: {new Date(rule.lastTriggered).toLocaleString()}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </CardContent>
+                )}
+            </Card>
+
             {/* OBS Event Subscriptions Section */}
             <Card className="border-border">
                 <button
@@ -242,6 +450,16 @@ const AdvancedPanel: React.FC = () => {
                                             contextText={`OBS Event: '${event.name}'\n\nExample: \`\`\`json\n${JSON.stringify({ event: event.name, example: '...event data here...' }, null, 2)}\n\`\`\``}
                                         // Tooltip for AddToContextButton handled in AddToContextButton itself
                                         />
+                                        <Tooltip content={`Create automation rule for ${event.name}`}>
+                                            <Button
+                                                onClick={() => handleCreateRule(event.name)}
+                                                size="sm"
+                                                variant="secondary"
+                                                className="ml-1 text-xs px-2 py-1"
+                                            >
+                                                🤖
+                                            </Button>
+                                        </Tooltip>
                                     </div>
                                 ))}
                             </div>
@@ -249,6 +467,148 @@ const AdvancedPanel: React.FC = () => {
                     </CardContent>
                 )}
             </Card>
+
+            {/* OBS Logs Section */}
+            <Card className="border-border">
+                <button
+                    className="w-full p-1.5 flex items-center justify-between text-left hover:bg-muted transition-colors rounded-t-lg group"
+                    onClick={() => setOpenLogs((v) => !v)}
+                    aria-expanded={openLogs}
+                >
+                    <div className="flex items-center space-x-2">
+                        <span className="emoji text-sm">📝</span>
+                        <span className="text-sm font-semibold text-foreground">OBS Logs</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <span className="text-xs text-muted-foreground">
+                            {openLogs ? 'Hide' : 'Show'} options
+                        </span>
+                        <svg
+                            className={cn(
+                                "w-4 h-4 text-muted-foreground transition-transform duration-200",
+                                openLogs ? 'rotate-180' : ''
+                            )}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+                </button>
+                {openLogs && (
+                    <CardContent className="px-3 pb-3">
+                        <div className="space-y-4">
+                            <p className="text-sm text-muted-foreground">
+                                Access and upload OBS log files for debugging and troubleshooting. Upload logs to share with support or analyze streaming issues.
+                            </p>
+
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    onClick={async () => {
+                                        try {
+                                            await getLogFiles();
+                                        } catch (error: any) {
+                                            console.error('Failed to fetch log files:', error);
+                                        }
+                                    }}
+                                    size="sm"
+                                    variant="secondary"
+                                >
+                                    Fetch Log List
+                                </Button>
+                                <Button
+                                    onClick={async () => {
+                                        setIsUploadingLog(true);
+                                        setUploadResult(null);
+                                        try {
+                                            const result = await uploadLog();
+                                            setUploadResult(result);
+                                            if (result.success && result.url) {
+                                                addMessage({
+                                                    role: 'system',
+                                                    text: `📝 **OBS Log Uploaded Successfully**\n\nURL: ${result.url}\n\nYou can share this URL with support or for debugging purposes.`
+                                                });
+                                            }
+                                        } catch (error: any) {
+                                            setUploadResult({
+                                                success: false,
+                                                message: `Failed to upload log: ${error.message}`
+                                            });
+                                        } finally {
+                                            setIsUploadingLog(false);
+                                        }
+                                    }}
+                                    size="sm"
+                                    disabled={isUploadingLog}
+                                >
+                                    {isUploadingLog ? 'Uploading...' : 'Upload Latest Log'}
+                                </Button>
+                            </div>
+
+                            {uploadResult && (
+                                <div className={`p-3 rounded text-sm ${uploadResult.success
+                                    ? 'bg-green-100 text-green-800 border border-green-200'
+                                    : 'bg-red-100 text-red-800 border border-red-200'
+                                    }`}>
+                                    <div className="font-medium mb-1">
+                                        {uploadResult.success ? '✅ Upload Successful' : '❌ Upload Failed'}
+                                    </div>
+                                    <div className="text-xs">{uploadResult.message}</div>
+                                    {uploadResult.success && uploadResult.url && (
+                                        <div className="mt-2">
+                                            <a
+                                                href={uploadResult.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-blue-600 hover:text-blue-800 underline text-xs break-all"
+                                            >
+                                                {uploadResult.url}
+                                            </a>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {obsLogFiles && obsLogFiles.length > 0 && (
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-medium text-primary">Available Log Files:</label>
+                                    <div className="max-h-40 overflow-y-auto">
+                                        {obsLogFiles.map((logFile: any, index: number) => (
+                                            <div key={index} className="flex items-center justify-between bg-muted/30 px-3 py-2 rounded text-sm">
+                                                <div>
+                                                    <div className="font-medium text-foreground">{logFile.fileName || `Log ${index + 1}`}</div>
+                                                    {logFile.fileSize && (
+                                                        <div className="text-xs text-muted-foreground">
+                                                            Size: {(logFile.fileSize / 1024).toFixed(1)} KB
+                                                        </div>
+                                                    )}
+                                                    {logFile.creationTime && (
+                                                        <div className="text-xs text-muted-foreground">
+                                                            Created: {new Date(logFile.creationTime).toLocaleString()}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <AddToContextButton
+                                                    contextText={`OBS Log File: ${logFile.fileName || `Log ${index + 1}`}${logFile.fileSize ? ` (${(logFile.fileSize / 1024).toFixed(1)} KB)` : ''}${logFile.creationTime ? ` - Created: ${new Date(logFile.creationTime).toLocaleString()}` : ''}`}
+                                                    title="Add log file info to chat context"
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {obsLogFiles && obsLogFiles.length === 0 && (
+                                <div className="text-center text-muted-foreground py-4">
+                                    <p>No log files available. Click "Fetch Log List" to retrieve log files from OBS.</p>
+                                </div>
+                            )}
+                        </div>
+                    </CardContent>
+                )}
+            </Card>
+
             {/* Custom API Keys Section */}
             <Card className="border-border">
                 <button
@@ -457,6 +817,14 @@ const AdvancedPanel: React.FC = () => {
                     </CardContent>
                 )}
             </Card>
+
+            {/* Automation Rule Builder Modal */}
+            <AutomationRuleBuilder
+                isOpen={showRuleBuilder}
+                onClose={handleCloseRuleBuilder}
+                initialEventName={ruleBuilderInitialEvent}
+                editingRule={editingRule}
+            />
         </div>
     );
 };

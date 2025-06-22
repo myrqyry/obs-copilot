@@ -12,7 +12,7 @@ import { copyToClipboard } from '../utils/persistence';
 import { Card, CardContent } from './ui/Card';
 import HtmlTemplateBuilder from './HtmlTemplateBuilder';
 import { Modal } from './common/Modal';
-import { Button } from './ui/Button';
+import { Button } from './common/Button';
 import { FaviconIcon } from './common/FaviconIcon';
 import { FaviconDropdown } from './common/FaviconDropdown';
 import { cn } from '../lib/utils';
@@ -33,10 +33,7 @@ type ModalAction = {
     icon?: React.ReactNode;
 };
 
-// Memoize the Giphy API key to avoid unnecessary re-initializations
-const giphyApiKey = React.useMemo(() => getGiphyApiKey(), [getCustomApiKey('giphy')]);
-// GiphyFetch instance must be recreated if key changes
-let gf = new GiphyFetch(giphyApiKey);
+
 
 const SVG_APIS = [
     { label: 'Iconify', value: 'iconify', domain: 'iconify.design' },
@@ -85,11 +82,10 @@ const EMOJI_APIS = [
 type SvgResult = { name: string; svg: string };
 type EmojiResult = { [key: string]: any };
 
+
 export default function StreamingAssetsTab() {
-    // Recreate GiphyFetch if user key changes
-    React.useEffect(() => {
-        gf = new GiphyFetch(giphyApiKey);
-    }, [giphyApiKey]);
+    // Memoize the Giphy API key to avoid unnecessary re-initializations
+    // Memoize the GiphyFetch instance so it updates when the key changes
     const [openCards, setOpenCards] = useState<{
         html: boolean;
         giphy: boolean;
@@ -154,8 +150,8 @@ export default function StreamingAssetsTab() {
     // Random emoji for header - generate once per component render
     const [randomHeaderEmoji] = useState(() => getRandomEmoji());
 
-
     // --- GIF Section State ---
+    const [modalContent, setModalContent] = useState<{ type: 'gif' | 'svg' | 'emoji' | 'background' | 'sticker', data: any } | null>(null);
     const [gifApi, setGifApi] = useState('giphy');
     const [gifQuery, setGifQuery] = useState('');
     const [gifResults, setGifResults] = useState<any[]>([]);
@@ -177,69 +173,11 @@ export default function StreamingAssetsTab() {
     const [emojiPage, setEmojiPage] = useState(0);
     const [emojiSearched, setEmojiSearched] = useState(false);
 
-    const [stickersQuery, setStickersQuery] = useState('');
-    const [stickersResults, setStickersResults] = useState<any[]>([]);
-    const [stickersLoading, setStickersLoading] = useState(false);
-    const [stickersPage, setStickersPage] = useState(0);
-    const [stickersSearched, setStickersSearched] = useState(false);
-    const [modalContent, setModalContent] = useState<{ type: 'gif' | 'svg' | 'emoji' | 'background' | 'sticker', data: any } | null>(null);
-    // --- Stickers Search Handler (Iconfinder, free stickers only) ---
-    const handleStickersSearch = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!stickersQuery.trim()) return;
-        setStickersLoading(true);
-        setStickersResults([]);
-        setStickersPage(0);
-        setStickersSearched(true);
-        try {
-            const limit = 12 * 4; // 4 pages of 12 (4x3 grid)
-            const params = new URLSearchParams({
-                api: 'iconfinder',
-                query: stickersQuery,
-                count: String(limit),
-                premium: '0',
-                vector: '0',
-                style: 'sticker',
-            });
-            const url = `/api/proxy?${params.toString()}`;
-            const res = await fetch(url);
-            if (!res.ok) throw new Error('Iconfinder API error');
-            const data = await res.json();
-            // Map stickers to add png_url from raster_sizes
-            const stickers = (data.icons || []).map((icon: any) => {
-                let png_url = undefined;
-                if (icon.raster_sizes && icon.raster_sizes.length > 0) {
-                    // Try all raster sizes, prefer largest, but fallback to any available PNG
-                    for (let i = icon.raster_sizes.length - 1; i >= 0; i--) {
-                        const raster = icon.raster_sizes[i];
-                        if (raster.formats && raster.formats.length > 0) {
-                            const pngFormat = raster.formats.find((f: any) => f.format === 'png');
-                            if (pngFormat && pngFormat.download_url) {
-                                png_url = pngFormat.download_url;
-                                break;
-                            }
-                        }
-                    }
-                }
-                return { ...icon, png_url };
-            }).filter((icon: any) => icon.is_premium === false && icon.png_url);
-            setStickersResults(stickers.slice(0, limit).map((icon: any) => ({
-                name: icon.tags && icon.tags.length > 0 ? icon.tags[0] : icon.icon_id,
-                img: `<img src="${icon.png_url}" alt="${icon.tags && icon.tags.length > 0 ? icon.tags[0] : icon.icon_id}" />`,
-                png_url: icon.png_url,
-                icon_id: icon.icon_id,
-            })));
-        } catch (err) {
-            console.error('Stickers fetch error:', err);
-        }
-        setStickersLoading(false);
-    };
 
     const obsServiceInstance = useAppStore(state => state.obsServiceInstance);
     const currentProgramScene = useAppStore(state => state.currentProgramScene);
     const isConnected = useAppStore(state => state.isConnected);
     const accentColorName = useAppStore(state => state.userSettings.theme.accent);
-
 
     const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
 
@@ -635,41 +573,6 @@ export default function StreamingAssetsTab() {
                 </div>
             ))}
 
-            {/*
-            {renderCollapsibleCard('stickers', 'Stickers', '✨', (
-                <div>
-                    <form onSubmit={handleStickersSearch} className="flex items-center space-x-2 mb-4">
-                        <input type="text" value={stickersQuery} onChange={(e) => setStickersQuery(e.target.value)} placeholder="Search for stickers..." className="input flex-grow" />
-                        <Button type="submit" disabled={stickersLoading || !stickersQuery.trim()}>{stickersLoading ? 'Searching...' : 'Search'}</Button>
-                    </form>
-                    {stickersLoading && <div className="text-center">Loading...</div>}
-                    {!stickersLoading && stickersSearched && stickersResults.length === 0 && <div className="text-center text-muted-foreground">No results found.</div>}
-                    <div className="grid grid-cols-4 gap-2">
-                        {getPaginatedItems(stickersResults, stickersPage).map((result) => (
-                            <div key={result.icon_id} className="relative group cursor-pointer p-2 bg-slate-800 rounded-md flex items-center justify-center aspect-square" onClick={() => setModalContent({ type: 'sticker', data: result })}>
-                                <img
-                                    src={result.png_url}
-                                    alt={result.name}
-                                    className="max-w-full max-h-full object-contain"
-                                    onError={e => {
-                                        if (e.currentTarget.src && !e.currentTarget.src.endsWith('/broken-image.png')) {
-                                            e.currentTarget.src = '/broken-image.png';
-                                        }
-                                    }}
-                                />
-                            </div>
-                        ))}
-                    </div>
-                    {getTotalPages(stickersResults) > 1 && (
-                        <div className="flex justify-center items-center space-x-2 mt-4">
-                            <Button variant="secondary" size="sm" onClick={() => setStickersPage(stickersPage - 1)} disabled={stickersPage === 0}>Previous</Button>
-                            <span className="text-sm text-muted-foreground">Page {stickersPage + 1} of {getTotalPages(stickersResults)}</span>
-                            <Button variant="secondary" size="sm" onClick={() => setStickersPage(stickersPage + 1)} disabled={stickersPage >= getTotalPages(stickersResults) - 1}>Next</Button>
-                        </div>
-                    )}
-                </div>
-            ))}
-            */}
             {renderCollapsibleCard('backgrounds', 'Backgrounds', '🖼️', (
                 <div>
                     <form onSubmit={handleBackgroundSearch} className="flex items-center space-x-2 mb-4">

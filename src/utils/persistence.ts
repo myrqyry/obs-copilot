@@ -1,4 +1,5 @@
 // src/utils/persistence.ts
+import type { AutomationRule } from '../types/automation';
 
 export const STORAGE_KEYS = {
     USER_SETTINGS: 'obs-copilot-user-settings',
@@ -23,6 +24,7 @@ export interface UserSettings {
     streamerName?: string;
     geminiApiKey?: string; // Optional - user can choose to persist this
     userDefinedContext?: string[]; // Array to store user-added contexts
+    automationRules?: AutomationRule[]; // Automation rules for OBS event triggers
 }
 
 export interface ConnectionSettings {

@@ -1,21 +1,11 @@
-import OBSWebSocket, { OBSResponseTypes, OBSRequestTypes } from 'obs-websocket-js';
-import { OBSVideoSettings } from '../types';
 
 export class OBSWebSocketService {
-  private obs: OBSWebSocket;
+  private obs: any;
 
-  constructor(obsInstance: OBSWebSocket) {
+  constructor(obsInstance: any) {
     this.obs = obsInstance;
   }
 
-  /**
-   * Subscribe to OBS events. Example usage:
-   *   obsService.subscribeToEvents({
-   *     CurrentPreviewSceneChanged: handler,
-   *     SceneCreated: handler,
-   *     ...
-   *   })
-   */
   subscribeToEvents(eventHandlers: Partial<Record<string, (...args: any[]) => void>>): void {
     for (const [event, handler] of Object.entries(eventHandlers)) {
       if (typeof handler === 'function') {
@@ -24,11 +14,11 @@ export class OBSWebSocketService {
     }
   }
 
-  async getSceneList(): Promise<OBSResponseTypes['GetSceneList']> {
+  async getSceneList(): Promise<any> {
     return this.obs.call('GetSceneList');
   }
 
-  async getCurrentProgramScene(): Promise<OBSResponseTypes['GetCurrentProgramScene']> {
+  async getCurrentProgramScene(): Promise<any> {
     return this.obs.call('GetCurrentProgramScene');
   }
 
@@ -36,7 +26,8 @@ export class OBSWebSocketService {
     await this.obs.call('SetCurrentProgramScene', { sceneName });
   }
 
-  async getSceneItemList(sceneName: string): Promise<OBSResponseTypes['GetSceneItemList']> {
+
+  async getSceneItemList(sceneName: string): Promise<any> {
     return this.obs.call('GetSceneItemList', { sceneName });
   }
 
@@ -63,7 +54,7 @@ export class OBSWebSocketService {
     }
   }
 
-  async getStreamStatus(): Promise<OBSResponseTypes['GetStreamStatus']> {
+  async getStreamStatus(): Promise<any> {
     return this.obs.call('GetStreamStatus');
   }
 
@@ -75,7 +66,7 @@ export class OBSWebSocketService {
     await this.obs.call('StopStream');
   }
 
-  async getRecordStatus(): Promise<OBSResponseTypes['GetRecordStatus']> {
+  async getRecordStatus(): Promise<any> {
     return this.obs.call('GetRecordStatus');
   }
 
@@ -91,12 +82,12 @@ export class OBSWebSocketService {
     await this.obs.call('ToggleRecordPause');
   }
 
-  async getVideoSettings(): Promise<OBSResponseTypes['GetVideoSettings']> {
+  async getVideoSettings(): Promise<any> {
     return this.obs.call('GetVideoSettings');
   }
 
-  async setVideoSettings(settings: OBSVideoSettings): Promise<void> {
-    const params: OBSRequestTypes['SetVideoSettings'] = {
+  async setVideoSettings(settings: any): Promise<void> {
+    const params = {
       baseWidth: settings.baseWidth,
       baseHeight: settings.baseHeight,
       outputWidth: settings.outputWidth,
@@ -113,17 +104,14 @@ export class OBSWebSocketService {
     inputSettings?: Record<string, any>,
     sceneName?: string,
     sceneItemEnabled: boolean = true
-  ): Promise<OBSResponseTypes['CreateInput']> {
-    const requestParams: OBSRequestTypes['CreateInput'] = {
+  ): Promise<any> {
+    const requestParams = {
       inputName,
       inputKind,
       inputSettings,
       sceneItemEnabled,
     };
     if (sceneName) {
-      // OBS WebSocket documentation shows sceneName at root for CreateInput
-      // but obs-websocket-js types might place it under scene (which is wrong for CreateInput)
-      // So we cast to any to ensure correct parameter placement based on protocol
       (requestParams as any).sceneName = sceneName;
     }
 
@@ -134,15 +122,15 @@ export class OBSWebSocketService {
     await this.obs.call('SetInputSettings', { inputName, inputSettings, overlay });
   }
 
-  async getInputSettings(inputName: string): Promise<OBSResponseTypes['GetInputSettings']> {
+  async getInputSettings(inputName: string): Promise<any> {
     return this.obs.call('GetInputSettings', { inputName });
   }
 
-  async getSourceFilterList(sourceName: string): Promise<OBSResponseTypes['GetSourceFilterList']> {
+  async getSourceFilterList(sourceName: string): Promise<any> {
     return this.obs.call('GetSourceFilterList', { sourceName });
   }
 
-  async getSourceFilter(sourceName: string, filterName: string): Promise<OBSResponseTypes['GetSourceFilter']> {
+  async getSourceFilter(sourceName: string, filterName: string): Promise<any> {
     return this.obs.call('GetSourceFilter', { sourceName, filterName });
   }
 
@@ -379,6 +367,24 @@ export class OBSWebSocketService {
     await this.obs.call('TriggerHotkeyByKeySequence', { keyId, keyModifiers });
   }
 
+  async getHotkeyList(): Promise<any> {
+    return this.obs.call('GetHotkeyList');
+  }
+
+  // Performance Stats
+  async getStats(): Promise<any> {
+    return this.obs.call('GetStats');
+  }
+
+  // Log Management
+  async getLogFileList(): Promise<any> {
+    return this.obs.call('GetLogFileList');
+  }
+
+  async uploadLog(): Promise<any> {
+    return this.obs.call('UploadLog');
+  }
+
   // Source Filter Settings
   async getSourceFilterSettings(sourceName: string, filterName: string): Promise<any> {
     return await (this.obs as any).call('GetSourceFilterSettings', { sourceName, filterName });
@@ -395,7 +401,7 @@ export class OBSWebSocketService {
 
   // Profile
   async getCurrentProfile(): Promise<any> {
-    return await this.obs.call('GetCurrentProfile' as keyof OBSRequestTypes);
+    return await this.obs.call('GetCurrentProfile');
   }
 
   async setCurrentProfile(profileName: string): Promise<void> {
@@ -404,7 +410,7 @@ export class OBSWebSocketService {
 
   // Scene Collection
   async getCurrentSceneCollection(): Promise<any> {
-    return await this.obs.call('GetCurrentSceneCollection' as keyof OBSRequestTypes);
+    return await this.obs.call('GetCurrentSceneCollection');
   }
 
   async setCurrentSceneCollection(sceneCollectionName: string): Promise<void> {

@@ -7,6 +7,7 @@ import { LoadingSpinner } from './common/LoadingSpinner';
 import { ChatMessageItem } from './chat/ChatMessageItem';
 // Removed useObsActions import - now using store directly
 import { GEMINI_MODEL_NAME, INITIAL_SYSTEM_PROMPT } from '../constants';
+import { buildMarkdownStylingSystemMessage } from '../utils/systemPrompts';
 import { detectChoiceQuestion } from '../utils/choiceDetection';
 import {
   ChatMessage,
@@ -16,15 +17,12 @@ import {
 import type {
   GeminiActionResponse
 } from '../types/obsActions';
-import { OBSWebSocketService } from '../services/obsService';
 import { useAppStore } from '../store/appStore';
 import { useLockStore } from '../store/lockStore';
-import { logoAnimations } from '../utils/gsapAnimations';
-import { uiAnimations } from '../utils/gsapAnimations';
+import { logoAnimations, triggerTextSplitOnSend } from '../utils/gsapAnimations';
 
 interface GeminiChatProps {
   geminiApiKeyFromInput?: string;
-  obsService: OBSWebSocketService;
   streamerBotService: any;
   onRefreshData: () => Promise<void>;
   setErrorMessage: (message: string | null) => void;
@@ -43,7 +41,6 @@ interface GeminiChatProps {
 
 export const GeminiChat: React.FC<GeminiChatProps> = ({
   geminiApiKeyFromInput,
-  obsService,
   streamerBotService,
   onRefreshData,
   setErrorMessage,
@@ -53,7 +50,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
   messages,
   onAddMessage,
   isGeminiClientInitialized,
-  geminiInitializationError,
+  // geminiInitializationError,
   onSetIsGeminiClientInitialized,
   onSetGeminiInitializationError,
   onStreamerBotAction,
@@ -97,7 +94,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const ai = useRef<GoogleGenAI | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
-  const sendButtonRef = useRef<HTMLButtonElement>(null);
+  const chatInputRef = useRef<HTMLInputElement>(null);
 
   // Handle adding messages to context
   const handleAddToContext = useCallback((text: string) => {
@@ -220,6 +217,15 @@ When a user asks for a Streamer.bot action, use this format.
   const handleSend = async () => {
     if (!chatInputValue.trim() || !ai.current || isLoading) return;
 
+    // Trigger text split animation before sending
+    const inputElement = chatInputRef.current;
+
+    if (inputElement) {
+      // Find the send button element by class or nearby element
+      const sendButton = inputElement.parentElement?.querySelector('button[class*="primary"]') as HTMLElement;
+      triggerTextSplitOnSend(inputElement, sendButton);
+    }
+
     // Remove the previous limitation - now both OBS and web search can work together
     // Only warn if OBS is not connected AND the user is trying to do OBS actions specifically
     const userMessageText = chatInputValue.trim();
@@ -237,7 +243,7 @@ When a user asks for a Streamer.bot action, use this format.
     try {
       let finalPrompt = userMessageText;
       // Now include both OBS and web search capabilities in the system prompt
-      const baseSystemPrompt = `${INITIAL_SYSTEM_PROMPT}\n\n${buildObsSystemMessage()}\n\n${buildStreamerBotSystemMessage()}`;
+      const baseSystemPrompt = `${INITIAL_SYSTEM_PROMPT}\n\n${buildObsSystemMessage()}\n\n${buildStreamerBotSystemMessage()}\n\n${buildMarkdownStylingSystemMessage()}`;
       const systemPrompt = useGoogleSearch
         ? `${baseSystemPrompt}\n\nYou can also use Google Search to find current information when needed. When you need to search for something, include it in your response. You can provide both OBS actions AND web search results in the same response when appropriate.`
         : baseSystemPrompt;
@@ -314,8 +320,7 @@ When a user asks for a Streamer.bot action, use this format.
           const parsed: GeminiActionResponse = JSON.parse(jsonStr);
           // Enforce lock awareness for Gemini actions
           if (parsed.obsAction && isConnected) {
-            // Map action types to lock keys
-            const actionType = parsed.obsAction.type;
+            // Support both single and array obsAction
             const lockMap: Record<string, string> = {
               startStream: 'streamRecord',
               stopStream: 'streamRecord',
@@ -325,12 +330,26 @@ When a user asks for a Streamer.bot action, use this format.
               toggleRecord: 'streamRecord',
               setVideoSettings: 'videoSettings',
             };
-            const lockKey = lockMap[actionType];
-            if (lockKey && isLocked(lockKey)) {
-              onAddMessage({ role: 'system', text: "Looks like you've locked this setting, so I won't change it for you. If you want me to help with this, just unlock it in the settings!" });
+            const checkLocked = (action: any) => {
+              const lockKey = lockMap[action.type];
+              return lockKey && isLocked(lockKey);
+            };
+            if (Array.isArray(parsed.obsAction)) {
+              // If any action is locked, block all
+              const lockedAction = parsed.obsAction.find(checkLocked);
+              if (lockedAction) {
+                onAddMessage({ role: 'system', text: "Looks like you've locked this setting, so I won't change it for you. If you want me to help with this, just unlock it in the settings!" });
+              } else {
+                obsActionResult = await actions.handleObsAction(parsed.obsAction);
+                await onRefreshData();
+              }
             } else {
-              obsActionResult = await actions.handleObsAction(parsed.obsAction);
-              await onRefreshData();
+              if (checkLocked(parsed.obsAction)) {
+                onAddMessage({ role: 'system', text: "Looks like you've locked this setting, so I won't change it for you. If you want me to help with this, just unlock it in the settings!" });
+              } else {
+                obsActionResult = await actions.handleObsAction(parsed.obsAction);
+                await onRefreshData();
+              }
             }
           }
           if (parsed.streamerBotAction) {
@@ -423,7 +442,7 @@ When a user asks for a Streamer.bot action, use this format.
     setIsLoading(true);
 
     try {
-      const baseSystemPrompt = `${INITIAL_SYSTEM_PROMPT}\n\n${buildObsSystemMessage()}`;
+      const baseSystemPrompt = `${INITIAL_SYSTEM_PROMPT}\n\n${buildObsSystemMessage()}\n\n${buildMarkdownStylingSystemMessage()}`;
       const systemPrompt = useGoogleSearch
         ? `${baseSystemPrompt}\n\nYou can also use Google Search to find current information when needed. When you need to search for something, include it in your response. You can provide both OBS actions AND web search results in the same response when appropriate.`
         : baseSystemPrompt;
@@ -494,6 +513,25 @@ When a user asks for a Streamer.bot action, use this format.
           if (foundValidJson && jsonStr) {
             const parsed: GeminiActionResponse = JSON.parse(jsonStr);
             if (parsed.obsAction) {
+              // Fix: Check if obsAction is an array before accessing .type
+              if (Array.isArray(parsed.obsAction)) {
+                // Handle array of actions
+                parsed.obsAction.forEach((action) => {
+                  // Now action is ObsAction, safe to access .type
+                  if (action.type === 'setCurrentProgramScene') {
+                    // ...handle setCurrentProgramScene...
+                  }
+                  // ...handle other action types...
+                });
+              } else {
+                // Single action, safe to access .type
+                if (parsed.obsAction.type === 'setCurrentProgramScene') {
+                  // ...handle setCurrentProgramScene...
+                }
+                // ...handle other action types...
+              }
+            }
+            if (parsed.obsAction !== undefined) {
               obsActionResult = await actions.handleObsAction(parsed.obsAction);
               await onRefreshData();
             }
@@ -598,14 +636,6 @@ When a user asks for a Streamer.bot action, use this format.
     }
   }, [isGeminiClientInitialized]);
 
-  useEffect(() => {
-    const btn = sendButtonRef.current;
-    if (!btn) return;
-    const onEnter = () => uiAnimations.buttonHover(btn);
-    btn.addEventListener('mouseenter', onEnter);
-    return () => btn.removeEventListener('mouseenter', onEnter);
-  }, []);
-
   const validatedBackgroundOpacity = Math.min(Math.max(backgroundOpacity, 0), 1); // Ensure opacity is between 0 and 1
   const validatedCustomChatBackground = customChatBackground || 'none'; // Fallback to 'none' if empty
 
@@ -636,18 +666,20 @@ When a user asks for a Streamer.bot action, use this format.
     <div className="flex flex-col h-full bg-background border-l border-r border-b border-border rounded-b-lg shadow-lg relative">
       {/* Background image with opacity - separate from content */}
       {validatedCustomChatBackground !== 'none' && (
-        <div
-          className="absolute inset-0 rounded-b-lg"
-          style={{
-            backgroundImage: `url(${validatedCustomChatBackground})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-            opacity: validatedBackgroundOpacity,
-            zIndex: 0,
-            mixBlendMode: (chatBackgroundBlendMode || 'normal') as React.CSSProperties['mixBlendMode'],
-          }}
-        />
+        <>
+          <div
+            className="absolute inset-0 rounded-b-lg"
+            style={{
+              backgroundImage: `url(${validatedCustomChatBackground})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              opacity: validatedBackgroundOpacity,
+              zIndex: 0,
+              mixBlendMode: (chatBackgroundBlendMode || 'normal') as React.CSSProperties['mixBlendMode'],
+            }}
+          ></div>
+        </>
       )}
       <div className="flex-grow p-2 space-y-2 overflow-y-auto relative z-10">
         {messages.map((msg, idx) => (
@@ -665,7 +697,6 @@ When a user asks for a Streamer.bot action, use this format.
             userChatBubbleColorName={userChatBubbleColorName}
             modelChatBubbleColorName={modelChatBubbleColorName}
             customChatBackground={validatedCustomChatBackground}
-            backgroundOpacity={validatedBackgroundOpacity}
           />
         ))}
         {isLoading && (
@@ -697,7 +728,7 @@ When a user asks for a Streamer.bot action, use this format.
           )}
           {/* Custom input with integrated web search toggle */}
           <div className="relative flex-grow">
-            {/* Enhancement 8: Streamer.bot action suggestions */}
+            {/* StreamerBot actions dropdown or suggestions can go here if needed */}
             {streamerBotActions.length > 0 && (
               <div className="absolute right-0 top-0 z-20 flex flex-col items-end space-y-1 pr-2 pt-1">
                 <div className="text-xs text-muted-foreground mb-1">Streamer.bot Actions:</div>
@@ -712,89 +743,97 @@ When a user asks for a Streamer.bot action, use this format.
                 ))}
               </div>
             )}
-            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 z-10 flex items-center space-x-1">
-              <Tooltip content={useGoogleSearch ? "Web search enabled" : "Click to enable web search"}>
-                <button
-                  onClick={() => setUseGoogleSearch(!useGoogleSearch)}
-                  disabled={!isGeminiClientInitialized}
-                  className={`p-1 rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary/50 ${useGoogleSearch
-                    ? 'text-primary bg-primary/10 hover:bg-primary/20'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                    } ${!isGeminiClientInitialized ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                  aria-label={useGoogleSearch ? "Disable web search" : "Enable web search"}
-                >
-                  <GlobeAltIcon className="w-4 h-4" />
-                </button>
-              </Tooltip>
-              <Tooltip content={isConnected && currentProgramScene ? "Take screenshot of current scene" : "Connect to OBS to take screenshots"}>
-                <button
-                  onClick={async () => {
-                    if (!isConnected || !currentProgramScene) {
-                      onAddMessage({ role: 'system', text: "📸 Need to be connected to OBS with an active scene to take screenshots!" });
-                      return;
-                    }
-                    try {
-                      const screenshot = await actions.handleObsAction({
-                        type: 'getSourceScreenshot',
-                        sourceName: currentProgramScene,
-                        imageFormat: 'png'
-                      });
-                      if (screenshot.success) {
-                        onAddMessage({ role: 'system', text: screenshot.message });
-                        // Also add the screenshot info to context for AI analysis
-                        handleAddToContext(`Screenshot of current scene \"${currentProgramScene}\" has been captured and is available for analysis.`);
-                      } else {
-                        onAddMessage({ role: 'system', text: `📸 Screenshot failed: ${screenshot.error}` });
-                      }
-                    } catch (error: any) {
-                      onAddMessage({ role: 'system', text: `📸 Screenshot error: ${error.message}` });
-                    }
-                  }}
-                  disabled={!isGeminiClientInitialized || !isConnected || !currentProgramScene}
-                  className={`p-1 rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-orange-500/50 ${isConnected && currentProgramScene
-                    ? 'text-orange-500 hover:text-orange-600 hover:bg-orange-500/10'
-                    : 'text-muted-foreground cursor-not-allowed opacity-50'
-                    }`}
-                  aria-label="Take screenshot of current scene"
-                >
-                  <CameraIcon className="w-4 h-4" />
-                </button>
-              </Tooltip>
+            <div className="flex items-center">
+              <input
+                ref={chatInputRef}
+                id="gemini-input"
+                type="text"
+                value={chatInputValue}
+                onChange={(e) => onChatInputChange(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !isLoading) {
+                    handleSend();
+                  }
+                }}
+                className="w-full px-3 py-2 border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                placeholder="Type your message..."
+                disabled={isLoading}
+              />
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                accentColorName={accentColorName}
+                onClick={handleSend}
+                disabled={isLoading || !chatInputValue.trim()}
+                className="ml-2 flex items-center justify-center"
+              >
+                {isLoading ? (
+                  <div className="flex items-center space-x-1">
+                    <LoadingSpinner size={3} />
+                    <span>Sending</span>
+                  </div>
+                ) : (
+                  <>
+                    <span role="img" aria-label="Send" className="mr-1">🚀</span>Send
+                  </>
+                )}
+              </Button>
             </div>
-            <input
-              id="gemini-input"
-              type="text"
-              value={chatInputValue}
-              onChange={(e) => onChatInputChange(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && !isLoading && isGeminiClientInitialized && handleSend()}
-              placeholder={!isGeminiClientInitialized ? (geminiInitializationError || "Gemini not ready...") : "Ask Gemini or command OBS..."}
-              className="w-full pl-16 pr-4 py-2 text-sm bg-background border border-border rounded-md 
-                         focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50
-                         disabled:opacity-50 disabled:cursor-not-allowed
-                         placeholder:text-muted-foreground"
-              disabled={isLoading || !isGeminiClientInitialized}
-              autoComplete="off"
-            />
           </div>
-          <Button
-            onClick={handleSend}
-            disabled={isLoading || !chatInputValue.trim() || !isGeminiClientInitialized}
-            variant="primary"
-            size="sm"
-            accentColorName={accentColorName}
-          >
-            {isLoading ? (
-              <div className="flex items-center space-x-1">
-                <LoadingSpinner size={3} />
-                <span>Sending</span>
-              </div>
-            ) : (
-              '🚀 Send'
-            )}
-          </Button>
+          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 z-10 flex items-center space-x-1">
+            <Tooltip content={useGoogleSearch ? "Web search enabled" : "Click to enable web search"}>
+              <button
+                onClick={() => setUseGoogleSearch(!useGoogleSearch)}
+                disabled={!isGeminiClientInitialized}
+                className={`p-1 rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary/50 ${useGoogleSearch
+                  ? 'text-primary bg-primary/10 hover:bg-primary/20'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                  } ${!isGeminiClientInitialized ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                aria-label={useGoogleSearch ? "Disable web search" : "Enable web search"}
+              >
+                <GlobeAltIcon className="w-4 h-4" />
+              </button>
+            </Tooltip>
+            <Tooltip content={isConnected && currentProgramScene ? "Take screenshot of current scene" : "Connect to OBS to take screenshots"}>
+              <button
+                onClick={async () => {
+                  if (!isConnected || !currentProgramScene) {
+                    onAddMessage({ role: 'system', text: "📸 Need to be connected to OBS with an active scene to take screenshots!" });
+                    return;
+                  }
+                  try {
+                    const screenshot = await actions.handleObsAction({
+                      type: 'getSourceScreenshot',
+                      sourceName: currentProgramScene,
+                      imageFormat: 'png'
+                    });
+                    if (screenshot.success) {
+                      onAddMessage({ role: 'system', text: screenshot.message });
+                      // Also add the screenshot info to context for AI analysis
+                      handleAddToContext(`Screenshot of current scene \"${currentProgramScene}\" has been captured and is available for analysis.`);
+                    } else {
+                      onAddMessage({ role: 'system', text: `📸 Screenshot failed: ${screenshot.error}` });
+                    }
+                  } catch (error: any) {
+                    onAddMessage({ role: 'system', text: `📸 Screenshot error: ${error.message}` });
+                  }
+                }}
+                disabled={!isGeminiClientInitialized || !isConnected || !currentProgramScene}
+                className={`p-1 rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-orange-500/50 ${isConnected && currentProgramScene
+                  ? 'text-orange-500 hover:text-orange-600 hover:bg-orange-500/10'
+                  : 'text-muted-foreground cursor-not-allowed opacity-50'
+                  }`}
+                aria-label="Take screenshot of current scene"
+              >
+                <CameraIcon className="w-4 h-4" />
+              </button>
+            </Tooltip>
+          </div>
+          {/* The correct input and Button JSX is now above. This duplicate/broken block is removed. */}
+          {/* Removed status text per user request */}
         </div>
-        {/* Removed status text per user request */}
       </div>
     </div>
   );
-};
+}

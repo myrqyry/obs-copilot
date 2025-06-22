@@ -22,7 +22,6 @@ interface ChatMessageItemProps {
     userChatBubbleColorName: CatppuccinChatBubbleColorName;
     modelChatBubbleColorName: CatppuccinChatBubbleColorName;
     customChatBackground?: string;
-    backgroundOpacity?: number;
 }
 
 export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
@@ -39,7 +38,6 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     userChatBubbleColorName,
     modelChatBubbleColorName,
     customChatBackground,
-    backgroundOpacity = 1,
 }) => {
     const itemRef = useRef<HTMLDivElement>(null);
     const [isShrunk, setIsShrunk] = useState(false);
@@ -149,10 +147,6 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     const accentColor = catppuccinChatBubbleColorsHexMap[accentColorName];
     const secondaryAccentColor = catppuccinSecondaryAccentColorsHexMap[secondaryAccentColorName];
 
-    // Determine if glass effect should be applied
-    const shouldUseGlassEffect = customChatBackground && customChatBackground !== 'none' &&
-        (bubbleFillOpacity < 1 || backgroundOpacity < 1);
-
     // Get the appropriate colors for this message type
     let bubbleColorHex: string;
     if (isSystem) {
@@ -195,7 +189,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     const bubbleStyle: React.CSSProperties = {
         backgroundColor,
         borderColor,
-        borderWidth: isSystem ? '1.5px' : extraDarkMode ? '2px' : '1px',
+        borderWidth: extraDarkMode ? '2px' : '1px',
         borderStyle: 'solid',
         color: textColor,
         fontStyle: isSystem ? 'italic' : 'normal',
@@ -204,7 +198,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
         boxShadow: '0 2px 8px 0 rgba(0,0,0,0.08)',
         borderRadius: '1rem',
         padding: '0.5rem 1rem',
-        maxWidth: isSystem ? '320px' : '480px',
+        maxWidth: isSystem ? '400px' : '480px',
         minWidth: '60px',
         margin: '0.25rem 0',
         overflow: 'hidden',
@@ -213,11 +207,11 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     };
 
     return (
-        <div ref={itemRef} className={`flex ${containerClasses} mb-3 font-sans ${isSystem ? 'px-8' : isUser ? 'pl-4' : 'pr-4'}`}>
+        <div ref={itemRef} className={`flex ${containerClasses} mb-3 font-sans ${isSystem ? 'px-6' : isUser ? 'pl-4' : 'pr-4'}`}>
             <div
                 className={`chat-message rounded-2xl shadow-xl border relative font-sans group ${glassEffectClass}
           ${isSystem
-                        ? 'px-3 py-2 text-sm leading-tight max-w-md'
+                        ? 'p-3 text-sm leading-tight max-w-lg'
                         : 'p-3 text-sm leading-tight max-w-lg'}
         `}
                 style={bubbleStyle}
@@ -281,13 +275,13 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                             </div>
                         ) : (
                             <div className="relative">
-                                <div style={{ color: textColor, fontStyle: isSystem ? 'italic' : 'normal', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
+                                <div style={{ color: textColor, fontStyle: isSystem ? 'italic' : 'normal', wordBreak: 'break-word', whiteSpace: 'normal' }}>
                                     <MarkdownRenderer content={message.text} />
                                 </div>
 
                                 {/* Show suggestion buttons for greeting system messages */}
                                 {showSuggestions && isSystem && onSuggestionClick && (
-                                    <div className="mt-3 pt-3 border-t border-yellow-500 border-opacity-30">
+                                    <div className="mt-3 pt-3 border-t border-opacity-30" style={{ borderColor: bubbleColorHex }}>
                                         <div className="text-sm opacity-90 mb-3 font-normal font-sans"><span className="emoji">✨</span> Try these commands:</div>
                                         <div className="grid grid-cols-2 gap-2">
                                             {memoizedSuggestions.map((suggestion) => (
@@ -326,7 +320,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
 
                                 {/* Show choice buttons for model messages with choices */}
                                 {message.type === "choice-prompt" && message.choices && onSuggestionClick && (
-                                    <div className="mt-3 pt-3 border-t border-primary border-opacity-30">
+                                    <div className="mt-3 pt-3 border-t border-opacity-30" style={{ borderColor: bubbleColorHex }}>
                                         <div className="text-sm opacity-90 mb-3 font-normal font-sans">
                                             <span className="emoji">
                                                 {message.choiceType === 'scene' ? '🎬' :

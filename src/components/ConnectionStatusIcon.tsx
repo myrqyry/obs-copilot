@@ -53,7 +53,7 @@ export const ConnectionStatusIcon: React.FC<ConnectionStatusIconProps> = ({ isCo
     <Tooltip content={title}>
       <button
         onClick={onClick}
-        className="relative p-2 rounded-full hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background transition-all duration-150 ease-in-out"
+        className="relative p-2 rounded-full hover:bg-muted focus-ring enhanced-focus transition-all duration-150 ease-in-out"
         aria-label="Open Connection Settings"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-muted-foreground hover:text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">

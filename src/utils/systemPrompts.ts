@@ -9,7 +9,7 @@ export interface ObsData {
     videoSettings?: any;
 }
 
-export function buildObsSystemMessage(obsData: ObsData): string {
+export function buildObsSystemMessage(obsData: ObsData, hotkeys?: any[]): string {
     const sceneNames = obsData.scenes.map((s: any) => s.sceneName).join(', ');
     const sourceNames = obsData.sources.map((s: any) => s.sourceName).join(', ');
     const currentScene = obsData.currentProgramScene || 'None';
@@ -25,6 +25,13 @@ export function buildObsSystemMessage(obsData: ObsData): string {
 
     const videoRes = obsData.videoSettings ? `${obsData.videoSettings.baseWidth}x${obsData.videoSettings.baseHeight}` : 'Unknown';
 
+    // Build hotkeys information
+    let hotkeyInfo = '';
+    if (hotkeys && hotkeys.length > 0) {
+        const hotkeyNames = hotkeys.map((h: any) => h.hotkeyName || h.name).filter(Boolean).slice(0, 20); // Limit to first 20
+        hotkeyInfo = `\n- Available Hotkeys: ${hotkeyNames.join(', ')}${hotkeys.length > 20 ? ` (and ${hotkeys.length - 20} more)` : ''}`;
+    }
+
     return `
 **OBS Context:**
 - Current Scene: ${currentScene}
@@ -32,7 +39,7 @@ export function buildObsSystemMessage(obsData: ObsData): string {
 - Available Sources: ${sourceNames}
 - Stream Status: ${streamStatus}
 - Record Status: ${recordStatus}
-- Video Resolution: ${videoRes}
+- Video Resolution: ${videoRes}${hotkeyInfo}
 
 When user asks for OBS actions, respond with a JSON object in your response containing an "obsAction" field. Example:
 {
@@ -46,7 +53,9 @@ When user asks for OBS actions, respond with a JSON object in your response cont
   }
 }
 
-Use these action types: createInput, setInputSettings, setSceneItemEnabled, getInputSettings, getSceneItemList, setCurrentProgramScene, setVideoSettings, createScene, removeInput, setSceneItemTransform, createSourceFilter, setInputVolume, setInputMute, etc.
+Use these action types: createInput, setInputSettings, setSceneItemEnabled, getInputSettings, getSceneItemList, setCurrentProgramScene, setVideoSettings, createScene, removeInput, setSceneItemTransform, createSourceFilter, setInputVolume, setInputMute, triggerHotkeyByName, getStats, getLogFiles, uploadLog, etc.
+
+For hotkeys, you can use triggerHotkeyByName with the exact hotkey name from the available hotkeys list.
 `;
 }
 
@@ -71,5 +80,51 @@ export function buildStreamerBotSystemMessage(): string {
     - **Send Chat Message**: { "streamerBotAction": { "type": "DoAction", "args": { "action": { "name": "Twitch Send Message" }, "args": { "message": "Hello from the bot!" } } } }
 
 When a user asks for a Streamer.bot action, use this format.
+`;
+}
+
+export function buildMarkdownStylingSystemMessage(): string {
+    return `
+**Enhanced Markdown Styling Capabilities:**
+
+You have access to powerful GSAP-animated text effects! Use these special syntax patterns to make your responses visually engaging:
+
+🌈 **TEXT EFFECTS:**
+- {{rainbow:text}} - Animated rainbow gradient
+- {{glow:text}} - Pulsing bloom glow effect
+- {{glow-green:text}} {{glow-blue:text}} {{glow-red:text}} {{glow-yellow:text}} {{glow-purple:text}} - Colored glow effects
+- {{fade-glow:text}} - Gentle breathing glow
+- {{sparkle:text}} - Animated sparkles ✨
+- {{bounce:text}} - Playful bouncing animation
+- {{slide-in:text}} - Slides in from left
+- {{typewriter:text}} - Types out character by character
+
+🎨 **HIGHLIGHTS:**
+- {{highlight:text}} - Yellow highlight with entrance animation
+- {{highlight-green:text}} - Green highlight  
+- {{highlight-blue:text}} - Blue highlight
+
+📊 **STATUS BADGES:**
+- {{success:text}} - Green badge with ✅
+- {{error:text}} - Red badge with ❌
+- {{warning:text}} - Yellow badge with ⚠️
+- {{info:text}} - Blue badge with ℹ️
+- {{tip:text}} - Purple badge with 💡
+
+🎬 **STREAMING SPECIFIC:**
+- {{stream-live:text}} - Animated LIVE indicator 🔴
+- {{obs-action:text}} - OBS action badge 🎬
+- {{custom-action:text}} - Custom action badge 🎯
+
+📝 **INTERACTIVE:**
+- {{collapse:title}} - Collapsible section
+
+**USAGE EXAMPLES:**
+"{{rainbow:Welcome}} to your stream! Your viewer count is {{highlight-green:1,234}}!"
+"{{success:Scene activated}} - {{obs-action:Camera enabled}}"
+"{{glow-blue:New follower!}} {{sparkle:Thank you for following!}}"
+"{{typewriter:Setting up your stream...}}"
+
+Use these effects to make your responses more engaging and visually appealing for streamers!
 `;
 }

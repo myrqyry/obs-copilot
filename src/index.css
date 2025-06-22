@@ -5,64 +5,6 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --background: 240 20% 15%;
-    /* Catppuccin Mocha Base */
-    --foreground: 226 66% 88%;
-    /* Catppuccin Mocha Text - restored to proper light color for main UI */
-
-    --card: 233 12% 31%;
-    /* Catppuccin Mocha Surface1 */
-    --card-foreground: 226 66% 88%;
-    /* Catppuccin Mocha Text */
-
-    --popover: 233 12% 31%;
-    /* Catppuccin Mocha Surface1 */
-    --popover-foreground: 226 66% 88%;
-    /* Catppuccin Mocha Text */
-
-    --primary: 270 80% 85%;
-    /* Catppuccin Mocha Mauve */
-    --primary-foreground: 240 20% 15%;
-    /* Catppuccin Mocha Base (for contrast) */
-
-    --secondary: 237 13% 23%;
-    /* Catppuccin Mocha Surface0 */
-    --secondary-foreground: 227 27% 75%;
-    /* Catppuccin Mocha Subtext0 */
-
-    --muted: 230 11% 48%;
-    /* Catppuccin Mocha Overlay0 */
-    --muted-foreground: 225 42% 86%;
-    /* Catppuccin Mocha Subtext1 */
-
-    --accent: 169 56% 76%;
-    /* Catppuccin Mocha Teal */
-    --accent-foreground: 240 20% 15%;
-    /* Catppuccin Mocha Base (for contrast) */
-
-    --destructive: 340 82% 81%;
-    /* Catppuccin Mocha Red */
-    --destructive-foreground: 240 20% 15%;
-    /* Catppuccin Mocha Base (for contrast) */
-
-    --border: 233 11% 39%;
-    /* Catppuccin Mocha Surface2 */
-    --input: 237 13% 23%;
-    /* Catppuccin Mocha Surface0 */
-    --ring: 270 80% 85%;
-    /* Catppuccin Mocha Mauve (Primary Accent) */
-
-    --radius: 0.75rem;
-    /* 12px, matches original rounded-lg */
-
-    /* RGB values for chat bubble colors */
-    --user-chat-bubble-color-rgb: 245, 224, 220;
-    /* Defaulting to rosewater RGB */
-    --model-chat-bubble-color-rgb: 180, 191, 222;
-    /* Defaulting to lavender RGB */
-    --bubble-fill-opacity: 1;
-  }
 
   * {
     border-color: hsl(var(--border));
@@ -132,29 +74,8 @@
     font-family: 'Inter', sans-serif;
   }
 
-  [data-extra-dark-mode="true"] {
-    --background: 10 10% 10%;
-    --foreground: 90 90% 90%;
-    --card: 20 20% 20%;
-    --card-foreground: 90 90% 90%;
-    --popover: 20 20% 20%;
-    --popover-foreground: 90 90% 90%;
-    --primary: 40 40% 40%;
-    --primary-foreground: 90 90% 90%;
-    --secondary: 25 25% 25%;
-    --secondary-foreground: 90 90% 90%;
-    --muted: 15 15% 15%;
-    --muted-foreground: 80 80% 80%;
-    --accent: 30 30% 30%;
-    --accent-foreground: 90 90% 90%;
-    --destructive: 50 50% 50%;
-    --destructive-foreground: 90 90% 90%;
-    --border: 15 15% 15%;
-    --input: 25 25% 25%;
-    --ring: 40 40% 40%;
-    --user-chat-bubble-color-rgb: 100, 100, 100; /* Example: Adjust as needed */
-    --model-chat-bubble-color-rgb: 50, 50, 50; /* Example: Adjust as needed */
-  }
+  /* Extra dark mode should NOT change global CSS variables */
+  /* It only affects specific components like chat bubbles and markdown effects */
 
   /* Custom scrollbar styles using new variables */
   ::-webkit-scrollbar {
@@ -215,6 +136,16 @@
     .tab-content-container {
       will-change: auto;
     }
+
+    /* Disable GSAP animations for accessibility */
+    .will-change-transform {
+      will-change: auto;
+    }
+
+    /* Preserve focus indicators even with reduced motion */
+    .enhanced-focus:focus-visible {
+      transform: none !important;
+    }
   }
 
   /* SVG scaling and rendering styles for streaming assets */
@@ -255,6 +186,60 @@
     }
   }
 
+  /* Rainbow text animation for special effects */
+  @keyframes rainbow-shift {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  /* Enhanced glow pulse animation */
+  @keyframes enhanced-pulse {
+    0%, 100% {
+      opacity: 1;
+      text-shadow: 0 0 12px currentColor, 0 0 24px currentColor;
+    }
+    50% {
+      opacity: 0.8;
+      text-shadow: 0 0 16px currentColor, 0 0 32px currentColor, 0 0 48px currentColor;
+    }
+  }
+
+  /* Sparkle animation */
+  @keyframes sparkle {
+    0%, 100% {
+      transform: scale(1) rotate(0deg);
+      opacity: 1;
+    }
+    25% {
+      transform: scale(1.2) rotate(90deg);
+      opacity: 0.8;
+    }
+    50% {
+      transform: scale(0.8) rotate(180deg);
+      opacity: 0.6;
+    }
+    75% {
+      transform: scale(1.1) rotate(270deg);
+      opacity: 0.9;
+    }
+  }
+
+  /* Gentle pulse animation for LIVE indicator - layout stable */
+  @keyframes gentle-pulse {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.05);
+      opacity: 0.85;
+    }
+  }
+
   .animate-modal-appear {
     animation: modal-appear 0.3s ease-out;
   }
@@ -281,6 +266,39 @@
       padding-left: 0.25rem;
       padding-right: 0.25rem;
     }
+  }
+
+  /* Text split effect for GSAP animations - theme-aware */
+  .markdown-textsplit {
+    color: #a6e3a1;
+    position: relative;
+    display: inline-block;
+  }
+
+  [data-extra-dark-mode="true"] .markdown-textsplit {
+    color: #6bffa1;
+    text-shadow: 0 0 8px rgba(107, 255, 161, 0.4);
+  }
+
+  .textsplit-container {
+    display: inline-block;
+  }
+
+  /* Individual letter styling for text split */
+  .textsplit-letter {
+    display: inline-block;
+    will-change: transform, opacity;
+    transition: none; /* GSAP will handle all animations */
+  }
+
+  /* Animation classes for different states */
+  .textsplit-sending {
+    /* Applied during the sending animation */
+  }
+
+  .textsplit-sent {
+    opacity: 0;
+    transform: translateX(100vw) scale(0.2);
   }
 }
 
@@ -393,4 +411,465 @@
   .chat-scrollable-content::-webkit-scrollbar-thumb:hover {
     background: var(--bubble-scrollbar-thumb-hover, hsl(var(--secondary-foreground) / 0.7));
   }
+
+  /* Enhanced chat message styling */
+  .chat-message-content {
+    line-height: 1.5;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .chat-message-content h1,
+  .chat-message-content h2,
+  .chat-message-content h3 {
+    line-height: 1.3;
+  }
+
+  .chat-message-content code {
+    font-size: 0.9em;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-width: 100%;
+    display: inline-block;
+  }
+
+  .chat-message-content pre {
+    max-width: 100%;
+    overflow-x: auto;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    background: hsl(var(--muted) / 0.3);
+    border: 1px solid hsl(var(--border));
+  }
+
+  .chat-message-content ul,
+  .chat-message-content ol {
+    padding-left: 0;
+    margin-left: 0;
+  }
+
+  .chat-message-content li {
+    list-style: none;
+  }
+
+  /* Enhanced status badge animations */
+  .status-badge-pulse {
+    animation: enhanced-pulse 2s ease-in-out infinite;
+  }
+
+  .sparkle-animation {
+    animation: sparkle 2s ease-in-out infinite;
+  }
+
+  /* Responsive adjustments for small chat bubbles */
+  @media (max-width: 480px) {
+    .chat-message-content {
+      font-size: 0.875rem;
+    }
+    
+    .chat-message-content h1 {
+      font-size: 1.125rem;
+    }
+    
+    .chat-message-content h2 {
+      font-size: 1rem;
+    }
+    
+    .chat-message-content h3 {
+      font-size: 0.9rem;
+    }
+  }
+
+  /* Rainbow gradient animation for {{rainbow:}} effect */
+  @keyframes rainbow-gradient {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  /* ===================================================================== */
+  /* GLASS MORPHISM SYSTEM - Modern UI Components */
+  /* ===================================================================== */
+
+  .glass-card {
+    background: rgba(var(--card), 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(var(--border), 0.3);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+  }
+
+  .glass-card:hover {
+    background: rgba(var(--card), 0.8);
+    box-shadow: 
+      0 12px 40px rgba(0, 0, 0, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+  }
+
+  .glass-panel {
+    background: rgba(var(--background), 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(var(--border), 0.2);
+    box-shadow: 
+      0 4px 24px rgba(0, 0, 0, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .glass-button {
+    background: rgba(var(--primary), 0.15);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(var(--primary), 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: background, border-color, transform, box-shadow;
+  }
+
+  .glass-button:hover {
+    background: rgba(var(--primary), 0.25);
+    border-color: hsl(var(--primary));
+    box-shadow: 
+      0 8px 25px rgba(var(--primary), 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px) scale(1.02);
+  }
+
+  .glass-input {
+    background: rgba(var(--background), 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(var(--border), 0.4);
+    transition: all 0.3s ease;
+    will-change: background, border-color, box-shadow;
+  }
+
+  .glass-input:focus {
+    background: rgba(var(--background), 0.7);
+    border-color: hsl(var(--ring));
+    box-shadow: 
+      0 0 0 3px rgba(var(--ring), 0.15),
+      0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Glass effects should NOT be affected by extra dark mode */
+  /* Extra dark mode only affects chat bubbles and markdown effects */
+  
+  /* Animation utilities for glass elements */
+  .glass-entrance {
+    animation: glass-fade-in 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes glass-fade-in {
+    0% {
+      opacity: 0;
+      transform: translateY(20px) scale(0.95);
+      backdrop-filter: blur(0px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0px) scale(1);
+      backdrop-filter: blur(16px);
+    }
+  }
+
+  /* Card inner shadow enhancement */
+  .card-inner-shadow {
+    box-shadow: 
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.1),
+      0 4px 24px rgba(0, 0, 0, 0.08);
+  }
+
+  /* ===================================================================== */
+  /* ENHANCED FOCUS SYSTEM */
+  /* ===================================================================== */
+
+  .focus-ring {
+    --focus-ring-color: var(--ring);
+    --focus-ring-offset: 2px;
+    --focus-ring-width: 2px;
+    --focus-ring-opacity: 0.5;
+  }
+
+  .focus-ring:focus-visible {
+    outline: var(--focus-ring-width) solid transparent;
+    outline-offset: var(--focus-ring-offset);
+    box-shadow: 
+      0 0 0 var(--focus-ring-offset) hsl(var(--background)),
+      0 0 0 calc(var(--focus-ring-offset) + var(--focus-ring-width)) hsl(var(--focus-ring-color) / var(--focus-ring-opacity)),
+      0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: box-shadow 0.2s ease;
+  }
+
+  /* Enhanced focus for interactive elements */
+  .enhanced-focus:focus-visible {
+    transform: translateY(-1px);
+    box-shadow: 
+      0 0 0 2px hsl(var(--background)),
+      0 0 0 4px hsl(var(--ring) / 0.3),
+      0 8px 24px rgba(0, 0, 0, 0.15);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+
+  /* Prevent GSAP transform conflicts with focus states */
+  .enhanced-focus:focus-visible {
+    /* Override GSAP transforms during focus for accessibility */
+    transform: translateY(-1px) !important;
+  }
+
+  /* ===================================================================== */
+  /* MARKDOWN EFFECT CLASSES - Theme-aware styling for both modes */
+  /* ===================================================================== */
+
+  /* Glow effects - adapt to extra dark mode */
+  .markdown-glow-green {
+    color: #a6e3a1 !important;
+    text-shadow: 0 0 12px #a6e3a1, 0 0 24px rgba(166, 227, 161, 0.6), 0 0 36px rgba(166, 227, 161, 0.3);
+  }
+
+  [data-extra-dark-mode="true"] .markdown-glow-green {
+    text-shadow: 0 0 16px #a6e3a1, 0 0 32px rgba(166, 227, 161, 0.8), 0 0 48px rgba(166, 227, 161, 0.4);
+  }
+
+  .markdown-glow-red {
+    color: #f38ba8 !important;
+    text-shadow: 0 0 12px #f38ba8, 0 0 24px rgba(243, 139, 168, 0.6), 0 0 36px rgba(243, 139, 168, 0.3);
+  }
+
+  [data-extra-dark-mode="true"] .markdown-glow-red {
+    text-shadow: 0 0 16px #f38ba8, 0 0 32px rgba(243, 139, 168, 0.8), 0 0 48px rgba(243, 139, 168, 0.4);
+  }
+
+  .markdown-glow-blue {
+    color: #89b4fa !important;
+    text-shadow: 0 0 12px #89b4fa, 0 0 24px rgba(137, 180, 250, 0.6), 0 0 36px rgba(137, 180, 250, 0.3);
+  }
+
+  [data-extra-dark-mode="true"] .markdown-glow-blue {
+    text-shadow: 0 0 16px #89b4fa, 0 0 32px rgba(137, 180, 250, 0.8), 0 0 48px rgba(137, 180, 250, 0.4);
+  }
+
+  .markdown-glow-yellow {
+    color: #f9e2af !important;
+    text-shadow: 0 0 12px #f9e2af, 0 0 24px rgba(249, 226, 175, 0.6), 0 0 36px rgba(249, 226, 175, 0.3);
+  }
+
+  [data-extra-dark-mode="true"] .markdown-glow-yellow {
+    text-shadow: 0 0 16px #f9e2af, 0 0 32px rgba(249, 226, 175, 0.8), 0 0 48px rgba(249, 226, 175, 0.4);
+  }
+
+  .markdown-glow-purple {
+    color: #cba6f7 !important;
+    text-shadow: 0 0 12px #cba6f7, 0 0 24px rgba(203, 166, 247, 0.6), 0 0 36px rgba(203, 166, 247, 0.3);
+  }
+
+  [data-extra-dark-mode="true"] .markdown-glow-purple {
+    text-shadow: 0 0 16px #cba6f7, 0 0 32px rgba(203, 166, 247, 0.8), 0 0 48px rgba(203, 166, 247, 0.4);
+  }
+
+  /* Badge effects - adapt background and contrast for extra dark mode */
+  .markdown-badge {
+    @apply inline-flex items-center gap-1 px-2 py-1 rounded-lg font-medium text-sm border shadow-sm whitespace-nowrap;
+    background: hsl(var(--card) / 0.8);
+  }
+
+  [data-extra-dark-mode="true"] .markdown-badge {
+    background: hsl(var(--card) / 0.6);
+    border-width: 2px;
+  }
+
+  .markdown-badge-success {
+    color: #a6e3a1;
+    border-color: #a6e3a1;
+    box-shadow: 0 0 8px rgba(166, 227, 161, 0.2);
+  }
+
+  [data-extra-dark-mode="true"] .markdown-badge-success {
+    background: rgba(30, 30, 46, 0.8);
+    box-shadow: 0 0 12px rgba(166, 227, 161, 0.4);
+  }
+
+  .markdown-badge-error {
+    color: #f38ba8;
+    border-color: #f38ba8;
+    box-shadow: 0 0 8px rgba(243, 139, 168, 0.2);
+  }
+
+  [data-extra-dark-mode="true"] .markdown-badge-error {
+    background: rgba(30, 30, 46, 0.8);
+    box-shadow: 0 0 12px rgba(243, 139, 168, 0.4);
+  }
+
+  .markdown-badge-warning {
+    color: #f9e2af;
+    border-color: #f9e2af;
+    box-shadow: 0 0 8px rgba(249, 226, 175, 0.2);
+  }
+
+  [data-extra-dark-mode="true"] .markdown-badge-warning {
+    background: rgba(30, 30, 46, 0.8);
+    box-shadow: 0 0 12px rgba(249, 226, 175, 0.4);
+  }
+
+  .markdown-badge-info {
+    color: #89b4fa;
+    border-color: #89b4fa;
+    box-shadow: 0 0 8px rgba(137, 180, 250, 0.2);
+  }
+
+  [data-extra-dark-mode="true"] .markdown-badge-info {
+    background: rgba(30, 30, 46, 0.8);
+    box-shadow: 0 0 12px rgba(137, 180, 250, 0.4);
+  }
+
+  .markdown-badge-tip {
+    color: #cba6f7;
+    border-color: #cba6f7;
+    box-shadow: 0 0 8px rgba(203, 166, 247, 0.2);
+  }
+
+  [data-extra-dark-mode="true"] .markdown-badge-tip {
+    background: rgba(30, 30, 46, 0.8);
+    box-shadow: 0 0 12px rgba(203, 166, 247, 0.4);
+  }
+
+  .markdown-obs-action {
+    color: #fab387;
+    border-color: #fab387;
+    box-shadow: 0 0 8px rgba(250, 179, 135, 0.2);
+    font-family: ui-monospace, monospace;
+  }
+
+  [data-extra-dark-mode="true"] .markdown-obs-action {
+    background: rgba(30, 30, 46, 0.8);
+    box-shadow: 0 0 12px rgba(250, 179, 135, 0.4);
+  }
+
+  .markdown-stream-live {
+    color: #f38ba8;
+    background: hsl(var(--card) / 0.9);
+    border-color: #f38ba8;
+    box-shadow: 0 0 16px rgba(243, 139, 168, 0.4);
+    @apply font-bold px-3 py-1.5 shadow-lg animate-pulse;
+  }
+
+  [data-extra-dark-mode="true"] .markdown-stream-live {
+    background: rgba(30, 30, 46, 0.9);
+    box-shadow: 0 0 20px rgba(243, 139, 168, 0.6);
+  }
+
+  /* Rainbow effect - enhanced visibility in extra dark mode */
+  .markdown-rainbow {
+    background: linear-gradient(45deg, #f38ba8 0%, #fab387 14%, #f9e2af 28%, #a6e3a1 42%, #94e2d5 57%, #89b4fa 71%, #cba6f7 85%, #f38ba8 100%);
+    background-size: 400% 400%;
+    background-clip: text !important;
+    -webkit-background-clip: text !important;
+    color: transparent !important;
+    text-shadow: none !important;
+    -webkit-text-stroke: 0px transparent !important;
+    text-stroke: 0px transparent !important;
+    border: none !important;
+    outline: none !important;
+  }
+
+  [data-extra-dark-mode="true"] .markdown-rainbow {
+    /* Enhanced colors for extra dark mode */
+    background: linear-gradient(45deg, #ff6b9d 0%, #ffb347 14%, #ffea6b 28%, #6bffa1 42%, #6bdde2 57%, #6bb4fa 71%, #c86bfa 85%, #ff6b9d 100%);
+  }
+
+  /* Highlight effects - adapt background and text contrast */
+  .markdown-highlight {
+    background: #f9e2af;
+    color: #11111b;
+    box-shadow: 0 0 8px rgba(249, 226, 175, 0.3);
+    @apply px-1.5 py-0.5 rounded-md font-medium text-sm whitespace-nowrap;
+  }
+
+  [data-extra-dark-mode="true"] .markdown-highlight {
+    background: rgba(249, 226, 175, 0.2);
+    color: #f9e2af;
+    border: 1px solid #f9e2af;
+    box-shadow: 0 0 12px rgba(249, 226, 175, 0.4);
+  }
+
+  .markdown-highlight-green {
+    background: #a6e3a1;
+    color: #11111b;
+    box-shadow: 0 0 8px rgba(166, 227, 161, 0.3);
+    @apply px-1.5 py-0.5 rounded-md font-medium text-sm whitespace-nowrap;
+  }
+
+  [data-extra-dark-mode="true"] .markdown-highlight-green {
+    background: rgba(166, 227, 161, 0.2);
+    color: #a6e3a1;
+    border: 1px solid #a6e3a1;
+    box-shadow: 0 0 12px rgba(166, 227, 161, 0.4);
+  }
+
+  .markdown-highlight-blue {
+    background: #89b4fa;
+    color: #11111b;
+    box-shadow: 0 0 8px rgba(137, 180, 250, 0.3);
+    @apply px-1.5 py-0.5 rounded-md font-medium text-sm whitespace-nowrap;
+  }
+
+  [data-extra-dark-mode="true"] .markdown-highlight-blue {
+    background: rgba(137, 180, 250, 0.2);
+    color: #89b4fa;
+    border: 1px solid #89b4fa;
+    box-shadow: 0 0 12px rgba(137, 180, 250, 0.4);
+  }
+
+  /* Enhanced animation effects - theme-aware */
+  .markdown-bounce {
+    color: #fab387;
+  }
+
+  [data-extra-dark-mode="true"] .markdown-bounce {
+    color: #ffb347;
+    text-shadow: 0 0 8px rgba(255, 179, 71, 0.4);
+  }
+
+  .markdown-slide-in {
+    color: #89b4fa;
+  }
+
+  [data-extra-dark-mode="true"] .markdown-slide-in {
+    color: #6bb4fa;
+    text-shadow: 0 0 8px rgba(107, 180, 250, 0.4);
+  }
+
+  .markdown-fade-glow {
+    color: #cba6f7;
+  }
+
+  [data-extra-dark-mode="true"] .markdown-fade-glow {
+    color: #c86bfa;
+    text-shadow: 0 0 8px rgba(200, 107, 250, 0.4);
+  }
+
+  .markdown-typewriter {
+    color: #a6e3a1;
+    font-family: ui-monospace, monospace;
+  }
+
+  [data-extra-dark-mode="true"] .markdown-typewriter {
+    color: #6bffa1;
+    text-shadow: 0 0 8px rgba(107, 255, 161, 0.4);
+  }
+
+  /* ===================================================================== */
+  /* END MARKDOWN EFFECTS */
+  /* ===================================================================== */
+
 }

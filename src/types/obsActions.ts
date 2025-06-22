@@ -1,7 +1,7 @@
 import type { OBSVideoSettings, GroundingChunk } from '../types';
 
 export interface GeminiActionResponse {
-    obsAction?: ObsAction;
+    obsAction?: ObsAction | ObsAction[]; // Support both single actions and arrays
     responseText?: string;
     streamerBotAction?: {
         type: string;
@@ -562,6 +562,13 @@ export interface SetCurrentSceneCollectionAction extends ObsActionBase {
     sceneCollectionName: string;
 }
 
+export interface SetStreamInfoAction extends ObsActionBase {
+    type: "setStreamInfo";
+    streamTitle?: string;
+    streamCategory?: string;
+    streamDescription?: string;
+}
+
 export type ObsAction =
     | CreateInputAction | SetInputSettingsAction | SetSceneItemEnabledAction | GetInputSettingsAction | GetSceneItemListAction
     | SetCurrentProgramSceneAction | SetVideoSettingsAction | CreateSceneAction | RemoveInputAction | SetSceneItemTransformAction
@@ -584,4 +591,5 @@ export type ObsAction =
     | RemoveSceneAction | GetStreamStatusAction | StartStreamAction | StopStreamAction | GetRecordStatusAction | StartRecordAction
     | StopRecordAction | ToggleRecordPauseAction | GetVideoSettingsAction | GetSceneItemTransformAction | GetSourceFilterAction
     | GetInputVolumeAction | GetVirtualCamStatusAction | GetReplayBufferStatusAction | DuplicateSceneItemAction
-    | StopReplayBufferAction | GetCurrentProfileAction | SetCurrentProfileAction | GetCurrentSceneCollectionAction | SetCurrentSceneCollectionAction;
+    | StopReplayBufferAction | GetCurrentProfileAction | SetCurrentProfileAction | GetCurrentSceneCollectionAction | SetCurrentSceneCollectionAction
+    | SetStreamInfoAction;

@@ -1,16 +1,92 @@
+import { gsap } from 'gsap';
+
+/**
+ * ENHANCED MARKDOWN STYLING CAPABILITIES FOR GEMINI
+ * 
+ * This system provides rich text effects and styling through special syntax.
+ * All effects are GSAP-powered for smooth, professional animations.
+ * 
+ * =============================================================================
+ * TEXT EFFECTS & ANIMATIONS
+ * =============================================================================
+ * 
+ * {{rainbow:text}}          - Animated rainbow gradient text with smooth color transitions
+ * {{glow:text}}             - Pulsing glow effect with bloom lighting
+ * {{glow-green:text}}       - Green glow with breathing animation
+ * {{glow-red:text}}         - Red glow with breathing animation  
+ * {{glow-blue:text}}        - Blue glow with breathing animation
+ * {{glow-yellow:text}}      - Yellow glow with breathing animation
+ * {{glow-purple:text}}      - Purple glow with breathing animation
+ * {{fade-glow:text}}        - Gentle breathing glow with enhanced bloom
+ * {{sparkle:text}}          - Sparkling text with randomized emoji animations
+ * {{bounce:text}}           - Playful bouncing text with physics
+ * {{slide-in:text}}         - Slides in from left with back easing
+ * {{typewriter:text}}       - Types out character by character
+ * 
+ * =============================================================================
+ * HIGHLIGHT EFFECTS
+ * =============================================================================
+ * 
+ * {{highlight:text}}        - Yellow highlight with entrance animation and hover effects
+ * {{highlight-green:text}}  - Green highlight with entrance animation  
+ * {{highlight-blue:text}}   - Blue highlight with entrance animation
+ * 
+ * =============================================================================
+ * CONTEXTUAL BADGES
+ * =============================================================================
+ * 
+ * {{success:text}}          - Green success badge with checkmark ✅
+ * {{error:text}}            - Red error badge with X mark ❌  
+ * {{warning:text}}          - Yellow warning badge with warning icon ⚠️
+ * {{info:text}}             - Blue info badge with info icon ℹ️
+ * {{tip:text}}              - Purple tip badge with lightbulb 💡
+ * 
+ * =============================================================================
+ * STREAMING & OBS SPECIFIC
+ * =============================================================================
+ * 
+ * {{obs-action:text}}       - Orange OBS action badge with camera icon 🎬
+ * {{stream-live:text}}      - Red pulsing LIVE badge with animated dot 🔴
+ * {{stream-offline:text}}   - Muted offline badge with dot ⚫
+ * {{custom-action:text}}    - Blue custom action badge with target icon 🎯
+ * 
+ * =============================================================================
+ * INTERACTIVE ELEMENTS
+ * =============================================================================
+ * 
+ * {{collapse:title}}        - Collapsible section with hover effects
+ * 
+ * =============================================================================
+ * USAGE EXAMPLES FOR GEMINI
+ * =============================================================================
+ * 
+ * "Your stream is {{stream-live:LIVE}} with {{highlight-green:1,234 viewers}}!"
+ * "{{glow-blue:Welcome}} to the {{rainbow:magical world}} of streaming!"
+ * "{{bounce:New follower}} - {{sparkle:Thank you}}!"
+ * "{{typewriter:Setting up your OBS scene...}}"
+ * "{{success:Scene activated}} - {{obs-action:Camera enabled}}"
+ * "{{warning:Check your audio levels}} before going live"
+ * "Use {{slide-in:smooth transitions}} for {{fade-glow:professional}} results"
+ * 
+ * All effects support nested content and maintain accessibility standards.
+ * Colors follow Catppuccin Mocha palette for consistent theming.
+ * Animations are performance-optimized with GSAP for 60fps smoothness.
+ */
+
 export function highlightJsonSyntax(rawJsonString: string): string {
     let htmlEscapedJsonString = rawJsonString
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
 
+    // Enhanced JSON syntax highlighting using theme colors
     htmlEscapedJsonString = htmlEscapedJsonString
         .replace(/"([^"\\]*(\\.[^"\\]*)*)"(\s*:)?/g, (match, _fullString, _stringContent, _escape, colon) => {
-            const className = colon ? 'text-blue-800' : 'text-green-800';
-            return `<span class="${className}">${match.substring(0, match.length - (colon ? 1 : 0))}</span>${colon ? ':' : ''}`;
+            const colorClass = colon ? 'style="color: #89b4fa;"' : 'style="color: #a6e3a1;"'; // Blue for keys, green for strings
+            return `<span ${colorClass}>${match.substring(0, match.length - (colon ? 1 : 0))}</span>${colon ? ':' : ''}`;
         })
-        .replace(/\b(true|false|null)\b/g, '<span class="text-purple-800">$1</span>')
-        .replace(/(?<!\w)([-+]?\d*\.?\d+([eE][-+]?\d+)?)(?!\w)/g, '<span class="text-orange-800">$1</span>');
+        .replace(/\b(true|false|null)\b/g, '<span style="color: #cba6f7; font-weight: 500;">$1</span>') // Purple for booleans/null
+        .replace(/(?<!\w)([-+]?\d*\.?\d+([eE][-+]?\d+)?)(?!\w)/g, '<span style="color: #fab387; font-weight: 500;">$1</span>'); // Peach for numbers
 
     return htmlEscapedJsonString;
 }
@@ -41,77 +117,518 @@ export function applyInlineMarkdown(text: string): string {
     });
 
     // Special effect syntax: {{effect:text}} - Process these first before other markdown
-    // Glow effects
-    html = html.replace(/\{\{glow:([^}]+)\}\}/g, '<span class="text-primary font-semibold animate-pulse drop-shadow-md" style="text-shadow: 0 0 8px currentColor, 0 0 16px currentColor;">$1</span>');
-    html = html.replace(/\{\{glow-green:([^}]+)\}\}/g, '<span class="text-green-400 font-semibold animate-pulse drop-shadow-md" style="text-shadow: 0 0 8px #4ade80, 0 0 16px #4ade80;">$1</span>');
-    html = html.replace(/\{\{glow-red:([^}]+)\}\}/g, '<span class="text-red-400 font-semibold animate-pulse drop-shadow-md" style="text-shadow: 0 0 8px #f87171, 0 0 16px #f87171;">$1</span>');
-    html = html.replace(/\{\{glow-blue:([^}]+)\}\}/g, '<span class="text-blue-400 font-semibold animate-pulse drop-shadow-md" style="text-shadow: 0 0 8px #60a5fa, 0 0 16px #60a5fa;">$1</span>');
-    html = html.replace(/\{\{glow-yellow:([^}]+)\}\}/g, '<span class="text-yellow-400 font-semibold animate-pulse drop-shadow-md" style="text-shadow: 0 0 8px #facc15, 0 0 16px #facc15;">$1</span>');
-    html = html.replace(/\{\{glow-purple:([^}]+)\}\}/g, '<span class="text-purple-400 font-semibold animate-pulse drop-shadow-md" style="text-shadow: 0 0 8px #c084fc, 0 0 16px #c084fc;">$1</span>');
+    // Enhanced glow effects using theme colors and CSS classes
+    html = html.replace(/\{\{glow:([^}]+)\}\}/g, '<span class="text-primary font-semibold drop-shadow-lg whitespace-nowrap" data-effect="glow" style="text-shadow: 0 0 12px hsl(var(--primary)), 0 0 24px hsl(var(--primary) / 0.6), 0 0 36px hsl(var(--primary) / 0.3);">$1</span>');
+    html = html.replace(/\{\{glow-green:([^}]+)\}\}/g, '<span class="markdown-glow-green font-semibold drop-shadow-lg whitespace-nowrap" data-effect="glow-green">$1</span>');
+    html = html.replace(/\{\{glow-red:([^}]+)\}\}/g, '<span class="markdown-glow-red font-semibold drop-shadow-lg whitespace-nowrap" data-effect="glow-red">$1</span>');
+    html = html.replace(/\{\{glow-blue:([^}]+)\}\}/g, '<span class="markdown-glow-blue font-semibold drop-shadow-lg whitespace-nowrap" data-effect="glow-blue">$1</span>');
+    html = html.replace(/\{\{glow-yellow:([^}]+)\}\}/g, '<span class="markdown-glow-yellow font-semibold drop-shadow-lg whitespace-nowrap" data-effect="glow-yellow">$1</span>');
+    html = html.replace(/\{\{glow-purple:([^}]+)\}\}/g, '<span class="markdown-glow-purple font-semibold drop-shadow-lg whitespace-nowrap" data-effect="glow-purple">$1</span>');
 
-    // Color effects (contextual styling)
-    html = html.replace(/\{\{success:([^}]+)\}\}/g, '<span class="text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded-md border border-green-200">✅ $1</span>');
-    html = html.replace(/\{\{error:([^}]+)\}\}/g, '<span class="text-red-600 font-medium bg-red-50 px-2 py-0.5 rounded-md border border-red-200">❌ $1</span>');
-    html = html.replace(/\{\{warning:([^}]+)\}\}/g, '<span class="text-yellow-600 font-medium bg-yellow-50 px-2 py-0.5 rounded-md border border-yellow-200">⚠️ $1</span>');
-    html = html.replace(/\{\{info:([^}]+)\}\}/g, '<span class="text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">ℹ️ $1</span>');
-    html = html.replace(/\{\{tip:([^}]+)\}\}/g, '<span class="text-purple-600 font-medium bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">💡 $1</span>');
+    // Enhanced contextual styling using CSS classes
+    html = html.replace(/\{\{success:([^}]+)\}\}/g, '<span class="markdown-badge markdown-badge-success"><span class="text-xs">✅</span>$1</span>');
+    html = html.replace(/\{\{error:([^}]+)\}\}/g, '<span class="markdown-badge markdown-badge-error"><span class="text-xs">❌</span>$1</span>');
+    html = html.replace(/\{\{warning:([^}]+)\}\}/g, '<span class="markdown-badge markdown-badge-warning"><span class="text-xs">⚠️</span>$1</span>');
+    html = html.replace(/\{\{info:([^}]+)\}\}/g, '<span class="markdown-badge markdown-badge-info"><span class="text-xs">ℹ️</span>$1</span>');
+    html = html.replace(/\{\{tip:([^}]+)\}\}/g, '<span class="markdown-badge markdown-badge-tip"><span class="text-xs">💡</span>$1</span>');
 
-    // Contextual OBS styling
-    html = html.replace(/\{\{obs-action:([^}]+)\}\}/g, '<span class="text-orange-600 font-medium bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200 font-mono">🎬 $1</span>');
-    html = html.replace(/\{\{stream-live:([^}]+)\}\}/g, '<span class="text-red-500 font-bold bg-red-100 px-2 py-1 rounded-md border border-red-300 animate-pulse">🔴 LIVE: $1</span>');
-    html = html.replace(/\{\{stream-offline:([^}]+)\}\}/g, '<span class="text-gray-500 font-medium bg-gray-100 px-2 py-0.5 rounded-md border border-gray-300">⚫ $1</span>');
+    // Enhanced OBS-specific styling using CSS classes
+    html = html.replace(/\{\{obs-action:([^}]+)\}\}/g, '<span class="markdown-badge markdown-obs-action"><span class="text-xs">🎬</span>$1</span>');
+    html = html.replace(/\{\{stream-live:([^}]+)\}\}/g, '<span class="markdown-badge markdown-stream-live"><span class="text-xs" style="display: inline-block; animation: gentle-pulse 2s ease-in-out infinite; transform-origin: center;">🔴</span>LIVE: $1</span>');
+    html = html.replace(/\{\{stream-offline:([^}]+)\}\}/g, '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg font-medium text-sm border whitespace-nowrap" style="color: hsl(var(--muted-foreground)); background: hsl(var(--muted) / 0.3); border-color: hsl(var(--border));"><span class="text-xs">⚫</span>$1</span>');
 
-    // Rainbow text effect
-    html = html.replace(/\{\{rainbow:([^}]+)\}\}/g, '<span class="font-bold bg-gradient-to-r from-red-500 to-purple-500 bg-clip-text text-transparent animate-pulse">$1</span>');
+    // Enhanced rainbow text effect using CSS class to reduce inline styles
+    html = html.replace(/\{\{rainbow:([^}]+)\}\}/g, '<span class="markdown-rainbow font-bold whitespace-nowrap" data-effect="rainbow">$1</span>');
 
-    // Sparkle effect
-    html = html.replace(/\{\{sparkle:([^}]+)\}\}/g, '<span class="font-semibold text-primary relative">✨ $1 ✨</span>');
+    // Enhanced sparkle effect with GSAP support and layout containment
+    html = html.replace(/\{\{sparkle:([^}]+)\}\}/g, '<span class="font-semibold text-primary relative inline-flex items-center gap-1 whitespace-nowrap" data-effect="sparkle" style="contain: layout; overflow: visible;"><span class="sparkle-1 inline-block" style="will-change: transform; transform-origin: center;">✨</span>$1<span class="sparkle-2 inline-block" style="will-change: transform; transform-origin: center;">✨</span></span>');
 
-    // Highlight effects
-    html = html.replace(/\{\{highlight:([^}]+)\}\}/g, '<span class="bg-yellow-200 text-yellow-900 px-1 py-0.5 rounded font-medium">$1</span>');
-    html = html.replace(/\{\{highlight-green:([^}]+)\}\}/g, '<span class="bg-green-200 text-green-900 px-1 py-0.5 rounded font-medium">$1</span>');
-    html = html.replace(/\{\{highlight-blue:([^}]+)\}\}/g, '<span class="bg-blue-200 text-blue-900 px-1 py-0.5 rounded font-medium">$1</span>');
+    // Enhanced highlight effects using CSS classes
+    html = html.replace(/\{\{highlight:([^}]+)\}\}/g, '<span class="markdown-highlight" data-effect="highlight">$1</span>');
+    html = html.replace(/\{\{highlight-green:([^}]+)\}\}/g, '<span class="markdown-highlight-green" data-effect="highlight-green">$1</span>');
+    html = html.replace(/\{\{highlight-blue:([^}]+)\}\}/g, '<span class="markdown-highlight-blue" data-effect="highlight-blue">$1</span>');
 
-    // Convert headings with compact spacing for OBS dock usage
-    html = html.replace(/^### (.+)$/gm, '<h3 class="text-base font-semibold text-foreground mt-2 mb-1 border-b border-border pb-0.5">$1</h3>');
-    html = html.replace(/^## (.+)$/gm, '<h2 class="text-lg font-bold text-foreground mt-3 mb-1.5 border-b border-border pb-0.5">$1</h2>');
-    html = html.replace(/^# (.+)$/gm, '<h1 class="text-xl font-bold text-foreground mt-4 mb-2 border-b-2 border-primary pb-1">$1</h1>');
+    // Convert headings with enhanced styling for chat bubbles
+    html = html.replace(/^### (.+)$/gm, '<h3 class="text-base font-semibold text-primary mt-3 mb-2 pb-1 border-b border-primary/30 relative flex items-center gap-2"><span class="w-1 h-4 bg-primary rounded-full"></span>$1</h3>');
+    html = html.replace(/^## (.+)$/gm, '<h2 class="text-lg font-bold text-primary mt-4 mb-2 pb-1.5 border-b-2 border-primary/50 relative flex items-center gap-2"><span class="w-2 h-5 bg-gradient-to-b from-primary to-accent rounded-full"></span>$1</h2>');
+    html = html.replace(/^# (.+)$/gm, '<h1 class="text-xl font-bold text-primary mt-5 mb-3 pb-2 border-b-2 border-primary relative flex items-center gap-2" style="background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent))); background-clip: text; -webkit-background-clip: text; color: transparent;"><span class="w-3 h-6" style="background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent))); border-radius: 0.25rem;"></span>$1</h1>');
 
-    // Convert horizontal rules with minimal spacing
-    html = html.replace(/^---+$/gm, '<hr class="my-3 border-t border-border" />');
+    // Convert horizontal rules with theme styling
+    html = html.replace(/^---+$/gm, '<hr class="my-4 border-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />');
 
-    // Convert unordered lists with compact spacing
-    html = html.replace(/^[-*+] (.+)$/gm, '<li class="ml-3 mb-0.5 text-foreground list-disc text-sm">$1</li>');
+    // Convert lists with improved chat bubble styling
+    html = html.replace(/^[-*+] (.+)$/gm, '<li class="ml-4 mb-1 text-foreground text-sm flex items-start gap-2 leading-relaxed"><span class="w-1.5 h-1.5 bg-accent rounded-full mt-2 flex-shrink-0"></span><span>$1</span></li>');
+    html = html.replace(/^\d+\. (.+)$/gm, '<li class="ml-4 mb-1 text-foreground text-sm flex items-start gap-2 leading-relaxed"><span class="w-5 h-5 bg-primary/20 text-primary rounded-full text-xs font-semibold flex items-center justify-center flex-shrink-0 mt-0.5">•</span><span>$1</span></li>');
 
-    // Convert ordered lists with compact spacing
-    html = html.replace(/^\d+\. (.+)$/gm, '<li class="ml-3 mb-0.5 text-foreground list-decimal text-sm">$1</li>');
+    // Wrap consecutive list items with improved spacing
+    html = html.replace(/(<li class="ml-4 mb-1 text-foreground text-sm flex items-start gap-2 leading-relaxed"><span class="w-1\.5 h-1\.5 bg-accent rounded-full mt-2 flex-shrink-0"><\/span><span>[^<]*<\/span><\/li>(\s*<li class="ml-4 mb-1 text-foreground text-sm flex items-start gap-2 leading-relaxed"><span class="w-1\.5 h-1\.5 bg-accent rounded-full mt-2 flex-shrink-0"><\/span><span>[^<]*<\/span><\/li>)*)/g, '<ul class="mb-3 ml-0 space-y-0.5">$1</ul>');
+    html = html.replace(/(<li class="ml-4 mb-1 text-foreground text-sm flex items-start gap-2 leading-relaxed"><span class="w-5 h-5 bg-primary\/20 text-primary rounded-full text-xs font-semibold flex items-center justify-center flex-shrink-0 mt-0\.5">•<\/span><span>[^<]*<\/span><\/li>(\s*<li class="ml-4 mb-1 text-foreground text-sm flex items-start gap-2 leading-relaxed"><span class="w-5 h-5 bg-primary\/20 text-primary rounded-full text-xs font-semibold flex items-center justify-center flex-shrink-0 mt-0\.5">•<\/span><span>[^<]*<\/span><\/li>)*)/g, '<ol class="mb-3 ml-0 space-y-0.5">$1</ol>');
 
-    // Wrap consecutive list items in proper ul/ol tags with minimal spacing
-    html = html.replace(/(<li class="ml-3 mb-0\.5 text-foreground list-disc text-sm">[^<]*<\/li>(\s*<li class="ml-3 mb-0\.5 text-foreground list-disc text-sm">[^<]*<\/li>)*)/g, '<ul class="mb-2 ml-1">$1</ul>');
-    html = html.replace(/(<li class="ml-3 mb-0\.5 text-foreground list-decimal text-sm">[^<]*<\/li>(\s*<li class="ml-3 mb-0\.5 text-foreground list-decimal text-sm">[^<]*<\/li>)*)/g, '<ol class="mb-2 ml-1">$1</ol>');
+    // Enhanced inline code styling
+    html = html.replace(/`([^`]+)`/g, '<code class="px-2 py-1 rounded-lg text-sm font-mono border shadow-sm" style="background: #181825 !important; color: #cdd6f4 !important; border-color: #313244; box-shadow: inset 0 1px 2px rgba(0,0,0,0.3);">$1</code>');
 
-    // Convert inline code
-    html = html.replace(/`([^`]+)`/g, '<code class="bg-muted px-1.5 py-0.5 rounded text-sm text-primary font-mono border border-border shadow-inner">$1</code>');
+    // Enhanced text formatting
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold text-primary">$1</strong>');
+    html = html.replace(/\*([^*]+)\*/g, '<em class="italic text-accent">$1</em>');
 
-    // Convert bold text
-    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>');
+    // Convert line breaks with proper spacing for chat bubbles
+    html = html.replace(/\n\n+/g, '<div class="my-2"></div>');
+    html = html.replace(/\n/g, ' ');
 
-    // Convert italic text
-    html = html.replace(/\*([^*]+)\*/g, '<em class="italic text-muted-foreground">$1</em>');
+    // Enhanced block element spacing for chat environment
+    html = html.replace(/(<h[1-6][^>]*>.*?<\/h[1-6]>)/g, '<div class="mb-2">$1</div>');
+    html = html.replace(/(<hr[^>]*>)/g, '<div class="my-3">$1</div>');
 
-    // Convert line breaks to proper spacing
-    html = html.replace(/\n\n/g, '<br /><br />');
-    html = html.replace(/\n/g, '<br />');
+    // Enhanced collapse effect
+    html = html.replace(/\{\{collapse:([^}]+)\}\}/g, '<details class="mt-2 mb-2 p-2 rounded-lg border border-border bg-card/50"><summary class="cursor-pointer text-primary font-medium hover:text-accent transition-colors">$1</summary>');
 
-    // Add proper paragraph spacing around block elements
-    html = html.replace(/(<h[1-6][^>]*>.*?<\/h[1-6]>)/g, '<div class="mb-3">$1</div>');
-    html = html.replace(/(<hr[^>]*>)/g, '<div class="my-4">$1</div>');
+    // Enhanced custom action syntax using CSS classes
+    html = html.replace(/\{\{custom-action:([^}]+)\}\}/g, '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg font-medium text-sm border shadow-sm whitespace-nowrap" style="color: #b4befe; background: hsl(var(--card) / 0.8); border-color: #b4befe; box-shadow: 0 0 8px rgba(180, 190, 254, 0.2);"><span class="text-xs">🎯</span>$1</span>');
 
-    // Collapse effect
-    html = html.replace(/\{\{collapse:([^}]+)\}\}/g, '<details><summary>$1</summary>');
+    // New GSAP-enhanced effects using CSS classes
+    html = html.replace(/\{\{bounce:([^}]+)\}\}/g, '<span class="markdown-bounce font-semibold whitespace-nowrap" data-effect="bounce">$1</span>');
+    html = html.replace(/\{\{slide-in:([^}]+)\}\}/g, '<span class="markdown-slide-in font-medium whitespace-nowrap" data-effect="slide-in">$1</span>');
+    html = html.replace(/\{\{fade-glow:([^}]+)\}\}/g, '<span class="markdown-fade-glow font-semibold whitespace-nowrap" data-effect="fade-glow">$1</span>');
+    html = html.replace(/\{\{typewriter:([^}]+)\}\}/g, '<span class="markdown-typewriter whitespace-nowrap" data-effect="typewriter">$1</span>');
 
-    // Custom action syntax
-    html = html.replace(/\{\{custom-action:([^}]+)\}\}/g, '<span class="text-indigo-600 font-medium bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200">🎯 $1</span>');
+    // Enhanced debug and connection status effects
+    html = html.replace(/\{\{debug:([^}]+)\}\}/g, '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg font-mono text-xs border shadow-sm whitespace-nowrap" style="color: #fab387; background: hsl(var(--card) / 0.8); border-color: #fab387; box-shadow: 0 0 8px rgba(250, 179, 135, 0.2);"><span class="text-xs">🐛</span>$1</span>');
+    html = html.replace(/\{\{connection-failed:([^}]+)\}\}/g, '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg font-medium text-sm border shadow-sm whitespace-nowrap" style="color: #f38ba8; background: hsl(var(--card) / 0.8); border-color: #f38ba8; box-shadow: 0 0 8px rgba(243, 139, 168, 0.2);"><span class="text-xs">🔌</span>$1</span>');
+    html = html.replace(/\{\{websocket-error:([^}]+)\}\}/g, '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg font-medium text-sm border shadow-sm whitespace-nowrap" style="color: #f38ba8; background: hsl(var(--card) / 0.8); border-color: #f38ba8; box-shadow: 0 0 8px rgba(243, 139, 168, 0.2);"><span class="text-xs">🌐</span>$1</span>');
+    html = html.replace(/\{\{obs-error:([^}]+)\}\}/g, '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg font-medium text-sm border shadow-sm whitespace-nowrap" style="color: #f38ba8; background: hsl(var(--card) / 0.8); border-color: #f38ba8; box-shadow: 0 0 8px rgba(243, 139, 168, 0.2);"><span class="text-xs">🎬</span>OBS: $1</span>');
+    html = html.replace(/\{\{streamerbot-error:([^}]+)\}\}/g, '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg font-medium text-sm border shadow-sm whitespace-nowrap" style="color: #f38ba8; background: hsl(var(--card) / 0.8); border-color: #f38ba8; box-shadow: 0 0 8px rgba(243, 139, 168, 0.2);"><span class="text-xs">🤖</span>StreamerBot: $1</span>');
+    html = html.replace(/\{\{connection-status:([^}]+)\}\}/g, '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg font-medium text-sm border shadow-sm whitespace-nowrap" style="color: #89b4fa; background: hsl(var(--card) / 0.8); border-color: #89b4fa; box-shadow: 0 0 8px rgba(137, 180, 250, 0.2);"><span class="text-xs">📡</span>$1</span>');
+    html = html.replace(/\{\{port:([^}]+)\}\}/g, '<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-mono text-xs border shadow-sm whitespace-nowrap" style="color: #cba6f7; background: hsl(var(--card) / 0.8); border-color: #cba6f7; box-shadow: 0 0 8px rgba(203, 166, 247, 0.2);"><span class="text-xs">🔗</span>:$1</span>');
+
+    // Enhanced text split effect for GSAP letter-by-letter animation
+    html = html.replace(/\{\{textsplit:([^}]+)\}\}/g, '<span class="markdown-textsplit font-medium whitespace-nowrap" data-effect="textsplit" data-original-text="$1"><span class="textsplit-container">$1</span></span>');
 
     return html;
 }
+
+/**
+ * Helper function for Gemini to get information about available styling effects
+ * This provides a programmatic way to access effect documentation
+ */
+export function getAvailableEffects() {
+    return {
+        textEffects: {
+            'rainbow': 'Animated rainbow gradient text with smooth color transitions',
+            'glow': 'Pulsing glow effect with bloom lighting',
+            'glow-green': 'Green glow with breathing animation',
+            'glow-red': 'Red glow with breathing animation',
+            'glow-blue': 'Blue glow with breathing animation',
+            'glow-yellow': 'Yellow glow with breathing animation',
+            'glow-purple': 'Purple glow with breathing animation',
+            'fade-glow': 'Gentle breathing glow with enhanced bloom',
+            'sparkle': 'Sparkling text with randomized emoji animations',
+            'bounce': 'Playful bouncing text with physics',
+            'slide-in': 'Slides in from left with back easing',
+            'typewriter': 'Types out character by character'
+        },
+        highlights: {
+            'highlight': 'Yellow highlight with entrance animation and hover effects',
+            'highlight-green': 'Green highlight with entrance animation',
+            'highlight-blue': 'Blue highlight with entrance animation'
+        },
+        contextualBadges: {
+            'success': 'Green success badge with checkmark ✅',
+            'error': 'Red error badge with X mark ❌',
+            'warning': 'Yellow warning badge with warning icon ⚠️',
+            'info': 'Blue info badge with info icon ℹ️',
+            'tip': 'Purple tip badge with lightbulb 💡'
+        },
+        streamingObs: {
+            'obs-action': 'Orange OBS action badge with camera icon 🎬',
+            'stream-live': 'Red pulsing LIVE badge with animated dot 🔴',
+            'stream-offline': 'Muted offline badge with dot ⚫',
+            'custom-action': 'Blue custom action badge with target icon 🎯'
+        },
+        debugging: {
+            'debug': 'Orange debug badge with bug icon 🐛',
+            'connection-failed': 'Red connection failed badge with plug icon 🔌',
+            'websocket-error': 'Red WebSocket error badge with globe icon 🌐',
+            'obs-error': 'Red OBS error badge with camera icon 🎬',
+            'streamerbot-error': 'Red StreamerBot error badge with robot icon 🤖',
+            'connection-status': 'Blue connection status badge with signal icon 📡',
+            'port': 'Purple port indicator with link icon 🔗'
+        },
+        interactive: {
+            'collapse': 'Collapsible section with hover effects'
+        },
+        syntax: 'Use {{effect:text}} format. Example: {{rainbow:Hello World}}',
+        examples: [
+            '"Your stream is {{stream-live:LIVE}} with {{highlight-green:1,234 viewers}}!"',
+            '"{{glow-blue:Welcome}} to the {{rainbow:magical world}} of streaming!"',
+            '"{{bounce:New follower}} - {{sparkle:Thank you}}!"',
+            '"{{typewriter:Setting up your OBS scene...}}"',
+            '"{{success:Scene activated}} - {{obs-action:Camera enabled}}"',
+            '"{{warning:Check your audio levels}} before going live"',
+            '"Use {{slide-in:smooth transitions}} for {{fade-glow:professional}} results"',
+            '"{{connection-failed:StreamerBot connection}} - check {{port:8080}}"',
+            '"{{obs-error:Unsupported action}} - {{debug:setCurrentSceneTransitionSettings}}"',
+            '"{{websocket-error:Connection closed}} before establishment"'
+        ]
+    };
+}
+
+/**
+ * Quick reference for Gemini - most commonly used effects
+ */
+export function getQuickEffectsReference() {
+    return `
+🌈 QUICK EFFECTS REFERENCE FOR GEMINI:
+
+✨ HIGHLIGHTS: {{highlight:text}} {{highlight-green:text}} {{highlight-blue:text}}
+🌟 GLOWS: {{glow:text}} {{glow-blue:text}} {{glow-green:text}} {{fade-glow:text}}
+🎨 ANIMATIONS: {{rainbow:text}} {{sparkle:text}} {{bounce:text}} {{slide-in:text}} {{typewriter:text}}
+📊 STATUS: {{success:text}} {{error:text}} {{warning:text}} {{info:text}} {{tip:text}}
+🎬 STREAMING: {{stream-live:text}} {{obs-action:text}} {{custom-action:text}}
+� DEBUGGING: {{debug:text}} {{connection-failed:text}} {{websocket-error:text}} {{obs-error:text}} {{streamerbot-error:text}} {{connection-status:text}} {{port:number}}
+�📝 INTERACTIVE: {{collapse:title}}
+
+All effects are GSAP-powered with smooth 60fps animations and bloom lighting!
+Perfect for error reporting and connection status updates!
+`;
+}
+
+// GSAP-enhanced effects that can be applied after DOM insertion
+export const markdownGsapEffects = {
+    /**
+     * Enhanced rainbow effect using GSAP for smoother animation
+     */
+    initRainbowEffect: (element: HTMLElement) => {
+        const rainbowId = `rainbow-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        element.setAttribute('data-rainbow-id', rainbowId);
+
+        // Create a more sophisticated rainbow animation
+        gsap.to(element, {
+            backgroundPosition: '200% 50%',
+            duration: 4,
+            ease: 'none',
+            repeat: -1,
+            yoyo: true
+        });
+
+        // Add subtle scale pulse for extra effect
+        gsap.to(element, {
+            scale: 1.02,
+            duration: 2,
+            ease: 'power2.inOut',
+            repeat: -1,
+            yoyo: true,
+            transformOrigin: 'center center'
+        });
+    },
+
+    /**
+     * Enhanced sparkle effect with randomized timing - layout-stable
+     */
+    initSparkleEffect: (element: HTMLElement) => {
+        const sparkles = element.querySelectorAll('span');
+
+        sparkles.forEach((sparkle, index) => {
+            // Set transform-origin and will-change to stabilize layout
+            gsap.set(sparkle, {
+                transformOrigin: 'center center',
+                willChange: 'transform, opacity'
+            });
+
+            gsap.to(sparkle, {
+                scale: 1.1, // Reduced scale to prevent overflow
+                opacity: 0.8,
+                duration: 0.8 + Math.random() * 0.4,
+                ease: 'power2.inOut',
+                repeat: -1,
+                yoyo: true,
+                delay: index * 0.3 + Math.random() * 0.5
+            });
+
+            // Add rotation for more dynamic effect with stabilized transform
+            gsap.to(sparkle, {
+                rotation: 360,
+                duration: 3 + Math.random() * 2,
+                ease: 'none',
+                repeat: -1,
+                transformOrigin: 'center center'
+            });
+        });
+    },
+
+    /**
+     * Enhanced glow effect with subtle bloom and smooth pulsing
+     */
+    initGlowEffect: (element: HTMLElement) => {
+        // Create a gentle, continuous glow animation with bloom effect
+        gsap.to(element, {
+            filter: 'brightness(1.25) drop-shadow(0 0 20px currentColor) drop-shadow(0 0 40px currentColor)',
+            duration: 3,
+            ease: 'sine.inOut',
+            repeat: -1,
+            yoyo: true
+        });
+
+        // Add layered text-shadow for bloom depth
+        gsap.to(element, {
+            textShadow: '0 0 10px currentColor, 0 0 20px currentColor, 0 0 40px currentColor, 0 0 60px currentColor',
+            duration: 4,
+            ease: 'sine.inOut',
+            repeat: -1,
+            yoyo: true,
+            delay: 0.5 // Slightly offset for more organic feel
+        });
+
+        // Subtle scale for breathing bloom effect
+        gsap.to(element, {
+            scale: 1.01,
+            duration: 3.5,
+            ease: 'sine.inOut',
+            repeat: -1,
+            yoyo: true,
+            delay: 1,
+            transformOrigin: 'center center'
+        });
+    },
+
+    /**
+     * Enhanced highlight entrance animation
+     */
+    initHighlightEffect: (element: HTMLElement) => {
+        // Set initial state
+        gsap.set(element, {
+            scale: 0.95,
+            opacity: 0
+        });
+
+        // Animate in
+        gsap.to(element, {
+            scale: 1,
+            opacity: 1,
+            duration: 0.5,
+            ease: 'back.out(1.7)',
+            delay: Math.random() * 0.3 // Stagger if multiple highlights
+        });
+
+        // Add subtle hover effect
+        element.addEventListener('mouseenter', () => {
+            gsap.to(element, {
+                scale: 1.05,
+                boxShadow: '0 0 20px rgba(249, 226, 175, 0.6)',
+                duration: 0.2,
+                ease: 'power2.out'
+            });
+        });
+
+        element.addEventListener('mouseleave', () => {
+            gsap.to(element, {
+                scale: 1,
+                boxShadow: '0 0 8px rgba(249, 226, 175, 0.3)',
+                duration: 0.2,
+                ease: 'power2.out'
+            });
+        });
+    },
+
+    /**
+     * Code block entrance animation
+     */
+    initCodeBlockEffect: (element: HTMLElement) => {
+        gsap.set(element, {
+            y: 20,
+            opacity: 0
+        });
+
+        gsap.to(element, {
+            y: 0,
+            opacity: 1,
+            duration: 0.6,
+            ease: 'power2.out',
+            delay: 0.1
+        });
+    },
+
+    /**
+     * Text reveal animation for long content
+     */
+    initTextReveal: (element: HTMLElement) => {
+        const text = element.textContent || '';
+        if (text.length > 50) { // Only animate longer text
+            gsap.set(element, { opacity: 0 });
+
+            gsap.to(element, {
+                opacity: 1,
+                duration: 0.8,
+                ease: 'power2.out',
+                delay: 0.2
+            });
+        }
+    },
+
+    /**
+     * Bounce effect - layout-stable
+     */
+    initBounceEffect: (element: HTMLElement) => {
+        // Set will-change and transform-origin for better performance
+        gsap.set(element, {
+            y: -3, // Reduced bounce distance to prevent layout shifts
+            willChange: 'transform',
+            transformOrigin: 'center center'
+        });
+
+        gsap.to(element, {
+            y: 0,
+            duration: 0.6,
+            ease: 'bounce.out',
+            repeat: -1,
+            yoyo: true,
+            repeatDelay: 1
+        });
+    },
+
+    /**
+     * Slide in effect - layout-stable
+     */
+    initSlideInEffect: (element: HTMLElement) => {
+        gsap.set(element, {
+            x: -15, // Reduced slide distance 
+            opacity: 0,
+            willChange: 'transform, opacity',
+            transformOrigin: 'center center'
+        });
+
+        gsap.to(element, {
+            x: 0,
+            opacity: 1,
+            duration: 0.8,
+            ease: 'back.out(1.7)',
+            delay: Math.random() * 0.5
+        });
+    },
+
+    /**
+     * Fade glow effect with enhanced bloom breathing animation
+     */
+    initFadeGlowEffect: (element: HTMLElement) => {
+        // Enhanced breathing glow effect with bloom
+        gsap.to(element, {
+            textShadow: '0 0 15px currentColor, 0 0 30px currentColor, 0 0 45px currentColor',
+            duration: 2.5,
+            ease: 'sine.inOut',
+            repeat: -1,
+            yoyo: true
+        });
+
+        // Subtle opacity variation for breathing effect
+        gsap.to(element, {
+            opacity: 0.8,
+            duration: 3.5,
+            ease: 'sine.inOut',
+            repeat: -1,
+            yoyo: true,
+            delay: 0.7
+        });
+
+        // Add filter bloom effect
+        gsap.to(element, {
+            filter: 'brightness(1.2) blur(0.5px)',
+            duration: 3,
+            ease: 'sine.inOut',
+            repeat: -1,
+            yoyo: true,
+            delay: 1.2
+        });
+    },
+
+    /**
+     * Typewriter effect
+     */
+    initTypewriterEffect: (element: HTMLElement) => {
+        const text = element.textContent || '';
+        element.textContent = '';
+
+        gsap.to(element, {
+            duration: text.length * 0.05,
+            ease: 'none',
+            onUpdate: function () {
+                const progress = this.progress();
+                const currentLength = Math.floor(progress * text.length);
+                element.textContent = text.substring(0, currentLength);
+            }
+        });
+    },
+
+    /**
+     * Initialize all GSAP effects for markdown elements
+     */
+    initAllEffects: (container: HTMLElement) => {
+        // Rainbow effects
+        container.querySelectorAll('[data-effect="rainbow"]').forEach((el) => {
+            markdownGsapEffects.initRainbowEffect(el as HTMLElement);
+        });
+
+        // Sparkle effects
+        container.querySelectorAll('[data-effect="sparkle"]').forEach((el) => {
+            markdownGsapEffects.initSparkleEffect(el as HTMLElement);
+        });
+
+        // Glow effects
+        container.querySelectorAll('[data-effect*="glow"]').forEach((el) => {
+            markdownGsapEffects.initGlowEffect(el as HTMLElement);
+        });
+
+        // Highlight effects
+        container.querySelectorAll('[data-effect*="highlight"]').forEach((el) => {
+            markdownGsapEffects.initHighlightEffect(el as HTMLElement);
+        });
+
+        // New GSAP effects
+        container.querySelectorAll('[data-effect="bounce"]').forEach((el) => {
+            markdownGsapEffects.initBounceEffect(el as HTMLElement);
+        });
+
+        container.querySelectorAll('[data-effect="slide-in"]').forEach((el) => {
+            markdownGsapEffects.initSlideInEffect(el as HTMLElement);
+        });
+
+        container.querySelectorAll('[data-effect="fade-glow"]').forEach((el) => {
+            markdownGsapEffects.initFadeGlowEffect(el as HTMLElement);
+        });
+
+        container.querySelectorAll('[data-effect="typewriter"]').forEach((el) => {
+            markdownGsapEffects.initTypewriterEffect(el as HTMLElement);
+        });
+
+        // Code blocks
+        container.querySelectorAll('pre, code').forEach((el) => {
+            markdownGsapEffects.initCodeBlockEffect(el as HTMLElement);
+        });
+
+        // Text reveal for paragraphs and longer content
+        container.querySelectorAll('p, div').forEach((el) => {
+            markdownGsapEffects.initTextReveal(el as HTMLElement);
+        });
+
+        // Add general hover effects for interactive elements
+        container.querySelectorAll('[style*="background:"], [data-effect]').forEach((el) => {
+            const element = el as HTMLElement;
+            element.style.cursor = 'default';
+
+            // Add subtle interaction feedback
+            element.addEventListener('mouseenter', () => {
+                gsap.to(element, {
+                    y: -1,
+                    duration: 0.15,
+                    ease: 'power2.out'
+                });
+            });
+
+            element.addEventListener('mouseleave', () => {
+                gsap.to(element, {
+                    y: 0,
+                    duration: 0.15,
+                    ease: 'power2.out'
+                });
+            });
+        });
+    }
+};

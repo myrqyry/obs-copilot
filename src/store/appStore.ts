@@ -12,8 +12,11 @@ import type {
     CatppuccinChatBubbleColorName
 } from '../types';
 import type { ObsAction } from '../types/obsActions';
+import type { AutomationRule } from '../types/automation';
 import type { OBSWebSocketService } from '../services/obsService';
+import type { StreamerBotService } from '../services/streamerBotService';
 import { loadUserSettings, saveUserSettings, isStorageAvailable } from '../utils/persistence';
+import { automationService } from '../services/automationService';
 
 interface AppState {
     // Connection State
@@ -29,6 +32,9 @@ interface AppState {
     streamStatus: OBSStreamStatus | null;
     recordStatus: OBSRecordStatus | null;
     videoSettings: OBSVideoSettings | null;
+    obsStats: any | null;
+    obsHotkeys: any[] | null;
+    obsLogFiles: any[] | null;
 
     // OBS service instance
     obsServiceInstance: OBSWebSocketService | null;
@@ -41,6 +47,10 @@ interface AppState {
 
     // Memory Context State
     userDefinedContext: string[];
+
+    // Automation State
+    automationRules: AutomationRule[];
+    streamerBotServiceInstance: StreamerBotService | null;
 
     // UI & Settings State - wrapped in userSettings for component compatibility
     userSettings: {
@@ -116,10 +126,23 @@ interface AppState {
             recordStatus: OBSRecordStatus | null;
             videoSettings: OBSVideoSettings | null;
         }>) => void;
-        handleObsAction: (action: ObsAction) => Promise<{ success: boolean; message: string; error?: string }>;
+        handleObsAction: (action: ObsAction | ObsAction[]) => Promise<{ success: boolean; message: string; error?: string }>;
+
+        // Automation actions
+        addAutomationRule: (rule: AutomationRule) => void;
+        updateAutomationRule: (id: string, updates: Partial<AutomationRule>) => void;
+        deleteAutomationRule: (id: string) => void;
+        toggleAutomationRule: (id: string) => void;
+        setStreamerBotServiceInstance: (instance: StreamerBotService | null) => void;
 
         // Central handler for adding context to Gemini/chat, used by AddToContextButton and others
         onSendToGeminiContext: (contextText: string) => void;
+
+        // New OBS data actions
+        getStats: () => Promise<void>;
+        getHotkeys: () => Promise<void>;
+        getLogFiles: () => Promise<void>;
+        uploadLog: () => Promise<{ success: boolean; url?: string; message: string }>;
     };
 }
 
@@ -138,12 +161,19 @@ export const useAppStore = create<AppState>((set, get) => ({
     streamStatus: null,
     recordStatus: null,
     videoSettings: null,
+    obsStats: null,
+    obsHotkeys: null,
+    obsLogFiles: null,
     obsServiceInstance: null,
     geminiMessages: [],
     geminiApiKey: persistedSettings.geminiApiKey || '',
     isGeminiClientInitialized: false,
     geminiInitializationError: null,
     userDefinedContext: persistedSettings.userDefinedContext || [],
+
+    // Automation State
+    automationRules: persistedSettings.automationRules || [],
+    streamerBotServiceInstance: null,
 
     // Legacy properties for backward compatibility
     flipSides: persistedSettings.flipSides || false,
@@ -364,7 +394,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         },
         setObsServiceInstance: (instance) => set({ obsServiceInstance: instance }),
         updateOBSData: (data) => set(data),
-        handleObsAction: async (action) => {
+        handleObsAction: async (actionInput) => {
             const state = get();
             const { obsServiceInstance, scenes, currentProgramScene, sources, streamStatus, videoSettings } = state;
 
@@ -373,6 +403,39 @@ export const useAppStore = create<AppState>((set, get) => ({
             }
 
             const obsData = { scenes, currentProgramScene, sources, streamStatus, videoSettings };
+
+            // Handle arrays of actions
+            if (Array.isArray(actionInput)) {
+                let allMessages: string[] = [];
+                let allSuccessful = true;
+                let lastError = '';
+
+                for (let i = 0; i < actionInput.length; i++) {
+                    const action = actionInput[i];
+                    try {
+                        const result = await get().actions.handleObsAction(action); // Recursive call for single action
+                        allMessages.push(`**Step ${i + 1}:** ${result.message}`);
+                        if (!result.success) {
+                            allSuccessful = false;
+                            lastError = result.error || 'Unknown error';
+                        }
+                    } catch (err: any) {
+                        allMessages.push(`**Step ${i + 1}:** ❌ Failed - ${err.message}`);
+                        allSuccessful = false;
+                        lastError = err.message;
+                    }
+                }
+
+                const finalMessage = `🔄 **Workflow Execution (${actionInput.length} steps):**\n\n${allMessages.join('\n\n')}`;
+                return {
+                    success: allSuccessful,
+                    message: finalMessage,
+                    error: allSuccessful ? undefined : lastError
+                };
+            }
+
+            // Handle single action
+            const action = actionInput;
             let actionAttemptMessage = `**OBS Action: \`${action.type}\`**\n\n⚙️ Attempting: ${action.type}...`;
             let actionFeedback = "";
             let additionalSystemMessage = "";
@@ -566,8 +629,8 @@ export const useAppStore = create<AppState>((set, get) => ({
                     case 'getSceneItemList':
                         const getListAction = action;
                         const listResponse = await obsServiceInstance.getSceneItemList(getListAction.sceneName);
-                        const enabledItems = listResponse.sceneItems.filter(item => item.sceneItemEnabled);
-                        const disabledItems = listResponse.sceneItems.filter(item => !item.sceneItemEnabled);
+                        const enabledItems = listResponse.sceneItems.filter((item: any) => item.sceneItemEnabled);
+                        const disabledItems = listResponse.sceneItems.filter((item: any) => !item.sceneItemEnabled);
 
                         actionFeedback = `\n✅ Fetched items for scene "${getListAction.sceneName}".`;
 
@@ -575,7 +638,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
                         if (enabledItems.length > 0) {
                             itemsList += `🟢 **Enabled Sources:**\n`;
-                            enabledItems.forEach((item, index) => {
+                            enabledItems.forEach((item: any, index: number) => {
                                 const kindDisplay = item.inputKind ? ` (${String(item.inputKind).replace(/_/g, ' ')})` : '';
                                 itemsList += `${index + 1}. **${item.sourceName}**${kindDisplay}\n`;
                             });
@@ -584,7 +647,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
                         if (disabledItems.length > 0) {
                             itemsList += `🔴 **Disabled Sources:**\n`;
-                            disabledItems.forEach((item, index) => {
+                            disabledItems.forEach((item: any, index: number) => {
                                 const kindDisplay = item.inputKind ? ` (${String(item.inputKind).replace(/_/g, ' ')})` : '';
                                 itemsList += `${index + 1}. ~~${item.sourceName}~~${kindDisplay}\n`;
                             });
@@ -616,6 +679,25 @@ export const useAppStore = create<AppState>((set, get) => ({
                         additionalSystemMessage = `📸 **Screenshot captured of "${screenshotAction.sourceName}"**\n\n<div style="max-width: 100%; overflow: hidden;"><img src="data:image/${imageType};base64,${cleanBase64}" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" alt="OBS Screenshot" /></div>\n\n*Screenshot added to context for AI analysis.*`;
                         break;
 
+                    case 'setStreamInfo':
+                        const streamInfoAction = action;
+                        // Note: This is a placeholder implementation since OBS WebSocket doesn't directly support setting stream title
+                        // This would typically require platform-specific API calls (Twitch, YouTube, etc.)
+                        let streamInfoParts: string[] = [];
+                        if (streamInfoAction.streamTitle) {
+                            streamInfoParts.push(`Title: "${streamInfoAction.streamTitle}"`);
+                        }
+                        if (streamInfoAction.streamCategory) {
+                            streamInfoParts.push(`Category: "${streamInfoAction.streamCategory}"`);
+                        }
+                        if (streamInfoAction.streamDescription) {
+                            streamInfoParts.push(`Description: "${streamInfoAction.streamDescription}"`);
+                        }
+
+                        actionFeedback = `\n✅ Stream info updated (${streamInfoParts.join(', ')}).`;
+                        additionalSystemMessage = `📺 **Stream Info Updated:**\n\n${streamInfoParts.map(part => `• ${part}`).join('\n')}\n\n*Note: This requires platform-specific integration to actually update the stream metadata.*`;
+                        break;
+
                     // Add more action types as needed...
                     default:
                         const unknownActionType = (action as any).type;
@@ -639,12 +721,134 @@ export const useAppStore = create<AppState>((set, get) => ({
                 return { success: false, message: actionAttemptMessage, error: err.message };
             }
         },
+
+        // Automation actions implementation
+        addAutomationRule: (rule) => {
+            const updatedRules = [...get().automationRules, rule];
+            set({ automationRules: updatedRules });
+            if (isStorageAvailable()) {
+                saveUserSettings({ automationRules: updatedRules });
+            }
+            // Update automation service
+            automationService.updateRules(updatedRules);
+        },
+        updateAutomationRule: (id, updates) => {
+            const updatedRules = get().automationRules.map(rule =>
+                rule.id === id ? { ...rule, ...updates } : rule
+            );
+            set({ automationRules: updatedRules });
+            if (isStorageAvailable()) {
+                saveUserSettings({ automationRules: updatedRules });
+            }
+            // Update automation service
+            automationService.updateRules(updatedRules);
+        },
+        deleteAutomationRule: (id) => {
+            const updatedRules = get().automationRules.filter(rule => rule.id !== id);
+            set({ automationRules: updatedRules });
+            if (isStorageAvailable()) {
+                saveUserSettings({ automationRules: updatedRules });
+            }
+            // Update automation service
+            automationService.updateRules(updatedRules);
+        },
+        toggleAutomationRule: (id) => {
+            const updatedRules = get().automationRules.map(rule =>
+                rule.id === id ? { ...rule, enabled: !rule.enabled } : rule
+            );
+            set({ automationRules: updatedRules });
+            if (isStorageAvailable()) {
+                saveUserSettings({ automationRules: updatedRules });
+            }
+            // Update automation service
+            automationService.updateRules(updatedRules);
+        },
+        setStreamerBotServiceInstance: (instance) => {
+            set({ streamerBotServiceInstance: instance });
+            // Update automation service when streamer.bot service changes
+            const state = get();
+            automationService.initialize(
+                state.automationRules,
+                instance,
+                state.actions.handleObsAction,
+                state.actions.addMessage
+            );
+        },
+
         onSendToGeminiContext: (contextText) => {
             // For now, just add as a system message. You can expand this to route to Gemini, etc.
             set((state) => {
                 state.actions.addMessage({ role: 'system', text: contextText });
                 return state;
             });
+        },
+
+        // New OBS data actions implementation
+        getStats: async () => {
+            const state = get();
+            const { obsServiceInstance } = state;
+            if (!obsServiceInstance) {
+                throw new Error('OBS service not available');
+            }
+            try {
+                const stats = await obsServiceInstance.getStats();
+                set({ obsStats: stats });
+            } catch (error) {
+                console.error('Failed to fetch OBS stats:', error);
+                throw error;
+            }
+        },
+
+        getHotkeys: async () => {
+            const state = get();
+            const { obsServiceInstance } = state;
+            if (!obsServiceInstance) {
+                throw new Error('OBS service not available');
+            }
+            try {
+                const hotkeyData = await obsServiceInstance.getHotkeyList();
+                set({ obsHotkeys: hotkeyData.hotkeys || [] });
+            } catch (error) {
+                console.error('Failed to fetch OBS hotkeys:', error);
+                throw error;
+            }
+        },
+
+        getLogFiles: async () => {
+            const state = get();
+            const { obsServiceInstance } = state;
+            if (!obsServiceInstance) {
+                throw new Error('OBS service not available');
+            }
+            try {
+                const logData = await obsServiceInstance.getLogFileList();
+                set({ obsLogFiles: logData.logFiles || [] });
+            } catch (error) {
+                console.error('Failed to fetch OBS log files:', error);
+                throw error;
+            }
+        },
+
+        uploadLog: async () => {
+            const state = get();
+            const { obsServiceInstance } = state;
+            if (!obsServiceInstance) {
+                throw new Error('OBS service not available');
+            }
+            try {
+                const result = await obsServiceInstance.uploadLog();
+                return {
+                    success: true,
+                    url: result.url,
+                    message: `Log uploaded successfully. URL: ${result.url}`
+                };
+            } catch (error: any) {
+                console.error('Failed to upload OBS log:', error);
+                return {
+                    success: false,
+                    message: `Failed to upload log: ${error.message || 'Unknown error'}`
+                };
+            }
         },
     }
 }));

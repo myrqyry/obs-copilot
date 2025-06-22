@@ -1,3 +1,3 @@
-export { Button } from './Button';
+export { Button } from '../common/Button';
 export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent } from './Card';
 export { default as Tooltip } from './Tooltip';
