@@ -1,3 +1,17 @@
+// Utility: Clean up common LLM JSON mistakes
+function cleanJsonString(jsonStr: string): string {
+  // Remove trailing commas before } or ]
+  let cleaned = jsonStr.replace(/,\s*([}\]])/g, '$1');
+  // Remove extra colons before commas or braces
+  cleaned = cleaned.replace(/:([,}\]])/g, '$1');
+  // Remove any accidental double quotes around keys
+  cleaned = cleaned.replace(/"([a-zA-Z0-9_]+)":/g, '"$1":');
+  // Remove any non-JSON leading/trailing text
+  cleaned = cleaned.trim();
+  // Remove trailing/leading backticks or code block markers
+  cleaned = cleaned.replace(/^```json|```$/g, '').trim();
+  return cleaned;
+}
 import Tooltip from './ui/Tooltip';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { GlobeAltIcon, CameraIcon } from '@heroicons/react/24/solid';
@@ -243,7 +257,7 @@ When a user asks for a Streamer.bot action, use this format.
     try {
       let finalPrompt = userMessageText;
       // Now include both OBS and web search capabilities in the system prompt
-      const baseSystemPrompt = `${INITIAL_SYSTEM_PROMPT}\n\n${buildObsSystemMessage()}\n\n${buildStreamerBotSystemMessage()}\n\n${buildMarkdownStylingSystemMessage()}`;
+      const baseSystemPrompt = `${INITIAL_SYSTEM_PROMPT}\n\n${buildObsSystemMessage()}\n\n${buildStreamerBotSystemMessage()}\n\n${buildMarkdownStylingSystemMessage()}\n\nIMPORTANT: When asked for an OBS action, respond ONLY with a valid JSON object, no extra text, no trailing commas, and no code block markers. Example: { "obsAction": { "type": "getSceneItemList", "sceneName": "Scene 4" } }`;
       const systemPrompt = useGoogleSearch
         ? `${baseSystemPrompt}\n\nYou can also use Google Search to find current information when needed. When you need to search for something, include it in your response. You can provide both OBS actions AND web search results in the same response when appropriate.`
         : baseSystemPrompt;
@@ -317,50 +331,57 @@ When a user asks for a Streamer.bot action, use this format.
         }
 
         if (foundValidJson && jsonStr) {
-          const parsed: GeminiActionResponse = JSON.parse(jsonStr);
-          // Enforce lock awareness for Gemini actions
-          if (parsed.obsAction && isConnected) {
-            // Support both single and array obsAction
-            const lockMap: Record<string, string> = {
-              startStream: 'streamRecord',
-              stopStream: 'streamRecord',
-              toggleStream: 'streamRecord',
-              startRecord: 'streamRecord',
-              stopRecord: 'streamRecord',
-              toggleRecord: 'streamRecord',
-              setVideoSettings: 'videoSettings',
-            };
-            const checkLocked = (action: any) => {
-              const lockKey = lockMap[action.type];
-              return lockKey && isLocked(lockKey);
-            };
-            if (Array.isArray(parsed.obsAction)) {
-              // If any action is locked, block all
-              const lockedAction = parsed.obsAction.find(checkLocked);
-              if (lockedAction) {
-                onAddMessage({ role: 'system', text: "Looks like you've locked this setting, so I won't change it for you. If you want me to help with this, just unlock it in the settings!" });
+          // Clean up the JSON string before parsing
+          const cleanedJson = cleanJsonString(jsonStr);
+          try {
+            const parsed: GeminiActionResponse = JSON.parse(cleanedJson);
+            // Enforce lock awareness for Gemini actions
+            if (parsed.obsAction && isConnected) {
+              // Support both single and array obsAction
+              const lockMap: Record<string, string> = {
+                startStream: 'streamRecord',
+                stopStream: 'streamRecord',
+                toggleStream: 'streamRecord',
+                startRecord: 'streamRecord',
+                stopRecord: 'streamRecord',
+                toggleRecord: 'streamRecord',
+                setVideoSettings: 'videoSettings',
+              };
+              const checkLocked = (action: any) => {
+                const lockKey = lockMap[action.type];
+                return lockKey && isLocked(lockKey);
+              };
+              if (Array.isArray(parsed.obsAction)) {
+                // If any action is locked, block all
+                const lockedAction = parsed.obsAction.find(checkLocked);
+                if (lockedAction) {
+                  onAddMessage({ role: 'system', text: "Looks like you've locked this setting, so I won't change it for you. If you want me to help with this, just unlock it in the settings!" });
+                } else {
+                  obsActionResult = await actions.handleObsAction(parsed.obsAction);
+                  await onRefreshData();
+                }
               } else {
-                obsActionResult = await actions.handleObsAction(parsed.obsAction);
-                await onRefreshData();
-              }
-            } else {
-              if (checkLocked(parsed.obsAction)) {
-                onAddMessage({ role: 'system', text: "Looks like you've locked this setting, so I won't change it for you. If you want me to help with this, just unlock it in the settings!" });
-              } else {
-                obsActionResult = await actions.handleObsAction(parsed.obsAction);
-                await onRefreshData();
+                if (checkLocked(parsed.obsAction)) {
+                  onAddMessage({ role: 'system', text: "Looks like you've locked this setting, so I won't change it for you. If you want me to help with this, just unlock it in the settings!" });
+                } else {
+                  obsActionResult = await actions.handleObsAction(parsed.obsAction);
+                  await onRefreshData();
+                }
               }
             }
-          }
-          if (parsed.streamerBotAction) {
-            await onStreamerBotAction(parsed.streamerBotAction);
-          }
-          // Prefer responseText for display if present
-          if (typeof parsed.responseText === 'string') {
-            displayText = parsed.responseText;
-          } else if (parsed.obsAction || parsed.streamerBotAction) {
-            // Only show JSON if it's purely action-based with no readable response
-            displayText = JSON.stringify(parsed, null, 2);
+            if (parsed.streamerBotAction) {
+              await onStreamerBotAction(parsed.streamerBotAction);
+            }
+            // Prefer responseText for display if present
+            if (typeof parsed.responseText === 'string') {
+              displayText = parsed.responseText;
+            } else if (parsed.obsAction || parsed.streamerBotAction) {
+              // Only show JSON if it's purely action-based with no readable response
+              displayText = JSON.stringify(parsed, null, 2);
+            }
+          } catch (err) {
+            // Show a user-friendly error if JSON is invalid
+            onAddMessage({ role: 'system', text: '❗ The model returned an invalid JSON for OBS action. Please try again or rephrase your request.' });
           }
         }
       } catch (err) {
@@ -778,15 +799,16 @@ When a user asks for a Streamer.bot action, use this format.
                     handleSend();
                   }
                 }}
-                className="w-full px-3 py-2 rounded-lg bg-[rgba(30,30,40,0.85)] border border-border text-[var(--text-color)] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-accent transition-colors duration-150 shadow-sm"
+                className="w-full pl-14 pr-3 py-2 rounded-xl bg-[rgba(34,37,51,0.92)] border border-[rgba(80,80,120,0.25)] text-[var(--text-color)] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-all duration-200 shadow-lg backdrop-blur-md disabled:opacity-60 disabled:cursor-not-allowed"
                 placeholder={isLoading ? 'Waiting for Gemini...' : 'Type your message...'}
                 disabled={isLoading || !isGeminiClientInitialized}
                 autoComplete="off"
                 spellCheck={true}
                 style={{
-                  background: 'var(--background-color, rgba(30,30,40,0.85))',
+                  background: 'var(--background-color, rgba(34,37,51,0.92))',
                   color: 'var(--text-color, #fff)',
                   borderColor: 'var(--outline-color, #444)',
+                  boxShadow: '0 2px 12px 0 rgba(30,30,60,0.10)',
                 }}
               />
               <Button

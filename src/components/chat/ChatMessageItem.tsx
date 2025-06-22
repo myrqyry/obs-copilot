@@ -287,8 +287,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                                             {memoizedSuggestions.map((suggestion) => (
                                                 <button
                                                     key={suggestion.id}
-                                                    onClick={() => onSuggestionClick(suggestion.prompt)}
-                                                    className="text-xs px-2 py-1.5 bg-background/80 hover:bg-primary hover:text-primary-foreground rounded border border-border hover:border-primary transition-all duration-200 text-left group shadow-sm"
+                                                     onClick={() => onSuggestionClick(suggestion.prompt)}                                                     className="text-xs px-2 py-1.5 bg-muted/50 hover:bg-primary/20 text-foreground hover:text-primary-foreground rounded border border-border hover:border-primary transition-all duration-200 text-left group shadow-sm"
                                                 >
                                                     <span className="mr-1.5 text-sm group-hover:scale-110 transition-transform duration-200 inline-block emoji">{suggestion.emoji}</span>
                                                     <span className="font-normal">{suggestion.label}</span>

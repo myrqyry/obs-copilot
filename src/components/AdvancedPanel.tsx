@@ -650,7 +650,7 @@ const AdvancedPanel: React.FC = () => {
                                         <div className="flex gap-2 items-center">
                                             <input
                                                 className="w-full border rounded p-2 bg-background"
-                                                type="text"
+                                                type="password"
                                                 value={apiKeyInputs[id] || ''}
                                                 onChange={e => handleApiKeyChange(id, e.target.value)}
                                                 placeholder={`Enter your ${label} API key`}
