@@ -82,11 +82,11 @@ export function highlightJsonSyntax(rawJsonString: string): string {
     // Enhanced JSON syntax highlighting using theme colors
     htmlEscapedJsonString = htmlEscapedJsonString
         .replace(/"([^"\\]*(\\.[^"\\]*)*)"(\s*:)?/g, (match, _fullString, _stringContent, _escape, colon) => {
-            const colorClass = colon ? 'style="color: #89b4fa;"' : 'style="color: #a6e3a1;"'; // Blue for keys, green for strings
-            return `<span ${colorClass}>${match.substring(0, match.length - (colon ? 1 : 0))}</span>${colon ? ':' : ''}`;
+            const colorStyle = colon ? 'color: hsl(var(--blue));' : 'color: hsl(var(--green));'; // Blue for keys, green for strings
+            return `<span style="${colorStyle}">${match.substring(0, match.length - (colon ? 1 : 0))}</span>${colon ? ':' : ''}`;
         })
-        .replace(/\b(true|false|null)\b/g, '<span style="color: #cba6f7; font-weight: 500;">$1</span>') // Purple for booleans/null
-        .replace(/(?<!\w)([-+]?\d*\.?\d+([eE][-+]?\d+)?)(?!\w)/g, '<span style="color: #fab387; font-weight: 500;">$1</span>'); // Peach for numbers
+        .replace(/\b(true|false|null)\b/g, '<span style="color: hsl(var(--mauve)); font-weight: 500;">$1</span>') // Mauve for booleans/null
+        .replace(/(?<!\w)([-+]?\d*\.?\d+([eE][-+]?\d+)?)(?!\w)/g, '<span style="color: hsl(var(--peach)); font-weight: 500;">$1</span>'); // Peach for numbers
 
     return htmlEscapedJsonString;
 }
@@ -118,7 +118,7 @@ export function applyInlineMarkdown(text: string): string {
 
     // Special effect syntax: {{effect:text}} - Process these first before other markdown
     // Enhanced glow effects using theme colors and CSS classes
-    html = html.replace(/\{\{glow:([^}]+)\}\}/g, '<span class="text-primary font-semibold drop-shadow-lg whitespace-nowrap" data-effect="glow" style="text-shadow: 0 0 12px hsl(var(--primary)), 0 0 24px hsl(var(--primary) / 0.6), 0 0 36px hsl(var(--primary) / 0.3);">$1</span>');
+    html = html.replace(/\{\{glow:([^}]+)\}\}/g, '<span class="markdown-glow-primary font-semibold drop-shadow-lg whitespace-nowrap" data-effect="glow">$1</span>');
     html = html.replace(/\{\{glow-green:([^}]+)\}\}/g, '<span class="markdown-glow-green font-semibold drop-shadow-lg whitespace-nowrap" data-effect="glow-green">$1</span>');
     html = html.replace(/\{\{glow-red:([^}]+)\}\}/g, '<span class="markdown-glow-red font-semibold drop-shadow-lg whitespace-nowrap" data-effect="glow-red">$1</span>');
     html = html.replace(/\{\{glow-blue:([^}]+)\}\}/g, '<span class="markdown-glow-blue font-semibold drop-shadow-lg whitespace-nowrap" data-effect="glow-blue">$1</span>');
@@ -165,7 +165,7 @@ export function applyInlineMarkdown(text: string): string {
     html = html.replace(/(<li class="ml-4 mb-1 text-foreground text-sm flex items-start gap-2 leading-relaxed"><span class="w-5 h-5 bg-primary\/20 text-primary rounded-full text-xs font-semibold flex items-center justify-center flex-shrink-0 mt-0\.5">•<\/span><span>[^<]*<\/span><\/li>(\s*<li class="ml-4 mb-1 text-foreground text-sm flex items-start gap-2 leading-relaxed"><span class="w-5 h-5 bg-primary\/20 text-primary rounded-full text-xs font-semibold flex items-center justify-center flex-shrink-0 mt-0\.5">•<\/span><span>[^<]*<\/span><\/li>)*)/g, '<ol class="mb-3 ml-0 space-y-0.5">$1</ol>');
 
     // Enhanced inline code styling
-    html = html.replace(/`([^`]+)`/g, '<code class="px-2 py-1 rounded-lg text-sm font-mono border shadow-sm" style="background: #181825 !important; color: #cdd6f4 !important; border-color: #313244; box-shadow: inset 0 1px 2px rgba(0,0,0,0.3);">$1</code>');
+    html = html.replace(/`([^`]+)`/g, '<code class="px-2 py-1 rounded-lg text-sm font-mono border shadow-sm" style="background: hsl(var(--input)) !important; color: hsl(var(--foreground)) !important; border-color: hsl(var(--surface0)); box-shadow: inset 0 1px 2px rgba(0,0,0,0.3);">$1</code>');
 
     // Enhanced text formatting
     html = html.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold text-primary">$1</strong>');

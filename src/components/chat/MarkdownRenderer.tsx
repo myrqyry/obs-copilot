@@ -41,7 +41,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({ c
         if (lang === 'json') {
             highlightedCode = highlightJsonSyntax(rawCode);
         } else {
-            highlightedCode = rawCode.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            highlightedCode = rawCode.replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>');
         }
         const codeBlockId = `code-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         parts.push(
@@ -52,7 +52,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({ c
                             const btn = event.target;
                             const originalText = btn.textContent;
                             btn.textContent = '✓';
-                            btn.style.color = '#a6e3a1';
+                            btn.style.color = 'hsl(var(--green))';
                             setTimeout(() => {
                                 btn.textContent = originalText;
                                 btn.style.color = '';
@@ -69,7 +69,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({ c
                             const url = URL.createObjectURL(blob);
                             const a = document.createElement('a');
                             a.href = url;
-                            a.download = \`code_snippet.\${lang}\`;
+                            a.download = \`code_snippet.${lang}\`;
                             document.body.appendChild(a);
                             a.click();
                             document.body.removeChild(a);
@@ -77,7 +77,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({ c
                             const btn = event.target;
                             const originalText = btn.textContent;
                             btn.textContent = '✓';
-                            btn.style.color = '#89b4fa';
+                            btn.style.color = 'hsl(var(--blue))';
                             setTimeout(() => {
                                 btn.textContent = originalText;
                                 btn.style.color = '';
@@ -87,7 +87,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({ c
                         title="Save as file"
                     >💾</button>
                 </div>
-                <pre class="p-2.5 text-xs overflow-x-auto border border-border shadow-inner rounded-md leading-relaxed whitespace-pre-wrap" style="background: #181825; color: #cdd6f4; border-color: hsl(var(--border));">
+                <pre class="p-2.5 text-xs overflow-x-auto border border-border shadow-inner rounded-md leading-relaxed whitespace-pre-wrap" style="background: hsl(var(--ctp-mantle)); color: hsl(var(--ctp-text)); border-color: hsl(var(--border));">
                     <code id="${codeBlockId}" class="language-${lang || ''} block">${highlightedCode}</code>
                 </pre>
             </div>`

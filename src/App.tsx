@@ -10,6 +10,7 @@ import { GeminiChat } from './components/GeminiChat';
 import { LoadingSpinner } from './components/common/LoadingSpinner';
 import { Modal } from './components/common/Modal';
 import StreamingAssetsTab from './components/StreamingAssetsTab';
+import CreateTab from './components/CreateTab';
 import {
     AppTab,
     OBSScene,
@@ -64,7 +65,7 @@ const App: React.FC = () => {
     });
 
     const tabContentRef = useRef<HTMLDivElement>(null);
-    const tabOrder: AppTab[] = [AppTab.GEMINI, AppTab.OBS_STUDIO, AppTab.STREAMING_ASSETS, AppTab.SETTINGS, AppTab.CONNECTIONS, AppTab.ADVANCED];
+    const tabOrder: AppTab[] = [AppTab.GEMINI, AppTab.OBS_STUDIO, AppTab.STREAMING_ASSETS, AppTab.CREATE, AppTab.SETTINGS, AppTab.CONNECTIONS, AppTab.ADVANCED];
     const headerRef = useRef<HTMLDivElement>(null);
     const [headerHeight, setHeaderHeight] = useState(64);
 
@@ -405,11 +406,12 @@ const App: React.FC = () => {
     }, [activeTab]);
 
     const tabEmojis: Record<AppTab, string> = {
-        [AppTab.CONNECTIONS]: '🔌',
-        [AppTab.GEMINI]: '✨',
+        [AppTab.GEMINI]: '🤖',
         [AppTab.OBS_STUDIO]: '🎬',
-        [AppTab.SETTINGS]: '⚙️',
         [AppTab.STREAMING_ASSETS]: '🌈',
+        [AppTab.CREATE]: '✨',
+        [AppTab.SETTINGS]: '⚙️',
+        [AppTab.CONNECTIONS]: '🔌',
         [AppTab.ADVANCED]: '🛠️',
     };
 
@@ -473,6 +475,15 @@ const App: React.FC = () => {
                     <div className="flex flex-col h-full bg-background border-l border-r border-b border-border rounded-b-lg shadow-lg">
                         <div className="flex-grow p-3 overflow-y-auto">
                             <StreamingAssetsTab />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Create Tab */}
+                <div className={`h-full tab-content ${activeTab === AppTab.CREATE ? 'block' : 'hidden'}`}>
+                    <div className="flex flex-col h-full bg-background border-l border-r border-b border-border rounded-b-lg shadow-lg">
+                        <div className="flex-grow p-3 overflow-y-auto">
+                            <CreateTab />
                         </div>
                     </div>
                 </div>
@@ -567,8 +578,10 @@ const App: React.FC = () => {
                                     case AppTab.GEMINI: return 'Assistant';
                                     case AppTab.OBS_STUDIO: return 'OBS Studio Controls';
                                     case AppTab.STREAMING_ASSETS: return 'Streaming Assets';
+                                    case AppTab.CREATE: return 'Create';
                                     case AppTab.SETTINGS: return 'Settings & Preferences';
                                     case AppTab.CONNECTIONS: return 'Connection Manager';
+                                    case AppTab.ADVANCED: return 'Advanced';
                                     default: return tabName;
                                 }
                             };
@@ -579,8 +592,10 @@ const App: React.FC = () => {
                                     case AppTab.GEMINI: return 'Assistant';
                                     case AppTab.OBS_STUDIO: return 'OBS Studio';
                                     case AppTab.STREAMING_ASSETS: return 'Assets';
+                                    case AppTab.CREATE: return 'Create';
                                     case AppTab.SETTINGS: return 'Settings';
                                     case AppTab.CONNECTIONS: return 'Connect';
+                                    case AppTab.ADVANCED: return 'Advanced';
                                     default: return tabName;
                                 }
                             };

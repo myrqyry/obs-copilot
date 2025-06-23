@@ -1,11 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-
   * {
     border-color: hsl(var(--border));
   }
@@ -61,6 +60,14 @@
     --radius: 0.75rem;
     /* 12px, matches original rounded-lg */
 
+    --surface0: 237 13% 23%; /* Catppuccin Mocha Surface0 */
+    --green: 115 37% 76%; /* Catppuccin Mocha Green */
+    --blue: 217 80% 86%; /* Catppuccin Mocha Blue */
+    --mauve: 270 80% 85%; /* Catppuccin Mocha Mauve */
+    --peach: 25 92% 85%; /* Catppuccin Mocha Peach */
+    --ctp-mantle: 240 20% 18%; /* Catppuccin Mocha Mantle */
+    --ctp-text: 226 66% 88%; /* Catppuccin Mocha Text */
+
     /* RGB values for chat bubble colors */
     --user-chat-bubble-color-rgb: 245, 224, 220;
     /* Defaulting to rosewater RGB */
@@ -71,7 +78,7 @@
   body {
     color: hsl(var(--foreground));
     background-color: hsl(var(--background));
-    font-family: 'Inter', sans-serif;
+    font-family: "Inter", sans-serif;
   }
 
   /* Extra dark mode should NOT change global CSS variables */
@@ -94,10 +101,6 @@
 
   ::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--secondary-foreground) / 0.7);
-  }
-
-  .glow {
-    box-shadow: 0 0 5px hsl(var(--primary)), 0 0 10px hsl(var(--primary)), 0 0 15px hsl(var(--primary));
   }
 
   /* Smooth tab transitions */
@@ -127,7 +130,6 @@
 
   /* Reduce motion for users who prefer it */
   @media (prefers-reduced-motion: reduce) {
-
     .tab-transition,
     .height-transition {
       transition: none;
@@ -186,67 +188,12 @@
     }
   }
 
-  /* Rainbow text animation for special effects */
-  @keyframes rainbow-shift {
-    0%, 100% {
-      background-position: 0% 50%;
-    }
-    50% {
-      background-position: 100% 50%;
-    }
-  }
-
-  /* Enhanced glow pulse animation */
-  @keyframes enhanced-pulse {
-    0%, 100% {
-      opacity: 1;
-      text-shadow: 0 0 12px currentColor, 0 0 24px currentColor;
-    }
-    50% {
-      opacity: 0.8;
-      text-shadow: 0 0 16px currentColor, 0 0 32px currentColor, 0 0 48px currentColor;
-    }
-  }
-
-  /* Sparkle animation */
-  @keyframes sparkle {
-    0%, 100% {
-      transform: scale(1) rotate(0deg);
-      opacity: 1;
-    }
-    25% {
-      transform: scale(1.2) rotate(90deg);
-      opacity: 0.8;
-    }
-    50% {
-      transform: scale(0.8) rotate(180deg);
-      opacity: 0.6;
-    }
-    75% {
-      transform: scale(1.1) rotate(270deg);
-      opacity: 0.9;
-    }
-  }
-
-  /* Gentle pulse animation for LIVE indicator - layout stable */
-  @keyframes gentle-pulse {
-    0%, 100% {
-      transform: scale(1);
-      opacity: 1;
-    }
-    50% {
-      transform: scale(1.05);
-      opacity: 0.85;
-    }
-  }
-
   .animate-modal-appear {
     animation: modal-appear 0.3s ease-out;
   }
 
   /* Responsive tab container improvements */
   @media (max-width: 640px) {
-
     /* Reduce header padding on small screens */
     .py-2.px-3 {
       padding-left: 0.5rem;
@@ -260,7 +207,6 @@
   }
 
   @media (max-width: 480px) {
-
     /* Very small screens - minimize spacing further */
     .py-2.px-3 {
       padding-left: 0.25rem;
@@ -303,7 +249,6 @@
 }
 
 @layer components {
-
   /* Input styling for forms */
   .input {
     @apply text-sm rounded-lg block w-full p-1.5 transition-all duration-200 ease-in-out shadow-sm;
@@ -372,44 +317,70 @@
   .chat-bubble-glass {
     backdrop-filter: blur(12px) saturate(1.5);
     -webkit-backdrop-filter: blur(12px) saturate(1.5);
-    background-image: 
-      linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+    background-image: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(255, 255, 255, 0.05) 100%
+    );
   }
 
   /* Enhanced glass effect for extra dark mode */
   .chat-bubble-glass-extra-dark {
     backdrop-filter: blur(16px) saturate(1.8);
     -webkit-backdrop-filter: blur(16px) saturate(1.8);
-    background-image: 
-      linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+    background-image: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.08) 0%,
+      rgba(255, 255, 255, 0.03) 100%
+    );
   }
 
   /* Ensure bubble fade effects use the correct colors */
   .bubble-fade-top {
-    background: linear-gradient(to bottom, var(--bubble-fade-color, rgba(30, 30, 46, 0.9)), transparent);
+    background: linear-gradient(
+      to bottom,
+      var(--bubble-fade-color, rgba(30, 30, 46, 0.9)),
+      transparent
+    );
   }
 
   .bubble-fade-bottom {
-    background: linear-gradient(to top, var(--bubble-fade-color, rgba(30, 30, 46, 0.9)), transparent);
+    background: linear-gradient(
+      to top,
+      var(--bubble-fade-color, rgba(30, 30, 46, 0.9)),
+      transparent
+    );
   }
 
   /* Custom scrollbar for chat bubbles */
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: var(--bubble-scrollbar-thumb, hsl(var(--secondary-foreground) / 0.5));
+    background: var(
+      --bubble-scrollbar-thumb,
+      hsl(var(--secondary-foreground) / 0.5)
+    );
     border-radius: 4px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: var(--bubble-scrollbar-thumb-hover, hsl(var(--secondary-foreground) / 0.7));
+    background: var(
+      --bubble-scrollbar-thumb-hover,
+      hsl(var(--secondary-foreground) / 0.7)
+    );
   }
 
   .chat-scrollable-content::-webkit-scrollbar-thumb {
-    background: var(--bubble-scrollbar-thumb, hsl(var(--secondary-foreground) / 0.5));
+    background: var(
+      --bubble-scrollbar-thumb,
+      hsl(var(--secondary-foreground) / 0.5)
+    );
     border-radius: 4px;
   }
 
   .chat-scrollable-content::-webkit-scrollbar-thumb:hover {
-    background: var(--bubble-scrollbar-thumb-hover, hsl(var(--secondary-foreground) / 0.7));
+    background: var(
+      --bubble-scrollbar-thumb-hover,
+      hsl(var(--secondary-foreground) / 0.7)
+    );
   }
 
   /* Enhanced chat message styling */
@@ -454,11 +425,11 @@
 
   /* Enhanced status badge animations */
   .status-badge-pulse {
-    animation: enhanced-pulse 2s ease-in-out infinite;
+    animation: theme-enhanced-pulse 2s ease-in-out infinite;
   }
 
   .sparkle-animation {
-    animation: sparkle 2s ease-in-out infinite;
+    animation: theme-sparkle 2s ease-in-out infinite;
   }
 
   /* Responsive adjustments for small chat bubbles */
@@ -466,30 +437,17 @@
     .chat-message-content {
       font-size: 0.875rem;
     }
-    
+
     .chat-message-content h1 {
       font-size: 1.125rem;
     }
-    
+
     .chat-message-content h2 {
       font-size: 1rem;
     }
-    
+
     .chat-message-content h3 {
       font-size: 0.9rem;
-    }
-  }
-
-  /* Rainbow gradient animation for {{rainbow:}} effect */
-  @keyframes rainbow-gradient {
-    0% {
-      background-position: 0% 50%;
-    }
-    50% {
-      background-position: 100% 50%;
-    }
-    100% {
-      background-position: 0% 50%;
     }
   }
 
@@ -502,16 +460,14 @@
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(var(--border), 0.3);
-    box-shadow: 
-      0 8px 32px rgba(0, 0, 0, 0.1),
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1),
       inset 0 1px 0 rgba(255, 255, 255, 0.1);
     transition: all 0.3s ease;
   }
 
   .glass-card:hover {
     background: rgba(var(--card), 0.8);
-    box-shadow: 
-      0 12px 40px rgba(0, 0, 0, 0.15),
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15),
       inset 0 1px 0 rgba(255, 255, 255, 0.15);
     transform: translateY(-2px);
   }
@@ -521,8 +477,7 @@
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid rgba(var(--border), 0.2);
-    box-shadow: 
-      0 4px 24px rgba(0, 0, 0, 0.08),
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08),
       inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 
@@ -538,8 +493,7 @@
   .glass-button:hover {
     background: rgba(var(--primary), 0.25);
     border-color: hsl(var(--primary));
-    box-shadow: 
-      0 8px 25px rgba(var(--primary), 0.15),
+    box-shadow: 0 8px 25px rgba(var(--primary), 0.15),
       inset 0 1px 0 rgba(255, 255, 255, 0.1);
     transform: translateY(-1px) scale(1.02);
   }
@@ -556,14 +510,12 @@
   .glass-input:focus {
     background: rgba(var(--background), 0.7);
     border-color: hsl(var(--ring));
-    box-shadow: 
-      0 0 0 3px rgba(var(--ring), 0.15),
-      0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0 0 3px rgba(var(--ring), 0.15), 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 
   /* Glass effects should NOT be affected by extra dark mode */
   /* Extra dark mode only affects chat bubbles and markdown effects */
-  
+
   /* Animation utilities for glass elements */
   .glass-entrance {
     animation: glass-fade-in 0.6s cubic-bezier(0.16, 1, 0.3, 1);
@@ -584,10 +536,8 @@
 
   /* Card inner shadow enhancement */
   .card-inner-shadow {
-    box-shadow: 
-      inset 0 1px 0 rgba(255, 255, 255, 0.1),
-      inset 0 -1px 0 rgba(0, 0, 0, 0.1),
-      0 4px 24px rgba(0, 0, 0, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.1), 0 4px 24px rgba(0, 0, 0, 0.08);
   }
 
   /* ===================================================================== */
@@ -604,9 +554,9 @@
   .focus-ring:focus-visible {
     outline: var(--focus-ring-width) solid transparent;
     outline-offset: var(--focus-ring-offset);
-    box-shadow: 
-      0 0 0 var(--focus-ring-offset) hsl(var(--background)),
-      0 0 0 calc(var(--focus-ring-offset) + var(--focus-ring-width)) hsl(var(--focus-ring-color) / var(--focus-ring-opacity)),
+    box-shadow: 0 0 0 var(--focus-ring-offset) hsl(var(--background)),
+      0 0 0 calc(var(--focus-ring-offset) + var(--focus-ring-width))
+        hsl(var(--focus-ring-color) / var(--focus-ring-opacity)),
       0 4px 12px rgba(0, 0, 0, 0.15);
     transition: box-shadow 0.2s ease;
   }
@@ -614,10 +564,8 @@
   /* Enhanced focus for interactive elements */
   .enhanced-focus:focus-visible {
     transform: translateY(-1px);
-    box-shadow: 
-      0 0 0 2px hsl(var(--background)),
-      0 0 0 4px hsl(var(--ring) / 0.3),
-      0 8px 24px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 0 0 2px hsl(var(--background)),
+      0 0 0 4px hsl(var(--ring) / 0.3), 0 8px 24px rgba(0, 0, 0, 0.15);
     transition: box-shadow 0.2s ease, transform 0.2s ease;
   }
 
@@ -632,49 +580,70 @@
   /* ===================================================================== */
 
   /* Glow effects - adapt to extra dark mode */
+  .markdown-glow-primary {
+    color: hsl(var(--primary)) !important;
+    text-shadow: 0 0 12px hsl(var(--primary)),
+      0 0 24px hsl(var(--primary) / 0.6), 0 0 36px hsl(var(--primary) / 0.3);
+  }
+
+  [data-extra-dark-mode="true"] .markdown-glow-primary {
+    text-shadow: 0 0 16px hsl(var(--primary)),
+      0 0 32px hsl(var(--primary) / 0.8), 0 0 48px hsl(var(--primary) / 0.4);
+  }
+
   .markdown-glow-green {
     color: #a6e3a1 !important;
-    text-shadow: 0 0 12px #a6e3a1, 0 0 24px rgba(166, 227, 161, 0.6), 0 0 36px rgba(166, 227, 161, 0.3);
+    text-shadow: 0 0 12px #a6e3a1, 0 0 24px rgba(166, 227, 161, 0.6),
+      0 0 36px rgba(166, 227, 161, 0.3);
   }
 
   [data-extra-dark-mode="true"] .markdown-glow-green {
-    text-shadow: 0 0 16px #a6e3a1, 0 0 32px rgba(166, 227, 161, 0.8), 0 0 48px rgba(166, 227, 161, 0.4);
+    text-shadow: 0 0 16px #a6e3a1, 0 0 32px rgba(166, 227, 161, 0.8),
+      0 0 48px rgba(166, 227, 161, 0.4);
   }
 
   .markdown-glow-red {
     color: #f38ba8 !important;
-    text-shadow: 0 0 12px #f38ba8, 0 0 24px rgba(243, 139, 168, 0.6), 0 0 36px rgba(243, 139, 168, 0.3);
+    text-shadow: 0 0 12px #f38ba8, 0 0 24px rgba(243, 139, 168, 0.6),
+      0 0 36px rgba(243, 139, 168, 0.3);
   }
 
   [data-extra-dark-mode="true"] .markdown-glow-red {
-    text-shadow: 0 0 16px #f38ba8, 0 0 32px rgba(243, 139, 168, 0.8), 0 0 48px rgba(243, 139, 168, 0.4);
+    text-shadow: 0 0 16px #f38ba8, 0 0 32px rgba(243, 139, 168, 0.8),
+      0 0 48px rgba(243, 139, 168, 0.4);
   }
 
   .markdown-glow-blue {
     color: #89b4fa !important;
-    text-shadow: 0 0 12px #89b4fa, 0 0 24px rgba(137, 180, 250, 0.6), 0 0 36px rgba(137, 180, 250, 0.3);
+    text-shadow: 0 0 12px #89b4fa, 0 0 24px rgba(137, 180, 250, 0.6),
+      0 0 36px rgba(137, 180, 250, 0.3);
   }
 
   [data-extra-dark-mode="true"] .markdown-glow-blue {
-    text-shadow: 0 0 16px #89b4fa, 0 0 32px rgba(137, 180, 250, 0.8), 0 0 48px rgba(137, 180, 250, 0.4);
+    text-shadow: 0 0 16px #89b4fa, 0 0 32px rgba(137, 180, 250, 0.8),
+      0 0 48px rgba(137, 180, 250, 0.4);
   }
 
   .markdown-glow-yellow {
     color: #f9e2af !important;
-    text-shadow: 0 0 12px #f9e2af, 0 0 24px rgba(249, 226, 175, 0.6), 0 0 36px rgba(249, 226, 175, 0.3);
+    text-shadow: 0 0 12px #f9e2af, 0 0 24px rgba(249, 226, 175, 0.6),
+      0 0 36px rgba(249, 226, 175, 0.3);
   }
 
   [data-extra-dark-mode="true"] .markdown-glow-yellow {
-    text-shadow: 0 0 16px #f9e2af, 0 0 32px rgba(249, 226, 175, 0.8), 0 0 48px rgba(249, 226, 175, 0.4);
+    text-shadow: 0 0 16px #f9e2af, 0 0 32px rgba(249, 226, 175, 0.8),
+      0 0 48px rgba(249, 226, 175, 0.4);
   }
 
   .markdown-glow-purple {
     color: #cba6f7 !important;
-    text-shadow: 0 0 12px #cba6f7, 0 0 24px rgba(203, 166, 247, 0.6), 0 0 36px rgba(203, 166, 247, 0.3);
+    text-shadow: 0 0 12px #cba6f7, 0 0 24px rgba(203, 166, 247, 0.6),
+      0 0 36px rgba(203, 166, 247, 0.3);
   }
 
   [data-extra-dark-mode="true"] .markdown-glow-purple {
-    text-shadow: 0 0 16px #cba6f7, 0 0 32px rgba(203, 166, 247, 0.8), 0 0 48px rgba(203, 166, 247, 0.4);
+    text-shadow: 0 0 16px #cba6f7, 0 0 32px rgba(203, 166, 247, 0.8),
+      0 0 48px rgba(203, 166, 247, 0.4);
   }
 
   /* Badge effects - adapt background and contrast for extra dark mode */
@@ -760,7 +729,7 @@
     background: hsl(var(--card) / 0.9);
     border-color: #f38ba8;
     box-shadow: 0 0 16px rgba(243, 139, 168, 0.4);
-    @apply font-bold px-3 py-1.5 shadow-lg animate-pulse;
+    @apply font-bold px-3 py-1.5 shadow-lg animate-gentle-pulse;
   }
 
   [data-extra-dark-mode="true"] .markdown-stream-live {
@@ -770,7 +739,17 @@
 
   /* Rainbow effect - enhanced visibility in extra dark mode */
   .markdown-rainbow {
-    background: linear-gradient(45deg, #f38ba8 0%, #fab387 14%, #f9e2af 28%, #a6e3a1 42%, #94e2d5 57%, #89b4fa 71%, #cba6f7 85%, #f38ba8 100%);
+    background: linear-gradient(
+      45deg,
+      #f38ba8 0%,
+      #fab387 14%,
+      #f9e2af 28%,
+      #a6e3a1 42%,
+      #94e2d5 57%,
+      #89b4fa 71%,
+      #cba6f7 85%,
+      #f38ba8 100%
+    );
     background-size: 400% 400%;
     background-clip: text !important;
     -webkit-background-clip: text !important;
@@ -784,7 +763,17 @@
 
   [data-extra-dark-mode="true"] .markdown-rainbow {
     /* Enhanced colors for extra dark mode */
-    background: linear-gradient(45deg, #ff6b9d 0%, #ffb347 14%, #ffea6b 28%, #6bffa1 42%, #6bdde2 57%, #6bb4fa 71%, #c86bfa 85%, #ff6b9d 100%);
+    background: linear-gradient(
+      45deg,
+      #ff6b9d 0%,
+      #ffb347 14%,
+      #ffea6b 28%,
+      #6bffa1 42%,
+      #6bdde2 57%,
+      #6bb4fa 71%,
+      #c86bfa 85%,
+      #ff6b9d 100%
+    );
   }
 
   /* Highlight effects - adapt background and text contrast */
@@ -871,5 +860,4 @@
   /* ===================================================================== */
   /* END MARKDOWN EFFECTS */
   /* ===================================================================== */
-
 }

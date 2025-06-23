@@ -118,11 +118,61 @@ module.exports = {
             transform: "scale(1) translateY(0)"
           },
         },
+        "rainbow-shift": {
+          "0%, 100%": {
+            "background-position": "0% 50%"
+          },
+          "50%": {
+            "background-position": "100% 50%"
+          }
+        },
+        "enhanced-pulse": {
+          "0%, 100%": {
+            opacity: "1",
+            "text-shadow": "0 0 12px currentColor, 0 0 24px currentColor"
+          },
+          "50%": {
+            opacity: "0.8",
+            "text-shadow": "0 0 16px currentColor, 0 0 32px currentColor, 0 0 48px currentColor"
+          }
+        },
+        "sparkle": {
+          "0%, 100%": {
+            transform: "scale(1) rotate(0deg)",
+            opacity: "1"
+          },
+          "25%": {
+            transform: "scale(1.2) rotate(90deg)",
+            opacity: "0.8"
+          },
+          "50%": {
+            transform: "scale(0.8) rotate(180deg)",
+            opacity: "0.6"
+          },
+          "75%": {
+            transform: "scale(1.1) rotate(270deg)",
+            opacity: "0.9"
+          }
+        },
+        "gentle-pulse": {
+          "0%, 100%": {
+            transform: "scale(1)",
+            opacity: "1"
+          },
+          "50%": {
+            transform: "scale(1.05)",
+            opacity: "0.85"
+          }
+        }
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "modal-appear": "modal-appear 0.3s ease-out forwards",
+        "rainbow-shift": "rainbow-shift 4s ease-in-out infinite",
+        "enhanced-pulse": "enhanced-pulse 2s ease-in-out infinite",
+        "sparkle": "sparkle 2s ease-in-out infinite",
+        "gentle-pulse": "gentle-pulse 2s ease-in-out infinite",
       },
     },
   },
