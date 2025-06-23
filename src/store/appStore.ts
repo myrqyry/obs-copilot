@@ -18,7 +18,7 @@ import type { StreamerBotService } from '../services/streamerBotService';
 import { loadUserSettings, saveUserSettings, isStorageAvailable } from '../utils/persistence';
 import { automationService } from '../services/automationService';
 
-interface AppState {
+export interface AppState {
     // Connection State
     isConnected: boolean;
     isConnecting: boolean;
@@ -86,8 +86,17 @@ interface AppState {
         modelChatBubble: CatppuccinChatBubbleColorName;
     };
 
+    // --- MUSIC/STREAMING AUDIO STATE & ACTIONS ---
+    musicSession: any | null;
+    isMusicPlaying: boolean;
+    currentMusicPrompt: string;
+    audioContext: AudioContext | null;
+    audioQueue: AudioBuffer[];
+    isQueuePlaying: boolean;
+
     // Define the actions (functions) to update the state
     actions: {
+        setMusicPrompt: (prompt: string) => void; // New action
         setConnecting: () => void;
         setConnected: (obsData: {
             scenes: OBSScene[];
@@ -143,6 +152,15 @@ interface AppState {
         getHotkeys: () => Promise<void>;
         getLogFiles: () => Promise<void>;
         uploadLog: () => Promise<{ success: boolean; url?: string; message: string }>;
+
+        // --- MUSIC/STREAMING AUDIO ACTIONS ---
+        initializeAudioContext: () => void;
+        startMusicGeneration: (prompt: string, config: any) => Promise<void>;
+        addAudioChunk: (pcm: ArrayBuffer) => void;
+        playFromQueue: () => void;
+        pauseMusic: () => void;
+        resumeMusic: () => void;
+        stopMusic: () => void;
     };
 }
 
@@ -209,8 +227,17 @@ export const useAppStore = create<AppState>((set, get) => ({
         },
     },
 
+    // --- MUSIC/STREAMING AUDIO STATE ---
+    musicSession: null,
+    isMusicPlaying: false,
+    currentMusicPrompt: '',
+    audioContext: null,
+    audioQueue: [],
+    isQueuePlaying: false,
+
     // Actions
     actions: {
+        setMusicPrompt: (prompt) => set({ currentMusicPrompt: prompt }), // Implementation
         setConnecting: () => set({ isConnecting: true, connectError: null }),
         setConnected: (data) => {
             set({
@@ -848,6 +875,167 @@ export const useAppStore = create<AppState>((set, get) => ({
                     success: false,
                     message: `Failed to upload log: ${error.message || 'Unknown error'}`
                 };
+            }
+        },
+
+        // --- MUSIC/STREAMING AUDIO ACTIONS ---
+        initializeAudioContext: () => {
+            if (!get().audioContext) {
+                const context = new window.AudioContext({ sampleRate: 48000 });
+                set({ audioContext: context });
+            }
+        },
+
+        startMusicGeneration: async (prompt, config) => {
+            get().actions.initializeAudioContext();
+            const { audioContext, musicSession } = get();
+            if (!audioContext || musicSession) return;
+
+            set({ isMusicPlaying: true, currentMusicPrompt: prompt, audioQueue: [] });
+
+            // Dynamically import the Gemini API client if not already loaded
+            let GoogleGenAI;
+            try {
+                GoogleGenAI = (await import('@google/genai')).GoogleGenAI;
+            } catch (err) {
+                set({ isMusicPlaying: false });
+                get().actions.addMessage({ role: 'system', text: '❌ Gemini API client not found. Please install @google/genai.' });
+                return;
+            }
+
+            const apiKey = get().geminiApiKey;
+            if (!apiKey) {
+                set({ isMusicPlaying: false });
+                get().actions.addMessage({ role: 'system', text: '❌ Gemini API key is missing.' });
+                return;
+            }
+
+            // Create the Gemini client
+            const ai = new GoogleGenAI({
+                apiKey,
+                apiVersion: 'v1alpha',
+            });
+
+            // Connect to the Lyria RealTime model
+            let session: any;
+            try {
+                session = await ai.live.music.connect({
+                    model: 'models/lyria-realtime-exp',
+                    callbacks: {
+                        onmessage: (message: any) => {
+                            const chunk = message?.serverContent?.audioChunks?.[0];
+                            if (chunk?.data) {
+                                try {
+                                    const pcm = Uint8Array.from(atob(chunk.data), c => c.charCodeAt(0)).buffer;
+                                    get().actions.addAudioChunk(pcm);
+                                } catch (e) {
+                                    // Ignore bad chunk
+                                }
+                            }
+                        },
+                        onerror: (error: any) => {
+                            set({ isMusicPlaying: false });
+                            get().actions.addMessage({ role: 'system', text: `❌ Music session error: ${error?.message || error}` });
+                        },
+                        onclose: () => {
+                            set({ isMusicPlaying: false, musicSession: null });
+                        }
+                    }
+                });
+            } catch (err: any) {
+                set({ isMusicPlaying: false });
+                get().actions.addMessage({ role: 'system', text: `❌ Failed to connect to Gemini music API: ${err?.message || err}` });
+                return;
+            }
+
+            set({ musicSession: session });
+
+            // Send initial prompt and config
+            try {
+                await session.setWeightedPrompts({
+                    weightedPrompts: [{ text: prompt, weight: 1.0 }],
+                });
+                await session.setMusicGenerationConfig({
+                    musicGenerationConfig: config,
+                });
+                await session.play();
+            } catch (err: any) {
+                set({ isMusicPlaying: false });
+                get().actions.addMessage({ role: 'system', text: `❌ Failed to start music generation: ${err?.message || err}` });
+                try { await session?.close(); } catch { }
+                set({ musicSession: null });
+            }
+        },
+
+        addAudioChunk: (pcm) => {
+            const { audioContext } = get();
+            if (!audioContext) return;
+
+            const audioBuffer = audioContext.createBuffer(2, pcm.byteLength / 4, 48000);
+            const view = new DataView(pcm);
+            for (let i = 0; i < audioBuffer.length; i++) {
+                audioBuffer.getChannelData(0)[i] = view.getInt16(i * 4, true) / 32768;
+                audioBuffer.getChannelData(1)[i] = view.getInt16(i * 4 + 2, true) / 32768;
+            }
+
+            set((state) => ({ audioQueue: [...state.audioQueue, audioBuffer] }));
+
+            if (!get().isQueuePlaying) {
+                get().actions.playFromQueue();
+            }
+        },
+
+        playFromQueue: () => {
+            const { audioQueue, audioContext } = get();
+            if (audioQueue.length === 0 || !audioContext) {
+                set({ isQueuePlaying: false });
+                return;
+            }
+
+            // Always try to resume AudioContext before playback (required for Chrome/Edge/Firefox autoplay policies)
+            if (audioContext.state !== 'running') {
+                audioContext.resume();
+            }
+
+            set({ isQueuePlaying: true });
+            const source = audioContext.createBufferSource();
+            source.buffer = audioQueue[0];
+            source.connect(audioContext.destination);
+            source.start();
+
+            source.onended = () => {
+                set((state) => ({ audioQueue: state.audioQueue.slice(1) }));
+                get().actions.playFromQueue();
+            };
+        },
+
+        pauseMusic: () => {
+            // Implement pause logic if needed (e.g., suspend AudioContext)
+            const { audioContext } = get();
+            if (audioContext && audioContext.state === 'running') {
+                audioContext.suspend();
+            }
+        },
+
+        resumeMusic: () => {
+            // Always try to resume AudioContext on user interaction (required for Chrome/Edge/Firefox autoplay policies)
+            const { audioContext } = get();
+            if (audioContext && audioContext.state !== 'running') {
+                audioContext.resume();
+            }
+        },
+
+        stopMusic: () => {
+            // Stop playback and clear queue
+            const { musicSession } = get();
+            if (musicSession && typeof musicSession.close === 'function') {
+                try { musicSession.close(); } catch { }
+            }
+            set({ musicSession: null, audioQueue: [], isMusicPlaying: false, isQueuePlaying: false });
+            const { audioContext } = get();
+            if (audioContext && audioContext.state !== 'closed') {
+                audioContext.close();
+                set({ audioContext: null });
             }
         },
     }

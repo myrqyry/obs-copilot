@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import FloatingMusicPlayer from './components/common/FloatingMusicPlayer';
 import OBSWebSocket from 'obs-websocket-js';
 // Import GSAP test for development verification
 import './utils/gsapTest';
@@ -15,12 +16,14 @@ import {
     AppTab,
     OBSScene,
     OBSSource,
+    ChatMessage, // Add ChatMessage here
     catppuccinAccentColorsHexMap,
     catppuccinSecondaryAccentColorsHexMap,
     catppuccinChatBubbleColorsHexMap,
-} from './types'; import { OBSWebSocketService } from './services/obsService';
+} from './types';
+import { OBSWebSocketService } from './services/obsService';
 import { StreamerBotService } from './services/streamerBotService';
-import { useAppStore } from './store/appStore';
+import { useAppStore, AppState } from './store/appStore'; // Import AppState
 import { DEFAULT_OBS_WEBSOCKET_URL } from './constants';
 import { AnimatedTitleLogos } from './components/common/AnimatedTitleLogos';
 import { loadConnectionSettings, saveConnectionSettings, isStorageAvailable } from './utils/persistence';
@@ -28,19 +31,22 @@ import { useStreamerBotActions } from './hooks/useStreamerBotActions';
 import { gsap } from 'gsap';
 
 const App: React.FC = () => {
+    // Music mini controller state (shared with CreateTab)
+    // Removed unused musicAudioUrl, handleMusicPause, handleMusicResume, handleMusicStop
+
     // Get state and actions directly from the comprehensive Zustand store - optimized selectors
-    const isConnected = useAppStore(state => state.isConnected);
-    const isConnecting = useAppStore(state => state.isConnecting);
-    const connectError = useAppStore(state => state.connectError);
-    const streamerName = useAppStore(state => state.streamerName);
-    const obsServiceInstance = useAppStore(state => state.obsServiceInstance);
-    const geminiMessages = useAppStore(state => state.geminiMessages);
-    const geminiApiKey = useAppStore(state => state.geminiApiKey);
-    const isGeminiClientInitialized = useAppStore(state => state.isGeminiClientInitialized);
-    const geminiInitializationError = useAppStore(state => state.geminiInitializationError);
-    const flipSides = useAppStore(state => state.flipSides);
-    const theme = useAppStore(state => state.theme);
-    const actions = useAppStore(state => state.actions);    // Local UI state (now much simpler!)
+    const isConnected = useAppStore((state: AppState) => state.isConnected);
+    const isConnecting = useAppStore((state: AppState) => state.isConnecting);
+    const connectError = useAppStore((state: AppState) => state.connectError);
+    const streamerName = useAppStore((state: AppState) => state.streamerName);
+    const obsServiceInstance = useAppStore((state: AppState) => state.obsServiceInstance);
+    const geminiMessages = useAppStore((state: AppState) => state.geminiMessages);
+    const geminiApiKey = useAppStore((state: AppState) => state.geminiApiKey);
+    const isGeminiClientInitialized = useAppStore((state: AppState) => state.isGeminiClientInitialized);
+    const geminiInitializationError = useAppStore((state: AppState) => state.geminiInitializationError);
+    const flipSides = useAppStore((state: AppState) => state.flipSides);
+    const theme = useAppStore((state: AppState) => state.theme);
+    const actions = useAppStore((state: AppState) => state.actions);    // Local UI state (now much simpler!)
     const [obs, setObs] = useState<any>(null);
     const [activeTab, setActiveTab] = useState<AppTab>(AppTab.GEMINI);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -114,11 +120,56 @@ const App: React.FC = () => {
         document.documentElement.style.setProperty('--dynamic-secondary-accent-rgb', adjustForExtraDarkMode(hexToRgb(catppuccinSecondaryAccentColorsHexMap[theme.secondaryAccent])));
     }, [theme.accent, theme.secondaryAccent, theme.userChatBubble, theme.modelChatBubble, extraDarkMode]);
 
+    const { extraDarkMode: extraDarkModeFromStore } = useAppStore((state: AppState) => state.userSettings);
+
+    useEffect(() => {
+        if (headerRef.current) {
+            setHeaderHeight(headerRef.current.offsetHeight);
+        }
+    }, []);
+
+    // Update CSS custom properties when theme changes
+    useEffect(() => {
+        // Set the data attribute for extra dark mode CSS selectors
+        document.documentElement.setAttribute('data-extra-dark-mode', extraDarkModeFromStore.toString());
+
+        // Adjust colors for extra dark mode
+        const adjustForExtraDarkMode = (rgb: string): string => {
+            if (!extraDarkModeFromStore) return rgb;
+            const [r, g, b] = rgb.split(',').map(Number);
+            return `${Math.max(r - 50, 0)}, ${Math.max(g - 50, 0)}, ${Math.max(b - 50, 0)}`;
+        };
+
+        // Set legacy dynamic accent properties (for components not yet migrated)
+        document.documentElement.style.setProperty('--dynamic-accent', catppuccinAccentColorsHexMap[theme.accent]);
+        document.documentElement.style.setProperty('--dynamic-secondary-accent', catppuccinSecondaryAccentColorsHexMap[theme.secondaryAccent]);
+        document.documentElement.style.setProperty('--user-chat-bubble-color', catppuccinChatBubbleColorsHexMap[theme.userChatBubble]);
+        document.documentElement.style.setProperty('--model-chat-bubble-color', catppuccinChatBubbleColorsHexMap[theme.modelChatBubble]);
+
+        // Set theme colors as CSS variables for markdown effects
+        document.documentElement.style.setProperty('--theme-accent', catppuccinAccentColorsHexMap[theme.accent]);
+        document.documentElement.style.setProperty('--theme-secondary-accent', catppuccinSecondaryAccentColorsHexMap[theme.secondaryAccent]);
+        document.documentElement.style.setProperty('--theme-user-bubble', catppuccinChatBubbleColorsHexMap[theme.userChatBubble]);
+        document.documentElement.style.setProperty('--theme-model-bubble', catppuccinChatBubbleColorsHexMap[theme.modelChatBubble]);
+
+        // Update RGB variables for chat bubble opacity
+        const hexToRgb = (hex: string): string => {
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return `${r}, ${g}, ${b}`;
+        };
+
+        document.documentElement.style.setProperty('--user-chat-bubble-color-rgb', adjustForExtraDarkMode(hexToRgb(catppuccinChatBubbleColorsHexMap[theme.userChatBubble])));
+        document.documentElement.style.setProperty('--model-chat-bubble-color-rgb', adjustForExtraDarkMode(hexToRgb(catppuccinChatBubbleColorsHexMap[theme.modelChatBubble])));
+        document.documentElement.style.setProperty('--dynamic-secondary-accent-rgb', adjustForExtraDarkMode(hexToRgb(catppuccinSecondaryAccentColorsHexMap[theme.secondaryAccent])));
+    }, [theme.accent, theme.secondaryAccent, theme.userChatBubble, theme.modelChatBubble, extraDarkModeFromStore]);
+
     // Handle initial Gemini messages - removed geminiMessages from dependencies to prevent infinite loop
     useEffect(() => {
         const envApiKey = (process.env as any).VITE_GEMINI_API_KEY || (process.env as any).API_KEY;
         const effectiveApiKey = envApiKey || geminiApiKey;
-        const hasInitialMessage = geminiMessages.some(m =>
+        const hasInitialMessage = geminiMessages.some((m: ChatMessage) =>
             m.role === 'system' && (
                 m.text.includes("Gemini Assistant initialized") ||
                 m.text.includes("Gemini Assistant connected") ||
@@ -415,7 +466,6 @@ const App: React.FC = () => {
         [AppTab.ADVANCED]: '🛠️',
     };
 
-
     const renderTabContent = () => {
         const envApiKey = (process.env as any).VITE_GEMINI_API_KEY || (process.env as any).API_KEY;
 
@@ -647,6 +697,8 @@ const App: React.FC = () => {
                 <div ref={tabContentRef} className="flex-grow flex flex-col min-h-0 h-full tab-content-container tab-transition">
                     {renderTabContent()}
                 </div>
+                {/* Floating music player, always available if music or TTS is playing */}
+                <FloatingMusicPlayer />
             </main>
         </div>
     );
