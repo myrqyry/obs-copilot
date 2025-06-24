@@ -146,8 +146,8 @@ const CreateTab: React.FC = () => {
         setStoryLoading(true);
         setScript('');
         try {
-            // Always get the latest Gemini API key from store or env
-            const currentGeminiApiKey = useAppStore.getState().geminiApiKey || envGeminiApiKey;
+            // Always get the latest Gemini API key from Zustand store
+            const currentGeminiApiKey = useAppStore.getState().geminiApiKey;
             if (!currentGeminiApiKey) throw new Error('Gemini API key is missing.');
             const ai = new GoogleGenAI({ apiKey: currentGeminiApiKey });
             // Prompt Gemini to generate a short story with the current speakers
@@ -179,9 +179,8 @@ const CreateTab: React.FC = () => {
     const [muteDrums, setMuteDrums] = useState(false);
     const [onlyBassAndDrums, setOnlyBassAndDrums] = useState(false);
 
-    // Get Gemini API key from Zustand store or env
-    const envGeminiApiKey = (typeof process !== 'undefined' && process.env && (process.env.VITE_GEMINI_API_KEY || process.env.API_KEY)) || '';
-    const geminiApiKey = useAppStore(state => state.geminiApiKey) || envGeminiApiKey;
+    // Always get Gemini API key from Zustand store (user input or ConnectionForm)
+    const geminiApiKey = useAppStore(state => state.geminiApiKey);
 
     // Real API call for image generation using Gemini model (free tier)
     const handleGenerateImage = async () => {
@@ -231,8 +230,8 @@ const CreateTab: React.FC = () => {
         setAudioError(null);
         setGeneratedAudio(null);
         try {
-            // Always get the latest Gemini API key from store or env
-            const currentGeminiApiKey = useAppStore.getState().geminiApiKey || envGeminiApiKey;
+            // Always get the latest Gemini API key from Zustand store
+            const currentGeminiApiKey = useAppStore.getState().geminiApiKey;
             if (!currentGeminiApiKey) {
                 setAudioError('Gemini API key is missing. Please set it in the Connections tab.');
                 setAudioLoading(false);
@@ -322,8 +321,8 @@ const CreateTab: React.FC = () => {
 
     // Music generation handler: just calls store action
     const handleGenerateMusic = () => {
-        // Always get the latest Gemini API key from store or env
-        const currentGeminiApiKey = useAppStore.getState().geminiApiKey || envGeminiApiKey;
+        // Always get the latest Gemini API key from Zustand store
+        const currentGeminiApiKey = useAppStore.getState().geminiApiKey;
         if (!currentGeminiApiKey) {
             showFeedback('Gemini API key is missing. Please set it in the Connections tab.');
             return;
