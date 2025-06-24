@@ -1,5 +1,6 @@
 import Tooltip from './ui/Tooltip';
 import React, { useState, useEffect } from 'react';
+import AudioOutputSelector from './AudioOutputSelector';
 import { OBS_EVENT_LIST } from '../constants/obsEvents';
 import { useAppStore } from '../store/appStore';
 import { Button } from './common/Button';
@@ -79,6 +80,7 @@ const AdvancedPanel: React.FC = () => {
     const streamerBotServiceInstance = useAppStore((state) => state.streamerBotServiceInstance);
 
     const [openAutomation, setOpenAutomation] = useState(false);
+    const [openAudio, setOpenAudio] = useState(false);
     const [showRuleBuilder, setShowRuleBuilder] = useState(false);
     const [editingRule, setEditingRule] = useState<AutomationRule | null>(null);
     const [ruleBuilderInitialEvent, setRuleBuilderInitialEvent] = useState<string | undefined>();
@@ -257,6 +259,95 @@ const AdvancedPanel: React.FC = () => {
 
     return (
         <div className="space-y-3 max-w-2xl mx-auto">
+            {/* Memory Context Section */}
+            <Card className="border-border">
+                <button
+                    className="w-full p-1.5 flex items-center justify-between text-left hover:bg-muted transition-colors rounded-t-lg group"
+                    onClick={() => setOpenMemory((v) => !v)}
+                    aria-expanded={openMemory}
+                >
+                    <div className="flex items-center space-x-2">
+                        <span className="emoji text-sm">🧠</span>
+                        <span className="text-sm font-semibold text-foreground">Memory Context</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <span className="text-xs text-muted-foreground">
+                            {openMemory ? 'Hide' : 'Show'} options
+                        </span>
+                        <svg
+                            className={cn(
+                                "w-4 h-4 text-muted-foreground transition-transform duration-200",
+                                openMemory ? 'rotate-180' : ''
+                            )}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+                </button>
+                {openMemory && (
+                    <CardContent className="px-3 pb-3">
+                        <div className="space-y-4">
+                            <p className="text-sm text-muted-foreground">
+                                Add custom context that will be included with all Gemini conversations. Great for streaming details, community info, or personal preferences.
+                            </p>
+                            <div className="flex gap-2">
+                                <input
+                                    className="w-full border rounded p-2 bg-background"
+                                    value={userInput}
+                                    onChange={(e) => setUserInput(e.target.value)}
+                                    placeholder="Enter stream/community details"
+                                />
+                                <Button
+                                    onClick={() => {
+                                        if (userInput.trim()) {
+                                            addToUserDefinedContext(userInput.trim());
+                                            setUserInput('');
+                                        }
+                                    }}
+                                    disabled={!userInput.trim()}
+                                    size="sm"
+                                >
+                                    Add
+                                </Button>
+                            </div>
+                            {userDefinedContext.length > 0 && (
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-medium text-primary">Current Context:</label>
+                                    <div className="space-y-1 max-h-32 overflow-y-auto">
+                                        {userDefinedContext.map((context, index) => (
+                                            <div key={index} className="flex items-center justify-between bg-muted/30 px-3 py-2 rounded text-sm">
+                                                <span className="text-foreground flex-1 mr-2">{context}</span>
+                                                <Button
+                                                    onClick={() => removeFromUserDefinedContext(context)}
+                                                    variant="danger"
+                                                    size="sm"
+                                                >
+                                                    Remove
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <Button
+                                        onClick={() => {
+                                            if (window.confirm('Are you sure you want to clear all memory context?')) {
+                                                clearUserDefinedContext();
+                                            }
+                                        }}
+                                        variant="secondary"
+                                        size="sm"
+                                    >
+                                        Clear All Context
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                    </CardContent>
+                )}
+            </Card>
+
             {/* Automation Rules Section */}
             <Card className="border-border">
                 <button
@@ -392,6 +483,43 @@ const AdvancedPanel: React.FC = () => {
                                     ))}
                                 </div>
                             )}
+                        </div>
+                    </CardContent>
+                )}
+            </Card>
+
+            {/* Audio Output Routing Section */}
+            <Card className="border-border">
+                <button
+                    className="w-full p-1.5 flex items-center justify-between text-left hover:bg-muted transition-colors rounded-t-lg group"
+                    onClick={() => setOpenAudio((v) => !v)}
+                    aria-expanded={openAudio}
+                >
+                    <div className="flex items-center space-x-2">
+                        <span className="emoji text-sm">🔊</span>
+                        <span className="text-sm font-semibold text-foreground">Audio Output Routing</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <span className="text-xs text-muted-foreground">
+                            {openAudio ? 'Hide' : 'Show'} options
+                        </span>
+                        <svg
+                            className={cn(
+                                "w-4 h-4 text-muted-foreground transition-transform duration-200",
+                                openAudio ? 'rotate-180' : ''
+                            )}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+                </button>
+                {openAudio && (
+                    <CardContent className="px-3 pb-3">
+                        <div className="space-y-4">
+                            <AudioOutputSelector />
                         </div>
                     </CardContent>
                 )}
@@ -680,94 +808,6 @@ const AdvancedPanel: React.FC = () => {
                                     </div>
                                 ))}
                             </div>
-                        </div>
-                    </CardContent>
-                )}
-            </Card>
-            {/* Memory Context Section */}
-            <Card className="border-border">
-                <button
-                    className="w-full p-1.5 flex items-center justify-between text-left hover:bg-muted transition-colors rounded-t-lg group"
-                    onClick={() => setOpenMemory((v) => !v)}
-                    aria-expanded={openMemory}
-                >
-                    <div className="flex items-center space-x-2">
-                        <span className="emoji text-sm">🧠</span>
-                        <span className="text-sm font-semibold text-foreground">Memory Context</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <span className="text-xs text-muted-foreground">
-                            {openMemory ? 'Hide' : 'Show'} options
-                        </span>
-                        <svg
-                            className={cn(
-                                "w-4 h-4 text-muted-foreground transition-transform duration-200",
-                                openMemory ? 'rotate-180' : ''
-                            )}
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </div>
-                </button>
-                {openMemory && (
-                    <CardContent className="px-3 pb-3">
-                        <div className="space-y-4">
-                            <p className="text-sm text-muted-foreground">
-                                Add custom context that will be included with all Gemini conversations. Great for streaming details, community info, or personal preferences.
-                            </p>
-                            <div className="flex gap-2">
-                                <input
-                                    className="w-full border rounded p-2 bg-background"
-                                    value={userInput}
-                                    onChange={(e) => setUserInput(e.target.value)}
-                                    placeholder="Enter stream/community details"
-                                />
-                                <Button
-                                    onClick={() => {
-                                        if (userInput.trim()) {
-                                            addToUserDefinedContext(userInput.trim());
-                                            setUserInput('');
-                                        }
-                                    }}
-                                    disabled={!userInput.trim()}
-                                    size="sm"
-                                >
-                                    Add
-                                </Button>
-                            </div>
-                            {userDefinedContext.length > 0 && (
-                                <div className="space-y-2">
-                                    <label className="block text-sm font-medium text-primary">Current Context:</label>
-                                    <div className="space-y-1 max-h-32 overflow-y-auto">
-                                        {userDefinedContext.map((context, index) => (
-                                            <div key={index} className="flex items-center justify-between bg-muted/30 px-3 py-2 rounded text-sm">
-                                                <span className="text-foreground flex-1 mr-2">{context}</span>
-                                                <Button
-                                                    onClick={() => removeFromUserDefinedContext(context)}
-                                                    variant="danger"
-                                                    size="sm"
-                                                >
-                                                    Remove
-                                                </Button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <Button
-                                        onClick={() => {
-                                            if (window.confirm('Are you sure you want to clear all memory context?')) {
-                                                clearUserDefinedContext();
-                                            }
-                                        }}
-                                        variant="secondary"
-                                        size="sm"
-                                    >
-                                        Clear All Context
-                                    </Button>
-                                </div>
-                            )}
                         </div>
                     </CardContent>
                 )}

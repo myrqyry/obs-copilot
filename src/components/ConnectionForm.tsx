@@ -4,9 +4,8 @@ import { gsap } from 'gsap';
 import { Button } from './common/Button';
 import { TextInput } from './common/TextInput';
 import { FaviconIcon } from './common/FaviconIcon';
-import { CogIcon } from './common/CogIcon';
-import { Modal } from './common/Modal';
-import { useAppStore } from '../store/appStore';
+/* import { CogIcon } from './common/CogIcon';
+import { Modal } from './common/Modal'; */
 import { CatppuccinAccentColorName } from '../types';
 import { loadConnectionSettings, saveConnectionSettings, isStorageAvailable } from '../utils/persistence';
 import { Card, CardContent } from './ui';
@@ -75,10 +74,10 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
     Boolean(geminiApiKey) // Start with true if there's already an API key
   );
   // Cog/settings modal state
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  // const [showSettingsModal, setShowSettingsModal] = useState(false);
   // Get backgroundOpacity and setter from store
-  const backgroundOpacity = useAppStore(state => state.backgroundOpacity);
-  const setBackgroundOpacity = useAppStore(state => state.actions.setBackgroundOpacity);
+  // const backgroundOpacity = useAppStore(state => state.backgroundOpacity);
+  // const setBackgroundOpacity = useAppStore(state => state.actions.setBackgroundOpacity);
   const [obsExpanded, setObsExpanded] = useState<boolean>(true);
   const [geminiExpanded, setGeminiExpanded] = useState<boolean>(true);
   const [streamerBotExpanded, setStreamerBotExpanded] = useState<boolean>(false);
@@ -305,44 +304,9 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
                     placeholder="ws://localhost:4455"
                     accentColorName={accentColorName}
                   />
-                  <Tooltip content="Chat background opacity settings">
-                    <button
-                      type="button"
-                      className="ml-1 p-1 rounded hover:bg-accent/20 transition-colors"
-                      aria-label="Open background opacity settings"
-                      onClick={() => setShowSettingsModal(true)}
-                    >
-                      <CogIcon className="w-5 h-5 text-accent" />
-                    </button>
-                  </Tooltip>
+
                 </div>
-                {/* Background Opacity Modal */}
-                <Modal
-                  title="Chat Background Opacity"
-                  isOpen={showSettingsModal}
-                  onClose={() => setShowSettingsModal(false)}
-                  accentColorName={accentColorName}
-                  size="sm"
-                  blendMode="multiply" // Example: use any CSS blend mode you want
-                >
-                  <div className="flex flex-col gap-4 items-center py-2">
-                    <label className="text-sm font-medium text-primary flex items-center gap-2">
-                      🖼️ Background Opacity
-                      <span className="text-xs text-muted-foreground">({Math.round(backgroundOpacity * 100)}%)</span>
-                    </label>
-                    <div className="flex items-center gap-2 w-full">
-                      <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.05"
-                        value={backgroundOpacity}
-                        onChange={e => setBackgroundOpacity(parseFloat(e.target.value))}
-                        className="w-full h-1 bg-border rounded-lg appearance-none cursor-pointer"
-                      />
-                    </div>
-                  </div>
-                </Modal>
+
                 <div className="flex items-center space-x-2 lg:col-span-1">
                   <label className="flex items-center space-x-2 text-xs text-muted-foreground cursor-pointer group">
                     <input

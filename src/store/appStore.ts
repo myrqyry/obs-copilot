@@ -93,6 +93,10 @@ export interface AppState {
     audioContext: AudioContext | null;
     audioQueue: AudioBuffer[];
     isQueuePlaying: boolean;
+    mediaStreamDest: MediaStreamAudioDestinationNode | null;
+    audioDevices: MediaDeviceInfo[];
+    selectedAudioOutputId: string;
+    audioPermissionGranted: boolean;
 
     // Define the actions (functions) to update the state
     actions: {
@@ -161,6 +165,10 @@ export interface AppState {
         pauseMusic: () => void;
         resumeMusic: () => void;
         stopMusic: () => void;
+
+        // New audio device actions
+        loadAudioDevices: () => Promise<void>;
+        setAudioOutputDevice: (deviceId: string) => void;
     };
 }
 
@@ -234,6 +242,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     audioContext: null,
     audioQueue: [],
     isQueuePlaying: false,
+    mediaStreamDest: null,
+    audioDevices: [],
+    selectedAudioOutputId: 'default',
+    audioPermissionGranted: false,
 
     // Actions
     actions: {
@@ -892,6 +904,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             if (!audioContext || musicSession) return;
 
             set({ isMusicPlaying: true, currentMusicPrompt: prompt, audioQueue: [] });
+            console.log('[Music] Starting music generation with prompt:', prompt, 'config:', config);
 
             // Dynamically import the Gemini API client if not already loaded
             let GoogleGenAI;
@@ -927,10 +940,13 @@ export const useAppStore = create<AppState>((set, get) => ({
                             if (chunk?.data) {
                                 try {
                                     const pcm = Uint8Array.from(atob(chunk.data), c => c.charCodeAt(0)).buffer;
+                                    console.log('[Music] Received PCM chunk, bytes:', pcm.byteLength);
                                     get().actions.addAudioChunk(pcm);
                                 } catch (e) {
-                                    // Ignore bad chunk
+                                    console.error('[Music] Failed to decode PCM chunk:', e);
                                 }
+                            } else {
+                                console.log('[Music] No audio chunk in message:', message);
                             }
                         },
                         onerror: (error: any) => {
@@ -968,19 +984,35 @@ export const useAppStore = create<AppState>((set, get) => ({
         },
 
         addAudioChunk: (pcm) => {
-            const { audioContext } = get();
+            const { audioContext, audioQueue, isQueuePlaying } = get();
             if (!audioContext) return;
 
-            const audioBuffer = audioContext.createBuffer(2, pcm.byteLength / 4, 48000);
-            const view = new DataView(pcm);
-            for (let i = 0; i < audioBuffer.length; i++) {
-                audioBuffer.getChannelData(0)[i] = view.getInt16(i * 4, true) / 32768;
-                audioBuffer.getChannelData(1)[i] = view.getInt16(i * 4 + 2, true) / 32768;
+            // Validate PCM chunk: must be 16-bit stereo, 48kHz, length multiple of 4
+            if (!(pcm instanceof ArrayBuffer) || pcm.byteLength % 4 !== 0) {
+                console.warn('Invalid PCM chunk: not aligned or not ArrayBuffer', pcm);
+                return;
             }
 
-            set((state) => ({ audioQueue: [...state.audioQueue, audioBuffer] }));
+            const frameCount = pcm.byteLength / 4;
+            let audioBuffer;
+            try {
+                audioBuffer = audioContext.createBuffer(2, frameCount, 48000);
+                const view = new DataView(pcm);
+                for (let i = 0; i < frameCount; i++) {
+                    audioBuffer.getChannelData(0)[i] = view.getInt16(i * 4, true) / 32768;
+                    audioBuffer.getChannelData(1)[i] = view.getInt16(i * 4 + 2, true) / 32768;
+                }
+            } catch (e) {
+                console.error('Failed to decode PCM chunk:', e, pcm);
+                return;
+            }
 
-            if (!get().isQueuePlaying) {
+            // Add to queue
+            const newQueue = [...audioQueue, audioBuffer];
+            set({ audioQueue: newQueue });
+
+            // Buffer at least 3 chunks before starting playback to avoid underruns
+            if (!isQueuePlaying && newQueue.length >= 3) {
                 get().actions.playFromQueue();
             }
         },
@@ -1026,17 +1058,66 @@ export const useAppStore = create<AppState>((set, get) => ({
         },
 
         stopMusic: () => {
-            // Stop playback and clear queue
+            // Stop playback and clear queue/state
             const { musicSession } = get();
             if (musicSession && typeof musicSession.close === 'function') {
                 try { musicSession.close(); } catch { }
             }
-            set({ musicSession: null, audioQueue: [], isMusicPlaying: false, isQueuePlaying: false });
-            const { audioContext } = get();
-            if (audioContext && audioContext.state !== 'closed') {
-                audioContext.close();
-                set({ audioContext: null });
+            set({
+                audioQueue: [],
+                isQueuePlaying: false,
+                isMusicPlaying: false,
+                audioContext: null,
+                musicSession: null
+            });
+            console.log('Music stopped: queue cleared, state reset.');
+        },
+
+        // New audio device actions
+        loadAudioDevices: async () => {
+            try {
+                // Request permission - this is required to get detailed device labels
+                await navigator.mediaDevices.getUserMedia({ audio: true });
+                set({ audioPermissionGranted: true });
+
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const audioOutputs = devices.filter(device => device.kind === 'audiooutput');
+                set({ audioDevices: audioOutputs });
+            } catch (err) {
+                console.error("Audio permission denied:", err);
+                get().actions.addMessage({
+                    role: 'system',
+                    text: '⚠️ Could not get audio device list. Microphone permission is needed to select an audio output.'
+                });
+                set({ audioPermissionGranted: false });
             }
         },
+
+        setAudioOutputDevice: async (deviceId: string) => {
+            const { audioContext } = get();
+            if (!audioContext) {
+                console.warn("AudioContext not initialized. Cannot set sink ID.");
+                return;
+            }
+            try {
+                // The setSinkId method is what changes the output
+                // @ts-ignore
+                if (typeof audioContext.setSinkId === 'function') {
+                    // @ts-ignore
+                    await audioContext.setSinkId(deviceId);
+                }
+                set({ selectedAudioOutputId: deviceId });
+                get().actions.addMessage({
+                    role: 'system',
+                    text: `✅ Audio output set to device: ${get().audioDevices.find(d => d.deviceId === deviceId)?.label || deviceId}`
+                });
+            } catch (error) {
+                console.error("Failed to set sink ID:", error);
+                get().actions.addMessage({
+                    role: 'system',
+                    text: `❌ Failed to set audio output: ${(error as Error).message}`
+                });
+            }
+        }
     }
 }));

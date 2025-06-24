@@ -21,6 +21,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^16.5.0",
+    "firebase": "^11.9.1",
     "gsap": "^3.13.0",
     "lucide-react": "^0.515.0",
     "normalize-svg-path": "^1.1.0",
