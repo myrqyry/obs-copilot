@@ -305,12 +305,20 @@
   }
 
   /* Override any conflicting Tailwind classes specifically for chat bubbles */
+  /*
+    Removed !important here. Inline styles from ChatMessageItem.tsx should have
+    enough specificity to override Tailwind utilities like .bg-card or .border-border.
+    If these classes are applied, the inline styles will take precedence.
+    If no inline style is applied, then .bg-card or .border-border would apply,
+    which might be the desired fallback in some edge cases, but generally,
+    the dynamically calculated styles should always be present.
+  */
   .chat-message.bg-card {
-    background-color: inherit !important;
+    /* background-color: inherit !important; */
   }
 
   .chat-message.border-border {
-    border-color: inherit !important;
+    /* border-color: inherit !important; */
   }
 
   /* Glass effect for chat bubbles when opacity < 100% and background is set */
