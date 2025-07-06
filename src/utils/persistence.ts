@@ -1,4 +1,5 @@
 // src/utils/persistence.ts
+import type { AutomationRule } from '../types/automation';
 
 export const STORAGE_KEYS = {
     USER_SETTINGS: 'obs-copilot-user-settings',
@@ -16,8 +17,14 @@ export interface UserSettings {
     autoApplySuggestions: boolean;
     extraDarkMode: boolean;
     customChatBackground?: string;
+    bubbleFillOpacity?: number;
+    backgroundOpacity?: number;
+    chatBackgroundBlendMode?: string;
+    chatBubbleBlendMode?: string; // New: blend mode for chat bubble fills
     streamerName?: string;
     geminiApiKey?: string; // Optional - user can choose to persist this
+    userDefinedContext?: string[]; // Array to store user-added contexts
+    automationRules?: AutomationRule[]; // Automation rules for OBS event triggers
 }
 
 export interface ConnectionSettings {
@@ -25,6 +32,8 @@ export interface ConnectionSettings {
     obsPassword?: string; // Optional - might be sensitive
     rememberApiKey: boolean; // User preference for persisting API key
     autoConnect: boolean; // Auto-connect to OBS on app reload
+    streamerBotAddress?: string; // Streamer.bot connection address
+    streamerBotPort?: string; // Streamer.bot connection port
 }
 
 /**
@@ -96,6 +105,30 @@ export function clearAllSettings(): void {
     } catch (error) {
         console.warn('Failed to clear settings:', error);
     }
+}
+
+/**
+ * Copies text to the clipboard.
+ * @param text The text to copy.
+ */
+export async function copyToClipboard(text: string): Promise<void> {
+    if (!navigator.clipboard) {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed'; // Avoid scrolling to bottom
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            document.execCommand('copy');
+        } catch (err) {
+            console.error('Fallback: Oops, unable to copy', err);
+        }
+        document.body.removeChild(textArea);
+        return;
+    }
+    await navigator.clipboard.writeText(text);
 }
 
 /**

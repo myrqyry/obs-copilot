@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { FaviconIcon } from './FaviconIcon';
 
 interface DropdownOption {
@@ -7,30 +8,54 @@ interface DropdownOption {
     domain?: string;
 }
 
+
 interface FaviconDropdownProps {
     options: DropdownOption[];
     value: string;
     onChange: (value: string) => void;
     className?: string;
     placeholder?: string;
+    accentColor?: string;
 }
 
-export function FaviconDropdown({ options, value, onChange, className = '', placeholder }: FaviconDropdownProps) {
+export function FaviconDropdown({ options, value, onChange, className = '', placeholder, accentColor }: FaviconDropdownProps) {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
+    const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+    // Revert: no need for buttonRef or dropdownStyle
 
     const selectedOption = options.find(option => option.value === value);
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+            if (
+                dropdownRef.current &&
+                !dropdownRef.current.contains(event.target as Node) &&
+                buttonRef.current &&
+                !buttonRef.current.contains(event.target as Node)
+            ) {
                 setIsOpen(false);
             }
         }
-
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    useEffect(() => {
+        if (isOpen && buttonRef.current) {
+            const rect = buttonRef.current.getBoundingClientRect();
+            setDropdownStyle({
+                position: 'fixed',
+                top: rect.bottom + 4,
+                left: rect.left,
+                width: rect.width,
+                zIndex: 99999
+            });
+        }
+    }, [isOpen]);
+
+    // Revert: no need for dynamic dropdownStyle
 
     const handleOptionClick = (optionValue: string) => {
         onChange(optionValue);
@@ -38,10 +63,15 @@ export function FaviconDropdown({ options, value, onChange, className = '', plac
     };
 
     return (
-        <div className={`relative ${className}`} ref={dropdownRef}>
+        <div className={`relative ${className}`}>
             <button
+                ref={buttonRef}
                 type="button"
-                className="w-full border rounded px-2 py-1 bg-background text-left flex items-center justify-between hover:bg-accent hover:text-accent-foreground transition-colors"
+                className="w-full border rounded px-2 py-1 bg-background text-left flex items-center justify-between transition-colors text-sm h-8"
+                style={{
+                    borderColor: accentColor || undefined,
+                    boxShadow: isOpen ? `0 0 0 2px ${accentColor}` : undefined
+                }}
                 onClick={() => setIsOpen(!isOpen)}
             >
                 <div className="flex items-center gap-2">
@@ -53,20 +83,25 @@ export function FaviconDropdown({ options, value, onChange, className = '', plac
                 <svg
                     className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
                     fill="none"
-                    stroke="currentColor"
+                    stroke={accentColor || 'currentColor'}
                     viewBox="0 0 24 24"
                 >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
             </button>
 
-            {isOpen && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded shadow-lg z-50 max-h-60 overflow-y-auto">
+            {isOpen && createPortal(
+                <div
+                    ref={dropdownRef}
+                    className="obs-copilot-dropdown-menu bg-background border rounded shadow-lg max-h-60 overflow-y-auto"
+                    style={{ ...dropdownStyle, borderColor: accentColor || undefined }}
+                >
                     {options.map((option) => (
                         <button
                             key={option.value}
                             type="button"
-                            className="w-full px-2 py-2 text-left hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-2"
+                            className="w-full px-2 py-1.5 text-left transition-colors flex items-center gap-2 text-sm"
+                            style={{ color: option.value === value ? accentColor : undefined, background: option.value === value ? `${accentColor}22` : undefined }}
                             onClick={() => handleOptionClick(option.value)}
                         >
                             {option.domain && (
@@ -75,7 +110,8 @@ export function FaviconDropdown({ options, value, onChange, className = '', plac
                             <span>{option.label}</span>
                         </button>
                     ))}
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

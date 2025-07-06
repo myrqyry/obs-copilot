@@ -1,4 +1,4 @@
-# 🎬 obs-copilot
+# 🎬 obs-copilot gemini++
 
 <div align="center">
 
@@ -8,207 +8,196 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4.4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![GSAP](https://img.shields.io/badge/GSAP-3.13.0-88CE02?style=for-the-badge&logo=greensock&logoColor=white)](https://greensock.com/gsap/)
 
-**🤖 OBS Studio Control with LLM Chat Interface & Intelligent  Assistant.**
-
-*Seamlessly control your OBS Studio setup with natural language + the power of Google's Gemini Models*
-
-> ⚠️ **Early Development Stage**: This project is in active development. Some features may be experimental or subject to change.
-
-[🚀 Quick Start](#-quick-start) • [✨ Features](#-features) • [🛠️ Tech-Stack](#️-tech-stack) • [📱 Usage](#-usage) • [💅 Visuals](#-visuals) • [🎨 Customization](#-customization)
+**Next-gen OBS Studio Copilot with Gemini AI, Automation, Music/TTS, and Advanced UI**
 
 </div>
 
 ---
 
-## 🌟 Overview
+## 🚀 Overview
 
-**obs-copilot** is a React-based dock application that has the possibility to transforms how you interact with OBS Studio. By combining the robust OBS WebSocket protocol with Google's Powerful Gemini AI, this tool provides an intelligent, **conversational interface** for managing your streaming and recording setup.
-
----
-### 🎯 What Makes It Special?
-
-- 🧠 **AI-Powered Control**: Natural language commands powered by Gemini  
-- 🔗 **Real-time OBS Integration**: Direct WebSocket connection to OBS Studio  
-- 🎨 **Beautiful UI**: Catppuccin-themed interface with smooth GSAP animations  
-- 🎬 **Comprehensive Controls**: Manage scenes, sources, streaming, recording, and settings 
+**obs-copilot gemini++** is a modern, AI-powered dock for OBS Studio. It combines real-time OBS control, advanced automation, and a conversational Gemini AI interface with a beautiful, animated UI. The latest version introduces deep music/TTS integration, floating music controls, audio output selection, advanced panels, and a robust automation system.
 
 ---
 
-## ✨ Features
+## ✨ Key Features
 
-### 🤖 AI Assistant
-- **Conversational Control**: Ask Gemini to perform OBS operations in natural language
-- **Context-Aware Responses**: AI understands your current OBS state and setup
-- **Smart Suggestions**: Get intelligent recommendations for your streaming workflow
-- **Error Handling**: Friendly error messages and troubleshooting guidance
+### 🤖 Gemini AI Chat + Markdown Effects
+- Natural language control of OBS and streaming workflows
+- Context-aware chat with Gemini 2.5+ models
+- Advanced markdown renderer: glowing text, badges, rainbow, GSAP-powered animations
+- Smart chat suggestions and context management
 
 ### 🎬 OBS Studio Integration
-- **Scene Management**: Switch between scenes, create new ones, manage scene items
-- **Source Control**: Toggle source visibility, modify source settings
-- **Streaming & Recording**: Start/stop streams and recordings with status monitoring
-- **Video Settings**: Adjust resolution, FPS, and other video parameters
-- **Real-time Updates**: Live sync with OBS Studio changes
+- Scene, source, and filter management
+- Streaming/recording controls with live status
+- Real-time sync with OBS WebSocket 5.x+
+- Studio Mode support, hotkey triggers, screenshot capture
 
-### 🎨 User Experience
-- **Smooth Animations**: GSAP-powered transitions and morphing logos
-- **Responsive Design**: Works on any screen size
-- **Customizable Themes**: Choose from 13 accent color combinations
-- **Connection Status**: Clear visual feedback for OBS and Gemini connections
-- **Error Recovery**: Graceful handling of connection issues
+### 🎵 Music & TTS System (NEW)
+- Floating music player with mini controller and visualizer
+- TTS and music playback with audio output selection
+- Music visualizer with GSAP animations
+- Audio output selector for routing TTS/music to any device
 
-### 🔧 Advanced Features
-- **Filter Management**: Control source filters and effects
-- **Audio Controls**: Manage input volumes and monitor types
-- **Studio Mode**: Support for preview/program workflow
-- **Hotkey Triggers**: Execute OBS hotkeys through AI commands
-- **Screenshot Capture**: Save screenshots programmatically
+### ⚡ Automation & Advanced Panels (NEW)
+- Automation rule builder: trigger OBS/Streamer.bot actions on events
+- AdvancedPanel: quick access to power features and diagnostics
+- Streamer.bot integration for event-driven automation
 
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-- **Node.js** (v16 or higher)
-- **OBS Studio** with WebSocket server enabled
-- **Google Gemini API Key** ([Get one here](https://aistudio.google.com/app/apikey))
-
-### Installation
-
-1. **Clone the repository**  
-   ```bash
-   git clone https://github.com/myrqyry/obs-copilot.git
-   cd obs-copilot
-   ```
-2. **Install dependencies**  
-   ```bash
-   npm install
-   ```
-3. **Configure environment**  
-   ```bash
-   # Create .env.local file
-   echo "API_KEY=your_gemini_plus_api_key_here" > .env.local
-   ```
-4. **Setup OBS Studio**  
-   - Open OBS Studio  
-   - Go to **Tools** → **WebSocket Server Settings**  
-   - Enable **WebSocket Server**  
-   - Note the port (default: 4455) and password (if set)
-5. **Start the application**  
-   ```bash
-   npm run dev
-   ```
-6. **Open in browser**  
-   Navigate to `http://localhost:3000`
-7. **Add as OBS Dock (Optional)**  
-   - In OBS Studio, go to **View** → **Docks** → **Custom Browser Docks...**  
-   - Click the **+** button to add a new dock  
-   - Set **Dock Name** to "obs-copilot gemini++"  
-   - Set **URL** to `http://localhost:3000`  
-   - Click **Apply** and **Close**  
+### 🖥️ UI & UX
+- Catppuccin color palette, glass morphism, and responsive design
+- GSAP-powered transitions, morphing logos, animated tabs
+- Extra dark mode, theme switching, and accessibility focus
+- Modular component system: chat, music, connection, automation, etc.
 
 ---
 
-## 📱 Usage
-
-### Initial Setup
-
-1. **Launch the app** to open the connection modal  
-2. **Enter OBS WebSocket URL** (default: `ws://localhost:4455`)  
-3. **Add password** if configured in OBS  
-4. **Enter your Gemini API key** if not set in **.env.local**  
-5. **Click Connect** to start controlling OBS with AI
-
-### AI Commands Examples
+## 🗂️ Project Structure
 
 ```
-🎤 "Start streaming to my main platform"
-🎬 "Switch to the 'Gaming' scene"
-🔇 "Mute the microphone source"
-📷 "Create a new webcam source"
-⚙️ "Set the video resolution to 1920x1080"
-🎨 "Apply a color correction filter to my camera"
-📱 "Show me the current streaming status"
+src/
+├── components/
+│   ├── chat/                # ChatMessageItem, MarkdownRenderer, etc.
+│   ├── common/              # Button, Modal, MusicVisualizer, FloatingMusicPlayer, etc.
+│   ├── ui/                  # Card, Tooltip, low-level UI primitives
+│   ├── AdvancedPanel.tsx    # Advanced controls & diagnostics
+│   ├── AudioOutputSelector.tsx
+│   ├── MusicMiniController.tsx
+│   ├── TTSAndMusicMiniPlayer.tsx
+│   ├── GeminiChat.tsx
+│   ├── ObsMainControls.tsx
+│   └── ...
+├── services/
+│   ├── obsService.ts        # OBS WebSocket
+│   ├── geminiService.ts     # Gemini AI
+│   ├── streamerBotService.ts
+│   ├── audioService.ts      # Music/TTS
+│   ├── automationService.ts # Automation logic
+│   └── ...
+├── store/                   # Zustand state management
+├── hooks/                   # Custom React hooks
+├── utils/                   # Markdown, GSAP, persistence, etc.
+├── constants/               # OBS events, chat suggestions
+├── types/                   # TypeScript types
+├── index.css                # Tailwind, glass morphism, custom effects
+├── App.tsx                  # Main app
+└── index.tsx                # Entry point
 ```
-
-### Manual Controls
-- **Scenes Tab**: Visual scene switcher with source management  
-- **Settings Tab**: Video settings editor with theme customization  
-- **Connection Tab**: Manage OBS and Gemini connections  
 
 ---
 
 ## 🛠️ Tech Stack
 
-### Core Technologies
-- **⚛️ React 19.1.0** - Modern UI framework
-- **📘 TypeScript 5.2.2** - Type-safe development
-- **⚡ Vite 5.3.1** - Lightning-fast build tool
-- **🎨 Tailwind CSS 3.4.4** - Utility-first styling
+- **React 19** + **TypeScript**: Modern, type-safe UI
+- **Vite**: Fast dev/build
+- **Zustand**: Global state management
+- **Tailwind CSS**: Utility-first styling, Catppuccin palette
+- **GSAP**: Advanced UI animations
+- **OBS WebSocket 5.x**: Real-time OBS control
+- **Google Gemini AI**: LLM chat and automation
+- **Streamer.bot**: Streaming automation/events
 
-### Integrations
-- **🧠 Google Gemini++ AI** - Advanced language model integration
-- **📡 OBS WebSocket 5.0.6** - Real-time OBS Studio communication
-- **🎪 GSAP 3.13.0** - Professional animations and transitions
+---
 
-### Design System
-- **🌈 Catppuccin Theme** - Beautiful, consistent color palette
-- **📱 Responsive Design** - Mobile-first approach
-- **♿ Accessibility** - WCAG-compliant components
+## 🆕 Deep Dive: Newest Features
+
+### 1. Music & TTS System
+- **FloatingMusicPlayer**: Persistent, draggable music/TTS player with visualizer and controls
+- **MusicMiniController**: Compact controller for quick play/pause/skip
+- **TTSAndMusicMiniPlayer**: Unified TTS and music playback, supports multiple output devices
+- **AudioOutputSelector**: Route audio to any available output (virtual cables, speakers, etc.)
+- **MusicVisualizer**: GSAP-powered waveform and spectrum animations
+- **pcmToWavUrl**: Utility for converting PCM audio to WAV for playback
+
+### 2. Automation & Advanced Panels
+- **AutomationRuleBuilder**: Visual builder for event-driven automation (OBS, Streamer.bot, custom)
+- **automationService**: Central logic for managing triggers, actions, and rules
+- **AdvancedPanel**: Power-user panel for diagnostics, quick actions, and advanced settings
+
+### 3. Enhanced Chat & Markdown
+- **MarkdownRenderer**: Supports glowing text, badges, rainbow, and animated markdown effects
+- **ChatMessageItem**: Rich chat bubbles with context, markdown, and animation
+- **Smart Suggestions**: Dynamic chat suggestions based on OBS state and recent actions
+
+### 4. UI/UX Upgrades
+- **Glass Morphism**: All panels and modals use glassy, blurred backgrounds
+- **AnimatedTitleLogos**: Morphing SVG logos with GSAP
+- **Extra Dark Mode**: High-contrast mode for low-light streaming
+- **Accessibility**: Focus rings, ARIA labels, keyboard navigation
+
+### 5. Streamer.bot & OBS Integration
+- **useStreamerBotActions**: Hooks for Streamer.bot event triggers
+- **obsService**: Robust error handling, reconnection, and event mapping
+- **obsEvents**: Centralized event constants for automation and chat
+
+---
+
+## ⚡ Quick Start
+
+### Prerequisites
+- **Node.js** v16+
+- **OBS Studio** with WebSocket server enabled (v5+)
+- **Google Gemini API Key** ([Get one](https://aistudio.google.com/app/apikey))
+
+### Setup
+
+```bash
+git clone https://github.com/myrqyry/obs-copilot.git
+cd obs-copilot
+npm install
+cp .env.local.example .env.local
+# Add your Gemini API key to .env.local
+npm run dev
+```
+
+- Open [http://localhost:3000](http://localhost:3000)
+- Add as OBS Dock: View → Docks → Custom Browser Docks → Add `http://localhost:3000`
+
+---
+
+## 🧑‍💻 Usage
+
+- **Connect**: Enter OBS WebSocket URL and Gemini API key
+- **Chat**: Use natural language to control OBS, automate, and get suggestions
+- **Music/TTS**: Play music, TTS, and control output from any panel
+- **Automation**: Build rules to trigger actions on OBS/Streamer.bot events
+- **Advanced Panel**: Access diagnostics, quick actions, and advanced settings
 
 ---
 
 ## 🎨 Customization
 
-### Theme Colors
-Choose from 13 beautiful accent colors:
-- 🌸 Rosewater • 🦩 Flamingo • 💕 Pink • 🔮 Mauve  
-- ❤️ Red • 🍷 Maroon • 🍑 Peach • 💛 Yellow  
-- 💚 Green • 🌊 Teal • ☁️ Sky • 💎 Sapphire  
-- 💙 Blue • 💜 Lavender
-
-### Advanced Configuration
-
-```typescript
-// src/constants.ts
-export const DEFAULT_OBS_WEBSOCKET_URL = "ws://localhost:4455";
-export const GEMINI_MODEL_NAME = "gemini-2.5-flash-preview-04-17";
-```
+- **Themes**: 13 Catppuccin accent colors, extra dark mode, glass morphism
+- **Animations**: GSAP-powered transitions, animated markdown, morphing logos
+- **Responsive**: Works on all screen sizes, mobile-friendly
 
 ---
 
-## 🔧 Development
+## 📝 Documentation
 
-### Build Commands
+- **[PROJECT_RULES_AND_GUIDELINES.md](PROJECT_RULES_AND_GUIDELINES.md)**: Full architecture, coding standards, and component patterns
+- **notes/**: Feature guides, animation docs, troubleshooting
+
+---
+
+## 🏗️ Development
+
 ```bash
-npm run dev      # Start development server
-npm run build    # Build for production
-npm run preview  # Preview production build
-npm run lint     # Run ESLint checks
-```
-
-### Project Structure
-```
-src/
-├── components/
-│   └── ...
-├── services/
-│   └── ...
-├── types.ts
-├── constants.ts
-└── App.tsx
+npm run dev      # Start dev server
+npm run build    # Production build
+npm run preview  # Preview build
+npm run lint     # Lint code
 ```
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License. See [LICENSE](LICENSE).
 
 ---
 
-## 🙏 Acknowledgments
+## 🙏 Credits
 
-- **OBS Studio** team for the incredible streaming software  
-- **Google** for the powerful Gemini AI API  
-- **Catppuccin** community for the beautiful color palette  
-- **GreenSock** for
+- OBS Studio, Google Gemini, Catppuccin, GSAP, Streamer.bot, and all open-source contributors.

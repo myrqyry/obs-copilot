@@ -32,6 +32,7 @@ export interface TemplateConfig {
     }>;
     autoRefresh?: boolean;
     refreshInterval?: number;
+    customCss?: string;
 }
 
 export const HtmlTemplateService = {
@@ -150,11 +151,10 @@ export const HtmlTemplateService = {
             }
         };
     },
-    generateTemplateUrl(_config: Partial<TemplateConfig>): string {
-        // This is a stub for demo purposes
-        // In a real app, you would serialize config to a query string and append to your template URL
+    generateTemplateUrl(config: Partial<TemplateConfig>): string {
         const baseUrl = '/public/html-templates/base-template.html';
-        return baseUrl;
+        const params = encodeURIComponent(JSON.stringify(config));
+        return `${baseUrl}?config=${params}`;
     },
     async createBrowserSourceWithTemplate(
         _obsService: any,

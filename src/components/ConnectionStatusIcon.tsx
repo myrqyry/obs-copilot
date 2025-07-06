@@ -1,3 +1,4 @@
+import Tooltip from './ui/Tooltip';
 
 import React, { useRef, useEffect } from 'react';
 import { gsap } from 'gsap';
@@ -49,20 +50,21 @@ export const ConnectionStatusIcon: React.FC<ConnectionStatusIconProps> = ({ isCo
   }, [isConnecting]);
 
   return (
-    <button
-      onClick={onClick}
-      className="relative p-2 rounded-full hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background transition-all duration-150 ease-in-out"
-      aria-label="Open Connection Settings"
-      title={title}
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-muted-foreground hover:text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-      </svg>
-      <div
-        ref={statusDotRef}
-        className={`absolute top-0.5 right-0.5 w-2.5 h-2.5 rounded-full border border-background ${dotColor} transition-colors duration-200`}
-        aria-hidden="true"
-      />
-    </button>
+    <Tooltip content={title}>
+      <button
+        onClick={onClick}
+        className="relative p-2 rounded-full hover:bg-muted focus-ring enhanced-focus transition-all duration-150 ease-in-out"
+        aria-label="Open Connection Settings"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-muted-foreground hover:text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+        </svg>
+        <div
+          ref={statusDotRef}
+          className={`absolute top-0.5 right-0.5 w-2.5 h-2.5 rounded-full border border-background ${dotColor} transition-colors duration-200`}
+          aria-hidden="true"
+        />
+      </button>
+    </Tooltip>
   );
 };

@@ -1,8 +1,9 @@
 import MorphingLogos from './components/MorphingLogos';
 
+
 const HomePage = () => {
     return (
-        <div style={{ display: 'grid', placeContent: 'center', height: '100vh' }}>
+        <div className="h-screen w-screen animated-gradient glass-card flex items-center justify-center">
             <MorphingLogos />
         </div>
     );
