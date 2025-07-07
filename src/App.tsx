@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import OBSWebSocket from 'obs-websocket-js';
-// Import GSAP test for development verification
-import './utils/gsapTest';
+if (process.env.NODE_ENV === 'development') {
+    // Import GSAP test for development verification
+    import('./utils/gsapTest');
+}
 import { ConnectionPanel } from './components/ConnectionPanel';
 import { ObsMainControls } from './components/ObsMainControls';
 import { ObsSettingsPanel } from './components/ObsSettingsPanel';
@@ -29,11 +31,11 @@ import { loadConnectionSettings, saveConnectionSettings, isStorageAvailable } fr
 import { useStreamerBotActions } from './hooks/useStreamerBotActions';
 import { gsap } from 'gsap';
 import MiniPlayer from './components/common/MiniPlayer';
+import { debounce } from 'lodash';
 
 const App: React.FC = () => {
     // Music mini controller state (shared with CreateTab)
-    // Removed unused musicAudioUrl, handleMusicPause, handleMusicResume, handleMusicStop
-
+    
     // Get state and actions directly from the comprehensive Zustand store - optimized selectors
     const isConnected = useAppStore((state: AppState) => state.isConnected);
     const isConnecting = useAppStore((state: AppState) => state.isConnecting);
@@ -166,11 +168,16 @@ const App: React.FC = () => {
         document.documentElement.style.setProperty('--dynamic-secondary-accent-rgb', adjustForExtraDarkMode(hexToRgb(catppuccinSecondaryAccentColorsHexMap[theme.secondaryAccent])));
     }, [theme.accent, theme.secondaryAccent, theme.userChatBubble, theme.modelChatBubble, extraDarkModeFromStore]);
 
-    // Handle initial Gemini messages - removed geminiMessages from dependencies to prevent infinite loop
+    // Handle initial Gemini messages
+    const geminiMessagesRef = useRef(geminiMessages);
+    useEffect(() => {
+        geminiMessagesRef.current = geminiMessages;
+    }, [geminiMessages]);
+
     useEffect(() => {
         const envApiKey = (process.env as any).VITE_GEMINI_API_KEY || (process.env as any).API_KEY;
         const effectiveApiKey = envApiKey || geminiApiKey;
-        const hasInitialMessage = geminiMessages.some((m: ChatMessage) =>
+        const hasInitialMessage = geminiMessagesRef.current.some((m: ChatMessage) =>
             m.role === 'system' && (
                 m.text.includes("Gemini Assistant initialized") ||
                 m.text.includes("Gemini Assistant connected") ||
@@ -198,7 +205,6 @@ const App: React.FC = () => {
                 }
             }
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isGeminiClientInitialized, geminiInitializationError, geminiApiKey, streamerName, isConnected, isStreamerBotConnected]);
 
     // Define fetchData first with debouncing
@@ -436,44 +442,32 @@ const App: React.FC = () => {
     useEffect(() => {
         if (isConnected && obs && obsServiceInstance) {
             fetchData();
-            const onStateChanged = () => debouncedFetchData();
+            const debouncedFetch = debounce(fetchData, 300);
 
-            obs.on('CurrentProgramSceneChanged', onStateChanged);
-            obs.on('StreamStateChanged', onStateChanged);
-            obs.on('RecordStateChanged', onStateChanged);
-            obs.on('SceneItemListReindexed', onStateChanged);
-            obs.on('SceneItemCreated', onStateChanged);
-            obs.on('SceneItemRemoved', onStateChanged);
-            obs.on('SceneItemEnableStateChanged', onStateChanged);
-            obs.on('SceneItemTransformChanged', onStateChanged);
-            obs.on('InputCreated', onStateChanged);
-            obs.on('InputRemoved', onStateChanged);
-            obs.on('InputSettingsChanged', onStateChanged);
-            obs.on('InputVolumeChanged', onStateChanged);
-            obs.on('InputMuteStateChanged', onStateChanged);
-            obs.on('SourceFilterCreated', onStateChanged);
-            obs.on('SourceFilterRemoved', onStateChanged);
-            obs.on('SourceFilterEnableStateChanged', onStateChanged);
-            obs.on('VideoSettingsChanged' as any, onStateChanged);
+            // Group events by relevance
+            const sceneEvents = ['CurrentProgramSceneChanged', 'SceneItemListReindexed'];
+            const inputEvents = ['InputCreated', 'InputRemoved', 'InputSettingsChanged'];
+            const volumeEvents = ['InputVolumeChanged', 'InputMuteStateChanged'];
+            const filterEvents = ['SourceFilterCreated', 'SourceFilterRemoved', 'SourceFilterEnableStateChanged'];
+
+            // Attach listeners
+            sceneEvents.forEach(event => obs.on(event, debouncedFetch));
+            inputEvents.forEach(event => obs.on(event, debouncedFetch));
+            volumeEvents.forEach(event => obs.on(event, debouncedFetch));
+            filterEvents.forEach(event => obs.on(event, debouncedFetch));
+            obs.on('StreamStateChanged', debouncedFetch);
+            obs.on('RecordStateChanged', debouncedFetch);
+            obs.on('VideoSettingsChanged', debouncedFetch);
 
             return () => {
-                obs.off('CurrentProgramSceneChanged', onStateChanged);
-                obs.off('StreamStateChanged', onStateChanged);
-                obs.off('RecordStateChanged', onStateChanged);
-                obs.off('SceneItemListReindexed', onStateChanged);
-                obs.off('SceneItemCreated', onStateChanged);
-                obs.off('SceneItemRemoved', onStateChanged);
-                obs.off('SceneItemEnableStateChanged', onStateChanged);
-                obs.off('SceneItemTransformChanged', onStateChanged);
-                obs.off('InputCreated', onStateChanged);
-                obs.off('InputRemoved', onStateChanged);
-                obs.off('InputSettingsChanged', onStateChanged);
-                obs.off('InputVolumeChanged', onStateChanged);
-                obs.off('InputMuteStateChanged', onStateChanged);
-                obs.off('SourceFilterCreated', onStateChanged);
-                obs.off('SourceFilterRemoved', onStateChanged);
-                obs.off('SourceFilterEnableStateChanged', onStateChanged);
-                obs.off('VideoSettingsChanged' as any, onStateChanged);
+                // Detach listeners
+                sceneEvents.forEach(event => obs.off(event, debouncedFetch));
+                inputEvents.forEach(event => obs.off(event, debouncedFetch));
+                volumeEvents.forEach(event => obs.off(event, debouncedFetch));
+                filterEvents.forEach(event => obs.off(event, debouncedFetch));
+                obs.off('StreamStateChanged', debouncedFetch);
+                obs.off('RecordStateChanged', debouncedFetch);
+                obs.off('VideoSettingsChanged', debouncedFetch);
             };
         }
     }, [isConnected, obs, obsServiceInstance, fetchData, debouncedFetchData]);
@@ -514,103 +508,68 @@ const App: React.FC = () => {
     const renderTabContent = () => {
         const envApiKey = (process.env as any).VITE_GEMINI_API_KEY || (process.env as any).API_KEY;
 
-        return (
-            <>
-                {/* Connections Tab */}
-                <div className={`h-full tab-content ${activeTab === AppTab.CONNECTIONS ? 'block' : 'hidden'}`}>
-                    <div className="flex flex-col h-full bg-background border-l border-r border-b border-border rounded-b-lg shadow-lg">
-                        <div className="flex-grow p-1 overflow-y-auto">
-                            <ConnectionPanel
-                                onConnect={handleConnect}
-                                onDisconnect={handleDisconnect}
-                                isConnected={isConnected}
-                                isConnecting={isConnecting}
-                                defaultUrl={DEFAULT_OBS_WEBSOCKET_URL}
-                                error={connectError}
-                                geminiApiKey={geminiApiKey}
-                                envGeminiApiKey={envApiKey}
-                                onGeminiApiKeyChange={actions.setGeminiApiKey}
-                                isGeminiClientInitialized={isGeminiClientInitialized}
-                                geminiInitializationError={geminiInitializationError}
+        switch (activeTab) {
+            case AppTab.CONNECTIONS:
+                return (
+                    <ConnectionPanel
+                        onConnect={handleConnect}
+                        onDisconnect={handleDisconnect}
+                        isConnected={isConnected}
+                        isConnecting={isConnecting}
+                        defaultUrl={DEFAULT_OBS_WEBSOCKET_URL}
+                        error={connectError}
+                        geminiApiKey={geminiApiKey}
+                        envGeminiApiKey={envApiKey}
+                        onGeminiApiKeyChange={actions.setGeminiApiKey}
+                        isGeminiClientInitialized={isGeminiClientInitialized}
+                        geminiInitializationError={geminiInitializationError}
+                        accentColorName={theme.accent}
+                        streamerBotAddress={streamerBotAddress}
+                        setStreamerBotAddress={handleStreamerBotAddressChange}
+                        streamerBotPort={streamerBotPort}
+                        setStreamerBotPort={handleStreamerBotPortChange}
+                        onStreamerBotConnect={handleStreamerBotConnect}
+                        onStreamerBotDisconnect={handleStreamerBotDisconnect}
+                        isStreamerBotConnected={isStreamerBotConnected}
+                        isStreamerBotConnecting={isStreamerBotConnecting}
+                    />
+                );
+            case AppTab.OBS_STUDIO:
+                return (
+                    <>
+                        {!isConnected || !obsServiceInstance ? (
+                            <p className="text-center text-muted-foreground mt-6">
+                                <span className="emoji">🔗</span> Please connect to OBS WebSocket in the Connections tab to begin.
+                            </p>
+                        ) : (
+                            <ObsMainControls
+                                obsService={obsServiceInstance}
+                                onRefreshData={fetchData}
+                                setErrorMessage={setErrorMessage}
                                 accentColorName={theme.accent}
-                                streamerBotAddress={streamerBotAddress}
-                                setStreamerBotAddress={handleStreamerBotAddressChange}
-                                streamerBotPort={streamerBotPort}
-                                setStreamerBotPort={handleStreamerBotPortChange}
-                                onStreamerBotConnect={handleStreamerBotConnect}
-                                onStreamerBotDisconnect={handleStreamerBotDisconnect}
-                                isStreamerBotConnected={isStreamerBotConnected}
-                                isStreamerBotConnecting={isStreamerBotConnecting}
                             />
-                        </div>
-                    </div>
-                </div>
-
-                {/* OBS Studio Tab */}
-                <div className={`h-full tab-content ${activeTab === AppTab.OBS_STUDIO ? 'block' : 'hidden'}`}>
-                    <div className="flex flex-col h-full bg-background border-l border-r border-b border-border rounded-b-lg shadow-lg">
-                        <div className="flex-grow p-1 overflow-y-auto">
-                            {!isConnected || !obsServiceInstance ? (
-                                <p className="text-center text-muted-foreground mt-6">
-                                    <span className="emoji">🔗</span> Please connect to OBS WebSocket in the Connections tab to begin.
-                                </p>
-                            ) : (
-                                <ObsMainControls
-                                    obsService={obsServiceInstance!}
-                                    onRefreshData={fetchData}
-                                    setErrorMessage={setErrorMessage}
-                                    accentColorName={theme.accent}
-                                />
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Streaming Assets Tab */}
-                <div className={`h-full tab-content ${activeTab === AppTab.STREAMING_ASSETS ? 'block' : 'hidden'}`}>
-                    <div className="flex flex-col h-full bg-background border-l border-r border-b border-border rounded-b-lg shadow-lg">
-                        <div className="flex-grow p-1 overflow-y-auto">
-                            <StreamingAssetsTab />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Create Tab */}
-                <div className={`h-full tab-content ${activeTab === AppTab.CREATE ? 'block' : 'hidden'}`}>
-                    <div className="flex flex-col h-full bg-background border-l border-r border-b border-border rounded-b-lg shadow-lg">
-                        <div className="flex-grow p-1 overflow-y-auto">
-                            <CreateTab />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Settings Tab */}
-                <div className={`h-full tab-content ${activeTab === AppTab.SETTINGS ? 'block' : 'hidden'}`}>
-                    <div className="flex flex-col h-full bg-background border-l border-r border-b border-border rounded-b-lg shadow-lg">
-                        <div className="flex-grow p-1 overflow-y-auto">
-                            <ObsSettingsPanel
-                                selectedAccentColorName={theme.accent}
-                                selectedSecondaryAccentColorName={theme.secondaryAccent}
-                                selectedUserChatBubbleColorName={theme.userChatBubble}
-                                selectedModelChatBubbleColorName={theme.modelChatBubble}
-                                flipSides={flipSides}
-                                actions={actions}
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Advanced Tab */}
-                <div className={`h-full tab-content ${activeTab === AppTab.ADVANCED ? 'block' : 'hidden'}`}>
-                    <div className="flex flex-col h-full bg-background border-l border-r border-b border-border rounded-b-lg shadow-lg">
-                        <div className="flex-grow p-1 overflow-y-auto">
-                            <AdvancedPanel />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Gemini Tab */}
-                <div className={`h-full tab-content ${activeTab === AppTab.GEMINI ? 'block' : 'hidden'}`}>
+                        )}
+                    </>
+                );
+            case AppTab.STREAMING_ASSETS:
+                return <StreamingAssetsTab />;
+            case AppTab.CREATE:
+                return <CreateTab />;
+            case AppTab.SETTINGS:
+                return (
+                    <ObsSettingsPanel
+                        selectedAccentColorName={theme.accent}
+                        selectedSecondaryAccentColorName={theme.secondaryAccent}
+                        selectedUserChatBubbleColorName={theme.userChatBubble}
+                        selectedModelChatBubbleColorName={theme.modelChatBubble}
+                        flipSides={flipSides}
+                        actions={actions}
+                    />
+                );
+            case AppTab.ADVANCED:
+                return <AdvancedPanel />;
+            case AppTab.GEMINI:
+                return (
                     <GeminiChat
                         geminiApiKeyFromInput={envApiKey || geminiApiKey}
                         streamerBotService={streamerBotService}
@@ -628,9 +587,10 @@ const App: React.FC = () => {
                         activeTab={activeTab}
                         onStreamerBotAction={handleStreamerBotAction}
                     />
-                </div>
-            </>
-        );
+                );
+            default:
+                return null;
+        }
     };
 
     return (

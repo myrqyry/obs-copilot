@@ -13,6 +13,7 @@ function cleanJsonString(jsonStr: string): string {
   return cleaned;
 }
 import Tooltip from './ui/Tooltip';
+import { motion } from 'framer-motion';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { GlobeAltIcon, CameraIcon } from '@heroicons/react/24/solid';
 import { GoogleGenAI } from '@google/genai';
@@ -722,21 +723,27 @@ When a user asks for a Streamer.bot action, use this format.
       )}
       <div className="flex-grow p-2 space-y-2 overflow-y-auto relative z-10">
         {messages.map((msg, idx) => (
-          <ChatMessageItem
+          <motion.div
             key={msg.id || idx}
-            message={msg}
-            onSuggestionClick={handleSuggestionClick}
-            accentColorName={accentColorName}
-            obsSources={msg.type === "source-prompt" ? obsData.sources : undefined}
-            onAddToContext={handleAddToContext}
-            extraDarkMode={extraDarkMode}
-            flipSides={flipSides}
-            showSuggestions={msg.showSuggestions || false}
-            onRegenerate={handleRegenerate}
-            userChatBubbleColorName={userChatBubbleColorName}
-            modelChatBubbleColorName={modelChatBubbleColorName}
-            customChatBackground={validatedCustomChatBackground}
-          />
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <ChatMessageItem
+              message={msg}
+              onSuggestionClick={handleSuggestionClick}
+              accentColorName={accentColorName}
+              obsSources={msg.type === "source-prompt" ? obsData.sources : undefined}
+              onAddToContext={handleAddToContext}
+              extraDarkMode={extraDarkMode}
+              flipSides={flipSides}
+              showSuggestions={msg.showSuggestions || false}
+              onRegenerate={handleRegenerate}
+              userChatBubbleColorName={userChatBubbleColorName}
+              modelChatBubbleColorName={modelChatBubbleColorName}
+              customChatBackground={validatedCustomChatBackground}
+            />
+          </motion.div>
         ))}
         {isLoading && (
           <div className="flex justify-center items-center py-4">

@@ -1,7 +1,8 @@
 import React from 'react';
+import { motion, HTMLMotionProps } from 'framer-motion';
 import { cn } from '../../lib/utils';
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonProps extends HTMLMotionProps<'button'> {
     variant?: 'default' | 'secondary' | 'destructive' | 'outline' | 'ghost';
     size?: 'default' | 'sm' | 'lg';
     children: React.ReactNode;
@@ -10,7 +11,9 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ({ className, variant = 'default', size = 'default', ...props }, ref) => {
         return (
-            <button
+            <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 className={cn(
                     // Base styles
                     'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background',

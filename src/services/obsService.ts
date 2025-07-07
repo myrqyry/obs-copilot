@@ -1,9 +1,55 @@
 
 export class OBSWebSocketService {
   private obs: any;
+  private isConnected: boolean = false;
+  private reconnectAttempts: number = 0;
+  private maxReconnectAttempts: number = 5;
+  private reconnectDelay: number = 1000; // Initial delay in ms
+  private notifyStatus: ((status: string) => void) | null = null;
 
-  constructor(obsInstance: any) {
+  constructor(obsInstance: any, notifyStatus?: (status: string) => void) {
+    this.notifyStatus = notifyStatus || null;
     this.obs = obsInstance;
+    this.setupEventListeners();
+  }
+
+  private setupEventListeners(): void {
+    this.obs.on('open', () => {
+      this.isConnected = true;
+      this.reconnectAttempts = 0;
+      console.log('OBS WebSocket connected');
+      this.notifyStatus?.('connected');
+    });
+
+    this.obs.on('close', () => {
+      this.isConnected = false;
+      console.warn('OBS WebSocket disconnected');
+      this.notifyStatus?.('disconnected');
+      this.reconnect();
+    });
+
+    this.obs.on('error', (error: any) => {
+      console.error('OBS WebSocket error:', error);
+      this.notifyStatus?.('error');
+    });
+  }
+
+  private reconnect(): void {
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.error('Max reconnect attempts reached. Giving up.');
+      this.notifyStatus?.('reconnect_failed');
+      return;
+    }
+
+    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts); // Exponential backoff
+    console.log(`Attempting to reconnect in ${delay}ms...`);
+    setTimeout(() => {
+      this.reconnectAttempts++;
+      this.obs.connect().catch((error: any) => {
+        console.error('Reconnection failed:', error);
+        this.reconnect();
+      });
+    }, delay);
   }
 
   subscribeToEvents(eventHandlers: Partial<Record<string, (...args: any[]) => void>>): void {

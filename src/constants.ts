@@ -1,5 +1,6 @@
-export const DEFAULT_OBS_WEBSOCKET_URL = "ws://localhost:4455";
+export const GEMINI_API_KEY_ENV_VAR = 'VITE_GEMINI_API_KEY';
 export const GEMINI_MODEL_NAME = "gemini-2.5-flash-preview-04-17";
+export const DEFAULT_OBS_WEBSOCKET_URL = "ws://localhost:4455";
 
 // Common video resolution presets
 export const COMMON_RESOLUTIONS = [

@@ -1,6 +1,7 @@
 // src/services/automationService.ts
 import type { AutomationRule, AutomationCondition } from '../types/automation';
 import type { ObsAction } from '../types/obsActions';
+import { throttle } from 'lodash';
 import type { StreamerBotService } from './streamerBotService';
 
 export class AutomationService {
@@ -9,6 +10,8 @@ export class AutomationService {
     private obsData: any = {};
     private streamerBotService: StreamerBotService | null = null;
     private handleObsAction: ((action: ObsAction) => Promise<{ success: boolean; message: string; error?: string }>) | null = null;
+    private maxRetries: number = 3;
+    private retryDelay: number = 1000; // Delay in ms between retries
     private addMessage: ((message: { role: 'user' | 'model' | 'system'; text: string }) => void) | null = null;
 
     constructor() { }
@@ -47,7 +50,81 @@ export class AutomationService {
     /**
      * Process an OBS event and execute matching automation rules
      */
+    private throttledProcessEvent = throttle(async (eventName: string, eventData: any): Promise<void> => {
+        if (!this.isInitialized) {
+            console.warn('AutomationService not initialized, skipping event processing');
+            return;
+        }
+        if (!this.checkServiceAvailability()) {
+            console.error('Required services are unavailable. Skipping event processing.');
+            this.addMessage?.({
+                role: 'system',
+                text: `❌ **Service Unavailable**\n\nRequired services are unavailable. Please check your OBS or Streamer.bot connection.`
+            });
+            return;
+        }
+
+        // Find all enabled rules that match this event
+        const matchingRules = this.rules.filter(rule =>
+            rule.enabled && rule.trigger.eventName === eventName
+        );
+
+        if (matchingRules.length === 0) {
+            return;
+        }
+
+        console.log(`Processing event ${eventName} with ${matchingRules.length} matching rules`);
+
+        // Process each matching rule
+        for (const rule of matchingRules) {
+            try {
+                // Check if trigger data matches (if specified)
+                if (!this.evaluateTriggerData(rule, eventData)) {
+                    continue;
+                }
+
+                // Check if conditions are met (if any)
+                if (rule.conditions && rule.conditions.length > 0) {
+                    if (!this.evaluateConditions(rule.conditions, eventData)) {
+                        continue;
+                    }
+                }
+
+                // Execute the rule
+                await this.executeRule(rule);
+            } catch (error) {
+                console.error(`Error processing rule "${rule.name}":`, error);
+                this.addMessage?.({
+                    role: 'system',
+                    text: `❌ **Automation Rule Error**\n\nRule "${rule.name}" failed to execute: ${(error as Error).message}`
+                });
+            }
+        }
+    }, 500); // Throttle to process events at most once every 500ms
+
     async processEvent(eventName: string, eventData: any): Promise<void> {
+        await this.throttledProcessEvent(eventName, eventData);
+        if (!this.isInitialized) {
+            console.warn('AutomationService not initialized, skipping event processing');
+            return;
+        }
+        if (!this.checkServiceAvailability()) {
+            console.error('Required services are unavailable. Skipping event processing.');
+            this.addMessage?.({
+                role: 'system',
+                text: `❌ **Service Unavailable**\n\nRequired services are unavailable. Please check your OBS or Streamer.bot connection.`
+            });
+            return;
+        }
+
+        if (!this.checkServiceAvailability()) {
+            console.error('Required services are unavailable. Skipping event processing.');
+            this.addMessage?.({
+                role: 'system',
+                text: `❌ **Service Unavailable**\n\nRequired services are unavailable. Please check your OBS or Streamer.bot connection.`
+            });
+            return;
+        }
         if (!this.isInitialized) {
             console.warn('AutomationService not initialized, skipping event processing');
             return;
@@ -254,39 +331,73 @@ export class AutomationService {
      * Execute a single action
      */
     private async executeAction(action: any, ruleName: string): Promise<void> {
-        if (action.type === 'obs') {
-            if (!this.handleObsAction) {
-                throw new Error('OBS action handler not available');
+        let attempt = 0;
+        while (attempt < this.maxRetries) {
+            try {
+                attempt++;
+                console.log(`Executing action (attempt ${attempt}/${this.maxRetries}):`, action);
+
+                if (action.type === 'obs') {
+                    if (!this.handleObsAction) {
+                        throw new Error('OBS action handler not available');
+                    }
+
+                    const result = await this.handleObsAction(action.data);
+
+                    this.addMessage?.({
+                        role: 'system',
+                        text: `🎛️ **OBS Action (Rule: ${ruleName})**\n\n${result.message}`
+                    });
+
+                    if (!result.success) {
+                        throw new Error(result.error || 'OBS action failed');
+                    }
+                } else if (action.type === 'streamerbot') {
+                    if (!this.streamerBotService) {
+                        throw new Error('Streamer.bot service not available');
+                    }
+
+                    await this.streamerBotService.doAction(
+                        action.data.actionName,
+                        action.data.args || {}
+                    );
+
+                    this.addMessage?.({
+                        role: 'system',
+                        text: `🤖 **Streamer.bot Action (Rule: ${ruleName})**\n\n✅ Executed action "${action.data.actionName}"`
+                    });
+                } else {
+                    throw new Error(`Unknown action type: ${action.type}`);
+                }
+
+                // Action succeeded, exit retry loop
+                return;
+            } catch (error) {
+                console.error(`Error executing action (attempt ${attempt}/${this.maxRetries}):`, error);
+
+                if (attempt >= this.maxRetries) {
+                    this.addMessage?.({
+                        role: 'system',
+                        text: `❌ **Action Failed**\n\nRule "${ruleName}" action failed after ${this.maxRetries} attempts: ${(error as Error).message}`
+                    });
+                    throw error; // Re-throw error after max retries
+                }
+
+                // Wait before retrying
+                await new Promise(resolve => setTimeout(resolve, this.retryDelay));
             }
-
-            const result = await this.handleObsAction(action.data);
-
-            this.addMessage?.({
-                role: 'system',
-                text: `🎛️ **OBS Action (Rule: ${ruleName})**\n\n${result.message}`
-            });
-
-            if (!result.success) {
-                throw new Error(result.error || 'OBS action failed');
-            }
-        } else if (action.type === 'streamerbot') {
-            if (!this.streamerBotService) {
-                throw new Error('Streamer.bot service not available');
-            }
-
-            await this.streamerBotService.doAction(
-                action.data.actionName,
-                action.data.args || {}
-            );
-
-            this.addMessage?.({
-                role: 'system',
-                text: `🤖 **Streamer.bot Action (Rule: ${ruleName})**\n\n✅ Executed action "${action.data.actionName}"`
-            });
-        } else {
-            throw new Error(`Unknown action type: ${action.type}`);
         }
     }
+
+    private checkServiceAvailability(): boolean {
+        const obsAvailable = !!this.handleObsAction;
+        const streamerBotAvailable = !!this.streamerBotService;
+
+        return obsAvailable && streamerBotAvailable;
+    }
+        // This block was duplicated and misplaced. Removing it to fix errors.
+        // Removed duplicate and misplaced block.
+        // Removed duplicate and misplaced block.
 
     /**
      * Get automation statistics

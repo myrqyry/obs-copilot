@@ -1,5 +1,5 @@
 import Tooltip from './ui/Tooltip';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Modal } from './common/Modal';
 import { CogIcon } from './common/CogIcon';
 import { TextInput } from './common/TextInput';
@@ -13,10 +13,18 @@ import {
 } from '../types';
 import { ChatBubblePreview } from './common/ChatBubblePreview';
 import { useAppStore } from '../store/appStore';
-import { CollapsibleCard } from './common/CollapsibleCard';
+import { CollapsibleSection } from './common/CollapsibleSection';
 import { Button } from './common/Button';
 import { cn } from '../lib/utils';
 
+interface ObsSettingsPanelActions {
+  setThemeColor: (themeKey: 'accent' | 'secondaryAccent' | 'userChatBubble' | 'modelChatBubble', colorName: string) => void;
+  toggleFlipSides: () => void;
+  toggleAutoApplySuggestions: () => void;
+  toggleExtraDarkMode: () => void;
+  setCustomChatBackground: (url: string) => void;
+  resetSettings?: () => void; // Optional, for demonstration
+}
 
 interface ObsSettingsPanelProps {
   selectedAccentColorName: CatppuccinAccentColorName;
@@ -24,9 +32,8 @@ interface ObsSettingsPanelProps {
   selectedUserChatBubbleColorName: CatppuccinChatBubbleColorName;
   selectedModelChatBubbleColorName: CatppuccinChatBubbleColorName;
   flipSides: boolean;
-  actions: any;
+  actions: ObsSettingsPanelActions;
 }
-
 
 export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
   selectedAccentColorName,
@@ -36,7 +43,7 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
   flipSides,
   actions
 }) => {
-  // Extract all Zustand selectors at the top
+  // Zustand selectors
   const autoApplySuggestions = useAppStore(state => state.autoApplySuggestions);
   const extraDarkMode = useAppStore(state => state.extraDarkMode);
   const customChatBackground = useAppStore(state => state.customChatBackground);
@@ -46,6 +53,8 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
   const chatBackgroundBlendMode = useAppStore(state => state.chatBackgroundBlendMode);
   const storeActions = useAppStore(state => state.actions);
 
+  const [showResetModal, setShowResetModal] = useState(false);
+
   const ColorChooser: React.FC<{
     label: string;
     colorsHexMap: Record<string, string>;
@@ -53,7 +62,6 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
     themeKey: 'accent' | 'secondaryAccent' | 'userChatBubble' | 'modelChatBubble';
     colorNameTypeGuard: (name: string) => boolean;
   }> = ({ label, colorsHexMap, selectedColorName, themeKey, colorNameTypeGuard }) => {
-    // If this is a chat bubble color, use the selected color for the label
     const isUser = themeKey === 'userChatBubble';
     const isModel = themeKey === 'modelChatBubble';
     const colorStyle = (isUser || isModel) && selectedColorName in colorsHexMap
@@ -103,33 +111,31 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
   return (
     <div className="space-y-2 max-w-4xl mx-auto p-0">
       {/* Theme Section */}
-      <CollapsibleCard
+      <CollapsibleSection
         isOpen={openTheme}
         onToggle={() => setOpenTheme(!openTheme)}
         title="Theme Settings"
         emoji="🎨"
         accentColor={accentColor}
       >
-        <div className="space-y-4">
-          <ColorChooser
-            label="🎨 Primary Accent Color"
-            colorsHexMap={catppuccinAccentColorsHexMap}
-            selectedColorName={selectedAccentColorName}
-            themeKey="accent"
-            colorNameTypeGuard={(name): name is CatppuccinAccentColorName => name in catppuccinAccentColorsHexMap}
-          />
-          <ColorChooser
-            label="🎨 Secondary Accent Color"
-            colorsHexMap={catppuccinSecondaryAccentColorsHexMap}
-            selectedColorName={selectedSecondaryAccentColorName}
-            themeKey="secondaryAccent"
-            colorNameTypeGuard={(name): name is CatppuccinSecondaryAccentColorName => name in catppuccinSecondaryAccentColorsHexMap}
-          />
-        </div>
-      </CollapsibleCard>
+        <ColorChooser
+          label="🎨 Primary Accent Color"
+          colorsHexMap={catppuccinAccentColorsHexMap}
+          selectedColorName={selectedAccentColorName}
+          themeKey="accent"
+          colorNameTypeGuard={(name): name is CatppuccinAccentColorName => name in catppuccinAccentColorsHexMap}
+        />
+        <ColorChooser
+          label="🎨 Secondary Accent Color"
+          colorsHexMap={catppuccinSecondaryAccentColorsHexMap}
+          selectedColorName={selectedSecondaryAccentColorName}
+          themeKey="secondaryAccent"
+          colorNameTypeGuard={(name): name is CatppuccinSecondaryAccentColorName => name in catppuccinSecondaryAccentColorsHexMap}
+        />
+      </CollapsibleSection>
 
       {/* Chat Bubble Section */}
-      <CollapsibleCard
+      <CollapsibleSection
         isOpen={openChat}
         onToggle={() => setOpenChat(!openChat)}
         title="Chat Bubble Colors & Options"
@@ -155,7 +161,6 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
                 💬 User Chat Bubble Color
               </label>
               <div className="flex items-center space-x-2">
-                {/* Removed old bubble fill opacity slider, now only cog/modal controls opacity and blend mode */}
                 <button
                   className="ml-1 p-1 rounded hover:bg-accent/20 transition-colors"
                   aria-label="Open chat bubble fill settings"
@@ -262,7 +267,6 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
               ))}
             </div>
           </div>
-
 
           <div className="space-y-2 mt-2 mb-2">
             <label className="flex items-center space-x-2 text-xs text-muted-foreground cursor-pointer group">
@@ -412,8 +416,47 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
             </Modal>
           </div>
         </div>
-      </CollapsibleCard>
+      </CollapsibleSection>
 
+      {/* Reset Section */}
+      <div className="mt-8 flex justify-end">
+        <Button
+          variant="destructive"
+          onClick={() => setShowResetModal(true)}
+        >
+          Reset Settings
+        </Button>
+      </div>
+      <Modal
+        title="Reset Settings"
+        isOpen={showResetModal}
+        onClose={() => setShowResetModal(false)}
+        accentColorName={selectedAccentColorName}
+        size="sm"
+      >
+        <div className="flex flex-col gap-4 items-center py-2 w-64">
+          <div className="text-center text-sm text-foreground">
+            Are you sure you want to reset all settings? This action cannot be undone.
+          </div>
+          <div className="flex gap-2 justify-center">
+            <Button
+              variant="destructive"
+              onClick={() => {
+                setShowResetModal(false);
+                actions.resetSettings && actions.resetSettings();
+              }}
+            >
+              Yes, Reset
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => setShowResetModal(false)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

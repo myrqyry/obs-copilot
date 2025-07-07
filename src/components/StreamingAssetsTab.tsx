@@ -4,6 +4,7 @@ import './StreamingAssetsTab.css';
 import { GiphyFetch } from '@giphy/js-fetch-api';
 import { getCustomApiKey } from './AdvancedPanel';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { GiphyResult } from '../types/giphy';
 import { useAppStore } from '../store/appStore';
 import { catppuccinAccentColorsHexMap } from '../types';
 import { addBrowserSource, addMediaSource, addSvgAsBrowserSource, addEmojiAsBrowserSource, addImageSource } from '../services/obsService';
@@ -70,7 +71,16 @@ interface SearchFilters {
     contentType: 'gifs' | 'stickers';
 }
 
-const getGiphyApiKey = () => getCustomApiKey('giphy') || import.meta.env.VITE_GIPHY_API_KEY || '';
+const getGiphyApiKey = () => {
+  const userKey = getCustomApiKey('giphy');
+  if (userKey) return userKey;
+
+  if (process.env.NODE_ENV === 'production') {
+    return '/.netlify/functions/proxy?api=giphy';
+  }
+
+  return import.meta.env.VITE_GIPHY_API_KEY || '';
+};
 const getTenorApiKey = () => getCustomApiKey('tenor') || import.meta.env.VITE_TENOR_API_KEY || '';
 const getImgflipApiKey = () => getCustomApiKey('imgflip') || import.meta.env.VITE_IMGFLIP_API_KEY || '';
 const getUnsplashApiKey = () => getCustomApiKey('unsplash') || import.meta.env.VITE_UNSPLASH_API_KEY || '';
@@ -474,7 +484,7 @@ const StreamingAssetsTab = React.memo(() => {
     const [modalContent, setModalContent] = useState<{ type: 'gif' | 'svg' | 'emoji' | 'background' | 'sticker', data: any } | null>(null);
     const [gifApi, setGifApi] = useState('giphy');
     const [gifQuery, setGifQuery] = useState('');
-    const [gifResults, setGifResults] = useState<any[]>([]);
+    const [gifResults, setGifResults] = useState<GiphyResult[]>([]);
     const [gifLoading, setGifLoading] = useState(false);
     const [totalResults, setTotalResults] = useState(0);
     const [gifCategories, setGifCategories] = useState<any[]>([]);
@@ -2343,4 +2353,3 @@ const StreamingAssetsTab = React.memo(() => {
 });
 
 export default StreamingAssetsTab;
-

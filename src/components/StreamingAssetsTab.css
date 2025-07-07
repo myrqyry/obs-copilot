@@ -70,6 +70,15 @@ img[src*="tinywebp_transparent"] {
   gap: 0.25rem;
 }
 
+/* Enable scrolling for the StreamingAssetsTab */
+body, html {
+  overflow: auto;
+}
+
+div {
+  overflow: auto;
+}
+
 /* Fallback for broken images */
 .gif-grid-item img[style*="display: none"] {
   display: none !important;

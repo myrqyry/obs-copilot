@@ -11,7 +11,7 @@ import { loadConnectionSettings, saveConnectionSettings, isStorageAvailable } fr
 import { CardContent } from './ui';
 import { cn } from '../lib/utils';
 import { CollapsibleCard } from './common/CollapsibleCard';
-import { useAppStore } from '../store/appStore';
+import { useAppStore, AppState } from '../store/appStore';
 import { catppuccinAccentColorsHexMap } from '../types';
 
 interface ConnectionFormProps {
@@ -79,9 +79,10 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
   const [autoConnect, setAutoConnect] = useState<boolean>(
     Boolean(persistedConnectionSettings.autoConnect)
   );
-  const [showApiKeyOverride, setShowApiKeyOverride] = useState<boolean>(
-    Boolean(geminiApiKey) // Start with true if there's already an API key
-  );
+    const storedGeminiApiKey = useAppStore((state: AppState) => state.geminiApiKey);
+    const [showApiKeyOverride, setShowApiKeyOverride] = useState<boolean>(
+        Boolean(storedGeminiApiKey) // Start with true if there's already a stored API key
+    );
   // Cog/settings modal state
   // const [showSettingsModal, setShowSettingsModal] = useState(false);
   // Get backgroundOpacity and setter from store
@@ -123,7 +124,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
   // Track if user has attempted to connect
   const [hasAttemptedConnect, setHasAttemptedConnect] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setHasAttemptedConnect(true);
     if (!isConnected) {
@@ -131,7 +132,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
       if (isStorageAvailable()) {
         saveConnectionSettings({
           obsWebSocketUrl: address,
-          obsPassword: (showPasswordField && password) ? password : undefined, // Only save if checkbox is enabled and password exists
+          obsPassword: password, // Save password regardless of checkbox
           autoConnect: autoConnect // Save auto-connect preference
         });
       }
@@ -153,10 +154,6 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newPassword = e.target.value;
     setPassword(newPassword);
-    // Only save non-empty passwords to avoid overwriting with empty strings
-    if (isStorageAvailable() && newPassword.trim()) {
-      saveConnectionSettings({ obsPassword: newPassword });
-    }
   };
 
   // Save auto-connect preference changes immediately
