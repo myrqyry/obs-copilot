@@ -104,68 +104,6 @@ export class AutomationService {
 
     async processEvent(eventName: string, eventData: any): Promise<void> {
         await this.throttledProcessEvent(eventName, eventData);
-        if (!this.isInitialized) {
-            console.warn('AutomationService not initialized, skipping event processing');
-            return;
-        }
-        if (!this.checkServiceAvailability()) {
-            console.error('Required services are unavailable. Skipping event processing.');
-            this.addMessage?.({
-                role: 'system',
-                text: `❌ **Service Unavailable**\n\nRequired services are unavailable. Please check your OBS or Streamer.bot connection.`
-            });
-            return;
-        }
-
-        if (!this.checkServiceAvailability()) {
-            console.error('Required services are unavailable. Skipping event processing.');
-            this.addMessage?.({
-                role: 'system',
-                text: `❌ **Service Unavailable**\n\nRequired services are unavailable. Please check your OBS or Streamer.bot connection.`
-            });
-            return;
-        }
-        if (!this.isInitialized) {
-            console.warn('AutomationService not initialized, skipping event processing');
-            return;
-        }
-
-        // Find all enabled rules that match this event
-        const matchingRules = this.rules.filter(rule =>
-            rule.enabled && rule.trigger.eventName === eventName
-        );
-
-        if (matchingRules.length === 0) {
-            return;
-        }
-
-        console.log(`Processing event ${eventName} with ${matchingRules.length} matching rules`);
-
-        // Process each matching rule
-        for (const rule of matchingRules) {
-            try {
-                // Check if trigger data matches (if specified)
-                if (!this.evaluateTriggerData(rule, eventData)) {
-                    continue;
-                }
-
-                // Check if conditions are met (if any)
-                if (rule.conditions && rule.conditions.length > 0) {
-                    if (!this.evaluateConditions(rule.conditions, eventData)) {
-                        continue;
-                    }
-                }
-
-                // Execute the rule
-                await this.executeRule(rule);
-            } catch (error) {
-                console.error(`Error processing rule "${rule.name}":`, error);
-                this.addMessage?.({
-                    role: 'system',
-                    text: `❌ **Automation Rule Error**\n\nRule "${rule.name}" failed to execute: ${(error as Error).message}`
-                });
-            }
-        }
     }
 
     /**

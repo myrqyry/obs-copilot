@@ -1,8 +1,23 @@
 {
-  "name": "obs-copilot-gemini-vite",
-  "private": true,
+  "name": "obs-copilot",
+  "overrides": {
+    "type-fest": "3.0.0"
+  },
   "version": "0.0.0",
+  "private": true,
+  "description": "<div align=\"center\">",
+  "homepage": "https://github.com/myrqyry/obs-copilot#readme",
+  "bugs": {
+    "url": "https://github.com/myrqyry/obs-copilot/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/myrqyry/obs-copilot.git"
+  },
+  "license": "ISC",
+  "author": "",
   "type": "module",
+  "main": "src/App.tsx",
   "scripts": {
     "dev": "concurrently \"node proxy.cjs\" \"vite\"",
     "build": "tsc && vite build",
@@ -19,9 +34,12 @@
     "@heroicons/react": "^2.2.0",
     "@imgly/background-removal": "^1.6.0",
     "@streamerbot/client": "^1.11.0",
+    "@types/axios": "^0.9.36",
+    "axios": "^1.10.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cors": "^2.8.5",
+    "dompurify": "^3.2.6",
     "dotenv": "^16.5.0",
     "express": "^4.18.2",
     "firebase": "^11.9.1",
@@ -36,6 +54,7 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "tailwind-merge": "^2.6.0",
+    "type-fest": "3.0.0",
     "unsplash-js": "^7.0.19",
     "zustand": "^5.0.5"
   },
@@ -58,6 +77,6 @@
     "tailwindcss": "^3.4.4",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.2.2",
-    "vite": "^5.3.1"
+    "vite": "^7.0.2"
   }
 }

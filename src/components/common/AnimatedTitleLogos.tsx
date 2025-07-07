@@ -1,10 +1,19 @@
 import React from 'react';
 import MorphingLogos from '../MorphingLogos';
+import { useAppStore } from '../../store/appStore';
+import { catppuccinAccentColorsHexMap, catppuccinSecondaryAccentColorsHexMap } from '../../types';
 
 export const AnimatedTitleLogos: React.FC = () => {
 
   return (
-    <div className="flex flex-row items-center justify-center select-none gap-2 md:gap-2.5">
+    <div
+  className="flex flex-row items-center justify-center select-none gap-2 md:gap-2.5 overflow-hidden"
+  style={{
+    '--dynamic-accent': useAppStore(state => catppuccinAccentColorsHexMap[state.userSettings.theme.accent]),
+    '--dynamic-secondary-accent': useAppStore(state => catppuccinSecondaryAccentColorsHexMap[state.userSettings.theme.secondaryAccent]),
+    padding: '12px' // Prevent cropping of glow effect
+  } as React.CSSProperties}
+>
       <div className="relative">
         {/* Glow effect positioned outside the logo container to avoid clipping */}
         <div
@@ -39,7 +48,7 @@ export const AnimatedTitleLogos: React.FC = () => {
         <span
           className="absolute opacity-25 blur-md"
           style={{
-            inset: '-6px',
+            inset: '0',
             background: `radial-gradient(ellipse 120% 80%, 
               var(--dynamic-accent) 0%, 
               var(--dynamic-secondary-accent) 30%, 
@@ -77,10 +86,10 @@ export const AnimatedTitleLogos: React.FC = () => {
       <style>{`
         @keyframes gradient-shift {
           0%, 100% {
-            background-position: 0% 50%;
+            background-position: 50% 50%;
           }
           50% {
-            background-position: 100% 50%;
+            background-position: 51% 50%;
           }
         }
       `}</style>

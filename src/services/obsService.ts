@@ -1,6 +1,10 @@
 
 export class OBSWebSocketService {
-  private obs: any;
+  private obs: { 
+    call: (requestType: string, requestData?: Record<string, any>) => Promise<any>;
+    on: (event: string, handler: (...args: any[]) => void) => void;
+    connect: () => Promise<void>;
+};
   private isConnected: boolean = false;
   private reconnectAttempts: number = 0;
   private maxReconnectAttempts: number = 5;
@@ -464,7 +468,9 @@ export class OBSWebSocketService {
   }
 }
 
-// #region Helper functions for adding sources
+/**
+ * Helper functions for adding sources
+ */
 
 /**
  * Adds a browser source to the current scene in OBS.
@@ -565,4 +571,6 @@ export const addEmojiAsBrowserSource = async (
   await addBrowserSource(obsService, sceneName, dataUri, sourceName, { width: 250, height: 250 });
 };
 
-// #endregion
+/**
+ * End of helper functions for adding sources
+ */

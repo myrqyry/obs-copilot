@@ -1,3 +1,4 @@
+import { ColorChooser } from './common/ColorChooser';
 import Tooltip from './ui/Tooltip';
 import React, { useState } from 'react';
 import { Modal } from './common/Modal';
@@ -44,58 +45,18 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
   actions
 }) => {
   // Zustand selectors
-  const autoApplySuggestions = useAppStore(state => state.autoApplySuggestions);
-  const extraDarkMode = useAppStore(state => state.extraDarkMode);
-  const customChatBackground = useAppStore(state => state.customChatBackground);
-  const bubbleFillOpacity = useAppStore(state => state.bubbleFillOpacity);
-  const chatBubbleBlendMode = useAppStore(state => state.chatBubbleBlendMode);
-  const backgroundOpacity = useAppStore(state => state.backgroundOpacity);
-  const chatBackgroundBlendMode = useAppStore(state => state.chatBackgroundBlendMode);
-  const storeActions = useAppStore(state => state.actions);
+const autoApplySuggestions = useAppStore(state => state.userSettings.autoApplySuggestions);
+const extraDarkMode = useAppStore(state => state.userSettings.extraDarkMode);
+const customChatBackground = useAppStore(state => state.userSettings.customChatBackground);
+const bubbleFillOpacity = useAppStore(state => state.userSettings.bubbleFillOpacity);
+const chatBubbleBlendMode = useAppStore(state => state.userSettings.chatBubbleBlendMode);
+const backgroundOpacity = useAppStore(state => state.userSettings.backgroundOpacity);
+const chatBackgroundBlendMode = useAppStore(state => state.userSettings.chatBackgroundBlendMode);
+const storeActions = useAppStore(state => state.actions);
 
   const [showResetModal, setShowResetModal] = useState(false);
 
-  const ColorChooser: React.FC<{
-    label: string;
-    colorsHexMap: Record<string, string>;
-    selectedColorName: string;
-    themeKey: 'accent' | 'secondaryAccent' | 'userChatBubble' | 'modelChatBubble';
-    colorNameTypeGuard: (name: string) => boolean;
-  }> = ({ label, colorsHexMap, selectedColorName, themeKey, colorNameTypeGuard }) => {
-    const isUser = themeKey === 'userChatBubble';
-    const isModel = themeKey === 'modelChatBubble';
-    const colorStyle = (isUser || isModel) && selectedColorName in colorsHexMap
-      ? { color: colorsHexMap[selectedColorName] }
-      : {};
-    return (
-      <div className="mb-2">
-        <label className="block text-sm font-medium mb-1 text-primary" style={colorStyle}>{label}</label>
-        <div className="flex flex-wrap gap-1.5">
-          {Object.keys(colorsHexMap).map((colorNameIter) => {
-            if (!colorNameTypeGuard(colorNameIter)) return null;
-            return (
-              <Tooltip content={colorNameIter.charAt(0).toUpperCase() + colorNameIter.slice(1)} key={colorNameIter}>
-                <button
-                  onClick={() => actions.setThemeColor(themeKey, colorNameIter)}
-                  className={cn(
-                    "w-5 h-5 rounded-full border-2 transition-all duration-150 focus:outline-none",
-                    selectedColorName === colorNameIter
-                      ? 'ring-2 ring-offset-2 ring-offset-background border-border'
-                      : 'border-border hover:border-muted-foreground'
-                  )}
-                  style={{
-                    backgroundColor: colorsHexMap[colorNameIter],
-                    borderColor: selectedColorName === colorNameIter ? colorsHexMap[colorNameIter] : undefined
-                  }}
-                  aria-label={`Select ${colorNameIter} for ${label}`}
-                />
-              </Tooltip>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
+  // Removed inline ColorChooser definition to avoid duplication
 
   // Collapsible state for each section
   const [openTheme, setOpenTheme] = useState(true);
@@ -106,29 +67,32 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
   const [showBubbleSettingsModal, setShowBubbleSettingsModal] = useState(false);
 
   // Get accent color hex from Zustand
-  const accentColor = catppuccinAccentColorsHexMap[selectedAccentColorName] || '#89b4fa';
+  const accentColor = useAppStore(state => catppuccinAccentColorsHexMap[state.userSettings.theme.accent] || '#89b4fa');
 
   return (
     <div className="space-y-2 max-w-4xl mx-auto p-0">
       {/* Theme Section */}
-      <CollapsibleSection
-        isOpen={openTheme}
-        onToggle={() => setOpenTheme(!openTheme)}
-        title="Theme Settings"
-        emoji="🎨"
-        accentColor={accentColor}
-      >
+
+<CollapsibleSection
+  isOpen={openTheme}
+  onToggle={() => setOpenTheme(!openTheme)}
+  title="Theme Settings"
+  emoji="🎨"
+  accentColor={accentColor}
+>
         <ColorChooser
           label="🎨 Primary Accent Color"
+          onChange={(color) => storeActions.setThemeColor('accent', color)}
           colorsHexMap={catppuccinAccentColorsHexMap}
-          selectedColorName={selectedAccentColorName}
+          selectedColorName={useAppStore(state => state.userSettings.theme.accent)}
           themeKey="accent"
           colorNameTypeGuard={(name): name is CatppuccinAccentColorName => name in catppuccinAccentColorsHexMap}
         />
         <ColorChooser
           label="🎨 Secondary Accent Color"
+          onChange={(color) => storeActions.setThemeColor('secondaryAccent', color)}
           colorsHexMap={catppuccinSecondaryAccentColorsHexMap}
-          selectedColorName={selectedSecondaryAccentColorName}
+          selectedColorName={useAppStore(state => state.userSettings.theme.secondaryAccent)}
           themeKey="secondaryAccent"
           colorNameTypeGuard={(name): name is CatppuccinSecondaryAccentColorName => name in catppuccinSecondaryAccentColorsHexMap}
         />
@@ -142,17 +106,17 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
         emoji="💬"
         accentColor={accentColor}
       >
-        <ChatBubblePreview
-          userColor={selectedUserChatBubbleColorName}
-          modelColor={selectedModelChatBubbleColorName}
-          flipSides={flipSides}
-          extraDarkMode={extraDarkMode}
-          customBackground={customChatBackground}
-          bubbleFillOpacity={bubbleFillOpacity}
-          backgroundOpacity={backgroundOpacity}
-          chatBackgroundBlendMode={chatBackgroundBlendMode as React.CSSProperties['mixBlendMode']}
-          chatBubbleBlendMode={chatBubbleBlendMode as React.CSSProperties['mixBlendMode']}
-        />
+<ChatBubblePreview
+  userColor={useAppStore(state => state.userSettings.theme.userChatBubble)}
+  modelColor={useAppStore(state => state.userSettings.theme.modelChatBubble)}
+  flipSides={useAppStore(state => state.userSettings.flipSides)}
+  extraDarkMode={useAppStore(state => state.userSettings.extraDarkMode)}
+  customBackground={useAppStore(state => state.userSettings.customChatBackground)}
+  bubbleFillOpacity={useAppStore(state => state.userSettings.bubbleFillOpacity)}
+  backgroundOpacity={useAppStore(state => state.userSettings.backgroundOpacity)}
+  chatBackgroundBlendMode={useAppStore(state => state.userSettings.chatBackgroundBlendMode) as React.CSSProperties['mixBlendMode']}
+  chatBubbleBlendMode={useAppStore(state => state.userSettings.chatBubbleBlendMode) as React.CSSProperties['mixBlendMode']}
+/>
         <div className="space-y-4">
           {/* User Chat Bubble Color with Opacity Slider */}
           <div>

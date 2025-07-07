@@ -70,21 +70,6 @@ export interface AppState {
         };
     };
 
-    // Legacy theme access for backward compatibility
-    flipSides: boolean;
-    autoApplySuggestions: boolean;
-    extraDarkMode: boolean;
-    customChatBackground: string;
-    bubbleFillOpacity: number;
-    backgroundOpacity: number;
-    chatBackgroundBlendMode: string;
-    chatBubbleBlendMode: string;
-    theme: {
-        accent: CatppuccinAccentColorName;
-        secondaryAccent: CatppuccinSecondaryAccentColorName;
-        userChatBubble: CatppuccinChatBubbleColorName;
-        modelChatBubble: CatppuccinChatBubbleColorName;
-    };
 
     // --- MUSIC/STREAMING AUDIO STATE & ACTIONS ---
     musicSession: any | null;
@@ -209,21 +194,6 @@ export const useAppStore = create<AppState>((set, get) => {
         // Automation State
         automationRules: persistedSettings.automationRules || [],
         streamerBotServiceInstance: null,
-        // Legacy properties for backward compatibility
-        flipSides: persistedSettings.flipSides || false,
-        autoApplySuggestions: persistedSettings.autoApplySuggestions || false,
-        extraDarkMode: persistedSettings.extraDarkMode || false,
-        customChatBackground: persistedSettings.customChatBackground || '',
-        bubbleFillOpacity: persistedSettings.bubbleFillOpacity || 0.85,
-        backgroundOpacity: persistedSettings.backgroundOpacity || 0.7,
-        chatBackgroundBlendMode: persistedSettings.chatBackgroundBlendMode || 'normal',
-        chatBubbleBlendMode: persistedSettings.chatBubbleBlendMode || 'normal',
-        theme: {
-            accent: (persistedSettings.theme?.accent as CatppuccinAccentColorName) || 'mauve',
-            secondaryAccent: (persistedSettings.theme?.secondaryAccent as CatppuccinSecondaryAccentColorName) || 'flamingo',
-            userChatBubble: (persistedSettings.theme?.userChatBubble as CatppuccinChatBubbleColorName) || 'blue',
-            modelChatBubble: (persistedSettings.theme?.modelChatBubble as CatppuccinChatBubbleColorName) || 'lavender',
-        },
         // New userSettings wrapper for component compatibility
         userSettings: {
             flipSides: persistedSettings.flipSides || false,
@@ -393,12 +363,11 @@ export const useAppStore = create<AppState>((set, get) => {
                 }
             },
             toggleFlipSides: () => {
-                const newValue = !get().flipSides;
+                const newValue = !get().userSettings.flipSides;
                 const state = get();
                 const newUserSettings = { ...state.userSettings, flipSides: newValue };
                 set({
-                    flipSides: newValue,
-                    userSettings: newUserSettings
+                userSettings: newUserSettings
                 });
                 // Save to persistence
                 if (isStorageAvailable()) {
@@ -406,12 +375,11 @@ export const useAppStore = create<AppState>((set, get) => {
                 }
             },
             toggleAutoApplySuggestions: () => {
-                const newValue = !get().autoApplySuggestions;
+                const newValue = !get().userSettings.autoApplySuggestions;
                 const state = get();
                 const newUserSettings = { ...state.userSettings, autoApplySuggestions: newValue };
                 set({
-                    autoApplySuggestions: newValue,
-                    userSettings: newUserSettings
+                userSettings: newUserSettings
                 });
                 // Save to persistence
                 if (isStorageAvailable()) {
@@ -419,12 +387,11 @@ export const useAppStore = create<AppState>((set, get) => {
                 }
             },
             toggleExtraDarkMode: () => {
-                const newValue = !get().extraDarkMode;
+                const newValue = !get().userSettings.extraDarkMode;
                 const state = get();
                 const newUserSettings = { ...state.userSettings, extraDarkMode: newValue };
                 set({
-                    extraDarkMode: newValue,
-                    userSettings: newUserSettings
+                userSettings: newUserSettings
                 });
                 // Save to persistence
                 if (isStorageAvailable()) {
@@ -433,12 +400,11 @@ export const useAppStore = create<AppState>((set, get) => {
             },
             setThemeColor: (type, color) => {
                 const state = get();
-                const currentTheme = state.theme;
+                const currentTheme = state.userSettings.theme;
                 const newTheme = { ...currentTheme, [type]: color };
                 const newUserSettings = { ...state.userSettings, theme: newTheme };
                 set({
-                    theme: newTheme,
-                    userSettings: newUserSettings
+                userSettings: newUserSettings
                 });
                 // Save to persistence
                 if (isStorageAvailable()) {
@@ -449,8 +415,7 @@ export const useAppStore = create<AppState>((set, get) => {
                 const state = get();
                 const newUserSettings = { ...state.userSettings, customChatBackground: background };
                 set({
-                    customChatBackground: background,
-                    userSettings: newUserSettings
+                userSettings: newUserSettings
                 });
                 if (isStorageAvailable()) {
                     saveUserSettings({ customChatBackground: background });
@@ -460,8 +425,7 @@ export const useAppStore = create<AppState>((set, get) => {
                 const state = get();
                 const newUserSettings = { ...state.userSettings, bubbleFillOpacity: opacity };
                 set({
-                    bubbleFillOpacity: opacity,
-                    userSettings: newUserSettings
+                userSettings: newUserSettings
                 });
                 if (isStorageAvailable()) {
                     saveUserSettings({ bubbleFillOpacity: opacity });
@@ -471,8 +435,7 @@ export const useAppStore = create<AppState>((set, get) => {
                 const state = get();
                 const newUserSettings = { ...state.userSettings, backgroundOpacity: opacity };
                 set({
-                    backgroundOpacity: opacity,
-                    userSettings: newUserSettings
+                userSettings: newUserSettings
                 });
                 if (isStorageAvailable()) {
                     saveUserSettings({ backgroundOpacity: opacity });
@@ -482,8 +445,7 @@ export const useAppStore = create<AppState>((set, get) => {
                 const state = get();
                 const newUserSettings = { ...state.userSettings, chatBackgroundBlendMode: mode };
                 set({
-                    chatBackgroundBlendMode: mode,
-                    userSettings: newUserSettings
+                userSettings: newUserSettings
                 });
                 if (isStorageAvailable()) {
                     saveUserSettings({ chatBackgroundBlendMode: mode });
@@ -493,8 +455,7 @@ export const useAppStore = create<AppState>((set, get) => {
                 const state = get();
                 const newUserSettings = { ...state.userSettings, chatBubbleBlendMode: mode };
                 set({
-                    chatBubbleBlendMode: mode,
-                    userSettings: newUserSettings
+                userSettings: newUserSettings
                 });
                 if (isStorageAvailable()) {
                     saveUserSettings({ chatBubbleBlendMode: mode });

@@ -51,7 +51,7 @@ export const HtmlTemplateService = {
                     effects: {
                         glow: 1,
                         rainbow: false,
-                        pulse: false
+                        pulse: true
                     }
                 },
                 colors: {
@@ -61,7 +61,11 @@ export const HtmlTemplateService = {
                     background: 'rgba(30, 30, 46, 0.9)',
                     text: '#cdd6f4',
                     border: '#45475a'
-                }
+                },
+                assets: [
+                    { type: 'image', name: 'Logo', url: '/assets/logo.png' },
+                    { type: 'gif', name: 'Celebration', url: '/assets/celebration.gif' }
+                ]
             },
             'stream-starting': {
                 layout: 'overlay',
@@ -86,7 +90,10 @@ export const HtmlTemplateService = {
                     background: 'rgba(30, 30, 46, 0.95)',
                     text: '#cdd6f4',
                     border: '#f38ba8'
-                }
+                },
+                assets: [
+                    { type: 'svg', name: 'Countdown', url: '/assets/countdown.svg' }
+                ]
             },
             'be-right-back': {
                 layout: 'fullscreen',
@@ -111,7 +118,10 @@ export const HtmlTemplateService = {
                     background: 'rgba(17, 17, 27, 0.98)',
                     text: '#cdd6f4',
                     border: '#45475a'
-                }
+                },
+                assets: [
+                    { type: 'emoji', name: 'Break Emoji', content: '⏰' }
+                ]
             },
             'new-follower': {
                 layout: 'corner',
@@ -131,7 +141,15 @@ export const HtmlTemplateService = {
                     }
                 },
                 autoRefresh: true,
-                refreshInterval: 10000
+                refreshInterval: 10000,
+                colors: {
+                    primary: '#ffcc00',
+                    secondary: '#ff9900',
+                    accent: '#ff6600',
+                    background: 'rgba(255, 255, 255, 0.9)',
+                    text: '#333333',
+                    border: '#ffcc00'
+                }
             },
             'chat-display': {
                 layout: 'sidebar',
@@ -147,6 +165,15 @@ export const HtmlTemplateService = {
                     background: 'rgba(30, 30, 46, 0.85)',
                     text: '#cdd6f4',
                     border: '#585b70'
+                },
+                animations: {
+                    enabled: true,
+                    speed: 0.2,
+                    effects: {
+                        glow: 1,
+                        rainbow: false,
+                        pulse: true
+                    }
                 }
             }
         };
@@ -157,24 +184,32 @@ export const HtmlTemplateService = {
         return `${baseUrl}?config=${params}`;
     },
     async createBrowserSourceWithTemplate(
-        _obsService: any,
-        _sourceName: string,
-        _sceneName: string,
-        _config: Partial<TemplateConfig>,
-        _width: number = 800,
-        _height: number = 600
+        obsService: any,
+        sourceName: string,
+        sceneName: string,
+        config: Partial<TemplateConfig>,
+        width: number = 800,
+        height: number = 600
     ): Promise<void> {
-        // This is a stub for demo purposes
-        // In a real app, you would use the obsService to create a browser source
-        return Promise.resolve();
+        const templateUrl = this.generateTemplateUrl(config);
+        await obsService.createInput(
+            sourceName,
+            'browser_source',
+            {
+                url: templateUrl,
+                width,
+                height,
+            },
+            sceneName,
+            true
+        );
     },
     async updateBrowserSourceTemplate(
-        _obsService: any,
-        _sourceName: string,
-        _config: Partial<TemplateConfig>
+        obsService: any,
+        sourceName: string,
+        config: Partial<TemplateConfig>
     ): Promise<void> {
-        // This is a stub for demo purposes
-        // In a real app, you would use the obsService to update a browser source
-        return Promise.resolve();
+        const templateUrl = this.generateTemplateUrl(config);
+        await obsService.setInputSettings(sourceName, { url: templateUrl });
     }
 };

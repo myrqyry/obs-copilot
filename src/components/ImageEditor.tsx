@@ -14,6 +14,8 @@ export const ImageEditor: React.FC = () => {
     const [outputModalOpen, setOutputModalOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const toast = useToast();
+
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -25,7 +27,7 @@ export const ImageEditor: React.FC = () => {
 
     const handleRemoveBackground = async () => {
         if (!inputBlob) {
-            alert("No image file selected.");
+            toast.error("No image file selected.");
             return;
         }
         setLoading(true);
@@ -36,11 +38,11 @@ export const ImageEditor: React.FC = () => {
                 const url = URL.createObjectURL(result);
                 setOutputUrl(url);
             } else {
-                alert("Background removal did not return an image Blob.");
+                toast.error("Background removal did not return an image Blob.");
             }
         } catch (err) {
             console.error("Background removal failed:", err);
-            alert("Background removal failed: " + (err instanceof Error ? err.message : String(err)));
+            toast.error("Background removal failed: " + (err instanceof Error ? err.message : String(err)));
         }
         setLoading(false);
     };

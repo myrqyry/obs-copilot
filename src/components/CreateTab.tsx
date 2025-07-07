@@ -1,12 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { gsap } from 'gsap';
 import { useAppStore } from '../store/appStore';
-import { GoogleGenAI, Modality } from '@google/genai';
+import { GeminiService } from '../services/geminiService';
 import { CardContent } from './ui/Card';
 import { Button } from './common/Button';
 import { TextInput } from './common/TextInput';
 import Tooltip from './ui/Tooltip';
-import TTSAndMusicMiniPlayer from './TTSAndMusicMiniPlayer';
 import InlineMusicControls from './InlineMusicControls';
 import { ImageEditor } from './ImageEditor';
 import { Modal } from './common/Modal';
@@ -159,17 +158,10 @@ const CreateTab: React.FC = () => {
             // Always get the latest Gemini API key from Zustand store
             const currentGeminiApiKey = useAppStore.getState().geminiApiKey;
             if (!currentGeminiApiKey) throw new Error('Gemini API key is missing.');
-            const ai = new GoogleGenAI({ apiKey: currentGeminiApiKey });
-            // Prompt Gemini to generate a short story with the current speakers
-            const prompt = `Hi, please generate a short (like 100 words) transcript that reads like
-      it was clipped from a podcast from the following speakers: ${speakers.map(s => s.name).join(', ')}. Format as Speaker: line.`;
-            const response = await ai.models.generateContent({
-                model: GEMINI_TEXT_MODEL,
-                contents: [{ parts: [{ text: prompt }] }],
-                config: { responseModalities: ["TEXT"] }
-            });
-            const text = response.candidates?.[0]?.content?.parts?.[0]?.text || '';
-            setScript(text.trim());
+            const geminiService = new GeminiService();
+            const prompt = `Hi, please generate a short (like 100 words) transcript that reads like it was clipped from a podcast from the following speakers: ${speakers.map(s => s.name).join(', ')}. Format as Speaker: line.`;
+            const response = await geminiService.generateContent(prompt);
+            setScript(response.text.trim());
         } catch (err: any) {
             setScript('// Error generating story: ' + (err.message || 'Unknown error'));
         } finally {
@@ -213,29 +205,10 @@ const CreateTab: React.FC = () => {
                     setImageLoading(false);
                     return;
                 }
-                const ai = new GoogleGenAI({ apiKey: geminiApiKey });
-
-                // Compose prompt with settings
-                let prompt = imagePrompt;
-                if (imageStyle) prompt += `\nStyle: ${imageStyle}`;
-                if (aspectRatio) prompt += `\nAspect Ratio: ${aspectRatio}`;
-                if (quality) prompt += `\nQuality: ${quality}`;
-                if (textOverlay) prompt += `\nText Overlay: ${textOverlay}`;
-
-                const response = await ai.models.generateContent({
-                    model: GEMINI_IMAGE_MODEL,
-                    contents: prompt,
-                    config: {
-                        responseModalities: [Modality.TEXT, Modality.IMAGE],
-                    },
-                });
-                // Find the image part in the response
-                const parts = response.candidates?.[0]?.content?.parts || [];
-                const imagePart = parts.find((part: any) => part.inlineData && part.inlineData.data);
-                if (!imagePart || !imagePart.inlineData) throw new Error("No image data in Gemini response");
-                const imageData = imagePart.inlineData.data;
-                const url = "data:image/png;base64," + imageData;
-                setGeneratedImage(url);
+                const geminiService = new GeminiService();
+                const prompt = `${imagePrompt}\nStyle: ${imageStyle}\nAspect Ratio: ${aspectRatio}\nQuality: ${quality}\nText Overlay: ${textOverlay}`;
+                const response = await geminiService.generateImage(prompt);
+                setGeneratedImage(response);
             } else if (imageProvider === 'chutes') {
                 // Compose prompt and settings for Chutes
                 let prompt = imagePrompt;
@@ -327,26 +300,9 @@ const CreateTab: React.FC = () => {
             const pcmBuffers: ArrayBuffer[] = [];
             for (const part of parts) {
                 const speaker = speakers.find(s => s.name === part.speaker) || speakers[0];
-                const ai = new GoogleGenAI({ apiKey: currentGeminiApiKey });
-                const response = await ai.models.generateContent({
-                    model: GEMINI_TTS_MODEL,
-                    contents: [{ parts: [{ text: part.text }] }],
-                    config: {
-                        responseModalities: ["AUDIO"],
-                        speechConfig: {
-                            voiceConfig: {
-                                prebuiltVoiceConfig: { voiceName: speaker.voice },
-                                ...(speaker.style && { voiceStyle: speaker.style }),
-                            },
-                            speakingRate,
-                            pitch,
-                            volumeGainDb,
-                            ...(effectsProfileId ? { effectsProfileId: [effectsProfileId] } : {}),
-                        } as any // Cast to any to avoid TS error
-                    }
-                });
-                const inlineData = response.candidates?.[0]?.content?.parts?.[0]?.inlineData;
-                const data = inlineData?.data;
+                const geminiService = new GeminiService();
+                const response = await geminiService.generateContent(part.text);
+                const data = response.audioData;
                 if (!data) throw new Error(`No audio data for ${part.speaker}`);
                 const pcmBuffer = base64ToArrayBuffer(data);
                 pcmBuffers.push(pcmBuffer);
@@ -428,10 +384,6 @@ const CreateTab: React.FC = () => {
 
     return (
         <>
-            <TTSAndMusicMiniPlayer
-                ttsUrl={miniPlayerTTSUrl}
-                onClose={() => { setMiniPlayerTTSUrl(null); }}
-            />
 
             <div className="flex flex-col gap-4 p-2 md:p-4 w-full max-w-3xl mx-auto">
                 {/* Image Generation Section */}

@@ -1,6 +1,7 @@
+import config from './config';
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import OBSWebSocket from 'obs-websocket-js';
-if (process.env.NODE_ENV === 'development') {
+if (import.meta.env.MODE === 'development') {
     // Import GSAP test for development verification
     import('./utils/gsapTest');
 }
@@ -175,7 +176,7 @@ const App: React.FC = () => {
     }, [geminiMessages]);
 
     useEffect(() => {
-        const envApiKey = (process.env as any).VITE_GEMINI_API_KEY || (process.env as any).API_KEY;
+        const envApiKey = config.GEMINI_API_KEY;
         const effectiveApiKey = envApiKey || geminiApiKey;
         const hasInitialMessage = geminiMessagesRef.current.some((m: ChatMessage) =>
             m.role === 'system' && (

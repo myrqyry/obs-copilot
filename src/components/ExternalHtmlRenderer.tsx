@@ -1,4 +1,5 @@
 import React from 'react';
+import DOMPurify from 'dompurify';
 
 interface ExternalHtmlRendererProps {
     htmlContent: string;
@@ -9,7 +10,7 @@ const ExternalHtmlRenderer: React.FC<ExternalHtmlRendererProps> = ({ htmlContent
     return (
         <div>
             <style>{customCss}</style>
-            <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
+            <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(htmlContent) }} />
         </div>
     );
 };

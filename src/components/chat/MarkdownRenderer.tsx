@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import DOMPurify from 'dompurify';
 import { highlightJsonSyntax, applyInlineMarkdown, markdownGsapEffects } from '../../utils/markdown.tsx';
 
 interface MarkdownRendererProps {
@@ -23,7 +24,8 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({ c
     // If the content is already HTML (contains img tags with src), render as-is
     if (/<img[^>]*src\s*=\s*["'][^"']+["'][^>]*>/i.test(content.trim()) ||
         /^<div[\s>].*<\/div>\s*$/is.test(content.trim())) {
-        return <div ref={containerRef} style={{ color: 'inherit', whiteSpace: 'normal' }} className="[&_*]:!text-inherit" dangerouslySetInnerHTML={{ __html: content }} />;
+        const sanitizedContent = DOMPurify.sanitize(content);
+        return <div ref={containerRef} style={{ color: 'inherit', whiteSpace: 'normal' }} className="[&_*]:!text-inherit" dangerouslySetInnerHTML={{ __html: sanitizedContent }} />;
     }
 
     const parts = [];
@@ -48,41 +50,48 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({ c
             `<div class="relative group my-1.5">
                 <div class="absolute bottom-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
                     <button 
-                        onclick="navigator.clipboard.writeText(document.getElementById('${codeBlockId}').textContent).then(() => {
-                            const btn = event.target;
-                            const originalText = btn.textContent;
-                            btn.textContent = '✓';
-                            btn.style.color = 'hsl(var(--green))';
-                            setTimeout(() => {
-                                btn.textContent = originalText;
-                                btn.style.color = '';
-                            }, 1500);
-                        })"
+                        onClick={() => {
+                            const codeElement = document.getElementById('${codeBlockId}');
+                            if (codeElement) {
+                                navigator.clipboard.writeText(codeElement.textContent || '').then(() => {
+                                    const btn = event.target as HTMLButtonElement;
+                                    const originalText = btn.textContent;
+                                    btn.textContent = '✓';
+                                    btn.style.color = 'hsl(var(--green))';
+                                    setTimeout(() => {
+                                        btn.textContent = originalText;
+                                        btn.style.color = '';
+                                    }, 1500);
+                                });
+                            }
+                        }}"
                         class="px-2 py-1 text-xs bg-background/80 hover:bg-primary hover:text-primary-foreground rounded border border-border hover:border-primary transition-all duration-200 backdrop-blur-sm shadow-sm"
                         title="Copy to clipboard"
                     >📋</button>
                     <button 
-                        onclick="(() => {
-                            const code = document.getElementById('${codeBlockId}').textContent;
-                            const lang = '${lang || 'txt'}';
-                            const blob = new Blob([code], { type: 'text/plain' });
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = \`code_snippet.${lang}\`;
-                            document.body.appendChild(a);
-                            a.click();
-                            document.body.removeChild(a);
-                            URL.revokeObjectURL(url);
-                            const btn = event.target;
-                            const originalText = btn.textContent;
-                            btn.textContent = '✓';
-                            btn.style.color = 'hsl(var(--blue))';
-                            setTimeout(() => {
-                                btn.textContent = originalText;
-                                btn.style.color = '';
-                            }, 1500);
-                        })()"
+                        onClick={() => {
+                            const codeElement = document.getElementById('${codeBlockId}');
+                            if (codeElement) {
+                                const code = codeElement.textContent || '';
+                                const blob = new Blob([code], { type: 'text/plain' });
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = \`code_snippet.${lang || 'txt'}\`;
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+                                URL.revokeObjectURL(url);
+                                const btn = event.target as HTMLButtonElement;
+                                const originalText = btn.textContent;
+                                btn.textContent = '✓';
+                                btn.style.color = 'hsl(var(--blue))';
+                                setTimeout(() => {
+                                    btn.textContent = originalText;
+                                    btn.style.color = '';
+                                }, 1500);
+                            }
+                        }}"
                         class="px-2 py-1 text-xs bg-background/80 hover:bg-primary hover:text-primary-foreground rounded border border-border hover:border-primary transition-all duration-200 backdrop-blur-sm shadow-sm"
                         title="Save as file"
                     >💾</button>

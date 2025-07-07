@@ -1,9 +1,4 @@
-import { createApi } from 'unsplash-js';
-
-// Initialize the Unsplash API client
-const unsplash = createApi({
-  accessKey: import.meta.env.VITE_UNSPLASH_API_KEY || 'GqhQpfUrY4oRiqm2WXhIJityjcA5HsFHE5OjjtWvJF4',
-});
+import axios from 'axios';
 
 export interface UnsplashPhoto {
   id: string;
@@ -61,6 +56,11 @@ export interface UnsplashTopic {
 }
 
 class UnsplashService {
+  private proxyEndpoint: string;
+
+  constructor() {
+    this.proxyEndpoint = '/api/unsplash';
+  }
   /**
    * Search for photos on Unsplash
    */
@@ -71,23 +71,11 @@ class UnsplashService {
     orderBy?: 'latest' | 'relevant';
   }): Promise<UnsplashSearchResult> {
     try {
-      const result = await unsplash.search.getPhotos({
+      const response = await axios.post(`${this.proxyEndpoint}/search-photos`, {
         query,
-        page: options?.page || 1,
-        perPage: options?.perPage || 20,
-        orientation: options?.orientation,
-        orderBy: options?.orderBy || 'relevant',
+        options,
       });
-
-      if (result.type === 'success') {
-        return {
-          results: result.response.results as UnsplashPhoto[],
-          total: result.response.total,
-          total_pages: result.response.total_pages,
-        };
-      } else {
-        throw new Error(`Unsplash API error: ${result.errors?.join(', ')}`);
-      }
+      return response.data;
     } catch (error) {
       console.error('Error searching Unsplash photos:', error);
       throw error;
@@ -107,23 +95,10 @@ class UnsplashService {
     topicIds?: string[];
   }): Promise<UnsplashPhoto[]> {
     try {
-      const result = await unsplash.photos.getRandom({
-        query: options?.query,
-        count: options?.count || 1,
-        orientation: options?.orientation,
-        featured: options?.featured,
-        username: options?.username,
-        collectionIds: options?.collectionIds,
-        topicIds: options?.topicIds,
+      const response = await axios.post(`${this.proxyEndpoint}/get-random-photo`, {
+        options,
       });
-
-      if (result.type === 'success') {
-        return Array.isArray(result.response) 
-          ? result.response as UnsplashPhoto[]
-          : [result.response as UnsplashPhoto];
-      } else {
-        throw new Error(`Unsplash API error: ${result.errors?.join(', ')}`);
-      }
+      return response.data.photos;
     } catch (error) {
       console.error('Error getting random Unsplash photo:', error);
       throw error;
@@ -135,13 +110,8 @@ class UnsplashService {
    */
   async getPhoto(photoId: string): Promise<UnsplashPhoto> {
     try {
-      const result = await unsplash.photos.get({ photoId });
-
-      if (result.type === 'success') {
-        return result.response as UnsplashPhoto;
-      } else {
-        throw new Error(`Unsplash API error: ${result.errors?.join(', ')}`);
-      }
+      const response = await axios.get(`${this.proxyEndpoint}/get-photo/${photoId}`);
+      return response.data;
     } catch (error) {
       console.error('Error getting Unsplash photo:', error);
       throw error;
@@ -153,7 +123,7 @@ class UnsplashService {
    */
   async trackDownload(downloadLocation: string): Promise<void> {
     try {
-      await unsplash.photos.trackDownload({ downloadLocation });
+      await axios.post(`${this.proxyEndpoint}/track-download`, { downloadLocation });
     } catch (error) {
       console.error('Error tracking download:', error);
       // Don't throw error for tracking failures as it's not critical
@@ -336,4 +306,4 @@ class UnsplashService {
 
 // Export a singleton instance
 export const unsplashService = new UnsplashService();
-export default unsplashService; 
+export default unsplashService;

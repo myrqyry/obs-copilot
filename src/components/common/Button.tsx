@@ -1,9 +1,10 @@
 import React, { useRef, useEffect } from 'react';
 import { gsap } from 'gsap';
+import { motion, HTMLMotionProps } from 'framer-motion';
 import { CatppuccinAccentColorName } from '../../types';
 import { cn } from '../../lib/utils';
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonProps extends HTMLMotionProps<'button'> {
   variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'warning' | 'glass' | 'ghost' | 'outline' | 'gradient' | 'neon' | 'minimal' | 'link';
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   isLoading?: boolean;
@@ -18,7 +19,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export const Button: React.FC<ButtonProps> = ({
-  children,
+  children = null as React.ReactNode,
   variant = 'primary',
   size = 'md',
   isLoading = false,
@@ -209,7 +210,9 @@ export const Button: React.FC<ButtonProps> = ({
   );
 
   return (
-    <button
+    <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
       ref={buttonRef}
       className={cn(
         baseStyles, 
@@ -229,10 +232,10 @@ export const Button: React.FC<ButtonProps> = ({
       ) : (
         <>
           {iconPosition === 'left' && renderIcon()}
-          <span className="transition-opacity duration-200">{buttonContent}</span>
+          <span className="transition-opacity duration-200">{buttonContent as React.ReactNode}</span>
           {iconPosition === 'right' && renderIcon()}
         </>
       )}
-    </button>
+    </motion.button>
   );
 };

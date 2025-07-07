@@ -1,0 +1,253 @@
+// src/services/streamerBotService.ts
+import { StreamerbotClient } from '@streamerbot/client';
+export class StreamerBotService {
+    client = null;
+    isConnecting = false;
+    connectionPromise = null;
+    constructor() { }
+    async connect(address, port, maxRetries = 2) {
+        // If already connected, return immediately
+        if (this.client && this.isConnected()) {
+            console.log('Already connected to Streamer.bot, skipping connection attempt');
+            return;
+        }
+        // If a connection is already in progress, wait for it to complete
+        if (this.isConnecting && this.connectionPromise) {
+            console.log('Connection already in progress, waiting for completion...');
+            try {
+                await this.connectionPromise;
+                return; // Connection completed successfully
+            }
+            catch (error) {
+                // Connection failed, we can try again
+                console.log('Previous connection attempt failed, retrying...');
+            }
+        }
+        // Prevent multiple simultaneous connection attempts
+        if (this.isConnecting) {
+            throw new Error('Connection attempt already in progress');
+        }
+        this.isConnecting = true;
+        // Create a promise that we can reference to prevent duplicate connections
+        this.connectionPromise = this._performConnectionWithRetry(address, port, maxRetries);
+        try {
+            await this.connectionPromise;
+        }
+        finally {
+            this.isConnecting = false;
+            this.connectionPromise = null;
+        }
+    }
+    async _performConnectionWithRetry(address, port, maxRetries) {
+        let lastError = null;
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            try {
+                if (attempt > 0) {
+                    const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // Exponential backoff, max 5s
+                    console.log(`Retry attempt ${attempt}/${maxRetries} after ${delay}ms delay...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+                await this._performConnection(address, port);
+                return; // Success
+            }
+            catch (error) {
+                lastError = error instanceof Error ? error : new Error(String(error));
+                console.warn(`Connection attempt ${attempt + 1}/${maxRetries + 1} failed:`, lastError.message);
+                if (attempt === maxRetries) {
+                    // Final attempt failed, throw the error
+                    throw lastError;
+                }
+            }
+        }
+    }
+    async _performConnection(address, port) {
+        try {
+            console.log(`Attempting to connect to Streamer.bot at ${address}:${port}`);
+            // Clean up any existing client
+            if (this.client) {
+                try {
+                    this.client.disconnect();
+                }
+                catch (e) {
+                    console.warn('Error disconnecting existing client:', e);
+                }
+                this.client = null;
+            }
+            this.client = new StreamerbotClient({
+                host: address,
+                port: port,
+            });
+            // Add connection timeout
+            const connectionTimeout = 10000; // 10 seconds
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error(`Connection timeout after ${connectionTimeout}ms`)), connectionTimeout);
+            });
+            // Race between connection and timeout
+            await Promise.race([
+                this.client.connect(),
+                timeoutPromise
+            ]);
+            console.log('Successfully connected to Streamer.bot');
+        }
+        catch (error) {
+            console.error('Streamer.bot connection failed:', error);
+            this.client = null;
+            // Provide more specific error messages
+            if (error instanceof Error) {
+                if (error.message.includes('ECONNREFUSED')) {
+                    throw new Error(`Connection refused to ${address}:${port}. Please ensure Streamer.bot is running and the WebSocket server is enabled.`);
+                }
+                else if (error.message.includes('timeout')) {
+                    throw new Error(`Connection timeout to ${address}:${port}. Please check if Streamer.bot is running.`);
+                }
+                else if (error.message.includes('WebSocket is closed')) {
+                    throw new Error(`WebSocket connection failed to ${address}:${port}. Please verify Streamer.bot WebSocket settings.`);
+                }
+                else if (error.message.includes('Connection attempt already in progress')) {
+                    throw new Error(`Connection attempt already in progress. Please wait for the current connection to complete.`);
+                }
+                else if (error.message.includes('WebSocket closed before the connection is established')) {
+                    throw new Error(`WebSocket connection was closed before establishment. Please check if Streamer.bot is running and the WebSocket server is enabled on port ${port}.`);
+                }
+            }
+            // Provide general troubleshooting guidance
+            const troubleshootingTips = `
+            
+Troubleshooting tips:
+1. Make sure Streamer.bot is running
+2. Verify WebSocket server is enabled in Streamer.bot settings
+3. Check that the port ${port} is correct and not blocked by firewall
+4. Try restarting Streamer.bot if the issue persists`;
+            throw new Error(`Failed to connect to Streamer.bot at ${address}:${port}: ${error instanceof Error ? error.message : 'Unknown error'}${troubleshootingTips}`);
+        }
+    }
+    disconnect() {
+        if (this.client) {
+            try {
+                this.client.disconnect();
+            }
+            catch (e) {
+                console.warn('Error disconnecting Streamer.bot client:', e);
+            }
+            this.client = null;
+        }
+        this.isConnecting = false;
+        this.connectionPromise = null;
+    }
+    isConnected() {
+        return this.client !== null && !this.isConnecting;
+    }
+    isConnectingToStreamerBot() {
+        return this.isConnecting;
+    }
+    /**
+     * Subscribes to all events from Streamer.bot and registers a callback
+     * @param callback The function to call when any event is received
+     */
+    onEvent(callback) {
+        if (!this.client)
+            throw new Error('Streamer.bot client is not initialized.');
+        // The client's `on` method can listen to all events using '*'
+        this.client.on('*', (message) => {
+            callback(message.data.event);
+        });
+        console.log('Subscribed to all Streamer.bot events.');
+    }
+    /**
+     * Fetches broadcaster information
+     */
+    async getBroadcaster() {
+        if (!this.client)
+            throw new Error('Streamer.bot client is not initialized.');
+        return this.client.getBroadcaster();
+    }
+    /**
+     * Fetches all available actions from Streamer.bot
+     */
+    async getActions() {
+        if (!this.client)
+            throw new Error('Streamer.bot client is not initialized.');
+        // getActions returns an object, not an array, so extract the actions array
+        const response = await this.client.getActions();
+        // The response is typically { actions: [...] }
+        if (response && Array.isArray(response.actions)) {
+            return response.actions;
+        }
+        // Fallback: return empty array if not found
+        return [];
+    }
+    /**
+     * Triggers an action in Streamer.bot by its ID or name
+     * @param actionIdentifier The ID or name of the action to trigger
+     * @param args Optional arguments for the action
+     */
+    async doAction(actionIdentifier, args = {}) {
+        if (!this.client)
+            throw new Error('Streamer.bot client is not initialized.');
+        // The client's doAction method accepts an object with name or id
+        let identifier = {};
+        if (actionIdentifier.match(/^[0-9a-f-]{36}$/i)) {
+            identifier.id = actionIdentifier;
+        }
+        else {
+            identifier.name = actionIdentifier;
+        }
+        await this.client.doAction(identifier, args);
+    }
+    /**
+     * Sends a request generated by the Gemini model.
+     * This now acts as a wrapper around the client's methods.
+     * @param action The action object generated by Gemini
+     */
+    async executeBotAction(action) {
+        if (!this.client)
+            throw new Error('Streamer.bot client is not initialized.');
+        switch (action.type) {
+            case 'GetActions': {
+                // getActions returns an object, not an array
+                const response = await this.client.getActions();
+                return response;
+            }
+            case 'DoAction': {
+                if (!action.args?.action)
+                    throw new Error('DoAction requires an action identifier.');
+                return this.client.doAction(action.args.action, action.args.args);
+            }
+            case 'CreateAction': {
+                // For now, CreateAction is not directly supported by the client
+                // We'll simulate the action creation by throwing a helpful error
+                throw new Error('CreateAction is not currently supported by the Streamer.bot client library. You can create actions manually in Streamer.bot and then use DoAction to trigger them.');
+            }
+            case 'UpdateAction': {
+                throw new Error('UpdateAction is not currently supported by the Streamer.bot client library.');
+            }
+            case 'DeleteAction': {
+                throw new Error('DeleteAction is not currently supported by the Streamer.bot client library.');
+            }
+            case 'TwitchSendMessage': {
+                // This would need to be handled by a pre-existing action in Streamer.bot
+                // that handles Twitch chat messages
+                if (!action.args?.message)
+                    throw new Error('TwitchSendMessage requires a message.');
+                // Try to find and trigger a Twitch send message action
+                return await this.client.doAction({ name: 'Send Twitch Message' }, {
+                    message: action.args.message
+                });
+            }
+            case 'TwitchCreatePoll': {
+                // This would need to be handled by a pre-existing action in Streamer.bot
+                if (!action.args?.title || !action.args?.choices)
+                    throw new Error('TwitchCreatePoll requires title and choices.');
+                // Try to find and trigger a Twitch create poll action
+                return await this.client.doAction({ name: 'Create Twitch Poll' }, {
+                    title: action.args.title,
+                    choices: action.args.choices,
+                    duration: action.args.duration || 60
+                });
+            }
+            // Add more cases as needed
+            default:
+                throw new Error(`Unsupported Streamer.bot action type: ${action.type}`);
+        }
+    }
+}

@@ -1,9 +1,9 @@
-import React, { useLayoutEffect, useRef, useEffect } from 'react';
+import React, { useLayoutEffect, useRef } from 'react';
+import { useAppStore } from '../store/appStore';
 import { gsap } from 'gsap';
 import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
 
-// It's still a best practice to move this to your main src/index.tsx file
-gsap.registerPlugin(MorphSVGPlugin);
+/* Removed duplicate gsap.registerPlugin(MorphSVGPlugin) as it is already registered in src/index.tsx */
 
 // The pre-normalized path data you provided
 const paths = {
@@ -111,55 +111,23 @@ const MorphingLogos: React.FC = () => {
                 transformOrigin: "24 24"
             });
 
-            // Set up observer to watch for CSS custom property changes
-            const observer = new MutationObserver((mutations) => {
-                mutations.forEach((mutation) => {
-                    if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
-                        // Small delay to ensure new styles are computed
-                        setTimeout(updateColors, 50);
-                    }
-                });
-            });
+            // Subscribe to theme changes from Zustand store
+            const theme = useAppStore.getState().userSettings.theme; // Use getState() to access theme directly
 
-            // Observe changes to the document element's style attribute
-            observer.observe(document.documentElement, {
-                attributes: true,
-                attributeFilter: ['style']
-            });
+            // Update colors when theme changes
+            updateColors();
 
             // Cleanup function
             return () => {
-                observer.disconnect();
                 if (colorAnimationRef.current) {
                     colorAnimationRef.current.kill();
                 }
             };
-        }, 100);
+        }); // Remove dependency array entirely for React compatibility
 
     }, []);
 
-    // Additional effect to watch for color changes more reliably
-    useEffect(() => {
-        const interval = setInterval(() => {
-            const currentAccent1 = getComputedStyle(document.documentElement).getPropertyValue('--dynamic-accent').trim();
-            const currentAccent2 = getComputedStyle(document.documentElement).getPropertyValue('--dynamic-secondary-accent').trim();
-
-            // Check if colors have changed by comparing with stored values
-            const stop1 = stop1Ref.current;
-            const stop2 = stop2Ref.current;
-            if (stop1 && stop2) {
-                const currentStop1Color = stop1.getAttribute('stop-color');
-                const currentStop2Color = stop2.getAttribute('stop-color');
-
-                if (currentStop1Color !== currentAccent1 || currentStop2Color !== currentAccent2) {
-
-                    updateColors();
-                }
-            }
-        }, 500); // Check every 500ms
-
-        return () => clearInterval(interval);
-    }, []);
+    // Removed redundant setInterval logic for color changes
 
     return (
         <svg
@@ -167,7 +135,16 @@ const MorphingLogos: React.FC = () => {
             viewBox="0 0 48 48"
             width={48}
             height={48}
-        >
+        style={{
+          overflow: 'hidden',
+          display: 'block',
+          boxSizing: 'border-box',
+          maxWidth: '100%',
+          maxHeight: '100%',
+          width: '100%',
+          height: '100%',
+        }}
+      >
             <defs>
                 <radialGradient id="logo-gradient" cx="50%" cy="50%" r="75%">
                     <stop ref={stop1Ref} offset="0%" stopColor="#cba6f7" />

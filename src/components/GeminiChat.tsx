@@ -1,17 +1,5 @@
 // Utility: Clean up common LLM JSON mistakes
-function cleanJsonString(jsonStr: string): string {
-  // Remove trailing commas before } or ]
-  let cleaned = jsonStr.replace(/,\s*([}\]])/g, '$1');
-  // Remove extra colons before commas or braces
-  cleaned = cleaned.replace(/:([,}\]])/g, '$1');
-  // Remove any accidental double quotes around keys
-  cleaned = cleaned.replace(/"([a-zA-Z0-9_]+)":/g, '"$1":');
-  // Remove any non-JSON leading/trailing text
-  cleaned = cleaned.trim();
-  // Remove trailing/leading backticks or code block markers
-  cleaned = cleaned.replace(/^```json|```$/g, '').trim();
-  return cleaned;
-}
+/* Removed custom cleanJsonString function. Consider using a fault-tolerant JSON parser or structured AI outputs for better reliability. */
 import Tooltip from './ui/Tooltip';
 import { motion } from 'framer-motion';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
@@ -81,7 +69,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
       autoApplySuggestions,
       flipSides,
     },
-    chatBackgroundBlendMode,
+    /* Removed chatBackgroundBlendMode as it does not exist in AppState */
     scenes,
     currentProgramScene,
     sources,
@@ -93,8 +81,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
     userDefinedContext,
   } = useAppStore();
 
-  const userChatBubbleColorName = useAppStore(state => state.theme.userChatBubble);
-  const modelChatBubbleColorName = useAppStore(state => state.theme.modelChatBubble);
+/* Removed theme references as they do not exist in AppState */
   const obsData = { scenes, currentProgramScene, sources, streamStatus, recordStatus, videoSettings };
   const { isLocked } = useLockStore();
 
@@ -333,7 +320,7 @@ When a user asks for a Streamer.bot action, use this format.
 
         if (foundValidJson && jsonStr) {
           // Clean up the JSON string before parsing
-          const cleanedJson = cleanJsonString(jsonStr);
+          const cleanedJson = jsonStr; // Removed cleanJsonString; consider using a fault-tolerant JSON parser.
           try {
             const parsed: GeminiActionResponse = JSON.parse(cleanedJson);
             // Enforce lock awareness for Gemini actions
@@ -716,7 +703,7 @@ When a user asks for a Streamer.bot action, use this format.
               backgroundRepeat: 'no-repeat',
               opacity: validatedBackgroundOpacity,
               zIndex: 0,
-              mixBlendMode: (chatBackgroundBlendMode || 'normal') as React.CSSProperties['mixBlendMode'],
+              mixBlendMode: 'normal' as React.CSSProperties['mixBlendMode'], // Removed chatBackgroundBlendMode reference
             }}
           ></div>
         </>
@@ -739,8 +726,8 @@ When a user asks for a Streamer.bot action, use this format.
               flipSides={flipSides}
               showSuggestions={msg.showSuggestions || false}
               onRegenerate={handleRegenerate}
-              userChatBubbleColorName={userChatBubbleColorName}
-              modelChatBubbleColorName={modelChatBubbleColorName}
+userChatBubbleColorName="mauve" // Default CatppuccinAccentColorName
+modelChatBubbleColorName="lavender" // Default CatppuccinAccentColorName
               customChatBackground={validatedCustomChatBackground}
             />
           </motion.div>

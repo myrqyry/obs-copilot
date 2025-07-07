@@ -26,7 +26,8 @@ const MiniPlayer = () => {
     const setActiveAudioSource = useAppStore(state => state.actions.setActiveAudioSource);
     const actions = useAppStore(state => state.actions);
     const [minimized, setMinimized] = useState(false);
-    const noteRef = useRef<HTMLDivElement>(null);
+    const audioRef = useRef<HTMLAudioElement>(null);
+const noteRef = useRef<HTMLDivElement>(null);
     const minimizedNoteRef = useRef<HTMLButtonElement>(null);
     const [isAnimating, setIsAnimating] = useState(false);
     const [editing, setEditing] = useState(false);
@@ -242,9 +243,17 @@ const MiniPlayer = () => {
                         </div>
                     )
                 ) : null}
-                {activeAudioSource.type === 'tts' && activeAudioSource.url && (
-                    <audio src={activeAudioSource.url} controls autoPlay className="w-20 h-6 ml-1" style={{ minWidth: 60 }} />
-                )}
+{activeAudioSource.type === 'tts' && activeAudioSource.url && (
+    <audio
+        ref={audioRef}
+        controls
+        autoPlay
+        onEnded={() => actions.stopMusic()}
+        className="w-64 h-8"
+    >
+        Your browser does not support the audio element.
+    </audio>
+)}
                 {activeAudioSource.type === 'tts' && activeAudioSource.url && (
                     <audio src={activeAudioSource.url} controls autoPlay className="w-20 h-6 ml-1" style={{ minWidth: 60 }} />
                 )}
