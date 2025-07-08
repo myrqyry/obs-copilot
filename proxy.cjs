@@ -14,9 +14,9 @@ app.get('/api/iconfinder/svg', async (req, res) => {
         res.status(400).json({ error: 'Invalid or missing SVG url' });
         return;
     }
-    const apiKey = process.env.VITE_ICONFINDER_API_KEY || process.env.ICONFINDER_API_KEY;
+    const apiKey = process.env.ICONFINDER_API_KEY || process.env.VITE_ICONFINDER_API_KEY;
     if (!apiKey) {
-        res.status(500).json({ error: 'Iconfinder API key not set in server env' });
+        res.status(500).json({ error: 'Iconfinder API key not set in server env (ICONFINDER_API_KEY)' });
         return;
     }
     try {
@@ -28,9 +28,19 @@ app.get('/api/iconfinder/svg', async (req, res) => {
             res.status(response.status).json({ error: 'Iconfinder SVG fetch error', details: errText });
             return;
         }
-        res.set('Content-Type', 'image/svg+xml');
+        res.set({
+            'Content-Type': 'image/svg+xml',
+            'Access-Control-Allow-Origin': '*',
+            'Cross-Origin-Resource-Policy': 'cross-origin',
+            'Cross-Origin-Embedder-Policy': 'unsafe-none'
+        });
         response.body.pipe(res);
     } catch (err) {
+        res.set({ // Also set headers on error for consistency
+            'Access-Control-Allow-Origin': '*',
+            'Cross-Origin-Resource-Policy': 'cross-origin',
+            'Cross-Origin-Embedder-Policy': 'unsafe-none'
+        });
         res.status(500).json({ error: 'Proxy error', details: err.message });
     }
 });
@@ -38,19 +48,41 @@ app.get('/api/iconfinder/svg', async (req, res) => {
 // Proxy endpoint to fetch favicons from Google and serve with CORS headers
 app.get('/api/favicon', async (req, res) => {
     const { domain, sz = 16 } = req.query;
-    if (!domain) return res.status(400).send('Missing domain');
+    if (!domain) {
+        res.set({
+            'Access-Control-Allow-Origin': '*',
+            'Cross-Origin-Resource-Policy': 'cross-origin',
+            'Cross-Origin-Embedder-Policy': 'unsafe-none'
+        });
+        return res.status(400).json({ error: 'Missing domain parameter' });
+    }
     const url = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=${sz}`;
     try {
         const response = await fetch(url);
         if (!response.ok) {
-            res.status(response.status).send('Failed to fetch favicon');
+            const errorText = await response.text();
+            res.set({
+                'Access-Control-Allow-Origin': '*',
+                'Cross-Origin-Resource-Policy': 'cross-origin',
+                'Cross-Origin-Embedder-Policy': 'unsafe-none'
+            });
+            res.status(response.status).json({ error: 'Failed to fetch favicon', details: errorText });
             return;
         }
-        res.set('Access-Control-Allow-Origin', '*');
-        res.set('Content-Type', response.headers.get('content-type') || 'image/png');
+        res.set({
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': response.headers.get('content-type') || 'image/png',
+            'Cross-Origin-Resource-Policy': 'cross-origin',
+            'Cross-Origin-Embedder-Policy': 'unsafe-none'
+        });
         response.body.pipe(res);
     } catch (e) {
-        res.status(500).send('Failed to fetch favicon');
+        res.set({
+            'Access-Control-Allow-Origin': '*',
+            'Cross-Origin-Resource-Policy': 'cross-origin',
+            'Cross-Origin-Embedder-Policy': 'unsafe-none'
+        });
+        res.status(500).json({ error: 'Failed to fetch favicon', details: e.message });
     }
 });
 
@@ -114,9 +146,27 @@ app.get('/api/proxy', async (req, res) => {
 });
 
 // Allow CORS preflight for all API routes
-app.options(['/api/wallhaven', '/api/proxy', '/api/favicon', '/api/pexels', '/api/pixabay', '/api/deviantart', '/api/artstation'], (req, res) => {
+const allApiRoutesForOptions = [
+    '/api/wallhaven',
+    '/api/proxy',
+    '/api/favicon',
+    '/api/pexels',
+    '/api/pixabay',
+    '/api/deviantart',
+    '/api/artstation',
+    '/api/iconfinder', // For Iconfinder search via unified proxy
+    '/api/iconfinder/svg',
+    '/api/imgflip',   // For Imgflip via unified proxy
+    '/api/imgur',     // For Imgur via unified proxy
+    '/api/gemini',
+    '/api/obs/:action',
+    '/api/streamerbot/:action',
+    '/api/image',
+    '/api/chutes'
+];
+app.options(allApiRoutesForOptions, (req, res) => {
     res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'GET,OPTIONS');
+    res.set('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS'); // Allow common methods
     res.set('Access-Control-Allow-Headers', 'Content-Type,Authorization');
     res.sendStatus(200);
 });
@@ -158,10 +208,10 @@ app.get(['/api/wallhaven', '/api/pexels', '/api/pixabay', '/api/deviantart', '/a
 
     if (api === 'pexels') {
         const { query, per_page, orientation, key } = req.query;
-        const pexelsKey = key || process.env.VITE_PEXELS_API_KEY || process.env.PEXELS_API_KEY;
+        const pexelsKey = key || process.env.PEXELS_API_KEY || process.env.VITE_PEXELS_API_KEY;
         if (!pexelsKey) {
             res.set('Access-Control-Allow-Origin', '*');
-            res.status(500).json({ error: 'Pexels API key not provided. Add ?key=YOUR_API_KEY to the URL or set VITE_PEXELS_API_KEY in environment.' });
+            res.status(500).json({ error: 'Pexels API key not provided. Add ?key=YOUR_API_KEY to the URL or set PEXELS_API_KEY in environment.' });
             return;
         }
         const params = new URLSearchParams();
@@ -184,10 +234,10 @@ app.get(['/api/wallhaven', '/api/pexels', '/api/pixabay', '/api/deviantart', '/a
 
     if (api === 'pixabay') {
         const { key, q, image_type, orientation, per_page } = req.query;
-        const pixabayKey = key || process.env.VITE_PIXABAY_API_KEY || process.env.PIXABAY_API_KEY;
+        const pixabayKey = key || process.env.PIXABAY_API_KEY || process.env.VITE_PIXABAY_API_KEY;
         if (!pixabayKey) {
             res.set('Access-Control-Allow-Origin', '*');
-            res.status(500).json({ error: 'Pixabay API key not provided. Add ?key=YOUR_API_KEY to the URL or set VITE_PIXABAY_API_KEY in environment.' });
+            res.status(500).json({ error: 'Pixabay API key not provided. Add ?key=YOUR_API_KEY to the URL or set PIXABAY_API_KEY in environment.' });
             return;
         }
         const params = new URLSearchParams();
@@ -210,10 +260,10 @@ app.get(['/api/wallhaven', '/api/pexels', '/api/pixabay', '/api/deviantart', '/a
 
     if (api === 'deviantart') {
         const { q, limit, mature_content, key } = req.query;
-        const deviantartKey = key || process.env.VITE_DEVIANTART_API_KEY || process.env.DEVIANTART_API_KEY;
+        const deviantartKey = key || process.env.DEVIANTART_API_KEY || process.env.VITE_DEVIANTART_API_KEY;
         if (!deviantartKey) {
             res.set('Access-Control-Allow-Origin', '*');
-            res.status(500).json({ error: 'DeviantArt API key not provided. Add ?key=YOUR_API_KEY to the URL or set VITE_DEVIANTART_API_KEY in environment.' });
+            res.status(500).json({ error: 'DeviantArt API key not provided. Add ?key=YOUR_API_KEY to the URL or set DEVIANTART_API_KEY in environment.' });
             return;
         }
         const params = new URLSearchParams();
@@ -236,7 +286,7 @@ app.get(['/api/wallhaven', '/api/pexels', '/api/pixabay', '/api/deviantart', '/a
     if (api === 'imgflip') {
         // Imgflip API for GIFs
         const { q, limit, page } = req.query;
-        const imgflipKey = process.env.VITE_IMGFLIP_API_KEY || process.env.IMGFLIP_API_KEY;
+        const imgflipKey = process.env.IMGFLIP_API_KEY || process.env.VITE_IMGFLIP_API_KEY;
         const params = new URLSearchParams();
         if (q) params.append('q', q);
         if (limit) params.append('limit', limit);
@@ -257,7 +307,7 @@ app.get(['/api/wallhaven', '/api/pexels', '/api/pixabay', '/api/deviantart', '/a
     if (api === 'imgur') {
         // Imgur API implementation
         const { q, limit, page } = req.query;
-        const imgurKey = process.env.VITE_IMGUR_API_KEY || process.env.IMGUR_API_KEY;
+        const imgurKey = process.env.IMGUR_API_KEY || process.env.VITE_IMGUR_API_KEY;
         const params = new URLSearchParams();
         if (q) params.append('q', q);
         if (limit) params.append('limit', limit);
@@ -331,12 +381,12 @@ app.get(['/api/wallhaven', '/api/pexels', '/api/pixabay', '/api/deviantart', '/a
         // No license param: return all free icons
         const url = `https://api.iconfinder.com/v4/icons/search?${params.toString()}`;
         // DEBUG: Log which env var is being used and the first 6 chars of the key (never log full secrets in production!)
-        const apiKey = process.env.VITE_ICONFINDER_API_KEY || process.env.ICONFINDER_API_KEY;
-        const apiKeySource = process.env.VITE_ICONFINDER_API_KEY ? 'VITE_ICONFINDER_API_KEY' : (process.env.ICONFINDER_API_KEY ? 'ICONFINDER_API_KEY' : 'none');
+        const apiKey = process.env.ICONFINDER_API_KEY || process.env.VITE_ICONFINDER_API_KEY; // Prefer non-VITE version for server-side
+        const apiKeySource = process.env.ICONFINDER_API_KEY ? 'ICONFINDER_API_KEY' : (process.env.VITE_ICONFINDER_API_KEY ? 'VITE_ICONFINDER_API_KEY' : 'none');
         console.log(`[DEBUG] Iconfinder API key source: ${apiKeySource}, value starts with: ${apiKey ? apiKey.slice(0, 6) : 'undefined'}`);
         if (!apiKey) {
             res.set('Access-Control-Allow-Origin', '*');
-            res.status(500).json({ error: 'Iconfinder API key not set in server env' });
+            res.status(500).json({ error: 'Iconfinder API key not set in server env (ICONFINDER_API_KEY)' });
             return;
         }
         try {
@@ -440,18 +490,26 @@ app.get('/api/image', async (req, res) => {
         res.set({
             'Content-Type': contentType,
             'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
+            'Access-Control-Allow-Origin': '*',
+            'Cross-Origin-Resource-Policy': 'cross-origin',
+            'Cross-Origin-Embedder-Policy': 'unsafe-none'
         });
 
         res.send(buffer);
     } catch (err) {
+        res.set({ // Also set headers on error for consistency
+            'Access-Control-Allow-Origin': '*',
+            'Cross-Origin-Resource-Policy': 'cross-origin',
+            'Cross-Origin-Embedder-Policy': 'unsafe-none'
+        });
         res.status(500).json({ error: 'Failed to fetch image', details: err.message });
     }
 });
 
 app.post('/api/chutes', async (req, res) => {
-    const apiToken = process.env.VITE_CHUTES_API_TOKEN || process.env.CHUTES_API_TOKEN;
+    const apiToken = process.env.CHUTES_API_TOKEN || process.env.VITE_CHUTES_API_TOKEN;
     if (!apiToken) {
-        return res.status(500).json({ error: 'Chute API token not set in environment.' });
+        return res.status(500).json({ error: 'Chute API token not set in environment (CHUTES_API_TOKEN).' });
     }
     try {
         const response = await fetch('https://chutes-flux-1-dev.chutes.ai/generate', {
@@ -470,4 +528,8 @@ app.post('/api/chutes', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`Proxy server running on port ${PORT}`));
+if (require.main === module) {
+  app.listen(PORT, () => console.log(`Proxy server running on port ${PORT}`));
+}
+
+module.exports = app;

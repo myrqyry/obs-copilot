@@ -49,66 +49,15 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5173, // Use Vite's default port for consistency
       proxy: {
-        // Proxy for backgrounds APIs
-        '/api/pexels': {
-          target: 'https://api.pexels.com',
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api\/pexels/, '/v1/search'),
-          configure: (proxy, options) => {
-            proxy.on('proxyReq', (proxyReq, req, res) => {
-              // Extract key from query params and set as Authorization header
-              const url = new URL(req.url || '', 'http://localhost');
-              const key = url.searchParams.get('key');
-              if (key) {
-                proxyReq.setHeader('Authorization', key);
-                proxyReq.setHeader('User-Agent', 'OBS-Copilot/1.0');
-              }
-            });
-          }
-        },
-        '/api/pixabay': {
-          target: 'https://pixabay.com',
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api\/pixabay/, '/api/'),
-        },
-        '/api/artstation': {
-          target: 'https://www.artstation.com',
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api\/artstation/, '/search/projects.json'),
-          configure: (proxy, options) => {
-            proxy.on('proxyReq', (proxyReq, req, res) => {
-              proxyReq.setHeader('User-Agent', 'OBS-Copilot/1.0');
-            });
-          }
-        },
-        '/api/deviantart': {
-          target: 'https://www.deviantart.com',
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api\/deviantart/, '/api/v1/oauth2/browse/search'),
-          configure: (proxy, options) => {
-            proxy.on('proxyReq', (proxyReq, req, res) => {
-              // Extract key from query params and set as access_token
-              const url = new URL(req.url || '', 'http://localhost');
-              const key = url.searchParams.get('key');
-              if (key) {
-                url.searchParams.set('access_token', key);
-                url.searchParams.delete('key');
-                proxyReq.path = url.pathname + url.search;
-              }
-            });
-          }
-        },
-        // Keep existing wallhaven proxy
-        '/api/wallhaven': {
-          target: 'https://wallhaven.cc',
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api\/wallhaven/, '/api/v1/search'),
-        },
-        // General API proxy for other endpoints
+        // All API requests should go to the local proxy server
         '/api': {
-          target: 'http://localhost:3001',
+          target: 'http://localhost:3001', // This should match the port your proxy.cjs runs on
           changeOrigin: true,
-          secure: false,
+          secure: false, // Set to true if your proxy server uses HTTPS, but for local dev 'false' is common
+          // No rewrite needed if proxy.cjs expects paths like /api/gemini, /api/wallhaven etc.
+          // If proxy.cjs expects paths without /api prefix, you might need:
+          // rewrite: (path) => path.replace(/^\/api/, ''),
+          // However, based on proxy.cjs, it expects /api/* paths.
         },
       },
       headers: {
