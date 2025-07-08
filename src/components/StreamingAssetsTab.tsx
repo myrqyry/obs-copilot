@@ -1,6 +1,4 @@
 import { getProxiedImageUrl } from "../utils/imageProxy";
-// Add at the top or after imports
-import './StreamingAssetsTab.css';
 import { GiphyFetch } from '@giphy/js-fetch-api';
 import { getCustomApiKey } from './AdvancedPanel';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -1621,9 +1619,11 @@ const StreamingAssetsTab = React.memo(() => {
             console.warn('No image URL found for grid item:', { item, type });
         }
 
+        const isSticker = item.type === 'stickers';
+
         return (
             <div
-                className={`gif-grid-item cursor-pointer rounded-lg overflow-hidden transition-all duration-200 hover:scale-105 hover:shadow-lg bg-card border border-border ${item.type === 'stickers' ? 'bg-transparent' : ''}`}
+                className={`min-h-[128px] flex flex-col cursor-pointer rounded-lg overflow-hidden transition-all duration-200 hover:scale-105 hover:shadow-lg border border-border ${isSticker ? 'bg-transparent' : 'bg-card'}`}
                 data-type={item.type || type}
                 onClick={onClick}
             >
@@ -1631,7 +1631,7 @@ const StreamingAssetsTab = React.memo(() => {
                     <img
                         src={imageUrl}
                         alt={item.title || 'GIF'}
-                        className={`w-full h-32 ${item.type === 'stickers' ? 'object-contain' : 'object-cover'}`}
+                        className={`w-full h-[128px] ${isSticker ? 'object-contain bg-transparent' : 'object-cover'}`}
                         loading="lazy"
                         onError={(e) => {
                             console.warn('Image failed to load:', imageUrl, 'Falling back to original URL');
@@ -1646,20 +1646,21 @@ const StreamingAssetsTab = React.memo(() => {
                                 target.style.display = 'none';
                             }
                         }}
+                        style={isSticker ? { mixBlendMode: 'normal', backgroundColor: 'transparent' } : {}}
                     />
                 )}
                 {(type === 'gif' || item.type === 'gifs' || item.type === 'stickers') && !imageUrl && (
-                    <div className="w-full h-32 flex items-center justify-center bg-muted text-muted-foreground text-xs">
+                    <div className="w-full h-[128px] flex items-center justify-center bg-muted text-muted-foreground text-xs">
                         No preview available
                     </div>
                 )}
                 {type === 'svg' && (
-                    <div className="svg-container w-full h-32 p-4">
-                        <div dangerouslySetInnerHTML={{ __html: item.svg }} />
+                    <div className="w-full h-[128px] p-4 flex items-center justify-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]">
+                        <div className="w-full h-full object-contain" dangerouslySetInnerHTML={{ __html: item.svg }} />
                     </div>
                 )}
                 {type === 'emoji' && (
-                    <div className="flex items-center justify-center w-full h-32 text-4xl">
+                    <div className="flex items-center justify-center w-full h-[128px] text-4xl">
                         {getEmojiChar(item)}
                     </div>
                 )}
@@ -1667,7 +1668,7 @@ const StreamingAssetsTab = React.memo(() => {
                     <img
                         src={item.path || item.url}
                         alt={item.id || 'Background'}
-                        className="w-full h-32 object-cover"
+                        className="w-full h-[128px] object-cover"
                         loading="lazy"
                     />
                 )}
@@ -1684,7 +1685,7 @@ const StreamingAssetsTab = React.memo(() => {
             ))}
 
             {renderCollapsibleCard('giphy', 'GIF Search', '', (
-                <div className={`panel-refresh ${gifLoading ? 'service-switching' : ''}`}>
+                <div className={`${gifLoading && !gifResults.length ? 'animate-serviceSwitch' : ''}`}> {/* Apply animation conditionally based on loading state and results presence */}
                     {/* API Key Information for Imgur */}
                     {gifApi === 'imgur' && (
                         <div className="mb-2 p-2 bg-blue-500/10 border border-blue-500/30 rounded text-xs">
@@ -2327,17 +2328,18 @@ const StreamingAssetsTab = React.memo(() => {
                     actions={getModalActions(modalContent.type, modalContent.data)}
                 >
                     {modalContent.type === 'gif' && <img src={modalContent.data.images.original.url} alt={modalContent.data.title} className="max-w-full max-h-[70vh] mx-auto" />}
-                    {modalContent.type === 'svg' && <div className="p-4 bg-slate-800 rounded-md flex justify-center items-center aspect-square max-w-xs mx-auto"><div className="w-full h-full svg-modal-container" dangerouslySetInnerHTML={{ __html: modalContent.data.svg }} /></div>}
+                    {modalContent.type === 'svg' && <div className="p-4 bg-slate-800 rounded-md flex justify-center items-center aspect-square max-w-xs mx-auto"><div className="w-full h-full flex items-center justify-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]" dangerouslySetInnerHTML={{ __html: modalContent.data.svg }} /></div>}
                     {modalContent.type === 'emoji' && <div className="p-4 bg-slate-800 rounded-md flex justify-center items-center aspect-square max-w-xs mx-auto"><div className="text-[12rem] leading-none">{getEmojiChar(modalContent.data)}</div></div>}
                     {modalContent.type === 'background' && (
                         renderBackgroundModal(modalContent.data)
                     )}
                     {modalContent.type === 'sticker' && (
-                        <div className="p-4 bg-transparent rounded-md flex justify-center items-center aspect-square max-w-xs mx-auto modal-sticker-preview">
+                        <div className="p-4 bg-transparent rounded-md flex justify-center items-center aspect-square max-w-xs mx-auto">
                             <img
                                 src={modalContent.data.images?.original?.url || modalContent.data.png_url}
                                 alt={modalContent.data.title || modalContent.data.name}
-                                className="max-w-full max-h-full object-contain"
+                                className="max-w-full max-h-full object-contain bg-transparent"
+                                style={{ mixBlendMode: 'normal', backgroundColor: 'transparent' }}
                                 onError={e => {
                                     if (e.currentTarget.src && !e.currentTarget.src.endsWith('/broken-image.png')) {
                                         e.currentTarget.src = '/broken-image.png';

@@ -1,118 +1,4 @@
-/* Remove forced fixed dropdown styles, revert to default */
-/* Ensure SVG previews and modal SVGs scale to fit their containers */
-.svg-container img,
-.svg-container svg {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-}
-
-.svg-container,
-.svg-modal-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Sticker grid item styling for transparency */
-.gif-grid-item[data-type="stickers"] {
-  background: transparent !important;
-}
-
-.gif-grid-item[data-type="stickers"] img {
-  background: transparent !important;
-  object-fit: contain !important;
-}
-
-/* Ensure sticker images maintain transparency */
-img[src*="webp_transparent"],
-img[src*="tinywebp_transparent"] {
-  background: transparent !important;
-  mix-blend-mode: normal;
-}
-
-/* Additional transparency support for stickers */
-.gif-grid-item[data-type="stickers"] .bg-card {
-  background: transparent !important;
-}
-
-/* Ensure proper transparency in modal for stickers */
-.modal-sticker-preview {
-  background: transparent !important;
-}
-
-/* Cross-browser transparency support */
-.gif-grid-item[data-type="stickers"] img {
-  -webkit-background-clip: padding-box;
-  background-clip: padding-box;
-  background-color: transparent !important;
-}
-
-/* Ensure grid items have proper dimensions and display */
-.gif-grid-item {
-  min-height: 128px; /* 32 * 4 = 128px (h-32) */
-  display: flex;
-  flex-direction: column;
-}
-
-.gif-grid-item img {
-  width: 100%;
-  height: 128px;
-  object-fit: cover;
-  object-position: center;
-}
-
-/* Ensure grid layout is responsive */
-.grid.grid-cols-4 {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.25rem;
-}
-
-/* Enable scrolling for the StreamingAssetsTab */
-body, html {
-  overflow: auto;
-}
-
-div {
-  overflow: auto;
-}
-
-/* Fallback for broken images */
-.gif-grid-item img[style*="display: none"] {
-  display: none !important;
-}
-
-/* Loading state for images */
-.gif-grid-item img {
-  transition: opacity 0.2s ease-in-out;
-}
-
-.gif-grid-item img:not([src]), 
-.gif-grid-item img[src=""] {
-  opacity: 0;
-}
-
-/* Service switching animations */
-.service-switching {
-  animation: serviceSwitch 0.3s ease-in-out;
-}
-
-@keyframes serviceSwitch {
-  0% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.7;
-    transform: scale(0.98);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
+/* Styles for pseudo-elements that are harder to replicate with pure Tailwind */
 
 /* Panel refresh indicator */
 .panel-refresh {
@@ -154,3 +40,20 @@ div {
   border-radius: inherit;
   backdrop-filter: blur(1px);
 }
+
+/* Ensure obsServiceInstance is defined before using it in dependencies */
+/* Fallback for broken images (if not handled by JS) */
+/* img[style*="display: none"] { display: none !important; } */
+/* This rule might be needed if JS error handling for images isn't sufficient */
+
+/* Ensure sticker images maintain transparency if not covered by inline styles or JS */
+/* img[src*="webp_transparent"],
+img[src*="tinywebp_transparent"] {
+  background: transparent !important;
+  mix-blend-mode: normal;
+} */
+
+/* Additional transparency for stickers if needed */
+/* .gif-grid-item[data-type="stickers"] .bg-card {
+  background: transparent !important;
+} */

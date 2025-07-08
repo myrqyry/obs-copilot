@@ -158,8 +158,17 @@ module.exports = {
         'shimmer': 'shimmer 2s linear infinite',
         'gradient': 'gradient 3s ease infinite',
         'morph': 'morph 4s ease-in-out infinite',
+        'serviceSwitch': 'serviceSwitch 0.3s ease-in-out',
+        'modal-appear': 'modal-appear var(--duration-normal) var(--ease-out)',
+        'loading-shimmer': 'loading-shimmer 1.5s infinite',
+        'glass-fade-in': 'glass-fade-in var(--duration-slow) var(--ease-out)',
       },
       keyframes: {
+        "serviceSwitch": {
+          '0%': { opacity: '1', transform: 'scale(1)' },
+          '50%': { opacity: '0.7', transform: 'scale(0.98)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
         "accordion-down": {
           from: { height: "0" },
           to: { height: "var(--radix-accordion-content-height)" },
@@ -169,14 +178,17 @@ module.exports = {
           to: { height: "0" },
         },
         "modal-appear": {
-          "0%": {
-            opacity: "0",
-            transform: "scale(0.9) translateY(-10px)"
-          },
-          "100%": {
-            opacity: "1",
-            transform: "scale(1) translateY(0)"
-          },
+          '0%': { opacity: '0', transform: 'scale(0.9) translateY(-10px)' },
+          '100%': { opacity: '1', transform: 'scale(1) translateY(0)' },
+        },
+        "loading-shimmer": {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+        "glass-fade-in": {
+          '0%': { opacity: '0', transform: 'translateY(20px) scale(0.95)', backdropFilter: 'blur(0px)' },
+          '50%': { backdropFilter: 'blur(5px)' },
+          '100%': { opacity: '1', transform: 'translateY(0) scale(1)', backdropFilter: 'blur(10px)' },
         },
         "rainbow-shift": {
           "0%, 100%": {
@@ -363,7 +375,7 @@ module.exports = {
   },
   plugins: [
     require("tailwindcss-animate"),
-    require('tailwind-scrollbar'),
+    require('tailwind-scrollbar')({ nocompatible: true }),
     function({ addUtilities, theme }) {
       const newUtilities = {
         '.text-balance': {
