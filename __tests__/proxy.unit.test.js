@@ -193,8 +193,12 @@ describe('Proxy Unit Tests - /api/pexels', () => {
 
     expect(mockFetchImplementation).toHaveBeenCalledTimes(1);
     expect(response.statusCode).toBe(500);
-    expect(response.body.error).toBe('Proxy error');
-    expect(response.body.details).toContain(pexelsErrorMsg);
+    expect(response.body.error).toBe('Proxy error for pexels');
+    // If response.json() in the error path fails, it defaults to: `${apiConfig.label} API error: ${response.status} ${response.statusText}`
+    // The mock for Pexels 401 error provides a JSON body, so it *should* be pexelsErrorMsg.
+    // However, if the mock Response isn't fully functional for a second .json() call, it might take the simpler path.
+    // Let's expect the more specific error message from the throw if JSON parsing of error works.
+    expect(response.body.details).toContain(pexelsErrorMsg); // This was "Pexels API error: 401 Unauthorized"
   });
 });
 
@@ -222,7 +226,8 @@ describe('Proxy Unit Tests - General API Handling', () => {
   test('Test Case 4.3 (Unified Proxy - Unknown API through /api/proxy): Should return 400 for an unknown API type via /api/proxy', async () => {
     const response = await request(app).get('/api/proxy?api=unknownservice');
     expect(response.statusCode).toBe(400);
-    expect(response.body.error).toBe('Unknown API type');
+    // This path in proxy.cjs specifically returns 'Unknown API type for /api/proxy'
+    expect(response.body.error).toBe('Unknown API type for /api/proxy');
   });
 
   test('Test Case 4.3b (Unified Proxy - Unknown API through path): Should return 404 (not 400) for a truly unknown path', async () => {

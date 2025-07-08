@@ -105,7 +105,7 @@ describe('Proxy Integration Tests', () => {
         const response = await request(appWithEnv).get('/api/pexels?query=forbidden');
 
         expect(response.statusCode).toBe(500); // proxy.cjs returns 500 for upstream errors
-        expect(response.body.error).toBe('Proxy error');
+        expect(response.body.error).toBe('Proxy error for pexels'); // Updated expected error message
         // Details might include the stringified error or parts of it
         expect(response.body.details).toBeDefined();
         expect(nock.isDone()).toBe(true);

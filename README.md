@@ -135,24 +135,52 @@ src/
 
 ## ⚡ Quick Start
 
+This guide helps you get OBS Copilot running quickly to explore its core features.
+
 ### Prerequisites
-- **Node.js** v16+
-- **OBS Studio** with WebSocket server enabled (v5+)
-- **Google Gemini API Key** ([Get one](https://aistudio.google.com/app/apikey))
 
-### Setup
+1.  **Node.js**: Ensure you have Node.js version 18.x or newer. You can download it from [nodejs.org](https://nodejs.org/).
+2.  **OBS Studio**: Install the latest version of OBS Studio from [obsproject.com](https://obsproject.com/).
+3.  **OBS WebSocket Plugin**: Make sure the OBS WebSocket plugin is installed and enabled in OBS (usually included with OBS Studio 28+).
+    *   In OBS, go to `Tools` -> `WebSocket Server Settings`.
+    *   Ensure `Enable WebSocket server` is checked.
+    *   Note the `Server Port` (default is `4455`) and set a `Server Password` if you haven't already. You'll need these in the app.
+4.  **Google Gemini API Key**: This is required for the AI chat features.
+    *   Get your free API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
 
-```bash
-git clone https://github.com/myrqyry/obs-copilot.git
-cd obs-copilot
-npm install
-cp .env.local.example .env.local
-# Add your Gemini API key to .env.local
-npm run dev
-```
+### Setup & Running
 
-- Open [http://localhost:3000](http://localhost:3000)
-- Add as OBS Dock: View → Docks → Custom Browser Docks → Add `http://localhost:3000`
+1.  **Clone the Repository:**
+    ```bash
+    git clone https://github.com/myrqyry/obs-copilot.git
+    cd obs-copilot
+    ```
+
+2.  **Install Dependencies:**
+    ```bash
+    npm install
+    ```
+
+3.  **Configure Environment Variables:**
+    *   Create a new file named `.env.local` in the root of the project (next to `.env.local.example`).
+    *   Add your Google Gemini API key to this file:
+        ```env
+        VITE_GEMINI_API_KEY=your_gemini_api_key_here
+        ```
+    *   **That's it for essential variables!** Other API keys (for Giphy, Unsplash, etc.) listed in `.env.local.example` are optional and can be added later to enable more features.
+
+4.  **Run the Development Server:**
+    ```bash
+    npm run dev
+    ```
+    This will typically start the app on `http://localhost:5173` (Vite's default) or `http://localhost:3000`. Check your terminal output for the exact URL.
+
+5.  **Connect to OBS:**
+    *   Open the app URL in your browser or as an OBS Dock (`View` -> `Docks` -> `Custom Browser Docks...`).
+    *   In the app's connection panel, enter your OBS WebSocket URL (e.g., `ws://localhost:4455`) and password.
+    *   Click "Connect".
+
+You should now be able to interact with the OBS Copilot! Try sending a message to the AI or exploring the OBS controls. For more advanced features and other API integrations, refer to the `.env.local.example` file and add the corresponding API keys to your `.env.local` file.
 
 ---
 

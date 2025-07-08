@@ -5,16 +5,27 @@ const originalLocation = window.location;
 
 describe('Image Proxy Utilities', () => {
 
-  const resetGlobalsAndMochaSpecificURL = (hostnameForWindow: string, urlToParseInSUT: string, resultingHostnameFromParse: string) => {
-    jest.resetModules();
-
+  // Helper to set up global mocks. Call this *inside* tests or beforeEach/beforeAll
+  // if the test/suite needs a specific global state *before* module import.
+  const setupGlobalMocks = (hostnameForWindow: string = 'localhost', urlToParseInSUT?: string, resultingHostnameFromParse?: string) => {
+    // Delete and recreate window.location
+    // Use delete only if sure it's okay; JSDOM can be tricky.
+    // More often, you might want to mock properties of the existing window.location if possible,
+    // or use jest.spyOn(window, 'location', 'get').mockReturnValue(...);
+    // However, since imageProxy.ts directly reads window.location.hostname, we need to control it.
+    // The delete and reassign approach is aggressive but can work if done right before module load.
     delete (global as any).window.location;
     (global as any).window.location = {
       hostname: hostnameForWindow,
-      href: `http://${hostnameForWindow}/`,
-      protocol: 'http:', pathname: '/', search: '', hash: '',
+      href: `http://${hostnameForWindow}/`, // Keep href consistent
+      protocol: hostnameForWindow.startsWith('https') ? 'https:' : 'http:',
+      pathname: '/',
+      search: '',
+      hash: '',
+      // assign: jest.fn(), reload: jest.fn(), replace: jest.fn(), // Add if needed by SUT
     };
 
+    // Reset global.URL mock
     global.URL = class MockURL {
       public hostname: string;
       public href: string;
@@ -24,70 +35,83 @@ describe('Image Proxy Utilities', () => {
       public hash: string;
 
       constructor(url: string, base?: string | URL) {
-        if (url === urlToParseInSUT) {
+        if (urlToParseInSUT && url === urlToParseInSUT && resultingHostnameFromParse !== undefined) {
           this.hostname = resultingHostnameFromParse;
         } else {
-          // Fallback to original URL parsing for other URLs if any
+          // Fallback to original URL parsing for other URLs or if specific mock isn't set
           try {
             const realUrl = new OriginalURL(url, base);
             this.href = realUrl.href; this.protocol = realUrl.protocol; this.pathname = realUrl.pathname;
             this.search = realUrl.search; this.hash = realUrl.hash; this.hostname = realUrl.hostname;
           } catch (e) { // Handle relative or invalid URLs
             this.href = url; this.protocol = 'http:'; this.pathname = url.startsWith('/') ? url : `/${url}`;
-            this.search = ''; this.hash = ''; this.hostname = '';
+            this.search = ''; this.hash = ''; this.hostname = ''; // Default for relative/invalid
           }
         }
       }
     } as any;
   };
 
+  // General cleanup
   afterEach(() => {
     global.URL = OriginalURL;
     (global as any).window.location = originalLocation;
-    jest.resetModules();
+    jest.resetModules(); // Clean up for other test files
   });
 
   describe('getProxiedImageUrl', () => {
+    beforeEach(() => {
+        // Default setup for this suite. Tests can override by calling setupGlobalMocks themselves.
+        setupGlobalMocks('localhost');
+        jest.resetModules();
+    });
+
     test('Test Case III.1 (External URL, Dev Env): Returns local proxy URL for external images in dev', () => {
-      resetGlobalsAndMochaSpecificURL('localhost', 'http://images.unsplash.com/photo.jpg', 'images.unsplash.com');
+      // setupGlobalMocks('localhost', 'http://images.unsplash.com/photo.jpg', 'images.unsplash.com'); // Already default
+      // jest.resetModules(); // Already done in describe's beforeEach
       const { getProxiedImageUrl } = require('../imageProxy');
+
+      // Override global.URL specifically for how this image string is parsed by `new URL()`
+      global.URL = class extends OriginalURL { constructor(url: string) { super(url); if (url === 'http://images.unsplash.com/photo.jpg') this.hostname = 'images.unsplash.com'; } } as any;
+
       const imageUrl = 'http://images.unsplash.com/photo.jpg';
       const expected = `/api/image?url=${encodeURIComponent(imageUrl)}`;
       expect(getProxiedImageUrl(imageUrl)).toBe(expected);
     });
 
     test('Test Case III.1b (External Wallhaven URL, Dev Env): Returns local proxy URL for wallhaven images in dev', () => {
-        resetGlobalsAndMochaSpecificURL('127.0.0.1', 'https://th.wallhaven.cc/small/m9/m96g8p.jpg', 'th.wallhaven.cc');
+        setupGlobalMocks('127.0.0.1', 'https://th.wallhaven.cc/small/m9/m96g8p.jpg', 'th.wallhaven.cc');
+        jest.resetModules();
         const { getProxiedImageUrl } = require('../imageProxy');
+
         const imageUrl = 'https://th.wallhaven.cc/small/m9/m96g8p.jpg';
         const expected = `/api/image?url=${encodeURIComponent(imageUrl)}`;
         expect(getProxiedImageUrl(imageUrl)).toBe(expected);
     });
 
     test('Test Case III.2 (External URL, Prod Env): Returns Netlify proxy URL for external images in prod', () => {
-      // Step 1: Set window.location.hostname to the "production" value
+      // Specific setup for this test:
+      // 1. Set window.location to production hostname
       delete (global as any).window.location;
       (global as any).window.location = {
         hostname: 'my-app.netlify.app', // Production hostname
         href: 'https://my-app.netlify.app/', protocol: 'https:', pathname: '/', search: '', hash: '',
       };
 
-      // Step 2: Reset modules so imageProxy is re-imported and sees the new window.location
+      // 2. Reset modules so imageProxy is re-imported and sees the new window.location
       jest.resetModules();
 
-      // Step 3: Mock global.URL for how 'http://images.unsplash.com/photo.jpg' will be parsed
-      // This is crucial for the shouldProxyImage -> new URL(imageUrl).hostname check
-      global.URL = class TestURL extends OriginalURL {
+      // 3. Mock global.URL for how 'http://images.unsplash.com/photo.jpg' will be parsed
+      global.URL = class TestURLForProd extends OriginalURL {
           constructor(url: string, base?: string | URL) {
-              super(url, base); // Call original URL constructor
+              super(url, base);
               if (url === 'http://images.unsplash.com/photo.jpg') {
-                  // Ensure this specific URL is parsed to have a hostname that shouldProxy will catch
                   this.hostname = 'images.unsplash.com';
               }
           }
       } as any;
 
-      // Step 4: Require the function to test *after* all global mocks are set up
+      // 4. Require the function to test *after* all global mocks are set up
       const { getProxiedImageUrl } = require('../imageProxy');
 
       const imageUrl = 'http://images.unsplash.com/photo.jpg';
@@ -96,27 +120,31 @@ describe('Image Proxy Utilities', () => {
     });
 
     test('Test Case III.3 (Internal URL): Returns original URL for internal/non-proxied images', () => {
-      resetGlobalsAndMochaSpecificURL('localhost', '/assets/local-image.png', ''); // Hostname for relative URL is empty
+      setupGlobalMocks('localhost', '/assets/local-image.png', '');
+      jest.resetModules();
       const { getProxiedImageUrl } = require('../imageProxy');
       const imageUrl = '/assets/local-image.png';
       expect(getProxiedImageUrl(imageUrl)).toBe(imageUrl);
     });
 
     test('Test Case (Relative URL): Returns original URL for relative non-proxied images', () => {
-        resetGlobalsAndMochaSpecificURL('localhost', 'local-image.png', '');
+        setupGlobalMocks('localhost', 'local-image.png', '');
+        jest.resetModules();
         const { getProxiedImageUrl } = require('../imageProxy');
         const imageUrl = 'local-image.png';
         expect(getProxiedImageUrl(imageUrl)).toBe(imageUrl);
     });
 
     test('Test Case III.4 (Empty URL): Returns empty string for empty URL', () => {
-      resetGlobalsAndMochaSpecificURL('localhost', '', '');
+      setupGlobalMocks('localhost');
+      jest.resetModules();
       const { getProxiedImageUrl } = require('../imageProxy');
       expect(getProxiedImageUrl('')).toBe('');
     });
 
     test('(Null URL): Returns empty string for null URL', () => {
-        resetGlobalsAndMochaSpecificURL('localhost', '', '');
+        setupGlobalMocks('localhost');
+        jest.resetModules();
         const { getProxiedImageUrl } = require('../imageProxy');
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
@@ -127,64 +155,69 @@ describe('Image Proxy Utilities', () => {
   describe('shouldProxyImage', () => {
     let currentShouldProxyImage: (imageUrl: string) => boolean;
 
-    // Helper to set up mocks for URL parsing for this suite
-    const setupShouldProxyTest = (urlToParse: string, parsedHostname: string) => {
-        resetGlobalsAndMochaSpecificURL('localhost', urlToParse, parsedHostname); // window.location.hostname doesn't matter for shouldProxyImage
+    beforeEach(() => {
+        setupGlobalMocks('localhost');
+        jest.resetModules();
         currentShouldProxyImage = require('../imageProxy').shouldProxyImage;
-    };
+    });
 
-    const setupShouldProxyThrowingTest = (urlThatThrows: string) => {
-        resetGlobalsAndMochaSpecificURL('localhost', '', ''); // Default URL mock
+    const setSpecificUrlMock = (urlToParse: string, parsedHostname: string) => {
+        global.URL = class MockURLForTest extends OriginalURL {
+            public hostname: string;
+            constructor(url: string, base?: string | URL) {
+                super(url, base); // Important to call super to get other URL parts if needed
+                if (url === urlToParse) {
+                    this.hostname = parsedHostname;
+                }
+            }
+        } as any;
+    };
+     const setupUrlMockToThrow = (urlThatThrows: string) => {
         global.URL = class MockURLThrows extends OriginalURL {
             constructor(url: string, base?: string | URL) {
                 if (url === urlThatThrows) throw new TypeError("Invalid URL for test");
-                super(url, base); // Call original for other URLs
+                super(url, base);
             }
         } as any;
-        currentShouldProxyImage = require('../imageProxy').shouldProxyImage;
     };
 
 
     test('Test Case III.5 (Known External Domain - Unsplash): Returns true for Unsplash', () => {
-      setupShouldProxyTest('https://images.unsplash.com/test.jpg', 'images.unsplash.com');
+      setSpecificUrlMock('https://images.unsplash.com/test.jpg', 'images.unsplash.com');
       expect(currentShouldProxyImage('https://images.unsplash.com/test.jpg')).toBe(true);
     });
 
     test('Test Case (Known External Domain - Wallhaven): Returns true for Wallhaven', () => {
-      setupShouldProxyTest('https://w.wallhaven.cc/full/zy/wallhaven-zygeko.jpg', 'w.wallhaven.cc');
+      setSpecificUrlMock('https://w.wallhaven.cc/full/zy/wallhaven-zygeko.jpg', 'w.wallhaven.cc');
       expect(currentShouldProxyImage('https://w.wallhaven.cc/full/zy/wallhaven-zygeko.jpg')).toBe(true);
     });
 
     test('Test Case (Known External Domain - Pexels): Returns true for Pexels', () => {
-        setupShouldProxyTest('https://images.pexels.com/photos/12345/pexels-photo-12345.jpeg', 'images.pexels.com');
+        setSpecificUrlMock('https://images.pexels.com/photos/12345/pexels-photo-12345.jpeg', 'images.pexels.com');
         expect(currentShouldProxyImage('https://images.pexels.com/photos/12345/pexels-photo-12345.jpeg')).toBe(true);
     });
 
     test('Test Case III.6 (Other External Domain): Returns false for other external domains not in list', () => {
-      setupShouldProxyTest('https://www.anotherdomain.com/test.jpg', 'www.anotherdomain.com');
+      setSpecificUrlMock('https://www.anotherdomain.com/test.jpg', 'www.anotherdomain.com');
       expect(currentShouldProxyImage('https://www.anotherdomain.com/test.jpg')).toBe(false);
     });
 
     test('Test Case III.7 (Relative URL): Returns false for relative URLs', () => {
-      // For relative URLs, new URL() would throw, caught by SUT.
-      // The mock for URL should reflect this by providing an empty hostname or letting it use OriginalURL which would throw.
-      setupShouldProxyTest('/images/local.jpg', ''); // Parsed hostname for relative path is empty
+      setupUrlMockToThrow('/images/local.jpg'); // new URL() with relative path throws
       expect(currentShouldProxyImage('/images/local.jpg')).toBe(false);
     });
 
     test('(Absolute local path URL): Returns false for absolute local path URLs', () => {
-        setupShouldProxyTest('file:///C:/Users/test/image.png', ''); // Hostname for file protocol is empty
+        setSpecificUrlMock('file:///C:/Users/test/image.png', ''); // Hostname for file protocol is empty
         expect(currentShouldProxyImage('file:///C:/Users/test/image.png')).toBe(false);
     });
 
     test('(Empty URL): Returns false for empty URL', () => {
-      resetGlobalsAndMochaSpecificURL('localhost', '', '');
-      currentShouldProxyImage = require('../imageProxy').shouldProxyImage;
       expect(currentShouldProxyImage('')).toBe(false);
     });
 
     test('(Invalid URL): Returns false for invalid URLs that throw during parsing', () => {
-        setupShouldProxyThrowingTest('http://[invalid]:port');
+        setupUrlMockToThrow('http://[invalid]:port');
         expect(currentShouldProxyImage('http://[invalid]:port')).toBe(false);
       });
   });
