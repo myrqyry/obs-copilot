@@ -223,10 +223,24 @@ app.get(['/api/wallhaven', '/api/pexels', '/api/pixabay', '/api/deviantart', '/a
             const response = await fetch(url, {
                 headers: { 'Authorization': pexelsKey }
             });
+            if (!response.ok) {
+                let errorDetails = `Pexels API Error: ${response.status} ${response.statusText}`;
+                try {
+                    // Try to parse the error body from Pexels, it might contain useful info
+                    const errorData = await response.json();
+                    errorDetails = errorData.error || errorData.message || JSON.stringify(errorData);
+                } catch (e) {
+                    // If Pexels error response isn't JSON or parsing fails, stick with statusText
+                    errorDetails = `Pexels API request failed with status ${response.status}: ${response.statusText}. Upstream error body was not parsable JSON.`;
+                }
+                // Throw an error that will be caught by the outer catch block
+                throw new Error(errorDetails);
+            }
             const data = await response.json();
             res.set('Access-Control-Allow-Origin', '*');
             res.json(data);
         } catch (err) {
+            // console.error(`Error in Pexels proxy for query "${query}":`, err); // Optional: server-side logging
             res.status(500).json({ error: 'Proxy error', details: err.message });
         }
         return;
