@@ -112,7 +112,7 @@ const noteRef = useRef<HTMLDivElement>(null);
                     <button
                         ref={minimizedNoteRef}
                         aria-label="Show music player"
-                        className="w-7 h-7 flex items-center justify-center rounded-full bg-ctp-mauve/80 border border-ctp-mauve/40 shadow hover:bg-ctp-mauve/90 transition-all p-0"
+                        className="w-7 h-7 flex items-center justify-center rounded-full bg-ctp-mauve/80 border border-ctp-mauve/40 shadow hover:bg-ctp-mauve/90 transition-all p-0 focus:outline-none focus:ring-2 focus:ring-ctp-mauve focus:ring-offset-1 focus:ring-offset-ctp-base"
                         onClick={handleExpand}
                         style={{ minWidth: 0, minHeight: 0 }}
                     >
@@ -196,7 +196,7 @@ const noteRef = useRef<HTMLDivElement>(null);
                                 onBlur={() => setEditing(false)}
                                 autoFocus
                             />
-                            <button type="submit" className="text-ctp-mauve hover:text-ctp-green text-xs px-1">✔</button>
+                            <button type="submit" className="text-ctp-mauve hover:text-ctp-green text-xs px-1 focus:outline-none focus:ring-1 focus:ring-ctp-green rounded">✔</button>
                         </form>
                     ) : (
                         <div className="relative flex items-center group/music-prompt">
@@ -215,7 +215,7 @@ const noteRef = useRef<HTMLDivElement>(null);
                                 </span>
                             </div>
                             <button
-                                className="ml-1 opacity-0 group-hover/music-prompt:opacity-100 group-hover:opacity-100 transition-opacity text-ctp-mauve hover:text-ctp-green text-xs px-1"
+                                className="ml-1 opacity-0 group-hover/music-prompt:opacity-100 group-hover:opacity-100 transition-opacity text-ctp-mauve hover:text-ctp-green text-xs px-1 focus:outline-none focus:ring-1 focus:ring-ctp-green rounded"
                                 style={{ position: 'absolute', right: -18, top: 0 }}
                                 title="Edit prompt"
                                 onClick={() => {
@@ -259,14 +259,14 @@ const noteRef = useRef<HTMLDivElement>(null);
                 )}
                 {activeAudioSource.type === 'music' && (
                     <div className="flex items-center gap-1 ml-1">
-                        <button onClick={actions.resumeMusic} aria-label="Resume" className="p-0.5 rounded hover:bg-ctp-mauve/20 text-ctp-mauve"><MiniPlayerIcons.Play /></button>
-                        <button onClick={actions.pauseMusic} aria-label="Pause" className="p-0.5 rounded hover:bg-ctp-mauve/20 text-ctp-mauve"><MiniPlayerIcons.Pause /></button>
+                        <button onClick={actions.resumeMusic} aria-label="Resume" className="p-0.5 rounded hover:bg-ctp-mauve/20 text-ctp-mauve focus:outline-none focus:ring-1 focus:ring-ctp-mauve"><MiniPlayerIcons.Play /></button>
+                        <button onClick={actions.pauseMusic} aria-label="Pause" className="p-0.5 rounded hover:bg-ctp-mauve/20 text-ctp-mauve focus:outline-none focus:ring-1 focus:ring-ctp-mauve"><MiniPlayerIcons.Pause /></button>
                     </div>
                 )}
-                <button onClick={actions.stopMusic} aria-label="Stop" className="p-0.5 rounded hover:bg-ctp-red/20 text-ctp-red ml-1"><MiniPlayerIcons.Stop /></button>
+                <button onClick={actions.stopMusic} aria-label="Stop" className="p-0.5 rounded hover:bg-ctp-red/20 text-ctp-red ml-1 focus:outline-none focus:ring-1 focus:ring-ctp-red"><MiniPlayerIcons.Stop /></button>
                 <button
                     aria-label="Minimize music player"
-                    className="ml-1 p-0.5 rounded-full hover:bg-ctp-mauve/10 transition-all"
+                    className="ml-1 p-0.5 rounded-full hover:bg-ctp-mauve/10 transition-all focus:outline-none focus:ring-1 focus:ring-ctp-mauve"
                     onClick={handleMinimize}
                     style={{ alignSelf: 'center' }}
                     ref={minimizedNoteRef}

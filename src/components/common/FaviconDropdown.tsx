@@ -62,25 +62,42 @@ export function FaviconDropdown({ options, value, onChange, className = '', plac
         setIsOpen(false);
     };
 
+    const dropdownId = `favicondropdown-${React.useId()}`;
+    const listboxId = `favicondropdown-listbox-${React.useId()}`;
+
     return (
         <div className={`relative ${className}`}>
             <button
                 ref={buttonRef}
                 type="button"
-                className="w-full border rounded px-2 py-1 bg-background text-left flex items-center justify-between transition-colors text-sm h-8"
+                id={dropdownId}
+                aria-haspopup="listbox"
+                aria-expanded={isOpen}
+                aria-controls={isOpen ? listboxId : undefined}
+                className="w-full border rounded px-2 py-1 bg-background text-left flex items-center justify-between transition-colors text-sm h-8 focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                 style={{
                     borderColor: accentColor || undefined,
-                    boxShadow: isOpen ? `0 0 0 2px ${accentColor}` : undefined
+                    // boxShadow: isOpen ? `0 0 0 2px ${accentColor}` : undefined // Replaced by Tailwind focus
                 }}
                 onClick={() => setIsOpen(!isOpen)}
+                onKeyDown={(e) => {
+                    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        setIsOpen(true);
+                        // Focus first/last item in listbox - requires refs to items
+                    } else if (e.key === 'Escape') {
+                        setIsOpen(false);
+                    }
+                }}
             >
                 <div className="flex items-center gap-2">
                     {selectedOption?.domain && (
-                        <FaviconIcon domain={selectedOption.domain} size={16} />
+                        <FaviconIcon domain={selectedOption.domain} size={16} aria-hidden="true" />
                     )}
                     <span>{selectedOption?.label || placeholder}</span>
                 </div>
                 <svg
+                    aria-hidden="true"
                     className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
                     fill="none"
                     stroke={accentColor || 'currentColor'}
@@ -93,19 +110,34 @@ export function FaviconDropdown({ options, value, onChange, className = '', plac
             {isOpen && createPortal(
                 <div
                     ref={dropdownRef}
-                    className="obs-copilot-dropdown-menu bg-background border rounded shadow-lg max-h-60 overflow-y-auto"
+                    role="listbox"
+                    id={listboxId}
+                    aria-labelledby={dropdownId}
+                    tabIndex={-1} // Allows programmatic focus
+                    className="obs-copilot-dropdown-menu bg-background border rounded shadow-lg max-h-60 overflow-y-auto focus:outline-none" // Added focus:outline-none
                     style={{ ...dropdownStyle, borderColor: accentColor || undefined }}
+                    onKeyDown={(e) => { // Basic keyboard nav for items
+                        if (e.key === 'Escape') {
+                            setIsOpen(false);
+                            buttonRef.current?.focus();
+                        }
+                        // More complex item navigation (ArrowUp, ArrowDown, Home, End, Enter, Space) would go here
+                    }}
                 >
-                    {options.map((option) => (
+                    {options.map((option, index) => (
                         <button
                             key={option.value}
                             type="button"
-                            className="w-full px-2 py-1.5 text-left transition-colors flex items-center gap-2 text-sm"
+                            role="option"
+                            aria-selected={option.value === value}
+                            // id={`option-${dropdownId}-${option.value}`} // For aria-activedescendant
+                            className="w-full px-2 py-1.5 text-left transition-colors flex items-center gap-2 text-sm hover:bg-muted focus:bg-muted focus:outline-none"
                             style={{ color: option.value === value ? accentColor : undefined, background: option.value === value ? `${accentColor}22` : undefined }}
                             onClick={() => handleOptionClick(option.value)}
+                            // onFocus, onMouseEnter for managing visual focus if not using aria-activedescendant
                         >
                             {option.domain && (
-                                <FaviconIcon domain={option.domain} size={16} />
+                                <FaviconIcon domain={option.domain} size={16} aria-hidden="true" />
                             )}
                             <span>{option.label}</span>
                         </button>

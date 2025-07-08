@@ -1620,12 +1620,23 @@ const StreamingAssetsTab = React.memo(() => {
         }
 
         const isSticker = item.type === 'stickers';
+        const title = item.title || (type === 'emoji' ? `Emoji: ${getEmojiChar(item)}` : type);
+
 
         return (
             <div
-                className={`min-h-[128px] flex flex-col cursor-pointer rounded-lg overflow-hidden transition-all duration-200 hover:scale-105 hover:shadow-lg border border-border ${isSticker ? 'bg-transparent' : 'bg-card'}`}
+                role="button"
+                tabIndex={0}
+                aria-label={`View details for ${type} ${title}`}
+                className={`min-h-[128px] flex flex-col cursor-pointer rounded-lg overflow-hidden transition-all duration-200 hover:scale-105 hover:shadow-lg border border-border ${isSticker ? 'bg-transparent' : 'bg-card'} focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1 focus:ring-offset-background`}
                 data-type={item.type || type}
                 onClick={onClick}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onClick();
+                    }
+                }}
             >
                 {(type === 'gif' || item.type === 'gifs' || item.type === 'stickers') && imageUrl && (
                     <img
@@ -1788,7 +1799,7 @@ const StreamingAssetsTab = React.memo(() => {
                                                     handleGifSearch(searchEvent);
                                                 }
                                             }}
-                                            className={`text-xs bg-background border rounded px-1 py-0.5 min-w-[120px] pr-6 ${
+                                            className={`text-xs bg-background border rounded px-1 py-0.5 min-w-[120px] pr-6 focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring ${
                                                 selectedCategory ? 'border-primary' : 'border-border'
                                             }`}
                                         >
@@ -1891,7 +1902,7 @@ const StreamingAssetsTab = React.memo(() => {
                                         <select
                                             value={searchFilters.rating}
                                             onChange={(e) => handleFilterChange('rating', e.target.value)}
-                                            className="w-full text-xs bg-background border border-border rounded px-1 py-0.5"
+                                            className="w-full text-xs bg-background border border-border rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                                         >
                                             {CONTENT_RATINGS.map(rating => (
                                                 <option key={rating.value} value={rating.value}>
@@ -1907,7 +1918,7 @@ const StreamingAssetsTab = React.memo(() => {
                                         <select
                                             value={sortOrder}
                                             onChange={(e) => handleSortOrderChange(e.target.value as any)}
-                                            className="w-full text-xs bg-background border border-border rounded px-1 py-0.5"
+                                            className="w-full text-xs bg-background border border-border rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                                         >
                                             <option value="relevance">Relevance</option>
                                             <option value="newest">Newest</option>
@@ -1923,7 +1934,7 @@ const StreamingAssetsTab = React.memo(() => {
                                             <select
                                                 value={searchFilters.contentFilter}
                                                 onChange={(e) => handleFilterChange('contentFilter', e.target.value)}
-                                                className="w-full text-xs bg-background border border-border rounded px-1 py-0.5"
+                                                className="w-full text-xs bg-background border border-border rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                                             >
                                                 <option value="high">High</option>
                                                 <option value="medium">Medium</option>
@@ -1940,7 +1951,7 @@ const StreamingAssetsTab = React.memo(() => {
                                             <select
                                                 value={searchFilters.mediaFilter}
                                                 onChange={(e) => handleFilterChange('mediaFilter', e.target.value)}
-                                                className="w-full text-xs bg-background border border-border rounded px-1 py-0.5"
+                                                className="w-full text-xs bg-background border border-border rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                                             >
                                                 <option value="minimal">Minimal</option>
                                                 <option value="basic">Basic</option>
@@ -1956,7 +1967,7 @@ const StreamingAssetsTab = React.memo(() => {
                                             <select
                                                 value={searchFilters.arRange}
                                                 onChange={(e) => handleFilterChange('arRange', e.target.value)}
-                                                className="w-full text-xs bg-background border border-border rounded px-1 py-0.5"
+                                                className="w-full text-xs bg-background border border-border rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                                             >
                                                 <option value="all">All</option>
                                                 <option value="wide">Wide</option>
@@ -1971,9 +1982,10 @@ const StreamingAssetsTab = React.memo(() => {
                                         <div className="flex items-center">
                                             <input
                                                 type="checkbox"
+                                                id="random-order-checkbox"
                                                 checked={searchFilters.random}
                                                 onChange={(e) => handleFilterChange('random', e.target.checked)}
-                                                className="h-3 w-3 border border-border rounded bg-background checked:bg-primary"
+                                                className="h-3 w-3 border border-border rounded bg-background checked:bg-primary focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary"
                                             />
                                             <span className="text-xs ml-1">Randomize</span>
                                         </div>
@@ -1981,11 +1993,12 @@ const StreamingAssetsTab = React.memo(() => {
 
                                     {/* Results Limit */}
                                     <div>
-                                        <label className="text-xs text-muted-foreground">Results Limit</label>
+                                        <label htmlFor="results-limit-select" className="text-xs text-muted-foreground">Results Limit</label>
                                         <select
+                                            id="results-limit-select"
                                             value={searchFilters.limit}
                                             onChange={(e) => handleFilterChange('limit', parseInt(e.target.value))}
-                                            className="w-full text-xs bg-background border border-border rounded px-1 py-0.5"
+                                            className="w-full text-xs bg-background border border-border rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                                         >
                                             <option value={10}>10</option>
                                             <option value={20}>20</option>

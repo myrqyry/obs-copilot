@@ -161,7 +161,7 @@ export const TextInput: React.FC<TextInputProps> = ({
       <button
         type="button"
         onClick={handleClear}
-        className="absolute right-8 top-1/2 transform -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors duration-200 rounded-full hover:bg-muted"
+        className="absolute right-8 top-1/2 transform -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors duration-200 rounded-full hover:bg-muted focus:outline-none focus:ring-1 focus:ring-ring"
         aria-label="Clear input"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -227,6 +227,8 @@ export const TextInput: React.FC<TextInputProps> = ({
           onBlur={handleBlur}
           value={value}
           onChange={onChange}
+          aria-invalid={!!error}
+          aria-describedby={hint || error || success ? `${id}-description` : undefined}
           {...props}
         />
 
@@ -234,7 +236,7 @@ export const TextInput: React.FC<TextInputProps> = ({
           {renderClearButton()}
           {renderLoadingSpinner()}
           {rightIcon && !loading && (
-            <div className="text-muted-foreground transition-colors duration-200">
+            <div className="text-muted-foreground transition-colors duration-200" aria-hidden="true">
               {rightIcon}
             </div>
           )}
@@ -242,7 +244,7 @@ export const TextInput: React.FC<TextInputProps> = ({
       </div>
 
       {(hint || error || success) && (
-        <p className={getHintStyles()}>
+        <p id={`${id}-description`} className={getHintStyles()}>
           {error || success || hint}
         </p>
       )}

@@ -76,14 +76,18 @@ export const Modal: React.FC<ModalProps> = ({
     >
       <div
         ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={contentId}
         className={`bg-card p-6 rounded-xl shadow-2xl w-full ${sizeClasses[size]} border border-border transform transition-all duration-300 ease-out animate-modal-appear`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-semibold emoji-text text-primary">{title}</h3>
+          <h3 id={titleId} className="text-xl font-semibold emoji-text text-primary">{title}</h3>
           <button
             onClick={onClose}
-            className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-full hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+            className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-full hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-card"
             aria-label="Close modal"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -91,7 +95,7 @@ export const Modal: React.FC<ModalProps> = ({
             </svg>
           </button>
         </div>
-        <div className="text-muted-foreground text-sm">
+        <div id={contentId} className="text-muted-foreground text-sm">
           {children}
         </div>
         <div className="mt-6 flex justify-end gap-2 flex-wrap">

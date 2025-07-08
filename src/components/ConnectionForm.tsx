@@ -222,33 +222,35 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
         domain="obsproject.com"
         className="relative group"
       >
-        <CardContent className="px-3 pb-3 pt-2">
-          {/* Connection Status and Action Buttons - positioned absolutely for hover */}
-          <div className="absolute top-1 right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
+                <CardContent className="px-2 sm:px-3 pb-2 sm:pb-3 pt-1 sm:pt-2">
+          {/* Connection Status and Action Buttons - always present for keyboard nav, styled on hover/focus */}
+                    <div className="absolute top-1 right-1 sm:right-2 opacity-50 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 z-10 flex items-center gap-1">
             {isConnected && (
               <>
-                <Tooltip content="Reconnect">
+                <Tooltip content="Reconnect to OBS">
                   <button
                     type="button"
+                    aria-label="Reconnect to OBS"
                     onClick={(e) => {
                       e.stopPropagation();
                       onConnect(address, showPasswordField ? password : undefined);
                     }}
-                    className="w-3 h-3 p-1 rounded bg-blue-500 hover:bg-blue-600 text-white transition-colors duration-200"
+                    className="w-5 h-5 p-0.5 rounded-full bg-blue-500/70 hover:bg-blue-600 text-white transition-all duration-200 opacity-70 hover:opacity-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 focus:ring-offset-background"
                   >
                     <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full">
                       <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
                     </svg>
                   </button>
                 </Tooltip>
-                <Tooltip content="Disconnect">
+                <Tooltip content="Disconnect from OBS">
                   <button
                     type="button"
+                    aria-label="Disconnect from OBS"
                     onClick={(e) => {
                       e.stopPropagation();
                       onDisconnect();
                     }}
-                    className="w-3 h-3 p-1 rounded bg-red-500 hover:bg-red-600 text-white transition-colors duration-200"
+                    className="w-5 h-5 p-0.5 rounded-full bg-red-500/70 hover:bg-red-600 text-white transition-all duration-200 opacity-70 hover:opacity-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 focus:ring-offset-background"
                   >
                     <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full">
                       <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
@@ -257,11 +259,13 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
                 </Tooltip>
               </>
             )}
-            {/* Status indicator */}
-            <span
-              ref={obsConnectingDotRef}
-              className={cn(
-                "inline-block w-2 h-2 rounded-full border border-white transition-all duration-300",
+            {/* Status indicator - slightly larger for better visibility, also focusable for tooltip */}
+            <Tooltip content={isConnected ? 'Connected to OBS' : isConnecting ? 'Connecting to OBS...' : 'Disconnected from OBS'}>
+              <span
+                ref={obsConnectingDotRef}
+                tabIndex={0} // Make it focusable
+                className={cn(
+                  "inline-block w-3 h-3 rounded-full border border-white/50 transition-all duration-300 cursor-help focus:outline-none focus:ring-1 focus:ring-white",
                 isConnected
                   ? 'bg-primary'
                   : isConnecting
@@ -272,10 +276,10 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
             />
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-3">
+                    <form onSubmit={handleSubmit} className="space-y-2 sm:space-y-3">
             {/* URL and Password Checkbox Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-2 items-end">
-              <div className="lg:col-span-2 flex items-center gap-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 items-end">
+                            <div className="md:col-span-2 lg:col-span-2 flex items-center gap-2">
                 <TextInput
                   label="WebSocket URL"
                   id="obs-address"
@@ -289,14 +293,13 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
                 />
               </div>
 
-              <div className="flex items-center space-x-2 lg:col-span-1">
-                <label className="flex items-center space-x-2 text-xs text-muted-foreground cursor-pointer group">
+                            <div className="flex flex-col xs:flex-row xs:items-center space-y-2 xs:space-y-0 xs:space-x-2 lg:col-span-2">
+                                <label className="flex items-center space-x-2 text-xs text-muted-foreground cursor-pointer group flex-1">
                   <input
                     type="checkbox"
                     id="enable-password"
                     checked={showPasswordField}
                     onChange={(e) => {
-                      console.log('Password toggle clicked:', e.target.checked, 'current state:', showPasswordField);
                       setShowPasswordField(e.target.checked);
                     }}
                     disabled={isConnected || isConnecting}
@@ -313,9 +316,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
                     Requires password
                   </span>
                 </label>
-              </div>
-              <div className="flex items-center space-x-2 lg:col-span-1">
-                <label className="flex items-center space-x-2 text-xs text-muted-foreground cursor-pointer group" title="Automatically connect to OBS when the app loads">
+                                <label className="flex items-center space-x-2 text-xs text-muted-foreground cursor-pointer group flex-1" title="Automatically connect to OBS when the app loads">
                   <input
                     type="checkbox"
                     id="auto-connect"
@@ -336,7 +337,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
 
             {/* Password Field - Always in form but conditionally visible */}
             {showPasswordField && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <TextInput
                   label="Password"
                   id="obs-password"
@@ -388,9 +389,9 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
         domain="streamer.bot"
         className="relative group"
       >
-        <CardContent className="px-3 pb-3 pt-2">
-          {/* Connection Status and Action Buttons - positioned absolutely for hover */}
-          <div className="absolute top-1 right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
+                <CardContent className="px-2 sm:px-3 pb-2 sm:pb-3 pt-1 sm:pt-2">
+          {/* Connection Status and Action Buttons - always present for keyboard nav, styled on hover/focus */}
+                    <div className="absolute top-1 right-1 sm:right-2 opacity-50 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 z-10 flex items-center gap-1">
             {isStreamerBotConnected && (
               <>
                 <Tooltip content="Reconnect">
@@ -442,8 +443,8 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
             />
           </div>
 
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-2 sm:space-y-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <TextInput
                 label="Address"
                 id="streamerbot-address"
@@ -467,7 +468,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
             </div>
 
             {/* StreamerBot Connection Button */}
-            <div className="flex space-x-2">
+                        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
               {!isStreamerBotConnected ? (
                 <Button
                   onClick={onStreamerBotConnect}
@@ -510,9 +511,9 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
         domain="gemini.google.com"
         className="relative group"
       >
-        <CardContent className="px-3 pb-3 pt-2 space-y-3">
+                <CardContent className="px-2 sm:px-3 pb-2 sm:pb-3 pt-1 sm:pt-2 space-y-2 sm:space-y-3">
           {/* Connection Status and Action Buttons - positioned absolutely for hover */}
-          <div className="absolute top-1 right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
+                    <div className="absolute top-1 right-1 sm:right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
             {(isGeminiClientInitialized || geminiInitializationError) && (
               <>
                 <Tooltip content="Reconnect">
@@ -565,21 +566,21 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
           </div>
 
           {/* Environment Variable Status - Compact */}
-          <div className="p-3 rounded bg-card border border-border">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium text-muted-foreground">Environment:</span>
-                <code className="text-sm bg-muted px-2 py-1 rounded text-foreground">
+                    <div className="p-2 sm:p-3 rounded bg-card border border-border">
+                        <div className="flex items-center justify-between mb-1 sm:mb-2">
+                            <div className="flex items-center space-x-1 sm:space-x-2">
+                                <span className="text-xs sm:text-sm font-medium text-muted-foreground">Environment:</span>
+                                <code className="text-xs sm:text-sm bg-muted px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-foreground">
                   VITE_GEMINI_API_KEY
                 </code>
               </div>
-              <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-1 sm:space-x-2">
                 <span className={cn(
                   "w-2 h-2 rounded-full",
                   envGeminiApiKey ? 'bg-primary' : 'bg-destructive'
                 )} />
                 <span className={cn(
-                  "text-sm font-medium",
+                                    "text-xs sm:text-sm font-medium",
                   envGeminiApiKey ? 'text-primary' : 'text-destructive'
                 )}>
                   {envGeminiApiKey ? 'Found' : 'Not found'}
@@ -587,15 +588,15 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
               </div>
             </div>
             {!envGeminiApiKey && (
-              <p className="text-sm text-muted-foreground">
+                            <p className="text-xs sm:text-sm text-muted-foreground">
                 💡 Create <code className="bg-muted px-1 rounded">.env.local</code> with <code className="bg-muted px-1 rounded">VITE_GEMINI_API_KEY=your_key</code>
               </p>
             )}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 items-end">
-            <div className="flex items-center space-x-2 lg:col-span-3">
-              <label className="flex items-center space-x-2 text-sm text-muted-foreground cursor-pointer group">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 items-end">
+                        <div className="flex items-center space-x-2 md:col-span-2 lg:col-span-3">
+                            <label className="flex items-center space-x-2 text-xs sm:text-sm text-muted-foreground cursor-pointer group">
                 <input
                   type="checkbox"
                   id="enable-api-override"
@@ -616,8 +617,8 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
 
           {showApiKeyOverride && (
             <form onSubmit={(e) => { e.preventDefault(); }}>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 items-end">
-                <div className="lg:col-span-2">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 items-end">
+                                <div className="md:col-span-2 lg:col-span-2">
                   <TextInput
                     label={`API Key ${envGeminiApiKey ? '(Override Environment)' : '(Required)'}`}
                     id="gemini-api-key"
@@ -627,9 +628,10 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
                     onChange={handleLocalGeminiKeyChange}
                     placeholder={envGeminiApiKey ? "Leave empty to use environment variable" : "Enter your Gemini API Key"}
                     accentColorName={accentColorName}
+                                        size="sm"
                   />
                 </div>
-                <div className="flex gap-2">
+                                <div className="flex gap-1 sm:gap-2">
                   <Button
                     type="button"
                     variant="secondary"
@@ -646,6 +648,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
                       }
                     }}
                     accentColorName={accentColorName}
+                                        className="flex-1"
                   >
                     📋 Paste
                   </Button>
@@ -659,8 +662,9 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
                         onGeminiApiKeyChange('');
                       }}
                       accentColorName={accentColorName}
+                                            className="flex-1"
                     >
-                      🗑️
+                                            🗑️ Clear
                     </Button>
                   )}
                 </div>
@@ -668,7 +672,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
             </form>
           )}
 
-          <div className="text-sm text-muted-foreground bg-card p-3 rounded border border-border">
+                    <div className="text-xs sm:text-sm text-muted-foreground bg-card p-2 sm:p-3 rounded border border-border">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <span><strong>Priority:</strong> {showApiKeyOverride ? 'Manual → Environment → None' : 'Environment → None'}</span>
               <a
@@ -681,7 +685,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
               </a>
             </div>
             {isStorageAvailable() && showApiKeyOverride && (
-              <p className="text-primary mt-2">💾 Manual input auto-saved</p>
+                            <p className="text-primary mt-1 sm:mt-2">💾 Manual input auto-saved</p>
             )}
           </div>
         </CardContent>

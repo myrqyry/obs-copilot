@@ -81,7 +81,9 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({
             <Card>
                 <button
                     onClick={() => setShowTips(!showTips)}
-                    className="w-full p-1 flex items-center justify-between text-left hover:bg-muted transition-colors rounded-t-lg group"
+                    aria-expanded={showTips}
+                    aria-controls="setup-tips-content"
+                    className="w-full p-1 flex items-center justify-between text-left hover:bg-muted transition-colors rounded-t-lg group focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1 focus:ring-offset-background"
                 >
                     <div className="flex items-center space-x-1.5">
                         <span className="emoji text-xs">💡</span>
@@ -106,11 +108,11 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({
                 </button>
 
                 {showTips && (
-                    <CardContent className="px-1 pb-1">
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-1 text-xs text-muted-foreground">
-                            <div className="bg-card p-1 rounded border border-border">
-                                <h4 className="font-medium text-foreground mb-0.5 text-xs">OBS WebSocket Setup:</h4>
-                                <ul className="space-y-0.5 text-xs">
+                    <CardContent id="setup-tips-content" className="px-1 pb-1 md:px-2 md:pb-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1 md:gap-2 text-xs text-muted-foreground">
+                            <div className="bg-card p-1 md:p-2 rounded border border-border">
+                                <h4 className="font-medium text-foreground mb-0.5 md:mb-1 text-xs">OBS WebSocket Setup:</h4>
+                                <ul className="space-y-0.5 md:space-y-1 text-xs">
                                     <li>• Open OBS Studio</li>
                                     <li>• Go to Tools → WebSocket Server Settings</li>
                                     <li>• Enable WebSocket server</li>
@@ -121,7 +123,7 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({
                             <div className="bg-card p-1 rounded border border-border">
                                 <h4 className="font-medium text-foreground mb-0.5 text-xs">Gemini AI Setup:</h4>
                                 <ul className="space-y-0.5 text-xs">
-                                    <li>• Visit <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google AI Studio</a></li>
+                                    <li>• Visit <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline focus:outline-none focus:ring-1 focus:ring-primary rounded">Google AI Studio</a></li>
                                     <li>• Create/sign in to Google account</li>
                                     <li>• Generate new API key</li>
                                     <li>• Copy and paste into field above</li>
@@ -130,7 +132,7 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({
                             <div className="bg-card p-1 rounded border border-border">
                                 <h4 className="font-medium text-foreground mb-0.5 text-xs">Streamer.bot Setup:</h4>
                                 <ul className="space-y-0.5 text-xs">
-                                    <li>• Download from <a href="https://streamer.bot" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">streamer.bot</a></li>
+                                    <li>• Download from <a href="https://streamer.bot" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline focus:outline-none focus:ring-1 focus:ring-primary rounded">streamer.bot</a></li>
                                     <li>• Enable WebSocket server in Settings</li>
                                     <li>• Set host/port (default: localhost:8080)</li>
                                     <li>• Import actions for enhanced automation</li>

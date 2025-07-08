@@ -32,6 +32,7 @@ export const Button: React.FC<ButtonProps> = ({
   fullWidth = false,
   rounded = false,
   glow = false,
+  type = "button", // Default type to "button"
   ...props
 }) => {
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -100,36 +101,39 @@ export const Button: React.FC<ButtonProps> = ({
     };
   }, [withAnimation]);
 
-  const baseStyles = 'font-semibold transition-all duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center focus-ring enhanced-focus will-change-transform relative overflow-hidden';
+  const baseStyles = 'font-semibold transition-all duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center focus:outline-none will-change-transform relative overflow-hidden';
 
   const getVariantStyles = () => {
+    // Common focus ring style, adjust offset color as needed, e.g., focus:ring-offset-background
+    const focusRingBase = 'focus:ring-2 focus:ring-offset-1 focus:ring-offset-background';
+
     switch (variant) {
       case 'primary':
-        return 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:shadow-xl hover:scale-105 border border-primary/20';
+        return `bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:shadow-xl hover:scale-105 border border-primary/20 ${focusRingBase} focus:ring-primary`;
       case 'secondary':
-        return 'bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-md hover:shadow-lg border border-secondary/20';
+        return `bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-md hover:shadow-lg border border-secondary/20 ${focusRingBase} focus:ring-secondary`;
       case 'danger':
-        return 'bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-lg hover:shadow-xl border border-destructive/20';
+        return `bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-lg hover:shadow-xl border border-destructive/20 ${focusRingBase} focus:ring-destructive`;
       case 'success':
-        return 'bg-green-600 text-white hover:bg-green-700 shadow-lg hover:shadow-xl border border-green-500/20';
+        return `bg-green-600 text-white hover:bg-green-700 shadow-lg hover:shadow-xl border border-green-500/20 ${focusRingBase} focus:ring-green-600`;
       case 'warning':
-        return 'bg-orange-600 text-white hover:bg-orange-700 shadow-lg hover:shadow-xl border border-orange-500/20';
+        return `bg-orange-600 text-white hover:bg-orange-700 shadow-lg hover:shadow-xl border border-orange-500/20 ${focusRingBase} focus:ring-orange-600`;
       case 'glass':
-        return 'glass-button text-primary border border-white/20 hover:text-primary-foreground backdrop-blur-md shadow-glass hover:shadow-glass-lg';
+        return `glass-button text-primary border border-white/20 hover:text-primary-foreground backdrop-blur-md shadow-glass hover:shadow-glass-lg ${focusRingBase} focus:ring-primary`; // Ring color might need adjustment for glass
       case 'ghost':
-        return 'bg-transparent hover:bg-accent hover:text-accent-foreground border border-transparent hover:border-accent/20';
+        return `bg-transparent hover:bg-accent hover:text-accent-foreground border border-transparent hover:border-accent/20 ${focusRingBase} focus:ring-accent`;
       case 'outline':
-        return 'bg-transparent border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground shadow-md hover:shadow-lg';
+        return `bg-transparent border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground shadow-md hover:shadow-lg ${focusRingBase} focus:ring-primary`;
       case 'gradient':
-        return 'bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-primary/90 hover:to-accent/90 shadow-lg hover:shadow-xl border border-primary/20';
+        return `bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-primary/90 hover:to-accent/90 shadow-lg hover:shadow-xl border border-primary/20 ${focusRingBase} focus:ring-primary`; // Or accent
       case 'neon':
-        return 'bg-primary/10 text-primary border border-primary/30 shadow-glow hover:shadow-glow-lg backdrop-blur-sm hover:bg-primary/20';
+        return `bg-primary/10 text-primary border border-primary/30 shadow-glow hover:shadow-glow-lg backdrop-blur-sm hover:bg-primary/20 ${focusRingBase} focus:ring-primary`;
       case 'minimal':
-        return 'bg-transparent text-foreground hover:bg-muted border border-border/50 hover:border-border';
+        return `bg-transparent text-foreground hover:bg-muted border border-border/50 hover:border-border ${focusRingBase} focus:ring-ring`; // Using generic ring
       case 'link':
-        return 'bg-transparent text-primary hover:text-primary/80 underline-offset-4 hover:underline p-0 h-auto';
+        return `bg-transparent text-primary hover:text-primary/80 underline-offset-4 hover:underline p-0 h-auto ${focusRingBase} focus:ring-primary rounded-sm`; // Links might need slightly different focus
       default:
-        return 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:shadow-xl border border-primary/20';
+        return `bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:shadow-xl border border-primary/20 ${focusRingBase} focus:ring-primary`;
     }
   };
 
@@ -175,10 +179,13 @@ export const Button: React.FC<ButtonProps> = ({
 
   const renderIcon = () => {
     if (!icon) return null;
+    // If children are present, icon is decorative. Otherwise, it might be an icon-only button.
+    const isDecorative = React.Children.count(children) > 0 || (typeof children === 'string' && children.trim() !== '');
     return (
-      <span className={cn(
+      <span aria-hidden={isDecorative} className={cn(
         "inline-flex items-center transition-opacity duration-200",
-        iconPosition === 'left' ? 'mr-2' : 'ml-2',
+        iconPosition === 'left' && (children || loadingText) ? 'mr-2' : '', // Only add margin if there's text next to it
+        iconPosition === 'right' && (children || loadingText) ? 'ml-2' : '', // Only add margin if there's text next to it
         isLoading && 'opacity-0'
       )}>
         {icon}

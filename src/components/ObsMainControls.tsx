@@ -250,11 +250,13 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
   const LockToggle = ({ lockKey }: { lockKey: string }) => (
     <Tooltip content={`${isLocked(lockKey) ? 'Unlock' : 'Lock'} controls`}>
       <button
+        type="button"
+        aria-label={`${isLocked(lockKey) ? 'Unlock' : 'Lock'} controls for this section`}
         onClick={() => setLock(lockKey, !isLocked(lockKey))}
-        className={`w-3 h-3 p-1 rounded transition-colors duration-200 ${
+        className={`w-5 h-5 p-0.5 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-offset-background ${
           isLocked(lockKey)
-            ? 'bg-red-500 hover:bg-red-600 text-white'
-            : 'bg-gray-500 hover:bg-gray-600 text-white'
+            ? 'bg-red-500 hover:bg-red-600 text-white focus:ring-red-500'
+            : 'bg-gray-500 hover:bg-gray-600 text-white focus:ring-gray-500'
         }`}
       >
         <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full">
@@ -276,11 +278,13 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
     return (
       <Tooltip content={`${isGeminiLocked ? 'Allow' : 'Prevent'} Gemini control`}>
         <button
+        type="button"
+        aria-label={`${isGeminiLocked ? 'Allow' : 'Prevent'} Gemini control for this section`}
           onClick={() => setLock(geminiLockKey, !isGeminiLocked)}
-          className={`w-3 h-3 p-1 rounded transition-colors duration-200 ${
+        className={`w-5 h-5 p-0.5 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-offset-background ${
             isGeminiLocked
-              ? 'bg-purple-500 hover:bg-purple-600 text-white'
-              : 'bg-gray-500 hover:bg-gray-600 text-white'
+            ? 'bg-purple-500 hover:bg-purple-600 text-white focus:ring-purple-500'
+            : 'bg-gray-500 hover:bg-gray-600 text-white focus:ring-gray-500'
           }`}
         >
           <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full">
@@ -299,7 +303,7 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
   const accentColor = catppuccinAccentColorsHexMap[accentColorName || 'sky'] || '#89b4fa';
 
   return (
-    <div className="space-y-2 max-w-4xl mx-auto p-0">
+    <div className="space-y-2 max-w-4xl mx-auto p-0 sm:p-1">
       {/* Stream & Record Section */}
       <CollapsibleCard
         isOpen={openStream}
@@ -309,15 +313,15 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
         accentColor={accentColor}
         className="relative group"
       >
-        <div className="absolute top-1 right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
+        <div className="absolute top-1 right-1 sm:right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
           <LockToggle lockKey={STREAM_RECORD_LOCK} />
           <GeminiLockToggle lockKey={STREAM_RECORD_LOCK} />
         </div>
-        <div className="flex gap-2 items-center mb-1">
+        <div className="flex flex-col sm:flex-row gap-2 items-center mb-1">
           <Button
             onClick={toggleStream}
             disabled={isLocked(STREAM_RECORD_LOCK)}
-            className={`flex-1 ${streamStatus?.outputActive ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`}
+            className={`w-full sm:flex-1 ${streamStatus?.outputActive ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`}
           >
             {streamStatus?.outputActive ? 'Stop Streaming' : 'Start Streaming'}
           </Button>
@@ -343,15 +347,15 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
         accentColor={accentColor}
         className="relative group"
       >
-        <div className="absolute top-1 right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
+        <div className="absolute top-1 right-1 sm:right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
           <LockToggle lockKey="scenes" />
           <GeminiLockToggle lockKey="scenes" />
         </div>
-        <ul className="space-y-1">
+        <ul className="space-y-1 sm:space-y-1.5">
           {scenes.map((scene) => (
-            <li key={scene.sceneName} className="flex items-center justify-between gap-1">
-              <span className={`truncate text-sm ${scene.sceneName === currentProgramScene ? 'font-bold text-accent' : ''}`}>{scene.sceneName}</span>
-              <div className="flex items-center gap-1">
+            <li key={scene.sceneName} className="flex flex-col xs:flex-row items-stretch xs:items-center justify-between gap-1">
+              <span className={`truncate text-sm py-1 xs:py-0 ${scene.sceneName === currentProgramScene ? 'font-bold text-accent' : ''}`}>{scene.sceneName}</span>
+              <div className="flex items-center gap-1 self-end xs:self-center">
                 <Button
                   onClick={() => handleSetCurrentScene(scene.sceneName)}
                   disabled={isLocked('scenes') || scene.sceneName === currentProgramScene}
@@ -381,15 +385,15 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
         accentColor={accentColor}
         className="relative group"
       >
-        <div className="absolute top-1 right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
+        <div className="absolute top-1 right-1 sm:right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
           <LockToggle lockKey="sources" />
           <GeminiLockToggle lockKey="sources" />
         </div>
-        <ul className="space-y-1">
+        <ul className="space-y-1 sm:space-y-1.5">
           {sources.map((source) => (
-            <li key={source.sceneItemId} className="flex items-center justify-between gap-1">
-              <span className="truncate text-sm">{source.sourceName}</span>
-              <div className="flex items-center gap-1">
+            <li key={source.sceneItemId} className="flex flex-col xs:flex-row items-stretch xs:items-center justify-between gap-1">
+              <span className="truncate text-sm py-1 xs:py-0">{source.sourceName}</span>
+              <div className="flex items-center gap-1 self-end xs:self-center">
                 <Button
                   onClick={() => {
                     if (currentProgramScene) toggleSourceVisibility(currentProgramScene, source.sceneItemId, source.sceneItemEnabled);
@@ -421,66 +425,77 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
         accentColor={accentColor}
         className="relative group"
       >
-        <div className="absolute top-1 right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
+        <div className="absolute top-1 right-1 sm:right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
           <LockToggle lockKey={VIDEO_SETTINGS_LOCK} />
           <GeminiLockToggle lockKey={VIDEO_SETTINGS_LOCK} />
         </div>
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-1">
-            <label className="w-36 text-xs">Base (Canvas) Resolution</label>
-            <select
-              className="input input-sm w-28 text-xs"
-              value={selectedBaseResolution}
-              onChange={handleBaseResolutionChange}
-              disabled={isLocked(VIDEO_SETTINGS_LOCK)}
-            >
-              {COMMON_RESOLUTIONS.map(res => (
-                <option key={res.label} value={res.label}>{res.label}</option>
-              ))}
-              <option value="Custom">Custom</option>
-            </select>
-            {selectedBaseResolution === 'Custom' && (
-              <TextInput
-                value={customBaseResolution}
-                onChange={e => handleCustomResolutionChange(e.target.value, 'base')}
+        <div className="flex flex-col gap-2 sm:gap-1">
+          {/* Base Resolution */}
+          <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-1">
+            <label htmlFor="base-resolution-select" className="w-full xs:w-36 text-xs shrink-0">Base (Canvas) Resolution</label>
+            <div className="flex-grow grid grid-cols-2 gap-1">
+              <select
+                id="base-resolution-select"
+                className="input input-sm text-xs w-full focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
+                value={selectedBaseResolution}
+                onChange={handleBaseResolutionChange}
                 disabled={isLocked(VIDEO_SETTINGS_LOCK)}
-                placeholder="e.g. 1920x1080"
-                className="input input-sm w-28 ml-1 text-xs"
-                size="sm"
-              />
-            )}
+              >
+                {COMMON_RESOLUTIONS.map(res => (
+                  <option key={res.label} value={res.label}>{res.label}</option>
+                ))}
+                <option value="Custom">Custom</option>
+              </select>
+              {selectedBaseResolution === 'Custom' && (
+                <TextInput
+                  value={customBaseResolution}
+                  onChange={e => handleCustomResolutionChange(e.target.value, 'base')}
+                  disabled={isLocked(VIDEO_SETTINGS_LOCK)}
+                  placeholder="e.g. 1920x1080"
+                  className="input input-sm text-xs w-full"
+                  size="sm"
+                />
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <label className="w-36 text-xs">Output (Scaled) Resolution</label>
-            <select
-              className="input input-sm w-28 text-xs"
-              value={selectedOutputResolution}
-              onChange={handleOutputResolutionChange}
-              disabled={isLocked(VIDEO_SETTINGS_LOCK)}
-            >
-              {COMMON_RESOLUTIONS.map(res => (
-                <option key={res.label} value={res.label}>{res.label}</option>
-              ))}
-              <option value="Custom">Custom</option>
-            </select>
-            {selectedOutputResolution === 'Custom' && (
-              <TextInput
-                value={customOutputResolution}
-                onChange={e => handleCustomResolutionChange(e.target.value, 'output')}
+          {/* Output Resolution */}
+          <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-1">
+            <label htmlFor="output-resolution-select" className="w-full xs:w-36 text-xs shrink-0">Output (Scaled) Resolution</label>
+            <div className="flex-grow grid grid-cols-2 gap-1">
+              <select
+                id="output-resolution-select"
+                className="input input-sm text-xs w-full focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
+                value={selectedOutputResolution}
+                onChange={handleOutputResolutionChange}
                 disabled={isLocked(VIDEO_SETTINGS_LOCK)}
-                placeholder="e.g. 1280x720"
-                className="input input-sm w-28 ml-1 text-xs"
-                size="sm"
-              />
-            )}
+              >
+                {COMMON_RESOLUTIONS.map(res => (
+                  <option key={res.label} value={res.label}>{res.label}</option>
+                ))}
+                <option value="Custom">Custom</option>
+              </select>
+              {selectedOutputResolution === 'Custom' && (
+                <TextInput
+                  value={customOutputResolution}
+                  onChange={e => handleCustomResolutionChange(e.target.value, 'output')}
+                  disabled={isLocked(VIDEO_SETTINGS_LOCK)}
+                  placeholder="e.g. 1280x720"
+                  className="input input-sm text-xs w-full"
+                  size="sm"
+                />
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <label className="w-36 text-xs">Frame Rate</label>
-            <select
-              className="input input-sm w-28 text-xs"
-              value={selectedFPS}
-              onChange={handleFPSChange}
-              disabled={isLocked(VIDEO_SETTINGS_LOCK)}
+          {/* Frame Rate */}
+          <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-1">
+            <label htmlFor="fps-select" className="w-full xs:w-36 text-xs shrink-0">Frame Rate</label>
+            <div className="flex-grow grid grid-cols-2 gap-1">
+              <select
+                id="fps-select"
+                className="input input-sm text-xs w-full focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
+                value={selectedFPS}
+                onChange={handleFPSChange}
+                disabled={isLocked(VIDEO_SETTINGS_LOCK)}
             >
               {COMMON_FPS.map(fps => (
                 <option key={fps.label} value={fps.label}>{fps.label}</option>
@@ -493,18 +508,20 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
                 onChange={e => handleCustomFPSChange(e.target.value)}
                 disabled={isLocked(VIDEO_SETTINGS_LOCK)}
                 placeholder="e.g. 30/1"
-                className="input input-sm w-28 ml-1 text-xs"
+                className="input input-sm text-xs w-full"
                 size="sm"
               />
             )}
+            </div>
           </div>
-          <div className="flex items-center gap-1 mt-1">
+          <div className="flex justify-start items-center gap-1 mt-2 sm:mt-1">
             <Button
               onClick={handleSaveVideoSettings}
               disabled={isLocked(VIDEO_SETTINGS_LOCK) || isVideoSettingsLoading || !editableSettings}
               variant="primary"
               accentColorName={accentColorName}
               size="sm"
+              className="w-full xs:w-auto"
             >
               {isVideoSettingsLoading ? <LoadingSpinner size={4} /> : 'Save Settings'}
             </Button>
@@ -521,12 +538,12 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
         accentColor={accentColor}
         className="relative group"
       >
-        <div className="absolute top-1 right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
+        <div className="absolute top-1 right-1 sm:right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
           <LockToggle lockKey="stats" />
           <GeminiLockToggle lockKey="stats" />
         </div>
         {obsStats ? (
-          <div className="text-xs space-y-1">
+          <div className="text-xs space-y-0.5 sm:space-y-1">
             <div>CPU Usage: {obsStats.cpuUsage?.toFixed(1)}%</div>
             <div>Memory Usage: {(obsStats.memoryUsage / 1024 / 1024).toFixed(1)} MB</div>
             <div>FPS: {obsStats.fps?.toFixed(1)}</div>

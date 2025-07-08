@@ -837,6 +837,7 @@ modelChatBubbleColorName="lavender" // Default CatppuccinAccentColorName
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                   } ${!isGeminiClientInitialized ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 aria-label={useGoogleSearch ? "Disable web search" : "Enable web search"}
+                aria-pressed={useGoogleSearch}
               >
                 <GlobeAltIcon className="w-4 h-4" />
               </button>

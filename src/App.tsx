@@ -605,9 +605,9 @@ const App: React.FC = () => {
                 className="sticky z-10 px-2 pt-2"
                 style={{ top: `${headerHeight}px` }}
             >
-                <div className="py-2 px-4 border-b border-border text-sm font-semibold emoji-text bg-background rounded-t-lg font-sans text-primary shadow-md">
-                    <div className="flex items-center justify-center gap-2 min-w-0">
-                        {tabOrder.map((tab) => {
+                <div role="tablist" aria-label="Main application tabs" className="py-2 px-4 border-b border-border text-sm font-semibold emoji-text bg-background rounded-t-lg font-sans text-primary shadow-md">
+                    <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2 min-w-0">
+                        {tabOrder.map((tab, index) => {
                             const isActive = activeTab === tab;
 
                             // Define connection status color for the connections tab icon
@@ -633,52 +633,80 @@ const App: React.FC = () => {
                             const getTabTitle = (tabName: AppTab) => {
                                 switch (tabName) {
                                     case AppTab.GEMINI: return 'Assistant';
-                                    case AppTab.OBS_STUDIO: return 'OBS Studio Controls';
-                                    case AppTab.STREAMING_ASSETS: return 'Streaming Assets';
+                                    case AppTab.OBS_STUDIO: return 'OBS Controls';
+                                    case AppTab.STREAMING_ASSETS: return 'Assets';
                                     case AppTab.CREATE: return 'Create';
-                                    case AppTab.SETTINGS: return 'Settings & Preferences';
-                                    case AppTab.CONNECTIONS: return 'Connection Manager';
+                                    case AppTab.SETTINGS: return 'Settings';
+                                    case AppTab.CONNECTIONS: return 'Connections';
                                     case AppTab.ADVANCED: return 'Advanced';
                                     default: return tabName;
                                 }
                             };
 
-                            // Get shorter titles for mobile
+                            // Get shorter titles for mobile - icons only on xs screens
                             const getMobileTabTitle = (tabName: AppTab) => {
-                                switch (tabName) {
-                                    case AppTab.GEMINI: return 'Assistant';
-                                    case AppTab.OBS_STUDIO: return 'OBS Studio';
-                                    case AppTab.STREAMING_ASSETS: return 'Assets';
-                                    case AppTab.CREATE: return 'Create';
-                                    case AppTab.SETTINGS: return 'Settings';
-                                    case AppTab.CONNECTIONS: return 'Connect';
-                                    case AppTab.ADVANCED: return 'Advanced';
-                                    default: return tabName;
+                                // On 'xs' screens, we'll only show icons, so this won't be visible.
+                                // For 'sm' and up, we show a slightly shorter title if active.
+                                if (isActive) {
+                                    switch (tabName) {
+                                        case AppTab.OBS_STUDIO: return 'OBS';
+                                        case AppTab.STREAMING_ASSETS: return 'Assets';
+                                        case AppTab.CONNECTIONS: return 'Connect';
+                                        default: return getTabTitle(tabName);
+                                    }
                                 }
+                                return getTabTitle(tabName);
                             };
 
                             return (
                                 <button
                                     key={tab}
+                                    role="tab"
+                                    aria-selected={isActive.toString()}
+                                    aria-controls={`tabpanel-${tab}`} // Assuming tab panels will have corresponding IDs
+                                    id={`tab-${tab}`}
                                     onClick={() => setActiveTab(tab)}
+                                    onKeyDown={(e) => {
+                                        let nextIndex = index;
+                                        if (e.key === 'ArrowRight') {
+                                            nextIndex = (index + 1) % tabOrder.length;
+                                        } else if (e.key === 'ArrowLeft') {
+                                            nextIndex = (index - 1 + tabOrder.length) % tabOrder.length;
+                                        } else if (e.key === 'Home') {
+                                            nextIndex = 0;
+                                        } else if (e.key === 'End') {
+                                            nextIndex = tabOrder.length - 1;
+                                        } else {
+                                            return; // Not an arrow, home, or end key
+                                        }
+                                        e.preventDefault();
+                                        const nextTabButton = document.getElementById(`tab-${tabOrder[nextIndex]}`);
+                                        nextTabButton?.focus();
+                                        setActiveTab(tabOrder[nextIndex]); // Optionally activate on arrow navigation
+                                    }}
                                     className={`
-                                        flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 rounded-md font-medium
+                                        flex items-center gap-1 xs:gap-0 sm:gap-1 px-2 xs:px-1.5 sm:px-3 py-1.5 sm:py-2 rounded-md font-medium
                                         transition-all duration-300 ease-out relative whitespace-nowrap
+                                        hover:bg-muted/50 hover:text-foreground
+                                        focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-1 focus:ring-offset-background
                                         ${isActive
-                                            ? 'bg-primary/20 text-primary border border-primary/30 shadow-sm text-sm'
-                                            : 'hover:bg-muted/50 hover:text-foreground text-sm'
+                                            ? 'bg-primary/20 text-primary border border-primary/30 shadow-sm text-xs sm:text-sm'
+                                            : 'text-muted-foreground text-xs sm:text-sm'
                                         }
                                     `}
+                                    title={getTabTitle(tab)} // Tooltip for all screen sizes
                                 >
-                                    <span className={`${isActive ? 'text-base' : 'text-base'} ${iconColor} transition-colors duration-200`}>
+                                    <span className={`text-sm xs:text-base sm:text-lg ${iconColor} transition-colors duration-200`}>
                                         {tabEmojis[tab]}
                                     </span>
+                                    {/* Text is hidden on xs, visible and truncated on sm+, full on md+ or when active */}
                                     <span className={`
-                                        transition-all duration-300 overflow-hidden text-sm sm:text-base
-                                        ${isActive ? 'max-w-32 sm:max-w-48 opacity-100' : 'max-w-0 opacity-0'}
+                                        transition-all duration-300 overflow-hidden
+                                        hidden xs:inline-block
+                                        ${isActive ? 'max-w-xs sm:max-w-sm md:max-w-md opacity-100 ml-1 sm:ml-1.5' : 'max-w-0 opacity-0 sm:opacity-100 sm:max-w-[50px] md:max-w-[70px] sm:ml-1'}
                                     `}>
-                                        <span className="hidden sm:inline">{getTabTitle(tab)}</span>
-                                        <span className="inline sm:hidden">{getMobileTabTitle(tab)}</span>
+                                        <span className="hidden xs:inline sm:hidden">{isActive ? getMobileTabTitle(tab) : ''}</span>
+                                        <span className="hidden sm:inline">{getMobileTabTitle(tab)}</span>
                                     </span>
                                 </button>
                             );
@@ -687,9 +715,9 @@ const App: React.FC = () => {
                 </div>
             </div>
 
-            <main className="flex-grow overflow-y-auto px-1 pb-1">
+            <main className="flex-grow overflow-y-auto px-1 sm:px-2 pb-1">
                 {isConnecting && !isConnected && (
-                    <div className="flex justify-center items-center mt-1 text-orange-500">
+                    <div className="flex justify-center items-center mt-1 text-orange-500 p-2">
                         <LoadingSpinner size={4} />
                         <span className="ml-2 text-sm">Connecting to OBS...</span>
                     </div>
@@ -701,12 +729,21 @@ const App: React.FC = () => {
                     </Modal>
                 )}
 
-                <div ref={tabContentRef} className="flex-grow flex flex-col min-h-0 h-full tab-content-container tab-transition">
+                <div
+                    ref={tabContentRef}
+                    id={`tabpanel-${activeTab}`}
+                    role="tabpanel"
+                    aria-labelledby={`tab-${activeTab}`}
+                    className="flex-grow flex flex-col min-h-0 h-full tab-content-container tab-transition focus:outline-none" // Added focus:outline-none for programmatic focus if needed
+                    tabIndex={-1} // Make it programmatically focusable if needed for some ARIA patterns
+                >
                     {renderTabContent()}
                 </div>
                 {/* Unified mini player, always available if music or TTS is playing */}
                 <MiniPlayer />
             </main>
+            {/* The tab content should ideally have role="tabpanel" and an id that matches aria-controls */}
+            {/* Example: <div id={`tabpanel-${activeTab}`} role="tabpanel" ... > */}
         </div>
     );
 };

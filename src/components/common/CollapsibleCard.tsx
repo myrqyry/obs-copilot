@@ -33,28 +33,34 @@ export const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
             }
         >
             <button
-                className="w-full flex items-center gap-2 px-2 py-0 min-h-0 bg-transparent rounded-t-lg focus:outline-none group"
+                type="button"
                 onClick={onToggle}
                 aria-expanded={isOpen}
+                aria-controls={`collapsible-content-${title.replace(/\s+/g, '-').toLowerCase()}`}
+                className="w-full flex items-center gap-2 px-2 py-1.5 min-h-0 bg-transparent rounded-t-lg group focus:outline-none focus:ring-2 focus:ring-inset focus:ring-accent"
             >
                 {domain && (
                     <Tooltip content={domain}>
-                        <span className="flex items-center gap-1">
+                        {/* Ensure the span itself is not focusable if the button handles focus */}
+                        <span className="flex items-center gap-1" aria-hidden="true">
                             <FaviconIcon domain={domain} size={24} />
                         </span>
                     </Tooltip>
                 )}
-                {customSvg && <span className="w-6 h-6" style={{ color: accentColor }} dangerouslySetInnerHTML={{ __html: customSvg }} />}
-                {emoji && <span className="text-2xl select-none" style={{ color: accentColor }}>{emoji}</span>}
+                {customSvg && <span className="w-6 h-6" style={{ color: accentColor }} dangerouslySetInnerHTML={{ __html: customSvg }} aria-hidden="true" />}
+                {emoji && <span className="text-2xl select-none" style={{ color: accentColor }} aria-hidden="true">{emoji}</span>}
                 <span className="text-lg font-semibold flex-1 text-left truncate" style={{ color: accentColor }}>
                     {title}
                 </span>
-                <svg className={`w-5 h-5 ml-1 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} style={{ color: accentColor }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg aria-hidden="true" className={`w-5 h-5 ml-1 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} style={{ color: accentColor }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
             </button>
             {isOpen && (
-                <CardContent className="px-1 pb-1 pt-0 animate-fade-in">
+                <CardContent
+                    id={`collapsible-content-${title.replace(/\s+/g, '-').toLowerCase()}`}
+                    className="px-1 pb-1 pt-0 animate-fade-in"
+                >
                     {children}
                 </CardContent>
             )}
