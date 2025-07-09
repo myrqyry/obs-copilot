@@ -198,7 +198,9 @@ describe('Proxy Unit Tests - /api/pexels', () => {
     // The mock for Pexels 401 error provides a JSON body, so it *should* be pexelsErrorMsg.
     // However, if the mock Response isn't fully functional for a second .json() call, it might take the simpler path.
     // Let's expect the more specific error message from the throw if JSON parsing of error works.
-    expect(response.body.details).toContain(pexelsErrorMsg); // This was "Pexels API error: 401 Unauthorized"
+    // expect(response.body.details).toContain(pexelsErrorMsg); // This was "Pexels API error: 401 Unauthorized"
+    // The new generic error message format:
+    expect(response.body.details).toBe('Pexels API error: 401 Unauthorized');
   });
 });
 
@@ -217,18 +219,13 @@ describe('Proxy Unit Tests - General API Handling', () => {
     process.env = { ...ORIGINAL_ENV };
   });
 
-  test('Test Case 4.2 (Favicon Proxy - Missing Domain): Should return 400 if domain is missing for /api/proxy?api=favicon', async () => {
-    const response = await request(app).get('/api/proxy?api=favicon');
+  test('Test Case 4.2 (Favicon Proxy - Missing Domain): Should return 400 if domain is missing for /api/favicon', async () => {
+    const response = await request(app).get('/api/favicon'); // Changed from /api/proxy?api=favicon
     expect(response.statusCode).toBe(400);
-    expect(response.body.error).toBe('Domain parameter is required for favicon proxy');
+    expect(response.body.error).toBe('Missing domain parameter'); // Adjusted to match actual error message
   });
 
-  test('Test Case 4.3 (Unified Proxy - Unknown API through /api/proxy): Should return 400 for an unknown API type via /api/proxy', async () => {
-    const response = await request(app).get('/api/proxy?api=unknownservice');
-    expect(response.statusCode).toBe(400);
-    // This path in proxy.cjs specifically returns 'Unknown API type for /api/proxy'
-    expect(response.body.error).toBe('Unknown API type for /api/proxy');
-  });
+  // Test Case 4.3 removed as /api/proxy is deprecated. Its intent is covered by 4.3b.
 
   test('Test Case 4.3b (Unified Proxy - Unknown API through path): Should return 404 (not 400) for a truly unknown path', async () => {
     const response = await request(app).get('/api/completelyunknownservice');

@@ -1,228 +1,211 @@
+"use strict";
 require('dotenv').config();
 const express = require('express');
 const fetch = require('node-fetch'); // Ensure this is node-fetch v2 for CJS
 const cors = require('cors');
 const app = express();
-
 app.use(cors());
 app.use(express.json());
-
 // --- API Configurations ---
 const apiConfigs = {
-  wallhaven: {
-    label: 'Wallhaven',
-    baseUrl: 'https://wallhaven.cc/api/v1/search',
-    paramMappings: { q: 'q', categories: 'categories', purity: 'purity', sorting: 'sorting', order: 'order', page: 'page' },
-    defaultParams: { categories: '111', purity: '100', sorting: 'relevance', order: 'desc' },
-    requiresKey: false, // Wallhaven public API doesn't strictly require a key for basic search
-    // apiKey: { queryParam: 'apikey', envVars: ['WALLHAVEN_API_KEY'] }, // Optional key
-    responseDataPath: 'data', // Path to array, e.g., if response is { data: [...] }
-    // transformResult: (item) => item, // Default: return item as is
-  },
-  pexels: {
-    label: 'Pexels',
-    baseUrl: 'https://api.pexels.com/v1/search',
-    // Client sends 'query', Pexels API also expects 'query'.
-    // Client sends 'per_page', Pexels API also expects 'per_page'.
-    paramMappings: { query: 'query', per_page: 'per_page', orientation: 'orientation', page: 'page' },
-    authHeader: 'Authorization',
-    apiKey: { queryParam: 'key', envVars: ['PEXELS_API_KEY', 'VITE_PEXELS_API_KEY'] },
-    requiresKey: true,
-    responseDataPath: 'photos',
-    // transformResult: (item) => item,
-  },
-  pixabay: {
-    label: 'Pixabay',
-    baseUrl: 'https://pixabay.com/api/',
-    paramMappings: { q: 'q', image_type: 'image_type', orientation: 'orientation', per_page: 'per_page', page: 'page' },
-    apiKey: { queryParam: 'key', envVars: ['PIXABAY_API_KEY', 'VITE_PIXABAY_API_KEY'], paramName: 'key' }, // Pixabay key is a regular param
-    requiresKey: true,
-    responseDataPath: 'hits',
-    // transformResult: (item) => item,
-  },
-  deviantart: { // Note: DeviantArt's public search might be limited or deprecated. This is a best guess.
-    label: 'DeviantArt',
-    baseUrl: 'https://www.deviantart.com/api/v1/oauth2/browse/search', // This might require OAuth2 token
-    paramMappings: { q: 'q', limit: 'limit', mature_content: 'mature_content' },
-    apiKey: { queryParam: 'access_token', envVars: ['DEVIANTART_API_KEY', 'VITE_DEVIANTART_API_KEY'], paramName: 'access_token'},
-    requiresKey: true, // Typically yes
-    responseDataPath: 'results',
-    // transformResult: (item) => item,
-  },
-  imgflip: { // For memes primarily, but can return GIFs
-    label: 'Imgflip',
-    baseUrl: 'https://api.imgflip.com/search', // This is likely for their meme search, not generic GIFs
-    paramMappings: { q: 'q', limit: 'limit', page: 'page' },
-    apiKey: { queryParam: 'api_key', envVars: ['IMGFLIP_API_KEY', 'VITE_IMGFLIP_API_KEY'], paramName: 'api_key' },
-    requiresKey: false, // Some endpoints might work without a key but are rate-limited
-    responseDataPath: 'data.memes', // Example, adjust if it's for GIFs specifically
-    // transformResult: (item) => item,
-  },
-  imgur: { // Imgur gallery search
-    label: 'Imgur',
-    baseUrl: 'https://api.imgur.com/3/gallery/search',
-    paramMappings: { q: 'q', limit: 'limit', page: 'page', q_type: 'q_type' /* e.g. 'gif' */ },
-    authHeader: 'Authorization', // Uses 'Client-ID YOUR_CLIENT_ID'
-    apiKey: { envVars: ['IMGUR_API_KEY', 'VITE_IMGUR_API_KEY'], prefix: 'Client-ID ' }, // Special prefix for Imgur
-    requiresKey: true,
-    responseDataPath: 'data',
-    // transformResult: (item) => item,
-  },
-  artstation: {
-    label: 'ArtStation',
-    baseUrl: 'https://www.artstation.com/search/projects.json',
-    paramMappings: { q: 'q', page: 'page', per_page: 'per_page' },
-    requiresKey: false,
-    userAgent: 'OBS-Copilot/1.0', // ArtStation might require a User-Agent
-    responseDataPath: 'data',
-    // transformResult: (item) => item,
-  },
-  iconfinder: { // For Iconfinder search (not SVG fetch)
-    label: 'Iconfinder Search',
-    baseUrl: 'https://api.iconfinder.com/v4/icons/search',
-    paramMappings: { query: 'query', count: 'count', premium: 'premium', vector: 'vector' },
-    authHeader: 'Authorization', // Bearer token
-    apiKey: { envVars: ['ICONFINDER_API_KEY', 'VITE_ICONFINDER_API_KEY'], prefix: 'Bearer ' },
-    requiresKey: true,
-    // responseDataPath: 'icons', // Assuming results are in 'icons' array
-    // transformResult: (item) => item, // Or map to a common structure
-  },
-  // Giphy is handled separately by its SDK usually, but if we proxy search:
-  giphy: {
-    label: 'Giphy',
-    baseUrl: 'https://api.giphy.com/v1/gifs/search',
-    paramMappings: { q: 'q', limit: 'limit', offset: 'offset', rating: 'rating', lang: 'lang' },
-    apiKey: { queryParam: 'api_key', envVars: ['GIPHY_API_KEY', 'VITE_GIPHY_API_KEY'], paramName: 'api_key' },
-    requiresKey: true,
-    responseDataPath: 'data',
-    // transformResult: (item) => item,
-  }
+    wallhaven: {
+        label: 'Wallhaven',
+        baseUrl: 'https://wallhaven.cc/api/v1/search',
+        paramMappings: { q: 'q', categories: 'categories', purity: 'purity', sorting: 'sorting', order: 'order', page: 'page' },
+        defaultParams: { categories: '111', purity: '100', sorting: 'relevance', order: 'desc' },
+        requiresKey: false, // Wallhaven public API doesn't strictly require a key for basic search
+        // apiKey: { queryParam: 'apikey', envVars: ['WALLHAVEN_API_KEY'] }, // Optional key
+        responseDataPath: 'data', // Path to array, e.g., if response is { data: [...] }
+        // transformResult: (item) => item, // Default: return item as is
+    },
+    pexels: {
+        label: 'Pexels',
+        baseUrl: 'https://api.pexels.com/v1/search',
+        // Client sends 'query', Pexels API also expects 'query'.
+        // Client sends 'per_page', Pexels API also expects 'per_page'.
+        paramMappings: { query: 'query', per_page: 'per_page', orientation: 'orientation', page: 'page' },
+        authHeader: 'Authorization',
+        apiKey: { queryParam: 'key', envVars: ['PEXELS_API_KEY', 'VITE_PEXELS_API_KEY'] },
+        requiresKey: true,
+        responseDataPath: 'photos',
+        // transformResult: (item) => item,
+    },
+    pixabay: {
+        label: 'Pixabay',
+        baseUrl: 'https://pixabay.com/api/',
+        paramMappings: { q: 'q', image_type: 'image_type', orientation: 'orientation', per_page: 'per_page', page: 'page' },
+        apiKey: { queryParam: 'key', envVars: ['PIXABAY_API_KEY', 'VITE_PIXABAY_API_KEY'], paramName: 'key' }, // Pixabay key is a regular param
+        requiresKey: true,
+        responseDataPath: 'hits',
+        // transformResult: (item) => item,
+    },
+    deviantart: {
+        label: 'DeviantArt',
+        baseUrl: 'https://www.deviantart.com/api/v1/oauth2/browse/search', // This might require OAuth2 token
+        paramMappings: { q: 'q', limit: 'limit', mature_content: 'mature_content' },
+        apiKey: { queryParam: 'access_token', envVars: ['DEVIANTART_API_KEY', 'VITE_DEVIANTART_API_KEY'], paramName: 'access_token' },
+        requiresKey: true, // Typically yes
+        responseDataPath: 'results',
+        // transformResult: (item) => item,
+    },
+    imgflip: {
+        label: 'Imgflip',
+        baseUrl: 'https://api.imgflip.com/search', // This is likely for their meme search, not generic GIFs
+        paramMappings: { q: 'q', limit: 'limit', page: 'page' },
+        apiKey: { queryParam: 'api_key', envVars: ['IMGFLIP_API_KEY', 'VITE_IMGFLIP_API_KEY'], paramName: 'api_key' },
+        requiresKey: false, // Some endpoints might work without a key but are rate-limited
+        responseDataPath: 'data.memes', // Example, adjust if it's for GIFs specifically
+        // transformResult: (item) => item,
+    },
+    imgur: {
+        label: 'Imgur',
+        baseUrl: 'https://api.imgur.com/3/gallery/search',
+        paramMappings: { q: 'q', limit: 'limit', page: 'page', q_type: 'q_type' /* e.g. 'gif' */ },
+        authHeader: 'Authorization', // Uses 'Client-ID YOUR_CLIENT_ID'
+        apiKey: { envVars: ['IMGUR_API_KEY', 'VITE_IMGUR_API_KEY'], prefix: 'Client-ID ' }, // Special prefix for Imgur
+        requiresKey: true,
+        responseDataPath: 'data',
+        // transformResult: (item) => item,
+    },
+    artstation: {
+        label: 'ArtStation',
+        baseUrl: 'https://www.artstation.com/search/projects.json',
+        paramMappings: { q: 'q', page: 'page', per_page: 'per_page' },
+        requiresKey: false,
+        userAgent: 'OBS-Copilot/1.0', // ArtStation might require a User-Agent
+        responseDataPath: 'data',
+        // transformResult: (item) => item,
+    },
+    iconfinder: {
+        label: 'Iconfinder Search',
+        baseUrl: 'https://api.iconfinder.com/v4/icons/search',
+        paramMappings: { query: 'query', count: 'count', premium: 'premium', vector: 'vector' },
+        authHeader: 'Authorization', // Bearer token
+        apiKey: { envVars: ['ICONFINDER_API_KEY', 'VITE_ICONFINDER_API_KEY'], prefix: 'Bearer ' },
+        requiresKey: true,
+        // responseDataPath: 'icons', // Assuming results are in 'icons' array
+        // transformResult: (item) => item, // Or map to a common structure
+    },
+    // Giphy is handled separately by its SDK usually, but if we proxy search:
+    giphy: {
+        label: 'Giphy',
+        baseUrl: 'https://api.giphy.com/v1/gifs/search',
+        paramMappings: { q: 'q', limit: 'limit', offset: 'offset', rating: 'rating', lang: 'lang' },
+        apiKey: { queryParam: 'api_key', envVars: ['GIPHY_API_KEY', 'VITE_GIPHY_API_KEY'], paramName: 'api_key' },
+        requiresKey: true,
+        responseDataPath: 'data',
+        // transformResult: (item) => item,
+    }
 };
-
 // --- Generic API Fetch Function ---
 async function fetchFromApiHost(apiConfig, queryParamsFromRequest, apiKeyOverride) {
-  const params = new URLSearchParams();
-
-  // Apply default params from config
-  if (apiConfig.defaultParams) {
-    for (const key in apiConfig.defaultParams) {
-      params.append(key, apiConfig.defaultParams[key]);
+    const params = new URLSearchParams();
+    // Apply default params from config
+    if (apiConfig.defaultParams) {
+        for (const key in apiConfig.defaultParams) {
+            params.append(key, apiConfig.defaultParams[key]);
+        }
     }
-  }
-
-  // Map and append query params from the original request
-  for (const requestParamName in queryParamsFromRequest) {
-    // Check if this request param is defined in our mappings for the current API
-    // The key in paramMappings is the name we use internally/in client request (e.g. 'q')
-    // The value is the name the target API expects (e.g. 'query')
-    if (apiConfig.paramMappings.hasOwnProperty(requestParamName)) {
-      const targetApiParamName = apiConfig.paramMappings[requestParamName];
-      if (queryParamsFromRequest[requestParamName] !== undefined) {
-        params.append(targetApiParamName, queryParamsFromRequest[requestParamName]);
-      }
-    } else if (requestParamName === apiConfig.apiKey?.queryParam && queryParamsFromRequest[requestParamName]) {
-      // If the param is the API key itself (passed via query), it's handled by apiKey logic later
-      // but we don't want to pass it as a regular param if it's not in paramMappings.
-      // This 'else if' might be redundant if API key query params are excluded from paramMappings.
-    } else {
-      // Optionally, pass through unknown parameters if the API supports it, or ignore them.
-      // For now, only mapped parameters are passed.
-      // If you wanted to pass all, you'd do: params.append(requestParamName, queryParamsFromRequest[requestParamName]);
+    // Map and append query params from the original request
+    for (const requestParamName in queryParamsFromRequest) {
+        // Check if this request param is defined in our mappings for the current API
+        // The key in paramMappings is the name we use internally/in client request (e.g. 'q')
+        // The value is the name the target API expects (e.g. 'query')
+        if (apiConfig.paramMappings.hasOwnProperty(requestParamName)) {
+            const targetApiParamName = apiConfig.paramMappings[requestParamName];
+            if (queryParamsFromRequest[requestParamName] !== undefined) {
+                params.append(targetApiParamName, queryParamsFromRequest[requestParamName]);
+            }
+        }
+        else if (requestParamName === apiConfig.apiKey?.queryParam && queryParamsFromRequest[requestParamName]) {
+            // If the param is the API key itself (passed via query), it's handled by apiKey logic later
+            // but we don't want to pass it as a regular param if it's not in paramMappings.
+            // This 'else if' might be redundant if API key query params are excluded from paramMappings.
+        }
+        else {
+            // Optionally, pass through unknown parameters if the API supports it, or ignore them.
+            // For now, only mapped parameters are passed.
+            // If you wanted to pass all, you'd do: params.append(requestParamName, queryParamsFromRequest[requestParamName]);
+        }
     }
-  }
-
-  let determinedApiKey = apiKeyOverride; // Use override if provided
-  if (!determinedApiKey && apiConfig.apiKey) { // If no override, try to get from env
-      for (const envVar of apiConfig.apiKey.envVars) {
-          if (process.env[envVar]) {
-              determinedApiKey = process.env[envVar];
-              break;
-          }
-      }
-  }
-
-  // If API key is configured to be a URL parameter (e.g., Pixabay, Giphy)
-  if (apiConfig.apiKey?.paramName && determinedApiKey) {
-    params.append(apiConfig.apiKey.paramName, determinedApiKey);
-  }
-
-  const targetApiUrl = `${apiConfig.baseUrl}?${params.toString()}`;
-  const headers = {};
-  if (apiConfig.authHeader && determinedApiKey) {
-    headers[apiConfig.authHeader] = `${apiConfig.apiKey.prefix || ''}${determinedApiKey}`;
-  }
-  if (apiConfig.userAgent) {
-    headers['User-Agent'] = apiConfig.userAgent;
-  }
-
-  console.log(`[Proxy] Fetching from ${apiConfig.label}: ${targetApiUrl} with headers:`, headers);
-
-
-  const response = await fetch(targetApiUrl, { headers });
-
-  if (!response.ok) {
-    let errorBody = '';
-    try {
-      errorBody = await response.text();
-    } catch (e) { /* ignore, if can't read body */ }
-    console.error(`[Proxy] Error from ${apiConfig.label}: ${response.status} ${response.statusText}. Body: ${errorBody.substring(0, 200)}`);
-    throw new Error(`${apiConfig.label} API error: ${response.status} ${response.statusText}`);
-  }
-
-  const data = await response.json();
-
-  // Extract results using responseDataPath if provided
-  let results = data;
-  if (apiConfig.responseDataPath) {
-    results = apiConfig.responseDataPath.split('.').reduce((o, k) => (o || {})[k], data);
-    if (results === undefined) { // Path was valid but led to undefined
-        console.warn(`[Proxy] Data path '${apiConfig.responseDataPath}' resulted in undefined for ${apiConfig.label}. Full response:`, JSON.stringify(data).substring(0,500));
-        results = []; // Default to empty array if path leads to undefined
+    let determinedApiKey = apiKeyOverride; // Use override if provided
+    if (!determinedApiKey && apiConfig.apiKey) { // If no override, try to get from env
+        for (const envVar of apiConfig.apiKey.envVars) {
+            if (process.env[envVar]) {
+                determinedApiKey = process.env[envVar];
+                break;
+            }
+        }
     }
-  }
-
-  if (!Array.isArray(results) && apiConfig.responseDataPath) { // Only warn if a path was specified and didn't yield an array
-    console.warn(`[Proxy] Expected array from ${apiConfig.label} at path '${apiConfig.responseDataPath}', but got: ${typeof results}. Full data:`, JSON.stringify(data).substring(0,500));
-    // If it's an error object from the API itself (e.g. ArtStation { error: ..., message: ...})
-    if (results && results.error && results.message) {
-        throw new Error(results.message);
+    // If API key is configured to be a URL parameter (e.g., Pixabay, Giphy)
+    if (apiConfig.apiKey?.paramName && determinedApiKey) {
+        params.append(apiConfig.apiKey.paramName, determinedApiKey);
     }
-    results = []; // Default to empty array if not an array
-  } else if (!Array.isArray(results) && !apiConfig.responseDataPath) {
-    // If no path, data itself should be the array or an object that the client handles
-    // This case is fine if the API returns a single object instead of an array (e.g. getPhoto)
-    // For search APIs, we typically expect an array.
-  }
-
-
-  // Apply transformation if defined, otherwise return as is
-  // This is disabled for now to return raw API data, client will handle transformation if needed or proxy already structures it.
-  // if (apiConfig.transformResult && Array.isArray(results)) {
-  //   results = results.map(apiConfig.transformResult);
-  // }
-
-  // The client usually expects the original structure, so we re-wrap if responseDataPath was used to extract.
-  // This is a bit simplistic; a better way might be for client to always expect a flat array `items: []`.
-  // For now, trying to match existing behavior.
-  if (apiConfig.responseDataPath) {
-      const rootData = { ...data }; // clone original data
-      // set the extracted (and potentially transformed) results back onto the path
-      let current = rootData;
-      const pathParts = apiConfig.responseDataPath.split('.');
-      for(let i=0; i < pathParts.length -1; i++) {
-          current = current[pathParts[i]] = current[pathParts[i]] || {};
-      }
-      current[pathParts[pathParts.length -1]] = results;
-      return rootData;
-  }
-
-  return results; // If no responseDataPath, return the whole data object
+    const targetApiUrl = `${apiConfig.baseUrl}?${params.toString()}`;
+    const headers = {};
+    if (apiConfig.authHeader && determinedApiKey) {
+        headers[apiConfig.authHeader] = `${apiConfig.apiKey.prefix || ''}${determinedApiKey}`;
+    }
+    if (apiConfig.userAgent) {
+        headers['User-Agent'] = apiConfig.userAgent;
+    }
+    console.log(`[Proxy] Fetching from ${apiConfig.label}: ${targetApiUrl} with headers:`, headers);
+    const response = await fetch(targetApiUrl, { headers });
+    if (!response.ok) {
+        let errorBody = '';
+        try {
+            errorBody = await response.text();
+        }
+        catch (e) { /* ignore, if can't read body */ }
+        console.error(`[Proxy] Error from ${apiConfig.label}: ${response.status} ${response.statusText}. Body: ${errorBody.substring(0, 200)}`);
+        throw new Error(`${apiConfig.label} API error: ${response.status} ${response.statusText}`);
+    }
+    const data = await response.json();
+    // Extract results using responseDataPath if provided
+    let results = data;
+    if (apiConfig.responseDataPath) {
+        results = apiConfig.responseDataPath.split('.').reduce((o, k) => (o || {})[k], data);
+        if (results === undefined) { // Path was valid but led to undefined
+            console.warn(`[Proxy] Data path '${apiConfig.responseDataPath}' resulted in undefined for ${apiConfig.label}. Full response:`, JSON.stringify(data).substring(0, 500));
+            results = []; // Default to empty array if path leads to undefined
+        }
+    }
+    if (!Array.isArray(results) && apiConfig.responseDataPath) { // Only warn if a path was specified and didn't yield an array
+        console.warn(`[Proxy] Expected array from ${apiConfig.label} at path '${apiConfig.responseDataPath}', but got: ${typeof results}. Full data:`, JSON.stringify(data).substring(0, 500));
+        // If it's an error object from the API itself (e.g. ArtStation { error: ..., message: ...})
+        if (results && results.error && results.message) {
+            throw new Error(results.message);
+        }
+        results = []; // Default to empty array if not an array
+    }
+    else if (!Array.isArray(results) && !apiConfig.responseDataPath) {
+        // If no path, data itself should be the array or an object that the client handles
+        // This case is fine if the API returns a single object instead of an array (e.g. getPhoto)
+        // For search APIs, we typically expect an array.
+    }
+    // Apply transformation if defined, otherwise return as is
+    // This is disabled for now to return raw API data, client will handle transformation if needed or proxy already structures it.
+    // if (apiConfig.transformResult && Array.isArray(results)) {
+    //   results = results.map(apiConfig.transformResult);
+    // }
+    // The client usually expects the original structure, so we re-wrap if responseDataPath was used to extract.
+    // This is a bit simplistic; a better way might be for client to always expect a flat array `items: []`.
+    // For now, trying to match existing behavior.
+    if (apiConfig.responseDataPath) {
+        const rootData = { ...data }; // clone original data
+        // set the extracted (and potentially transformed) results back onto the path
+        let current = rootData;
+        const pathParts = apiConfig.responseDataPath.split('.');
+        for (let i = 0; i < pathParts.length - 1; i++) {
+            current = current[pathParts[i]] = current[pathParts[i]] || {};
+        }
+        current[pathParts[pathParts.length - 1]] = results;
+        return rootData;
+    }
+    return results; // If no responseDataPath, return the whole data object
 }
-
-
 // --- Special Proxy Endpoints (Iconfinder SVG, Favicon, Image, Gemini, OBS, StreamerBot, Chutes) ---
 // These are kept separate due to their unique logic or streaming nature.
-
 app.get('/api/iconfinder/svg', async (req, res) => {
     const svgUrl = req.query.url;
     if (!svgUrl || typeof svgUrl !== 'string' || !svgUrl.startsWith('https://api.iconfinder.com/')) {
@@ -250,7 +233,8 @@ app.get('/api/iconfinder/svg', async (req, res) => {
             'Cross-Origin-Embedder-Policy': 'unsafe-none'
         });
         response.body.pipe(res);
-    } catch (err) {
+    }
+    catch (err) {
         res.set({
             'Access-Control-Allow-Origin': '*',
             'Cross-Origin-Resource-Policy': 'cross-origin',
@@ -259,7 +243,6 @@ app.get('/api/iconfinder/svg', async (req, res) => {
         res.status(500).json({ error: 'Proxy error', details: err.message });
     }
 });
-
 app.get('/api/favicon', async (req, res) => {
     // This specific logic for Google Favicons is kept as is
     const { domain, sz = 16 } = req.query;
@@ -291,7 +274,8 @@ app.get('/api/favicon', async (req, res) => {
             'Cross-Origin-Embedder-Policy': 'unsafe-none'
         });
         response.body.pipe(res);
-    } catch (e) {
+    }
+    catch (e) {
         res.set({
             'Access-Control-Allow-Origin': '*',
             'Cross-Origin-Resource-Policy': 'cross-origin',
@@ -300,7 +284,6 @@ app.get('/api/favicon', async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch favicon', details: e.message });
     }
 });
-
 // Unified Favicon Fetch Function
 async function fetchAndServeFavicon(req, res) {
     const { domain, sz = 16 } = req.query;
@@ -309,7 +292,7 @@ async function fetchAndServeFavicon(req, res) {
         res.set({
             'Access-Control-Allow-Origin': '*',
             'Cross-Origin-Resource-Policy': 'cross-origin', // Consider if needed for error JSON
-            'Cross-Origin-Embedder-Policy': 'unsafe-none',  // Consider if needed for error JSON
+            'Cross-Origin-Embedder-Policy': 'unsafe-none', // Consider if needed for error JSON
         });
         return res.status(400).json({ error: 'Domain parameter is required for favicon proxy' });
     }
@@ -320,10 +303,9 @@ async function fetchAndServeFavicon(req, res) {
         });
         if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(`Favicon fetch failed: ${response.status} ${response.statusText} - ${errorText.substring(0,100)}`);
+            throw new Error(`Favicon fetch failed: ${response.status} ${response.statusText} - ${errorText.substring(0, 100)}`);
         }
         const contentType = response.headers.get('content-type') || 'image/x-icon'; // Default to x-icon if not provided
-
         // For streaming directly:
         // res.set({
         //     'Access-Control-Allow-Origin': '*',
@@ -333,7 +315,6 @@ async function fetchAndServeFavicon(req, res) {
         //     'Cross-Origin-Embedder-Policy': 'unsafe-none',
         // });
         // response.body.pipe(res);
-
         // For sending as buffer (as in original /api/proxy?api=favicon):
         const buffer = await response.buffer();
         res.set({
@@ -345,8 +326,8 @@ async function fetchAndServeFavicon(req, res) {
             // 'Access-Control-Allow-Headers': 'Content-Type', // Typically for OPTIONS or if request has custom headers
         });
         res.send(buffer);
-
-    } catch (err) {
+    }
+    catch (err) {
         res.set({
             'Access-Control-Allow-Origin': '*',
             // 'Access-Control-Allow-Headers': 'Content-Type', // Less critical for error response
@@ -357,25 +338,52 @@ async function fetchAndServeFavicon(req, res) {
         res.status(500).json({ error: 'Failed to fetch favicon', details: err.message });
     }
 }
-
 // Original /api/favicon route now uses the unified function
 app.get('/api/favicon', fetchAndServeFavicon);
-
+// /api/proxy route
+app.get('/api/proxy', async (req, res) => {
+    const { api } = req.query;
+    if (api === 'favicon') {
+        return fetchAndServeFavicon(req, res); // Delegate to the unified function
+    }
+    // If not favicon, try to use the generic handler for other APIs
+    const apiConfig = apiConfigs[api];
+    if (apiConfig) {
+        let apiKey = req.query[apiConfig.apiKey?.queryParam] || null;
+        if (!apiKey && apiConfig.apiKey?.envVars) {
+            for (const envVar of apiConfig.apiKey.envVars) {
+                if (process.env[envVar]) {
+                    apiKey = process.env[envVar];
+                    break;
+                }
+            }
+        }
+        if (apiConfig.requiresKey && !apiKey) {
+            return res.status(500).json({ error: `${apiConfig.label || api} API key not provided.` });
+        }
+        try {
+            const results = await fetchFromApiHost(apiConfig, req.query, apiKey);
+            res.set('Access-Control-Allow-Origin', '*');
+            return res.json(results); // The fetchFromApiHost returns the full data structure
+        }
+        catch (err) {
+            return res.status(500).json({ error: `Proxy error for ${api}`, details: err.message });
+        }
+    }
+    res.status(400).json({ error: 'Unknown API type for /api/proxy' });
+});
 // --- Unified Path-Based Proxy Endpoint ---
 const pathBasedApiRoutes = Object.keys(apiConfigs).map(key => `/api/${key}`);
-
 app.get(pathBasedApiRoutes, async (req, res) => {
     const pathSegments = req.path.split('/'); // e.g., ['', 'api', 'wallhaven']
     const apiType = pathSegments.length > 2 ? pathSegments[2] : null;
-
     const apiConfig = apiConfigs[apiType];
     if (!apiConfig) {
-      // This case should ideally not be hit if routes are specific enough
-      // or a final catch-all 404 is desired from Express.
-      // However, if it does, it means an /api/something route was matched but not in apiConfigs.
-      return res.status(400).json({ error: `Unknown API endpoint: ${req.path}` });
+        // This case should ideally not be hit if routes are specific enough
+        // or a final catch-all 404 is desired from Express.
+        // However, if it does, it means an /api/something route was matched but not in apiConfigs.
+        return res.status(400).json({ error: `Unknown API endpoint: ${req.path}` });
     }
-
     let apiKey = req.query[apiConfig.apiKey?.queryParam] || null; // Check query first
     if (!apiKey && apiConfig.apiKey?.envVars) { // Then check environment variables
         for (const envVar of apiConfig.apiKey.envVars) {
@@ -385,25 +393,22 @@ app.get(pathBasedApiRoutes, async (req, res) => {
             }
         }
     }
-
     if (apiConfig.requiresKey && !apiKey) {
         return res.status(500).json({ error: `${apiConfig.label || apiType} API key not provided.` });
     }
-
     try {
         const results = await fetchFromApiHost(apiConfig, req.query, apiKey);
         res.set('Access-Control-Allow-Origin', '*');
         return res.json(results); // fetchFromApiHost returns the full data structure as API provides it
-    } catch (err) {
+    }
+    catch (err) {
         return res.status(500).json({ error: `Proxy error for ${apiType}`, details: err.message });
     }
 });
-
-
 // Allow CORS preflight for all API routes
 const allApiRoutesForOptions = [
     ...pathBasedApiRoutes, // Includes all from apiConfigs
-    // '/api/proxy', // Removed as it's deprecated by path-based routes
+    '/api/proxy', // Keep as it's a special case that can also use ?api=
     '/api/favicon',
     '/api/iconfinder/svg',
     '/api/gemini',
@@ -418,8 +423,6 @@ app.options(allApiRoutesForOptions, (req, res) => {
     res.set('Access-Control-Allow-Headers', 'Content-Type,Authorization');
     res.sendStatus(200);
 });
-
-
 // Proxy Gemini API
 app.post('/api/gemini', async (req, res) => {
     const geminiApiKey = process.env.GEMINI_API_KEY;
@@ -441,12 +444,12 @@ app.post('/api/gemini', async (req, res) => {
             return res.status(400).json({ error: "Gemini API Error", details: data.error.message || JSON.stringify(data.error) });
         }
         res.json(data);
-    } catch (err) {
+    }
+    catch (err) {
         console.error("Gemini Proxy Fetch Error:", err);
         res.status(500).json({ error: 'Failed to fetch from Gemini', details: err.message });
     }
 });
-
 // Proxy OBS WebSocket API (example: for HTTP endpoints, not WebSocket)
 app.all('/api/obs/:action', async (req, res) => {
     const obsUrl = process.env.OBS_HTTP_API_URL;
@@ -454,18 +457,18 @@ app.all('/api/obs/:action', async (req, res) => {
         return res.status(500).json({ error: 'OBS_HTTP_API_URL not set in environment' });
     }
     try {
-        const response = await fetch(obsUrl, { // This should be the OBS HTTP server URL
+        const response = await fetch(obsUrl, {
             method: req.method,
             headers: { 'Content-Type': 'application/json', ...(req.headers.authorization && { 'Authorization': req.headers.authorization }) },
             body: req.method !== 'GET' && req.body ? JSON.stringify(req.body) : undefined,
         });
         const data = await response.json();
         res.status(response.status).json(data);
-    } catch (err) {
+    }
+    catch (err) {
         res.status(500).json({ error: 'Failed to fetch from OBS', details: err.message });
     }
 });
-
 // Proxy Streamer.bot API
 app.all('/api/streamerbot/:action', async (req, res) => {
     const streamerBotUrl = process.env.STREAMERBOT_API_URL; // e.g. http://localhost:8080/
@@ -478,34 +481,31 @@ app.all('/api/streamerbot/:action', async (req, res) => {
     // If actions are separate paths, then `${streamerBotUrl}${req.params.action}` might be needed.
     // For now, assuming a single endpoint that takes action in body or query.
     try {
-        const response = await fetch(streamerBotUrl, { // This should be the Streamer.bot HTTP server URL
+        const response = await fetch(streamerBotUrl, {
             method: 'POST', // Streamer.bot actions are typically POST
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(req.body), // Send the whole body which should contain the action details
         });
         const data = await response.json();
         res.status(response.status).json(data);
-    } catch (err) {
+    }
+    catch (err) {
         res.status(500).json({ error: 'Failed to fetch from Streamer.bot', details: err.message });
     }
 });
-
 // Image proxy to handle CORS issues with external images
 app.get('/api/image', async (req, res) => {
     const { url } = req.query;
     if (!url) {
         return res.status(400).json({ error: 'URL parameter is required for image proxy' });
     }
-
     try {
         const response = await fetch(url);
         if (!response.ok) {
             throw new Error(`Image fetch failed: ${response.status} ${response.statusText}`);
         }
-
         const contentType = response.headers.get('content-type') || 'image/jpeg';
         const buffer = await response.buffer();
-
         res.set({
             'Content-Type': contentType,
             'Cache-Control': 'public, max-age=3600',
@@ -514,7 +514,8 @@ app.get('/api/image', async (req, res) => {
             'Cross-Origin-Embedder-Policy': 'unsafe-none'
         });
         res.send(buffer);
-    } catch (err) {
+    }
+    catch (err) {
         res.set({
             'Access-Control-Allow-Origin': '*',
             'Cross-Origin-Resource-Policy': 'cross-origin',
@@ -523,7 +524,6 @@ app.get('/api/image', async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch image', details: err.message });
     }
 });
-
 app.post('/api/chutes', async (req, res) => {
     const apiToken = process.env.CHUTES_API_TOKEN || process.env.VITE_CHUTES_API_TOKEN;
     if (!apiToken) {
@@ -540,20 +540,17 @@ app.post('/api/chutes', async (req, res) => {
         });
         const data = await response.json();
         res.status(response.status).json(data);
-    } catch (err) {
+    }
+    catch (err) {
         res.status(500).json({ error: 'Failed to fetch from Chute API', details: err.message });
     }
 });
-
 // Fallback for any /api routes not caught by specific handlers or the generic one
 app.all('/api/*', (req, res) => {
     res.status(404).json({ error: 'API endpoint not found.' });
 });
-
-
 const PORT = process.env.PORT || 3001;
 if (require.main === module) {
-  app.listen(PORT, () => console.log(`Proxy server running on port ${PORT}`));
+    app.listen(PORT, () => console.log(`Proxy server running on port ${PORT}`));
 }
-
 module.exports = app;
