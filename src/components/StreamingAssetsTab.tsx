@@ -524,8 +524,10 @@ const StreamingAssetsTab = React.memo(() => {
     const obsServiceInstance = useAppStore(state => state.obsServiceInstance);
     const currentProgramScene = useAppStore(state => state.currentProgramScene);
     const isConnected = useAppStore(state => state.isConnected);
+    const addNotification = useAppStore((state) => state.actions.addNotification);
 
-    const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+
+    // const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null); // Replaced by Zustand notifications
 
     const ITEMS_PER_PAGE = 16; // 4x4 grid
 
@@ -554,10 +556,9 @@ const StreamingAssetsTab = React.memo(() => {
         
         // Show feedback message about service switch
         const serviceName = GIF_APIS.find(api => api.value === gifApi)?.label || gifApi;
-        setFeedbackMessage(`Switched to ${serviceName} - ready for new search`);
-        setTimeout(() => setFeedbackMessage(null), 3000);
+        addNotification({ message: `Switched to ${serviceName} - ready for new search`, type: 'info' });
         
-    }, [gifApi]);
+    }, [gifApi, addNotification]);
 
     // Auto-load categories when user first searches
     useEffect(() => {
@@ -1315,61 +1316,76 @@ const StreamingAssetsTab = React.memo(() => {
             useAppStore.getState().actions.addNotification({ type: 'error', message: errorMsg });
         }
         setEmojiLoading(false);
-    }, [emojiApi, emojiQuery, emojiApiConfigs]); // Added emojiApiConfigs
+    }, [emojiApi, emojiQuery, emojiApiConfigs, addNotification]); // Added emojiApiConfigs and addNotification
 
-    const showFeedback = (message: string) => {
-        setFeedbackMessage(message);
-        setTimeout(() => setFeedbackMessage(null), 3000);
-    };
+    // const showFeedback = (message: string) => { // Replaced by Zustand notifications
+    //     setFeedbackMessage(message);
+    //     setTimeout(() => setFeedbackMessage(null), 3000);
+    // };
 
     const handleAddAsBrowserSource = async (url: string, sourceName: string) => {
-        if (!obsServiceInstance || !isConnected || !currentProgramScene) return showFeedback('OBS not connected.');
+        if (!obsServiceInstance || !isConnected || !currentProgramScene) {
+            addNotification({ message: 'OBS not connected.', type: 'error' });
+            return;
+        }
         try {
             await addBrowserSource(obsServiceInstance, currentProgramScene, url, generateSourceName(sourceName));
-            showFeedback(`Added ${sourceName} to OBS.`);
+            addNotification({ message: `Added ${sourceName} to OBS.`, type: 'success' });
         } catch (error) {
-            showFeedback('Failed to add source.');
+            addNotification({ message: 'Failed to add source.', type: 'error' });
         }
     };
 
     const handleAddAsImageSource = async (url: string, sourceName: string) => {
-        if (!obsServiceInstance || !isConnected || !currentProgramScene) return showFeedback('OBS not connected.');
+        if (!obsServiceInstance || !isConnected || !currentProgramScene) {
+            addNotification({ message: 'OBS not connected.', type: 'error' });
+            return;
+        }
         try {
             await addImageSource(obsServiceInstance, currentProgramScene, url, generateSourceName(sourceName));
-            showFeedback(`Added ${sourceName} to OBS.`);
+            addNotification({ message: `Added ${sourceName} to OBS.`, type: 'success' });
         } catch (error) {
-            showFeedback('Failed to add source.');
+            addNotification({ message: 'Failed to add source.', type: 'error' });
         }
     };
 
     const handleAddAsMediaSource = async (url: string, sourceName: string) => {
-        if (!obsServiceInstance || !isConnected || !currentProgramScene) return showFeedback('OBS not connected.');
+        if (!obsServiceInstance || !isConnected || !currentProgramScene) {
+            addNotification({ message: 'OBS not connected.', type: 'error' });
+            return;
+        }
         try {
             await addMediaSource(obsServiceInstance, currentProgramScene, url, generateSourceName(sourceName));
-            showFeedback(`Added ${sourceName} to OBS.`);
+            addNotification({ message: `Added ${sourceName} to OBS.`, type: 'success' });
         } catch (error) {
-            showFeedback('Failed to add source.');
+            addNotification({ message: 'Failed to add source.', type: 'error' });
         }
     };
 
     const handleAddSvgAsBrowserSource = async (svg: string, sourceName: string) => {
-        if (!obsServiceInstance || !isConnected || !currentProgramScene) return showFeedback('OBS not connected.');
+        if (!obsServiceInstance || !isConnected || !currentProgramScene) {
+            addNotification({ message: 'OBS not connected.', type: 'error' });
+            return;
+        }
         try {
             await addSvgAsBrowserSource(obsServiceInstance, currentProgramScene, svg, generateSourceName(sourceName));
-            showFeedback(`Added ${sourceName} to OBS.`);
+            addNotification({ message: `Added ${sourceName} to OBS.`, type: 'success' });
         } catch (error) {
-            showFeedback('Failed to add source.');
+            addNotification({ message: 'Failed to add source.', type: 'error' });
         }
     };
 
     const handleAddEmojiAsBrowserSource = async (emoji: any, sourceName: string) => {
-        if (!obsServiceInstance || !isConnected || !currentProgramScene) return showFeedback('OBS not connected.');
+        if (!obsServiceInstance || !isConnected || !currentProgramScene) {
+            addNotification({ message: 'OBS not connected.', type: 'error' });
+            return;
+        }
         try {
             const emojiChar = getEmojiChar(emoji);
             await addEmojiAsBrowserSource(obsServiceInstance, currentProgramScene, emojiChar, generateSourceName(sourceName));
-            showFeedback(`Added ${sourceName} to OBS.`);
+            addNotification({ message: `Added ${sourceName} to OBS.`, type: 'success' });
         } catch (error) {
-            showFeedback('Failed to add source.');
+            addNotification({ message: 'Failed to add source.', type: 'error' });
         }
     };
 
@@ -1391,29 +1407,29 @@ const StreamingAssetsTab = React.memo(() => {
             case 'sticker':
                 return [
                     { label: 'Add as Image Source', onClick: () => handleAddAsImageSource(data.images?.original?.url || data.png_url, data.name || 'sticker'), variant: 'primary' },
-                    { label: 'Copy Image URL', onClick: () => { copyToClipboard(data.images?.original?.url || data.png_url); showFeedback('Copied image URL!'); } },
+                    { label: 'Copy Image URL', onClick: () => { copyToClipboard(data.images?.original?.url || data.png_url); addNotification({ message: 'Copied image URL!', type: 'info' }); } },
                 ];
             case 'gif':
                 return [
                     { label: 'Add as Browser Source', onClick: () => handleAddAsBrowserSource(data.images.original.url, data.title || data.source || 'gif'), variant: 'primary' },
                     { label: 'Add as Media Source', onClick: () => handleAddAsMediaSource(data.images.original.url, data.title || data.source || 'gif'), variant: 'secondary' },
-                    { label: 'Copy URL', onClick: () => { copyToClipboard(data.images.original.url); showFeedback('Copied GIF URL!'); } },
+                    { label: 'Copy URL', onClick: () => { copyToClipboard(data.images.original.url); addNotification({ message: 'Copied GIF URL!', type: 'info' }); } },
                 ];
             case 'svg':
                 return [
                     { label: 'Add as Browser Source', onClick: () => handleAddSvgAsBrowserSource(data.svg, data.name), variant: 'primary' },
-                    { label: 'Copy SVG Code', onClick: () => { copyToClipboard(data.svg); showFeedback('Copied SVG code!'); } },
+                    { label: 'Copy SVG Code', onClick: () => { copyToClipboard(data.svg); addNotification({ message: 'Copied SVG code!', type: 'info' }); } },
                 ];
             case 'emoji':
                 const emojiChar = getEmojiChar(data);
                 return [
                     { label: 'Add as Browser Source', onClick: () => handleAddEmojiAsBrowserSource(emojiChar, data.name || 'emoji'), variant: 'primary' },
-                    { label: 'Copy Emoji', onClick: () => { copyToClipboard(emojiChar); showFeedback('Copied Emoji!'); } },
+                    { label: 'Copy Emoji', onClick: () => { copyToClipboard(emojiChar); addNotification({ message: 'Copied Emoji!', type: 'info' }); } },
                 ];
             case 'background':
                 return [
                     { label: 'Add as Browser Source', onClick: () => handleAddAsBrowserSource(data.path, data.id || 'background'), variant: 'primary' },
-                    { label: 'Copy Image URL', onClick: () => { copyToClipboard(data.path); showFeedback('Copied image URL!'); } },
+                    { label: 'Copy Image URL', onClick: () => { copyToClipboard(data.path); addNotification({ message: 'Copied image URL!', type: 'info' }); } },
                 ];
             default:
                 return [];
@@ -1788,7 +1804,7 @@ const StreamingAssetsTab = React.memo(() => {
 
     return (
         <div className="space-y-2 max-w-4xl mx-auto p-0">
-            {feedbackMessage && <div className="fixed bottom-4 right-4 bg-success text-success-foreground p-2 rounded-lg shadow-lg z-50 text-sm">{feedbackMessage}</div>}
+            {/* feedbackMessage is now handled by NotificationManager */}
 
             {renderCollapsibleCard('html', 'HTML Templates', '📄', (
                 <HtmlTemplateBuilder accentColorName={accentColorName} />

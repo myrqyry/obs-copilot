@@ -17,6 +17,16 @@ import type { OBSWebSocketService } from '../services/obsService';
 import type { StreamerBotService } from '../services/streamerBotService';
 import { loadUserSettings, saveUserSettings, isStorageAvailable } from '../utils/persistence';
 import { automationService } from '../services/automationService';
+import { nanoid } from 'nanoid';
+
+export type NotificationType = 'success' | 'error' | 'info' | 'warning';
+
+export interface Notification {
+  id: string;
+  message: string;
+  type: NotificationType;
+  duration?: number; // in milliseconds
+}
 
 export interface AppState {
     // Connection State
@@ -85,10 +95,16 @@ export interface AppState {
     isPlayerVisible: boolean;
     activeAudioSource: { type: 'tts' | 'music'; prompt?: string; url?: string; } | null;
 
+    // Notifications
+    notifications: Notification[];
+
     // Define the actions (functions) to update the state
     actions: {
         setMusicPrompt: (prompt: string) => void;
         setActiveAudioSource: (source: { type: 'tts' | 'music'; prompt?: string; url?: string; } | null) => void;
+        addNotification: (notification: Omit<Notification, 'id'>) => void;
+        removeNotification: (id: string) => void;
+        clearAllNotifications: () => void;
         setConnecting: () => void;
         setConnected: (obsData: {
             scenes: OBSScene[];
@@ -224,6 +240,7 @@ export const useAppStore = create<AppState>((set, get) => {
         audioPermissionGranted: false,
         isPlayerVisible: false,
         activeAudioSource: null,
+        notifications: [], // Initial state for notifications
     };
     return {
         ...initialState,
@@ -279,11 +296,24 @@ export const useAppStore = create<AppState>((set, get) => {
         audioPermissionGranted: false,
         isPlayerVisible: false,
         activeAudioSource: null,
+        notifications: [], // Also ensure it's part of the returned state object
 
         // Actions
         actions: {
             setMusicPrompt: (prompt) => set({ currentMusicPrompt: prompt }),
             setAudioOutputDevice,
+            addNotification: (notification) =>
+                set((state) => ({
+                  notifications: [
+                    ...state.notifications,
+                    { ...notification, id: nanoid() },
+                  ],
+                })),
+            removeNotification: (id) =>
+                set((state) => ({
+                  notifications: state.notifications.filter((n) => n.id !== id),
+                })),
+            clearAllNotifications: () => set({ notifications: [] }),
             showPlayer: () => set({ isPlayerVisible: true }),
             hidePlayer: () => set({ isPlayerVisible: false, activeAudioSource: null }),
             setActiveAudioSource: (source: { type: 'tts' | 'music'; prompt?: string; url?: string; } | null) => set({ activeAudioSource: source }),

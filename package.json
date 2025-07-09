@@ -48,6 +48,7 @@
     "gsap": "^3.13.0",
     "lodash": "^4.17.21",
     "lucide-react": "^0.515.0",
+    "nanoid": "^5.1.5",
     "node-fetch": "^2.7.0",
     "normalize-svg-path": "^1.1.0",
     "obs-websocket-js": "^5.0.6",

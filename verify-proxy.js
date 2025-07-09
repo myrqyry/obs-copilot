@@ -109,8 +109,8 @@ async function verify() {
 
     // Test Favicon Proxy (original test, adapted)
     await testEndpoint(
-        'Favicon Proxy (via /api/proxy)',
-        '/api/proxy?api=favicon&domain=streamer.bot&sz=16',
+        'Favicon Proxy (via /api/favicon)', // Updated name
+        '/api/favicon?domain=streamer.bot&sz=16', // Updated path
         200 // Expect 200 if proxy works, even if Google fetch has issues (proxy handles it)
     );
 

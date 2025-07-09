@@ -51,7 +51,7 @@ export const FaviconIcon: React.FC<FaviconIconProps> = ({ domain, alt, className
         }
 
         // Use our favicon proxy to avoid CORS issues
-        const proxyUrl = `/api/proxy?api=favicon&domain=${encodeURIComponent(domain)}&sz=${size}`;
+        const proxyUrl = `/api/favicon?domain=${encodeURIComponent(domain)}&sz=${size}`;
         setSrc(proxyUrl);
     }, [domain, size, retryCount]);
 

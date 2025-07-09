@@ -88,11 +88,13 @@ const CreateTab: React.FC = () => {
 
     // Modal and feedback state for generated image preview/actions
     const [imageModalOpen, setImageModalOpen] = useState(false);
-    const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
-    const showFeedback = (message: string) => {
-        setFeedbackMessage(message);
-        setTimeout(() => setFeedbackMessage(null), 3000);
-    };
+    // const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null); // Replaced by Zustand notifications
+    // const showFeedback = (message: string) => { // Replaced by Zustand notifications
+    //     setFeedbackMessage(message);
+    //     setTimeout(() => setFeedbackMessage(null), 3000);
+    // };
+    const addNotification = useAppStore((state) => state.actions.addNotification);
+
 
     // Animate generated image when it appears
     useEffect(() => {
@@ -353,7 +355,7 @@ const CreateTab: React.FC = () => {
         // Always get the latest Gemini API key from Zustand store
         const currentGeminiApiKey = useAppStore.getState().geminiApiKey;
         if (!currentGeminiApiKey) {
-            showFeedback('Gemini API key is missing. Please set it in the Connections tab.');
+            addNotification({ message: 'Gemini API key is missing. Please set it in the Connections tab.', type: 'error' });
             return;
         }
         const config = {
@@ -551,12 +553,12 @@ const CreateTab: React.FC = () => {
                                             const currentProgramScene = useAppStore.getState().currentProgramScene;
                                             if (!obsServiceInstance || !isConnected || !currentProgramScene) {
                                                 setImageModalOpen(false);
-                                                setTimeout(() => showFeedback("OBS not connected."), 100);
+                                                addNotification({ message: "OBS not connected.", type: 'error' });
                                                 return;
                                             }
                                             await addImageSource(obsServiceInstance, currentProgramScene, generatedImage, generateSourceName("Generated Image"));
                                             setImageModalOpen(false);
-                                            setTimeout(() => showFeedback("Added image to OBS."), 100);
+                                            addNotification({ message: "Added image to OBS.", type: 'success' });
                                         },
                                         variant: "primary"
                                     },
@@ -568,12 +570,12 @@ const CreateTab: React.FC = () => {
                                             const currentProgramScene = useAppStore.getState().currentProgramScene;
                                             if (!obsServiceInstance || !isConnected || !currentProgramScene) {
                                                 setImageModalOpen(false);
-                                                setTimeout(() => showFeedback("OBS not connected."), 100);
+                                                addNotification({ message: "OBS not connected.", type: 'error' });
                                                 return;
                                             }
                                             await addBrowserSource(obsServiceInstance, currentProgramScene, generatedImage, generateSourceName("Generated Image"));
                                             setImageModalOpen(false);
-                                            setTimeout(() => showFeedback("Added browser source to OBS."), 100);
+                                            addNotification({ message: "Added browser source to OBS.", type: 'success' });
                                         },
                                         variant: "secondary"
                                     },
@@ -582,7 +584,7 @@ const CreateTab: React.FC = () => {
                                         onClick: () => {
                                             copyToClipboard(generatedImage);
                                             setImageModalOpen(false);
-                                            setTimeout(() => showFeedback("Copied image URL!"), 100);
+                                            addNotification({ message: "Copied image URL!", type: 'info' });
                                         }
                                     },
                                     {
@@ -601,12 +603,7 @@ const CreateTab: React.FC = () => {
                                 <img src={generatedImage} alt="Generated" className="max-w-full max-h-[70vh] mx-auto rounded shadow" />
                             </Modal>
                         )}
-                        {/* Feedback message */}
-                        {feedbackMessage && (
-                            <div className="fixed bottom-4 right-4 bg-success text-success-foreground p-3 rounded-lg shadow-lg z-50">
-                                {feedbackMessage}
-                            </div>
-                        )}
+                        {/* Feedback message (now handled by NotificationManager) */}
                     </CardContent>
                 </CollapsibleCard>
 
