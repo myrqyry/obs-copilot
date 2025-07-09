@@ -79,7 +79,13 @@ const App: React.FC = () => {
     const headerRef = useRef<HTMLDivElement>(null);
     const [headerHeight, setHeaderHeight] = useState(64);
 
-    const { extraDarkMode } = useAppStore();
+    const {
+        extraDarkMode: extraDarkModeFromStore,
+        bubbleFillOpacity,
+        chatBubbleBlendMode,
+        backgroundOpacity,
+        chatBackgroundBlendMode
+    } = useAppStore(state => state.userSettings);
 
     useEffect(() => {
         if (headerRef.current) {
@@ -167,7 +173,24 @@ const App: React.FC = () => {
         document.documentElement.style.setProperty('--user-chat-bubble-color-rgb', adjustForExtraDarkMode(hexToRgb(catppuccinChatBubbleColorsHexMap[theme.userChatBubble])));
         document.documentElement.style.setProperty('--model-chat-bubble-color-rgb', adjustForExtraDarkMode(hexToRgb(catppuccinChatBubbleColorsHexMap[theme.modelChatBubble])));
         document.documentElement.style.setProperty('--dynamic-secondary-accent-rgb', adjustForExtraDarkMode(hexToRgb(catppuccinSecondaryAccentColorsHexMap[theme.secondaryAccent])));
-    }, [theme.accent, theme.secondaryAccent, theme.userChatBubble, theme.modelChatBubble, extraDarkModeFromStore]);
+
+        // Set opacity and blend mode variables
+        document.documentElement.style.setProperty('--bubble-fill-opacity', String(bubbleFillOpacity));
+        document.documentElement.style.setProperty('--chat-bubble-blend-mode', chatBubbleBlendMode);
+        document.documentElement.style.setProperty('--chat-background-opacity', String(backgroundOpacity));
+        document.documentElement.style.setProperty('--chat-background-blend-mode', chatBackgroundBlendMode);
+
+    }, [
+        theme.accent,
+        theme.secondaryAccent,
+        theme.userChatBubble,
+        theme.modelChatBubble,
+        extraDarkModeFromStore,
+        bubbleFillOpacity,
+        chatBubbleBlendMode,
+        backgroundOpacity,
+        chatBackgroundBlendMode
+    ]);
 
     // Handle initial Gemini messages
     const geminiMessagesRef = useRef(geminiMessages);

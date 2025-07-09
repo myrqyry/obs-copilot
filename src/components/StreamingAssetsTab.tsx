@@ -468,9 +468,11 @@ const StreamingAssetsTab = React.memo(() => {
             // Show user-friendly error message
             const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
             setSearchError(errorMessage);
+            // Use the global notification system
+            useAppStore.getState().actions.addNotification({ type: 'error', message: `Error fetching backgrounds: ${errorMessage}` });
         }
         setBackgroundLoading(false);
-    }, [backgroundApi, backgroundQuery]);
+    }, [backgroundApi, backgroundQuery, 배경ApiConfigs]); // Added apiConfigs to dependencies
 
     // Random SVG for header - generate once per component render
     const [randomHeaderSvg] = useState(() => getRandomSvg());
@@ -873,10 +875,11 @@ const StreamingAssetsTab = React.memo(() => {
             console.error('GIF search error:', error);
             setSearchError(error.message || 'Failed to search GIFs');
             setGifResults([]);
+            useAppStore.getState().actions.addNotification({ type: 'error', message: `GIF Search Error: ${error.message || 'Failed to search GIFs'}` });
         } finally {
             setGifLoading(false);
         }
-    }, [gifApi, gifQuery, selectedCategory, searchFilters]);
+    }, [gifApi, gifQuery, selectedCategory, searchFilters, gifApiConfigs]); // Added gifApiConfigs
 
     // --- Giphy Categories/Trending State & Handlers (just before return for JSX scope) ---
     const handleShowTrendingGifs = async () => {
@@ -884,7 +887,20 @@ const StreamingAssetsTab = React.memo(() => {
         setGifResults([]);
         setGifSearched(true);
         setGifPage(0); // Reset pagination for trending/featured
+        setSearchError(null);
         try {
+            const currentGifApiConfig = gifApiConfigs[gifApi as keyof typeof gifApiConfigs];
+            if (currentGifApiConfig?.requiresKey) {
+                const key = currentGifApiConfig.keyGetter();
+                if (!key || key.includes('your_') || key.includes('_here')) {
+                    const errorMsg = `${currentGifApiConfig.label} API key is missing or invalid. Please configure it in Advanced Settings.`;
+                    setSearchError(errorMsg);
+                    useAppStore.getState().actions.addNotification({ type: 'error', message: errorMsg });
+                    setGifLoading(false);
+                    return;
+                }
+            }
+
             if (gifApi === 'giphy') {
                 const gfInstance = new GiphyFetch(getGiphyApiKey());
                 const searchType = searchFilters.contentType === 'stickers' ? 'stickers' : 'gifs';
@@ -974,8 +990,11 @@ const StreamingAssetsTab = React.memo(() => {
                     };
                 }));
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Trending GIFs error:', err);
+            const errorMsg = `Error fetching trending from ${gifApi}: ${err.message || 'Unknown error'}`;
+            setSearchError(errorMsg);
+            useAppStore.getState().actions.addNotification({ type: 'error', message: errorMsg });
         }
         setGifLoading(false);
     };
@@ -984,7 +1003,20 @@ const StreamingAssetsTab = React.memo(() => {
         setShowCategories(true);
         setGifLoading(true);
         setGifCategories([]);
+        setSearchError(null);
         try {
+            const currentGifApiConfig = gifApiConfigs[gifApi as keyof typeof gifApiConfigs];
+            if (currentGifApiConfig?.requiresKey) {
+                const key = currentGifApiConfig.keyGetter();
+                if (!key || key.includes('your_') || key.includes('_here')) {
+                    const errorMsg = `${currentGifApiConfig.label} API key is missing or invalid for fetching categories. Please configure it in Advanced Settings.`;
+                    setSearchError(errorMsg);
+                    useAppStore.getState().actions.addNotification({ type: 'error', message: errorMsg });
+                    setGifLoading(false);
+                    return;
+                }
+            }
+
             if (gifApi === 'giphy') {
                 const gfInstance = new GiphyFetch(getGiphyApiKey());
                 const response = await gfInstance.categories();
@@ -1019,8 +1051,11 @@ const StreamingAssetsTab = React.memo(() => {
                     source: 'tenor',
                 })));
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Categories error:', err);
+            const errorMsg = `Error fetching categories from ${gifApi}: ${err.message || 'Unknown error'}`;
+            setSearchError(errorMsg);
+            useAppStore.getState().actions.addNotification({ type: 'error', message: errorMsg });
         }
         setGifLoading(false);
     };
@@ -1032,7 +1067,19 @@ const StreamingAssetsTab = React.memo(() => {
         setGifResults([]);
         setGifSearched(true);
         setGifPage(0); // Reset pagination for category search
+        setSearchError(null);
         try {
+            const currentGifApiConfig = gifApiConfigs[gifApi as keyof typeof gifApiConfigs];
+            if (currentGifApiConfig?.requiresKey) {
+                const key = currentGifApiConfig.keyGetter();
+                if (!key || key.includes('your_') || key.includes('_here')) {
+                    const errorMsg = `${currentGifApiConfig.label} API key is missing or invalid for category search. Please configure it in Advanced Settings.`;
+                    setSearchError(errorMsg);
+                    useAppStore.getState().actions.addNotification({ type: 'error', message: errorMsg });
+                    setGifLoading(false);
+                    return;
+                }
+            }
             if (gifApi === 'giphy') {
                 const gfInstance = new GiphyFetch(getGiphyApiKey());
                 const searchType = searchFilters.contentType === 'stickers' ? 'stickers' : 'gifs';
@@ -1115,8 +1162,11 @@ const StreamingAssetsTab = React.memo(() => {
                 })));
                 setTotalResults(data.next || results.length);
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Category search error:', err);
+            const errorMsg = `Error searching category ${cat.name} from ${gifApi}: ${err.message || 'Unknown error'}`;
+            setSearchError(errorMsg);
+            useAppStore.getState().actions.addNotification({ type: 'error', message: errorMsg });
         }
         setGifLoading(false);
     };
@@ -1131,20 +1181,43 @@ const StreamingAssetsTab = React.memo(() => {
         setSvgPage(0);
         
         try {
+            const currentSvgApiConfig = svgApiConfigs[svgApi as keyof typeof svgApiConfigs];
+            if (currentSvgApiConfig?.requiresKey) {
+                const key = currentSvgApiConfig.keyGetter();
+                 if (!key || key.includes('your_') || key.includes('_here')) {
+                    const errorMsg = `${currentSvgApiConfig.label} API key is missing or invalid. Please configure it in Advanced Settings.`;
+                    setSearchError(errorMsg);
+                    useAppStore.getState().actions.addNotification({ type: 'error', message: errorMsg });
+                    setSvgLoading(false);
+                    return;
+                }
+            }
+
             const limit = 48;
             if (svgApi === 'iconfinder') {
-                // Use local proxy for Iconfinder API
+                const apiKey = getIconfinderApiKey(); // Use the getter
+                if (!apiKey || apiKey.includes('your_')) {
+                     const errorMsg = `Iconfinder API key is missing or invalid. Please configure it in Advanced Settings.`;
+                    setSearchError(errorMsg);
+                    useAppStore.getState().actions.addNotification({ type: 'error', message: errorMsg });
+                    setSvgLoading(false);
+                    return;
+                }
                 const params = new URLSearchParams({
-                    api: 'iconfinder',
+                    api: 'iconfinder', // This tells proxy.cjs which config to use
                     query: svgQuery,
                     count: String(limit),
-                    premium: '0',
-                    vector: '1',
-                    license: 'none',
+                    // premium: '0', // These might be specific to direct API call, proxy handles defaults
+                    // vector: '1',
+                    // license: 'none',
                 });
-                const url = `/api/proxy?${params.toString()}`;
+                // The /api/proxy endpoint will use the ICONFINDER_API_KEY from .env on the server-side
+                const url = `/.netlify/functions/proxy?${params.toString()}`;
                 const res = await fetch(url);
-                if (!res.ok) throw new Error('Iconfinder API error');
+                if (!res.ok) {
+                     const errorData = await res.json().catch(() => ({ details: 'Failed to parse error from Iconfinder proxy' }));
+                    throw new Error(errorData.details || `Iconfinder API error: ${res.status}`);
+                }
                 const data = await res.json();
                 // Map icons to add svg_url from vector_sizes
                 const icons = (data.icons || []).map((icon: any) => {
@@ -1178,11 +1251,14 @@ const StreamingAssetsTab = React.memo(() => {
                     setSvgResults((await Promise.all(svgFetches)).filter(r => r) as SvgResult[]);
                 }
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('SVG fetch error:', err);
+            const errorMsg = `Error fetching SVGs from ${svgApi}: ${err.message || 'Unknown error'}`;
+            setSearchError(errorMsg);
+            useAppStore.getState().actions.addNotification({ type: 'error', message: errorMsg });
         }
         setSvgLoading(false);
-    }, [svgApi, svgQuery]);
+    }, [svgApi, svgQuery, svgApiConfigs]); // Added svgApiConfigs
 
     const handleEmojiSearch = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
@@ -1197,26 +1273,49 @@ const StreamingAssetsTab = React.memo(() => {
         try {
             let results: EmojiResult[] = [];
             const query = emojiQuery.toLowerCase();
-            if (emojiApi === 'emojihub') {
-                const res = await fetch('https://emojihub.yurace.pro/api/all');
-                if (res.ok) {
-                    results = (await res.json()).filter((emoji: any) =>
-                        emoji.name.toLowerCase().includes(query) ||
-                        emoji.category.toLowerCase().includes(query) ||
-                        emoji.group.toLowerCase().includes(query)
-                    );
+
+            const currentEmojiApiConfig = emojiApiConfigs[emojiApi as keyof typeof emojiApiConfigs];
+            if (currentEmojiApiConfig?.requiresKey) {
+                const key = currentEmojiApiConfig.keyGetter ? currentEmojiApiConfig.keyGetter() : '';
+                 if (!key || key.includes('your_') || key.includes('_here')) {
+                    const errorMsg = `${currentEmojiApiConfig.label} API key is missing or invalid. Please configure it in Advanced Settings.`;
+                    setSearchError(errorMsg);
+                    useAppStore.getState().actions.addNotification({ type: 'error', message: errorMsg });
+                    setEmojiLoading(false);
+                    return;
                 }
-            } else if (emojiApi === 'openemoji') {
-                const apiKey = '99e3ed8c1216ba115deec7b4d46dd5bca5ef1a6b';
+            }
+
+            if (emojiApi === 'emojihub') { // Example: No key needed
+                const res = await fetch('https://emojihub.yurace.pro/api/all');
+                if (!res.ok) throw new Error(`EmojiHub API error: ${res.status}`);
+                results = (await res.json()).filter((emoji: any) =>
+                    emoji.name.toLowerCase().includes(query) ||
+                    emoji.category.toLowerCase().includes(query) ||
+                    emoji.group.toLowerCase().includes(query)
+                );
+            } else if (emojiApi === 'openemoji') { // Example: Needs a key
+                const apiKey = getOpenEmojiApiKey(); // Use a getter
+                 if (!apiKey || apiKey.includes('your_')) {
+                    const errorMsg = `OpenEmoji API key is missing or invalid. Please configure it.`;
+                    setSearchError(errorMsg);
+                    useAppStore.getState().actions.addNotification({ type: 'error', message: errorMsg });
+                    setEmojiLoading(false);
+                    return;
+                }
                 const res = await fetch(`https://emoji-api.com/emojis?search=${encodeURIComponent(query)}&access_key=${apiKey}`);
-                if (res.ok) results = await res.json();
+                if (!res.ok) throw new Error(`OpenEmoji API error: ${res.status}`);
+                results = await res.json();
             }
             setEmojiResults(results.slice(0, 48));
-        } catch (err) {
+        } catch (err: any) {
             console.error('Emoji fetch error:', err);
+            const errorMsg = `Error fetching Emojis from ${emojiApi}: ${err.message || 'Unknown error'}`;
+            setSearchError(errorMsg);
+            useAppStore.getState().actions.addNotification({ type: 'error', message: errorMsg });
         }
         setEmojiLoading(false);
-    }, [emojiApi, emojiQuery]);
+    }, [emojiApi, emojiQuery, emojiApiConfigs]); // Added emojiApiConfigs
 
     const showFeedback = (message: string) => {
         setFeedbackMessage(message);
@@ -1344,7 +1443,7 @@ const StreamingAssetsTab = React.memo(() => {
     ) => (
         <Card
             className={
-                `glass-card shadow rounded-lg transition-all duration-200 p-0 ${openCards[cardKey] ? 'ring-2 ring-accent/40 scale-[1.01]' : 'hover:scale-[1.01] hover:shadow-md'}`
+                `w-full glass-card shadow rounded-lg transition-all duration-200 p-0 ${openCards[cardKey] ? 'ring-2 ring-accent/40 scale-[1.01]' : 'hover:scale-[1.01] hover:shadow-md'}`
             }
         >
             <button

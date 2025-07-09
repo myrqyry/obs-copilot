@@ -130,7 +130,7 @@ const storeActions = useAppStore(state => state.actions);
                   aria-label="Open chat bubble fill settings"
                   onClick={() => setShowBubbleSettingsModal(true)}
                 >
-                  <CogIcon className="w-5 h-5 text-accent" />
+                  <CogIcon className="w-5 h-5" style={{ color: accentColor }} />
                 </button>
               </div>
             </div>
@@ -325,7 +325,7 @@ const storeActions = useAppStore(state => state.actions);
                 aria-label="Open chat background settings"
                 onClick={() => setShowBgSettingsModal(true)}
               >
-                <CogIcon className="w-5 h-5 text-accent" />
+                <CogIcon className="w-5 h-5" style={{ color: accentColor }} />
               </button>
             </div>
 

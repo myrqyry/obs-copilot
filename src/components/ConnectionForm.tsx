@@ -177,7 +177,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
         onToggle={() => setObsExpanded(!obsExpanded)}
         accentColor={accentColor}
         domain="obsproject.com"
-        className="relative group"
+        className="relative group w-full"
       >
         <CardContent className="px-2 sm:px-3 pb-2 sm:pb-3 pt-1 sm:pt-2">
           <div className="absolute top-1 right-1 sm:right-2 opacity-50 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 z-10 flex items-center gap-1">
@@ -318,7 +318,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
         onToggle={() => setStreamerBotExpanded(!streamerBotExpanded)}
         accentColor={accentColor}
         domain="streamer.bot"
-        className="relative group"
+        className="relative group w-full"
       >
         <CardContent className="px-2 sm:px-3 pb-2 sm:pb-3 pt-1 sm:pt-2">
           <div className="absolute top-1 right-1 sm:right-2 opacity-50 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 z-10 flex items-center gap-1">
@@ -371,7 +371,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
         onToggle={() => setGeminiExpanded(!geminiExpanded)}
         accentColor={accentColor}
         domain="gemini.google.com"
-        className="relative group"
+        className="relative group w-full"
       >
         <CardContent className="px-2 sm:px-3 pb-2 sm:pb-3 pt-1 sm:pt-2 space-y-2 sm:space-y-3">
           <div className="absolute top-1 right-1 sm:right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
