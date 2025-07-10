@@ -97,11 +97,11 @@ const App: React.FC = () => {
     // Update CSS custom properties when theme changes
     useEffect(() => {
         // Set the data attribute for extra dark mode CSS selectors
-        document.documentElement.setAttribute('data-extra-dark-mode', extraDarkMode.toString());
+        document.documentElement.setAttribute('data-extra-dark-mode', extraDarkModeFromStore.toString());
 
         // Adjust colors for extra dark mode
         const adjustForExtraDarkMode = (rgb: string): string => {
-            if (!extraDarkMode) return rgb;
+            if (!extraDarkModeFromStore) return rgb;
             const [r, g, b] = rgb.split(',').map(Number);
             return `${Math.max(r - 50, 0)}, ${Math.max(g - 50, 0)}, ${Math.max(b - 50, 0)}`;
         };
@@ -129,9 +129,9 @@ const App: React.FC = () => {
         document.documentElement.style.setProperty('--user-chat-bubble-color-rgb', adjustForExtraDarkMode(hexToRgb(catppuccinChatBubbleColorsHexMap[theme.userChatBubble])));
         document.documentElement.style.setProperty('--model-chat-bubble-color-rgb', adjustForExtraDarkMode(hexToRgb(catppuccinChatBubbleColorsHexMap[theme.modelChatBubble])));
         document.documentElement.style.setProperty('--dynamic-secondary-accent-rgb', adjustForExtraDarkMode(hexToRgb(catppuccinSecondaryAccentColorsHexMap[theme.secondaryAccent])));
-    }, [theme.accent, theme.secondaryAccent, theme.userChatBubble, theme.modelChatBubble, extraDarkMode]);
+    }, [theme.accent, theme.secondaryAccent, theme.userChatBubble, theme.modelChatBubble, extraDarkModeFromStore]); // Changed extraDarkMode to extraDarkModeFromStore
 
-    const { extraDarkMode: extraDarkModeFromStore } = useAppStore((state: AppState) => state.userSettings);
+    // const { extraDarkMode: extraDarkModeFromStore } = useAppStore((state: AppState) => state.userSettings); // Removed duplicate
 
     useEffect(() => {
         if (headerRef.current) {
