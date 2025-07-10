@@ -406,7 +406,8 @@ const allApiRoutesForOptions = [
     // '/api/proxy', // Removed as it's deprecated by path-based routes
     '/api/favicon',
     '/api/iconfinder/svg',
-    '/api/gemini',
+    '/api/gemini/generate-content',
+    '/api/gemini/generate-image',
     '/api/obs/:action',
     '/api/streamerbot/:action',
     '/api/image',
@@ -421,30 +422,80 @@ app.options(allApiRoutesForOptions, (req, res) => {
 
 
 // Proxy Gemini API
-app.post('/api/gemini', async (req, res) => {
+app.post('/api/gemini/generate-content', async (req, res) => {
     const geminiApiKey = process.env.GEMINI_API_KEY;
     if (!geminiApiKey) {
         return res.status(500).json({ error: 'Gemini API key not set in server environment (GEMINI_API_KEY).' });
     }
-    const url = 'https://generativelanguage.googleapis.com/v1beta/models/' +
-        req.query.model +
-        ':generateContent?key=' + geminiApiKey;
+
+    // Determine model from request body or a default
+    const model = req.body.model || 'gemini-pro'; // Assuming model might be in body, else default
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
+
     try {
+        // The client sends { prompt, history }, proxy.cjs was already sending req.body
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(req.body),
+            body: JSON.stringify(req.body), // Forwarding { prompt, history }
         });
         const data = await response.json();
-        if (data.error) { // Gemini API often returns errors in a JSON body with a 200 status
-            console.error("Gemini API Error (in 200 response):", data.error);
+        if (data.error) {
+            console.error("Gemini API Error (generate-content):", data.error);
             return res.status(400).json({ error: "Gemini API Error", details: data.error.message || JSON.stringify(data.error) });
         }
         res.json(data);
     } catch (err) {
-        console.error("Gemini Proxy Fetch Error:", err);
-        res.status(500).json({ error: 'Failed to fetch from Gemini', details: err.message });
+        console.error("Gemini Proxy Fetch Error (generate-content):", err);
+        res.status(500).json({ error: 'Failed to fetch from Gemini (generate-content)', details: err.message });
     }
+});
+
+app.post('/api/gemini/generate-image', async (req, res) => {
+    const geminiApiKey = process.env.GEMINI_API_KEY;
+    if (!geminiApiKey) {
+        return res.status(500).json({ error: 'Gemini API key not set for image generation.' });
+    }
+
+    // Placeholder: Actual image generation API endpoint and request structure for Gemini (or other service)
+    // would need to be determined. This assumes a hypothetical endpoint or a model that handles image prompts.
+    // For this example, we'll assume it's a different model or a specific API call.
+    // This part would need to be updated with actual Gemini image generation API details.
+    const imageModel = req.body.model || 'gemini-pro-vision'; // Example, might be different
+    // const imageUrl = `https://generativelanguage.googleapis.com/v1beta/models/${imageModel}:generateImage?key=${geminiApiKey}`;
+    console.log(`[Proxy /api/gemini/generate-image] Called with body:`, req.body);
+    // Since the actual Google Gemini API for direct image generation from text like this is typically part of multimodal models
+    // or might have a different request structure, we'll return a placeholder or error for now.
+    // If using a specific image generation model via Vertex AI or other Google Cloud services, the URL and body would change.
+
+    // For now, let's simulate an error or a not implemented response,
+    // as the original proxy didn't have image generation logic.
+    // If you have a specific image generation endpoint for Gemini, replace this.
+    console.warn("/api/gemini/generate-image is a placeholder and not fully implemented for actual image generation with Gemini API in this proxy version.");
+    res.status(501).json({ 
+        error: 'Not Implemented', 
+        message: 'Gemini image generation endpoint is not fully configured in the proxy.',
+        details: 'The proxy needs to be updated with the correct Google API for image generation if available directly or via a specific model.'
+    });
+    // Example of how it might look if there was a direct API (this is hypothetical):
+    /*
+    try {
+        const response = await fetch(imageUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: req.body.prompt }), // Assuming body has a prompt for image
+        });
+        const data = await response.json();
+        if (data.error) {
+            console.error("Gemini API Error (generate-image):", data.error);
+            return res.status(400).json({ error: "Gemini API Error", details: data.error.message || JSON.stringify(data.error) });
+        }
+        res.json(data); // data should contain imageUrl
+    } catch (err) {
+        console.error("Gemini Proxy Fetch Error (generate-image):", err);
+        res.status(500).json({ error: 'Failed to fetch from Gemini (generate-image)', details: err.message });
+    }
+    */
 });
 
 // Proxy OBS WebSocket API (example: for HTTP endpoints, not WebSocket)
