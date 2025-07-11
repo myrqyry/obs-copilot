@@ -2,6 +2,7 @@
 import * as React from "react";
 import { useRef, useState } from "react";
 import { removeBackground } from "@imgly/background-removal";
+import { useToast } from "@/components/ui/use-toast";
 import { Modal } from "./common/Modal";
 import Tooltip from "./ui/Tooltip";
 

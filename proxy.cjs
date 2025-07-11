@@ -229,14 +229,27 @@ app.get('/api/iconfinder/svg', async (req, res) => {
         res.status(400).json({ error: 'Invalid or missing SVG url' });
         return;
     }
-    const apiKey = process.env.ICONFINDER_API_KEY || process.env.VITE_ICONFINDER_API_KEY;
-    if (!apiKey) {
-        res.status(500).json({ error: 'Iconfinder API key not set in server env (ICONFINDER_API_KEY)' });
+
+    const clientApiKey = req.headers['x-api-key'];
+    const serverApiKey = process.env.ICONFINDER_API_KEY; // Primary server-side key
+    // VITE_ICONFINDER_API_KEY was a fallback, but client should send override if it has one from VITE_ var.
+    const apiKeyToUse = clientApiKey || serverApiKey;
+
+    if (!apiKeyToUse) {
+        console.log(`[Proxy Iconfinder SVG] No API key available.`);
+        res.status(500).json({ error: 'Iconfinder API key not set in server env (ICONFINDER_API_KEY) and no override provided.' });
         return;
     }
+
+    if (clientApiKey) {
+        console.log(`[Proxy Iconfinder SVG] Using client-provided API key.`);
+    } else {
+        console.log(`[Proxy Iconfinder SVG] Using server default API key.`);
+    }
+
     try {
         const response = await fetch(svgUrl, {
-            headers: { Authorization: `Bearer ${apiKey}` }
+            headers: { Authorization: `Bearer ${apiKeyToUse}` }
         });
         if (!response.ok) {
             const errText = await response.text();
@@ -376,22 +389,41 @@ app.get(pathBasedApiRoutes, async (req, res) => {
       return res.status(400).json({ error: `Unknown API endpoint: ${req.path}` });
     }
 
-    let apiKey = req.query[apiConfig.apiKey?.queryParam] || null; // Check query first
-    if (!apiKey && apiConfig.apiKey?.envVars) { // Then check environment variables
-        for (const envVar of apiConfig.apiKey.envVars) {
-            if (process.env[envVar]) {
-                apiKey = process.env[envVar];
-                break;
+    // Prioritize X-Api-Key header from client for overrides
+    let apiKeyToUse = req.headers['x-api-key'];
+
+    if (!apiKeyToUse) {
+        // If no client override, try query parameter (some APIs might use this, though header is preferred)
+        apiKeyToUse = req.query[apiConfig.apiKey?.queryParam] || null;
+        if (!apiKeyToUse && apiConfig.apiKey?.envVars) { // Then check server environment variables
+            for (const envVar of apiConfig.apiKey.envVars) {
+                if (process.env[envVar]) {
+                    apiKeyToUse = process.env[envVar];
+                    break;
+                }
             }
         }
     }
 
-    if (apiConfig.requiresKey && !apiKey) {
-        return res.status(500).json({ error: `${apiConfig.label || apiType} API key not provided.` });
+    if (apiConfig.requiresKey && !apiKeyToUse) {
+        console.log(`[Proxy ${apiType || 'Generic'}] API key required but none available (checked client override, query params, server env).`);
+        return res.status(500).json({ error: `${apiConfig.label || apiType} API key not provided by client or server environment.` });
+    }
+
+    if (req.headers['x-api-key']) {
+        console.log(`[Proxy ${apiType || 'Generic'}] Using client-provided API key for ${apiConfig.label}.`);
+    } else if (apiKeyToUse) { // Indicates it came from query or server env
+        console.log(`[Proxy ${apiType || 'Generic'}] Using server default or query param API key for ${apiConfig.label}.`);
+    } else if (apiConfig.requiresKey) {
+        // This case should ideally be caught by the check above
+        console.log(`[Proxy ${apiType || 'Generic'}] No API key available for ${apiConfig.label}, but one is required.`);
+    } else {
+        console.log(`[Proxy ${apiType || 'Generic'}] No API key needed or provided for ${apiConfig.label}.`);
     }
 
     try {
-        const results = await fetchFromApiHost(apiConfig, req.query, apiKey);
+        // Pass the determined apiKeyToUse to fetchFromApiHost
+        const results = await fetchFromApiHost(apiConfig, req.query, apiKeyToUse);
         res.set('Access-Control-Allow-Origin', '*');
         return res.json(results); // fetchFromApiHost returns the full data structure as API provides it
     } catch (err) {
@@ -406,7 +438,8 @@ const allApiRoutesForOptions = [
     // '/api/proxy', // Removed as it's deprecated by path-based routes
     '/api/favicon',
     '/api/iconfinder/svg',
-    '/api/gemini',
+    '/api/gemini/generate-content',
+    '/api/gemini/generate-image',
     '/api/obs/:action',
     '/api/streamerbot/:action',
     '/api/image',
@@ -421,30 +454,102 @@ app.options(allApiRoutesForOptions, (req, res) => {
 
 
 // Proxy Gemini API
-app.post('/api/gemini', async (req, res) => {
-    const geminiApiKey = process.env.GEMINI_API_KEY;
-    if (!geminiApiKey) {
-        return res.status(500).json({ error: 'Gemini API key not set in server environment (GEMINI_API_KEY).' });
+app.post('/api/gemini/generate-content', async (req, res) => {
+    const clientApiKey = req.headers['x-api-key'];
+    const serverApiKey = process.env.GEMINI_API_KEY;
+    const apiKeyToUse = clientApiKey || serverApiKey;
+
+    if (!apiKeyToUse) {
+        return res.status(500).json({ error: 'Gemini API key not set in server environment (GEMINI_API_KEY) and no override provided.' });
     }
-    const url = 'https://generativelanguage.googleapis.com/v1beta/models/' +
-        req.query.model +
-        ':generateContent?key=' + geminiApiKey;
+
+    // Determine model from request body or a default
+    const model = req.body.model || 'gemini-pro'; // Assuming model might be in body, else default
+
+    if (clientApiKey) {
+        console.log(`[Proxy Gemini Content] Using client-provided API key.`);
+    } else if (serverApiKey) {
+        console.log(`[Proxy Gemini Content] Using server default API key.`);
+    } else {
+        console.log(`[Proxy Gemini Content] No API key available.`);
+    }
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKeyToUse}`;
+
     try {
+        // The client sends { prompt, history }
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(req.body),
+            body: JSON.stringify(req.body), // Forwarding { prompt, history }
         });
         const data = await response.json();
-        if (data.error) { // Gemini API often returns errors in a JSON body with a 200 status
-            console.error("Gemini API Error (in 200 response):", data.error);
+        if (data.error) {
+            console.error("Gemini API Error (generate-content):", data.error);
             return res.status(400).json({ error: "Gemini API Error", details: data.error.message || JSON.stringify(data.error) });
         }
         res.json(data);
     } catch (err) {
-        console.error("Gemini Proxy Fetch Error:", err);
-        res.status(500).json({ error: 'Failed to fetch from Gemini', details: err.message });
+        console.error("Gemini Proxy Fetch Error (generate-content):", err);
+        res.status(500).json({ error: 'Failed to fetch from Gemini (generate-content)', details: err.message });
     }
+});
+
+app.post('/api/gemini/generate-image', async (req, res) => {
+    const clientApiKey = req.headers['x-api-key'];
+    const serverApiKey = process.env.GEMINI_API_KEY;
+    const apiKeyToUse = clientApiKey || serverApiKey;
+
+    if (!apiKeyToUse) {
+        return res.status(500).json({ error: 'Gemini API key not set for image generation and no override provided.' });
+    }
+
+    // Placeholder: Actual image generation API endpoint and request structure for Gemini (or other service)
+    // When implementing, ensure `apiKeyToUse` is used for the actual API call.
+    if (clientApiKey) {
+        console.log(`[Proxy Gemini Image] Using client-provided API key.`);
+    } else if (serverApiKey) {
+        console.log(`[Proxy Gemini Image] Using server default API key.`);
+    } else {
+        console.log(`[Proxy Gemini Image] No API key available.`);
+    }
+    // would need to be determined. This assumes a hypothetical endpoint or a model that handles image prompts.
+    // For this example, we'll assume it's a different model or a specific API call.
+    // This part would need to be updated with actual Gemini image generation API details.
+    const imageModel = req.body.model || 'gemini-pro-vision'; // Example, might be different
+    // const imageUrl = `https://generativelanguage.googleapis.com/v1beta/models/${imageModel}:generateImage?key=${geminiApiKey}`;
+    console.log(`[Proxy /api/gemini/generate-image] Called with body:`, req.body);
+    // Since the actual Google Gemini API for direct image generation from text like this is typically part of multimodal models
+    // or might have a different request structure, we'll return a placeholder or error for now.
+    // If using a specific image generation model via Vertex AI or other Google Cloud services, the URL and body would change.
+
+    // For now, let's simulate an error or a not implemented response,
+    // as the original proxy didn't have image generation logic.
+    // If you have a specific image generation endpoint for Gemini, replace this.
+    console.warn("/api/gemini/generate-image is a placeholder and not fully implemented for actual image generation with Gemini API in this proxy version.");
+    res.status(501).json({
+        error: 'Not Implemented',
+        message: 'Gemini image generation endpoint is not fully configured in the proxy.',
+        details: 'The proxy needs to be updated with the correct Google API for image generation if available directly or via a specific model.'
+    });
+    // Example of how it might look if there was a direct API (this is hypothetical):
+    /*
+    try {
+        const response = await fetch(imageUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: req.body.prompt }), // Assuming body has a prompt for image
+        });
+        const data = await response.json();
+        if (data.error) {
+            console.error("Gemini API Error (generate-image):", data.error);
+            return res.status(400).json({ error: "Gemini API Error", details: data.error.message || JSON.stringify(data.error) });
+        }
+        res.json(data); // data should contain imageUrl
+    } catch (err) {
+        console.error("Gemini Proxy Fetch Error (generate-image):", err);
+        res.status(500).json({ error: 'Failed to fetch from Gemini (generate-image)', details: err.message });
+    }
+    */
 });
 
 // Proxy OBS WebSocket API (example: for HTTP endpoints, not WebSocket)
@@ -525,15 +630,30 @@ app.get('/api/image', async (req, res) => {
 });
 
 app.post('/api/chutes', async (req, res) => {
-    const apiToken = process.env.CHUTES_API_TOKEN || process.env.VITE_CHUTES_API_TOKEN;
-    if (!apiToken) {
-        return res.status(500).json({ error: 'Chute API token not set in environment (CHUTES_API_TOKEN).' });
+    const clientApiKey = req.headers['x-api-key'];
+    // For Chutes, the proxy.cjs used to check CHUTES_API_TOKEN then VITE_CHUTES_API_TOKEN.
+    // We'll simplify: client key, then proxy's CHUTES_API_TOKEN.
+    const serverApiKey = process.env.CHUTES_API_TOKEN;
+    const apiKeyToUse = clientApiKey || serverApiKey;
+
+    if (!apiKeyToUse) {
+        return res.status(500).json({ error: 'Chute API token not set in server environment (CHUTES_API_TOKEN) and no override provided.' });
     }
+
+    if (clientApiKey) {
+        console.log(`[Proxy Chutes] Using client-provided API key.`);
+    } else if (serverApiKey) {
+        console.log(`[Proxy Chutes] Using server default API key.`);
+    } else {
+        // This case should be caught by !apiKeyToUse above, but for completeness:
+        console.log(`[Proxy Chutes] No API key available.`);
+    }
+
     try {
         const response = await fetch('https://chutes-flux-1-dev.chutes.ai/generate', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${apiToken}`,
+                'Authorization': `Bearer ${apiKeyToUse}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(req.body)

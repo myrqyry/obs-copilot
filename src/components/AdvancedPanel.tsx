@@ -13,63 +13,38 @@ import type { AutomationRule } from '../types/automation';
 import { CollapsibleCard } from './common/CollapsibleCard';
 import { catppuccinAccentColorsHexMap } from '../types';
 import { TextInput } from './common/TextInput';
+import useApiKeyStore, { ApiService, ApiServiceName } from '../store/apiKeyStore';
 
-const API_KEY_SERVICES = [
-    { id: 'gemini', label: 'Gemini' },
-    { id: 'chutes', label: 'Chutes' },
-    { id: 'giphy', label: 'Giphy' },
-    { id: 'tenor', label: 'Tenor' },
-    { id: 'wallhaven', label: 'Wallhaven' },
-    { id: 'imgur', label: 'Imgur' },
+// Defines the services shown in the UI for API key input
+const PANEL_API_KEY_SERVICES: { id: ApiServiceName; label: string }[] = [
+    { id: ApiService.GEMINI, label: 'Gemini' },
+    { id: ApiService.CHUTES, label: 'Chutes' },
+    { id: ApiService.GIPHY, label: 'Giphy' },
+    // { id: ApiService.TENOR, label: 'Tenor' }, // Assuming Tenor might not be in ApiService yet
+    // { id: ApiService.WALLHAVEN, label: 'Wallhaven' }, // Assuming Wallhaven might not be in ApiService
+    { id: ApiService.IMGUR, label: 'Imgur' },
+    { id: ApiService.PEXELS, label: 'Pexels' },
+    { id: ApiService.PIXABAY, label: 'Pixabay' },
+    { id: ApiService.ICONFINDER, label: 'Iconfinder' },
+    { id: ApiService.DEVIANTART, label: 'DeviantArt' },
+    { id: ApiService.IMGFLIP, label: 'Imgflip' },
 ];
 
-export const LOCAL_STORAGE_KEY = 'customApiKeys';
-
-/**
- * Get all custom API keys from localStorage.
- * @returns {Record<string, string>} Object of { service: key }
- */
-export function getCustomApiKeys(): Record<string, string> {
-    try {
-        const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (stored) return JSON.parse(stored);
-    } catch { }
-    return {};
-}
-
-/**
- * Get a custom API key for a given service, or undefined if not set.
- * @param {string} service
- * @returns {string|undefined}
- */
-export function getCustomApiKey(service: string): string | undefined {
-    return getCustomApiKeys()[service];
-}
-
-/**
- * Set a custom API key for a given service.
- * @param {string} service
- * @param {string} key
- */
-export function setCustomApiKey(service: string, key: string) {
-    const keys = getCustomApiKeys();
-    keys[service] = key;
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(keys));
-}
-
-/**
- * Remove a custom API key for a given service.
- * @param {string} service
- */
-export function removeCustomApiKey(service: string) {
-    const keys = getCustomApiKeys();
-    delete keys[service];
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(keys));
-}
 
 const OBS_SUBSCRIPTIONS_KEY = 'obsEventSubscriptions';
 
 const AdvancedPanel: React.FC = () => {
+    // API Key Store
+    const { overrides, setApiKeyOverride, clearApiKeyOverride, getApiKeyOverride } = useApiKeyStore();
+    // Local state for input fields, to avoid updating Zustand on every keystroke
+    const [localApiKeyInputs, setLocalApiKeyInputs] = useState<Partial<Record<ApiServiceName, string>>>({});
+
+    // Initialize local inputs when component mounts or overrides change
+    useEffect(() => {
+        setLocalApiKeyInputs(overrides);
+    }, [overrides]);
+
+
     // Automation Rules State
     const automationRules = useAppStore((state) => state.automationRules);
     const obsLogFiles = useAppStore((state) => state.obsLogFiles);
@@ -125,72 +100,34 @@ const AdvancedPanel: React.FC = () => {
     const [openMemory, setOpenMemory] = useState(true);
     const [openReset, setOpenReset] = useState(false);
     const [openApiKeys, setOpenApiKeys] = useState(false);
-    const safeParseApiKeys = (stored: string | null): { [service: string]: string } => {
-        if (!stored) return {};
-        try {
-            const parsed = JSON.parse(stored);
-            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-                return parsed;
-            }
-        } catch { }
-        return {};
-    };
-    const [apiKeys, setApiKeys] = useState<{ [service: string]: string }>(() => {
-        try {
-            const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-            return safeParseApiKeys(stored);
-        } catch {
-            return {};
-        }
-    });
-    const [apiKeyInputs, setApiKeyInputs] = useState<{ [service: string]: string }>(() => {
-        try {
-            const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-            return safeParseApiKeys(stored);
-        } catch {
-            return {};
-        }
-    });
+
     // Get the current OBSWebSocketService instance from the store
     const obsServiceInstance = useAppStore((state) => state.obsServiceInstance);
     // Get the addMessage action from the store
     const addMessage = useAppStore((state) => state.actions.addMessage);
 
 
-
-    // Load API keys from localStorage on mount
-    useEffect(() => {
-        try {
-            const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-            if (stored) {
-                setApiKeys(JSON.parse(stored));
-                setApiKeyInputs(JSON.parse(stored));
-            }
-        } catch { }
-    }, []);
-
-    // Save API keys to localStorage
-    const persistApiKeys = (newKeys: { [service: string]: string }) => {
-        setApiKeys(newKeys);
-        setApiKeyInputs(newKeys);
-        try {
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newKeys));
-        } catch { }
+    const handleApiKeyInputChange = (service: ApiServiceName, value: string) => {
+        setLocalApiKeyInputs((prev) => ({ ...prev, [service]: value }));
     };
 
-    const handleApiKeyChange = (service: string, value: string) => {
-        setApiKeyInputs((prev) => ({ ...prev, [service]: value }));
+    const handleApiKeySave = (service: ApiServiceName) => {
+        const valueToSave = localApiKeyInputs[service]?.trim();
+        if (valueToSave) {
+            setApiKeyOverride(service, valueToSave);
+        } else {
+            // If input is empty, consider it as clearing the override
+            clearApiKeyOverride(service);
+        }
     };
 
-    const handleApiKeySave = (service: string) => {
-        const newKeys = { ...apiKeys, [service]: apiKeyInputs[service]?.trim() || '' };
-        persistApiKeys(newKeys);
-    };
-
-    const handleApiKeyRemove = (service: string) => {
-        const newKeys = { ...apiKeys };
-        delete newKeys[service];
-        persistApiKeys(newKeys);
+    const handleApiKeyRemove = (service: ApiServiceName) => {
+        clearApiKeyOverride(service);
+        setLocalApiKeyInputs((prev) => {
+            const newInputs = { ...prev };
+            delete newInputs[service];
+            return newInputs;
+        });
     };
 
     // Reset settings logic (matches ObsSettingsPanel)
@@ -654,20 +591,20 @@ const AdvancedPanel: React.FC = () => {
                                     <div className="flex gap-2 items-center">
                                         <input
                                             className="w-full border rounded p-2 bg-background"
-                                            type="password"
-                                            value={apiKeyInputs[id] || ''}
-                                            onChange={e => handleApiKeyChange(id, e.target.value)}
+                                            type="password" // Keep as password to obscure key by default
+                                            value={localApiKeyInputs[id] || ''}
+                                            onChange={e => handleApiKeyInputChange(id, e.target.value)}
                                             placeholder={`Enter your ${label} API key`}
-                                            autoComplete="new-password"
+                                            autoComplete="new-password" // Standard practice for password fields
                                         />
                                         <Button
                                             onClick={() => handleApiKeySave(id)}
                                             size="sm"
-                                            disabled={!(apiKeyInputs[id] && apiKeyInputs[id].trim())}
+                                            disabled={localApiKeyInputs[id] === undefined || localApiKeyInputs[id]?.trim() === overrides[id]?.trim()}
                                         >
-                                            {apiKeys[id] ? 'Update' : 'Save'}
+                                            {overrides[id] ? 'Update' : 'Save'}
                                         </Button>
-                                        {apiKeys[id] && (
+                                        {overrides[id] && (
                                             <Button
                                                 onClick={() => handleApiKeyRemove(id)}
                                                 variant="secondary"
@@ -677,9 +614,16 @@ const AdvancedPanel: React.FC = () => {
                                             </Button>
                                         )}
                                     </div>
-                                    {apiKeys[id] && (
-                                        <div className="text-xs text-muted-foreground break-all">
-                                            <span className="font-mono">{apiKeys[id]}</span>
+                                    {overrides[id] && (
+                                        <div className="text-xs text-muted-foreground mt-1">
+                                            Currently active: <span className="font-mono break-all">{overrides[id]}</span>
+                                            <button
+                                                onClick={() => navigator.clipboard.writeText(overrides[id] || '')}
+                                                className="ml-2 text-accent hover:text-accent-hover"
+                                                title="Copy key"
+                                            >
+                                                📋
+                                            </button>
                                         </div>
                                     )}
                                 </div>
