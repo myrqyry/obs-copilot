@@ -84,6 +84,85 @@ const getImgflipApiKey = () => getCustomApiKey('imgflip') || import.meta.env.VIT
 const getUnsplashApiKey = () => getCustomApiKey('unsplash') || import.meta.env.VITE_UNSPLASH_API_KEY || '';
 const getPexelsApiKey = () => getCustomApiKey('pexels') || import.meta.env.VITE_PEXELS_API_KEY || '';
 const getPixabayApiKey = () => getCustomApiKey('pixabay') || import.meta.env.VITE_PIXABAY_API_KEY || '';
+const getIconfinderApiKey = () => getCustomApiKey('iconfinder') || import.meta.env.VITE_ICONFINDER_API_KEY || '';
+const getOpenEmojiApiKey = () => getCustomApiKey('openemoji') || import.meta.env.VITE_OPENEMOJI_API_KEY || '';
+
+// API configurations for validation
+const gifApiConfigs = {
+    giphy: { requiresKey: true, keyGetter: getGiphyApiKey, label: 'Giphy' },
+    tenor: { requiresKey: true, keyGetter: getTenorApiKey, label: 'Tenor' },
+    imgflip: { requiresKey: false, keyGetter: getImgflipApiKey, label: 'Imgflip' },
+    reddit: { requiresKey: false, keyGetter: () => '', label: 'Reddit' },
+    imgur: { requiresKey: true, keyGetter: () => getCustomApiKey('imgur') || import.meta.env.VITE_IMGUR_API_KEY || '', label: 'Imgur' }
+};
+
+const svgApiConfigs = {
+    iconfinder: { requiresKey: true, keyGetter: getIconfinderApiKey, label: 'Iconfinder' },
+    iconify: { requiresKey: false, keyGetter: () => '', label: 'Iconify' },
+    feather: { requiresKey: false, keyGetter: () => '', label: 'Feather Icons' },
+    heroicons: { requiresKey: false, keyGetter: () => '', label: 'Heroicons' },
+    lucide: { requiresKey: false, keyGetter: () => '', label: 'Lucide' },
+    tabler: { requiresKey: false, keyGetter: () => '', label: 'Tabler Icons' },
+    bootstrap: { requiresKey: false, keyGetter: () => '', label: 'Bootstrap Icons' },
+    fontawesome: { requiresKey: false, keyGetter: () => '', label: 'Font Awesome' }
+};
+
+const emojiApiConfigs = {
+    'emoji-api': { requiresKey: false, keyGetter: () => '', label: 'Emoji API' },
+    emojihub: { requiresKey: false, keyGetter: () => '', label: 'EmojiHub' },
+    'emoji-db': { requiresKey: false, keyGetter: () => '', label: 'Emoji DB' },
+    unicode: { requiresKey: false, keyGetter: () => '', label: 'Unicode Emoji' },
+    openmoji: { requiresKey: true, keyGetter: getOpenEmojiApiKey, label: 'OpenMoji' },
+    twemoji: { requiresKey: false, keyGetter: () => '', label: 'Twemoji' },
+    noto: { requiresKey: false, keyGetter: () => '', label: 'Noto Emoji' }
+};
+
+// Helper function to create GiphyResult objects with all required properties
+const createGiphyResult = (data: any, source: string, type: string): GiphyResult => ({
+    type: type,
+    id: data.id || '',
+    url: data.url || '',
+    slug: data.slug || '',
+    bitly_gif_url: data.bitly_gif_url || '',
+    bitly_url: data.bitly_url || '',
+    embed_url: data.embed_url || '',
+    username: data.username || '',
+    source: source,
+    title: data.title || '',
+    rating: data.rating || '',
+    content_url: data.content_url || '',
+    source_tld: data.source_tld || '',
+    source_post_url: data.source_post_url || '',
+    is_sticker: data.is_sticker || 0,
+    import_datetime: data.import_datetime || '',
+    trending_datetime: data.trending_datetime || '',
+    created: data.created || '',
+    images: {
+        original: { url: data.images?.original?.url || '', width: '', height: '' },
+        downsized: { url: data.images?.downsized?.url || '', width: '', height: '' },
+        downsized_large: { url: data.images?.downsized_large?.url || '', width: '', height: '' },
+        downsized_medium: { url: data.images?.downsized_medium?.url || '', width: '', height: '' },
+        downsized_small: { url: data.images?.downsized_small?.url || '', width: '', height: '' },
+        downsized_still: { url: data.images?.downsized_still?.url || '', width: '', height: '' },
+        fixed_height: { url: data.images?.fixed_height?.url || '', width: '', height: '' },
+        fixed_height_downsampled: { url: data.images?.fixed_height_downsampled?.url || '', width: '', height: '' },
+        fixed_height_small: { url: data.images?.fixed_height_small?.url || '', width: '', height: '' },
+        fixed_height_small_still: { url: data.images?.fixed_height_small_still?.url || '', width: '', height: '' },
+        fixed_height_still: { url: data.images?.fixed_height_still?.url || '', width: '', height: '' },
+        fixed_width: { url: data.images?.fixed_width?.url || '', width: '', height: '' },
+        fixed_width_downsampled: { url: data.images?.fixed_width_downsampled?.url || '', width: '', height: '' },
+        fixed_width_small: { url: data.images?.fixed_width_small?.url || '', width: '', height: '' },
+        fixed_width_small_still: { url: data.images?.fixed_width_small_still?.url || '', width: '', height: '' },
+        fixed_width_still: { url: data.images?.fixed_width_still?.url || '', width: '', height: '' },
+        looping: { url: data.images?.looping?.url || '', width: '', height: '' },
+        original_still: { url: data.images?.original_still?.url || '', width: '', height: '' },
+        original_mp4: { url: data.images?.original_mp4?.url || '', width: '', height: '' },
+        preview: { url: data.images?.preview?.url || '', width: '', height: '' },
+        preview_gif: { url: data.images?.preview_gif?.url || '', width: '', height: '' },
+        preview_webp: { url: data.images?.preview_webp?.url || '', width: '', height: '' }
+    },
+    user: data.user
+});
 
 type ModalAction = {
     label: string;
@@ -472,7 +551,7 @@ const StreamingAssetsTab = React.memo(() => {
             useAppStore.getState().actions.addNotification({ type: 'error', message: `Error fetching backgrounds: ${errorMessage}` });
         }
         setBackgroundLoading(false);
-    }, [backgroundApi, backgroundQuery, 배경ApiConfigs]); // Added apiConfigs to dependencies
+    }, [backgroundApi, backgroundQuery]); // Removed invalid dependency '배경ApiConfigs'
 
     // Random SVG for header - generate once per component render
     const [randomHeaderSvg] = useState(() => getRandomSvg());
@@ -641,27 +720,10 @@ const StreamingAssetsTab = React.memo(() => {
                 });
                 
                 setGifResults(response.data.map((gif: any) => {
-                    const result = {
-                        id: gif.id,
-                        title: gif.title,
-                        images: {
-                            fixed_height_small: { url: gif.images.fixed_height_small?.url },
-                            original: { url: gif.images.original?.url },
-                        },
-                        source: 'giphy',
-                        url: gif.url,
-                        rating: gif.rating,
-                        import_datetime: gif.import_datetime,
-                        trending_datetime: gif.trending_datetime,
-                        user: gif.user,
-                        type: searchType
-                    };
-                    
-                    // Debug logging for troubleshooting
+                    const result = createGiphyResult(gif, 'giphy', searchType);
                     if (!result.images.fixed_height_small.url && !result.images.original.url) {
                         console.warn('Giphy result missing image URLs:', { gif, result });
                     }
-                    
                     return result;
                 }));
                 setTotalResults(response.pagination.total_count);
@@ -733,27 +795,56 @@ const StreamingAssetsTab = React.memo(() => {
                         }
                     };
                     
-                    const result = {
+                    // Construct a fake Giphy-like object for Tenor
+                    const fakeGiphy = {
                         id: item.id,
-                        title: item.content_description || '',
-                        images: {
-                            fixed_height_small: { 
-                                url: getTransparentUrl('small')
-                            },
-                            original: { 
-                                url: getTransparentUrl('original')
-                            }
-                        },
+                        url: item.url || '',
+                        slug: item.id,
+                        bitly_gif_url: '',
+                        bitly_url: '',
+                        embed_url: '',
+                        username: '',
                         source: 'tenor',
-                        type: searchFilters.contentType === 'stickers' ? 'stickers' : 'gifs',
-                        rating: item.content_rating || item.rating,
+                        title: item.content_description || '',
+                        rating: item.content_rating || item.rating || '',
+                        content_url: '',
+                        source_tld: '',
+                        source_post_url: '',
+                        is_sticker: searchFilters.contentType === 'stickers' ? 1 : 0,
+                        import_datetime: '',
+                        trending_datetime: '',
+                        created: '',
+                        images: {
+                            original: { url: getTransparentUrl('original'), width: '', height: '' },
+                            downsized: { url: '', width: '', height: '' },
+                            downsized_large: { url: '', width: '', height: '' },
+                            downsized_medium: { url: '', width: '', height: '' },
+                            downsized_small: { url: '', width: '', height: '' },
+                            downsized_still: { url: '', width: '', height: '' },
+                            fixed_height: { url: '', width: '', height: '' },
+                            fixed_height_downsampled: { url: '', width: '', height: '' },
+                            fixed_height_small: { url: getTransparentUrl('small'), width: '', height: '' },
+                            fixed_height_small_still: { url: '', width: '', height: '' },
+                            fixed_height_still: { url: '', width: '', height: '' },
+                            fixed_width: { url: '', width: '', height: '' },
+                            fixed_width_downsampled: { url: '', width: '', height: '' },
+                            fixed_width_small: { url: '', width: '', height: '' },
+                            fixed_width_small_still: { url: '', width: '', height: '' },
+                            fixed_width_still: { url: '', width: '', height: '' },
+                            looping: { url: '', width: '', height: '' },
+                            original_still: { url: '', width: '', height: '' },
+                            original_mp4: { url: '', width: '', height: '' },
+                            preview: { url: '', width: '', height: '' },
+                            preview_gif: { url: '', width: '', height: '' },
+                            preview_webp: { url: '', width: '', height: '' }
+                        },
+                        user: undefined
                     };
-                    
+                    const result = createGiphyResult(fakeGiphy, 'tenor', searchFilters.contentType === 'stickers' ? 'stickers' : 'gifs');
                     // Debug logging for troubleshooting
                     if (!result.images.fixed_height_small.url && !result.images.original.url) {
                         console.warn('Tenor result missing image URLs:', { item, result });
                     }
-                    
                     return result;
                 }));
             } else if (gifApi === 'imgflip') {
@@ -910,19 +1001,13 @@ const StreamingAssetsTab = React.memo(() => {
                     rating: searchFilters.rating as any,
                     type: searchType
                 });
-                setGifResults(response.data.map((gif: any) => ({
-                    id: gif.id,
-                    title: gif.title,
-                    images: {
-                        fixed_height_small: { url: gif.images.fixed_height_small?.url },
-                        original: { url: gif.images.original?.url },
-                    },
-                    source: 'giphy',
-                    type: searchType,
-                    rating: gif.rating,
-                    import_datetime: gif.import_datetime,
-                    trending_datetime: gif.trending_datetime,
-                })));
+                setGifResults(response.data.map((gif: any) => {
+                    const result = createGiphyResult(gif, 'giphy', searchType);
+                    if (!result.images.fixed_height_small.url && !result.images.original.url) {
+                        console.warn('Giphy result missing image URLs:', { gif, result });
+                    }
+                    return result;
+                }));
                 setTotalResults(response.pagination.total_count);
             } else if (gifApi === 'tenor') {
                 const tenorKey = getTenorApiKey();
@@ -950,45 +1035,74 @@ const StreamingAssetsTab = React.memo(() => {
                 }
                 const data = await res.json();
                 setGifResults((data.results || []).map((item: any) => {
-                    // Helper function to get the best transparent URL for stickers
                     const getTransparentUrl = (size: 'small' | 'original') => {
                         if (searchFilters.contentType === 'stickers' && gifApi === 'tenor') {
                             if (size === 'small') {
-                                // For grid thumbnails, prefer tinywebp_transparent, then webp_transparent, then tinygif
                                 return item.media_formats?.tinywebp_transparent?.url || 
                                        item.media_formats?.webp_transparent?.url || 
                                        item.media_formats?.tinygif?.url || 
                                        item.media_formats?.gif?.url;
                             } else {
-                                // For modal previews, prefer webp_transparent, then gif_transparent, then gif
                                 return item.media_formats?.webp_transparent?.url || 
                                        item.media_formats?.gif_transparent?.url || 
                                        item.media_formats?.gif?.url || 
                                        item.media_formats?.mp4?.url;
                             }
                         } else {
-                            // For regular GIFs, use standard formats
                             return size === 'small' 
                                 ? (item.media_formats?.tinygif?.url || item.media_formats?.gif?.url)
                                 : (item.media_formats?.gif?.url || item.media_formats?.mp4?.url);
                         }
                     };
-
-                    return {
+                    const fakeGiphy = {
                         id: item.id,
-                        title: item.content_description || '',
-                        images: {
-                            fixed_height_small: { 
-                                url: getTransparentUrl('small')
-                            },
-                            original: { 
-                                url: getTransparentUrl('original')
-                            }
-                        },
+                        url: item.url || '',
+                        slug: item.id,
+                        bitly_gif_url: '',
+                        bitly_url: '',
+                        embed_url: '',
+                        username: '',
                         source: 'tenor',
-                        type: searchFilters.contentType === 'stickers' ? 'stickers' : 'gifs',
-                        rating: item.content_rating || item.rating,
+                        title: item.content_description || '',
+                        rating: item.content_rating || item.rating || '',
+                        content_url: '',
+                        source_tld: '',
+                        source_post_url: '',
+                        is_sticker: searchFilters.contentType === 'stickers' ? 1 : 0,
+                        import_datetime: '',
+                        trending_datetime: '',
+                        created: '',
+                        images: {
+                            original: { url: getTransparentUrl('original'), width: '', height: '' },
+                            downsized: { url: '', width: '', height: '' },
+                            downsized_large: { url: '', width: '', height: '' },
+                            downsized_medium: { url: '', width: '', height: '' },
+                            downsized_small: { url: '', width: '', height: '' },
+                            downsized_still: { url: '', width: '', height: '' },
+                            fixed_height: { url: '', width: '', height: '' },
+                            fixed_height_downsampled: { url: '', width: '', height: '' },
+                            fixed_height_small: { url: getTransparentUrl('small'), width: '', height: '' },
+                            fixed_height_small_still: { url: '', width: '', height: '' },
+                            fixed_height_still: { url: '', width: '', height: '' },
+                            fixed_width: { url: '', width: '', height: '' },
+                            fixed_width_downsampled: { url: '', width: '', height: '' },
+                            fixed_width_small: { url: '', width: '', height: '' },
+                            fixed_width_small_still: { url: '', width: '', height: '' },
+                            fixed_width_still: { url: '', width: '', height: '' },
+                            looping: { url: '', width: '', height: '' },
+                            original_still: { url: '', width: '', height: '' },
+                            original_mp4: { url: '', width: '', height: '' },
+                            preview: { url: '', width: '', height: '' },
+                            preview_gif: { url: '', width: '', height: '' },
+                            preview_webp: { url: '', width: '', height: '' }
+                        },
+                        user: undefined
                     };
+                    const result = createGiphyResult(fakeGiphy, 'tenor', searchFilters.contentType === 'stickers' ? 'stickers' : 'gifs');
+                    if (!result.images.fixed_height_small.url && !result.images.original.url) {
+                        console.warn('Tenor result missing image URLs:', { item, result });
+                    }
+                    return result;
                 }));
             }
         } catch (err: any) {
@@ -1089,19 +1203,13 @@ const StreamingAssetsTab = React.memo(() => {
                     rating: searchFilters.rating as any,
                     type: searchType
                 });
-                setGifResults(response.data.map((gif: any) => ({
-                    id: gif.id,
-                    title: gif.title,
-                    images: {
-                        fixed_height_small: { url: gif.images.fixed_height_small?.url },
-                        original: { url: gif.images.original?.url },
-                    },
-                    source: 'giphy',
-                    type: searchType,
-                    rating: gif.rating,
-                    import_datetime: gif.import_datetime,
-                    trending_datetime: gif.trending_datetime,
-                })));
+                setGifResults(response.data.map((gif: any) => {
+                    const result = createGiphyResult(gif, 'giphy', searchType);
+                    if (!result.images.fixed_height_small.url && !result.images.original.url) {
+                        console.warn('Giphy result missing image URLs:', { gif, result });
+                    }
+                    return result;
+                }));
                 setTotalResults(response.pagination.total_count);
             } else if (gifApi === 'tenor') {
                 const tenorKey = getTenorApiKey();
@@ -1142,25 +1250,68 @@ const StreamingAssetsTab = React.memo(() => {
                     throw new Error('Invalid response format from Tenor API');
                 }
                 
-                setGifResults(results.map((item: any) => ({
-                    id: item.id,
-                    title: item.content_description || item.title || '',
-                    images: {
-                        fixed_height_small: { 
-                            url: searchFilters.contentType === 'stickers' 
-                                ? (item.media_formats?.tinywebp_transparent?.url || item.media_formats?.webp_transparent?.url || item.media_formats?.tinygif?.url || item.media_formats?.gif?.url)
-                                : (item.media_formats?.tinygif?.url || item.media_formats?.gif?.url)
-                        },
-                        original: { 
-                            url: searchFilters.contentType === 'stickers'
-                                ? (item.media_formats?.webp_transparent?.url || item.media_formats?.gif_transparent?.url || item.media_formats?.gif?.url)
-                                : (item.media_formats?.gif?.url || item.media_formats?.mp4?.url)
+                setGifResults(results.map((item: any) => {
+                    const getTransparentUrl = (size: 'small' | 'original') => {
+                        if (searchFilters.contentType === 'stickers' && gifApi === 'tenor') {
+                            if (size === 'small') {
+                                return item.media_formats?.tinywebp_transparent?.url || item.media_formats?.webp_transparent?.url || item.media_formats?.tinygif?.url || item.media_formats?.gif?.url;
+                            } else {
+                                return item.media_formats?.webp_transparent?.url || item.media_formats?.gif_transparent?.url || item.media_formats?.gif?.url || item.media_formats?.mp4?.url;
+                            }
+                        } else {
+                            return size === 'small' ? (item.media_formats?.tinygif?.url || item.media_formats?.gif?.url) : (item.media_formats?.gif?.url || item.media_formats?.mp4?.url);
                         }
-                    },
-                    source: 'tenor',
-                    type: searchFilters.contentType === 'stickers' ? 'stickers' : 'gifs',
-                    rating: item.content_rating || item.rating,
-                })));
+                    };
+                    const fakeGiphy = {
+                        id: item.id,
+                        url: item.url || '',
+                        slug: item.id,
+                        bitly_gif_url: '',
+                        bitly_url: '',
+                        embed_url: '',
+                        username: '',
+                        source: 'tenor',
+                        title: item.content_description || item.title || '',
+                        rating: item.content_rating || item.rating || '',
+                        content_url: '',
+                        source_tld: '',
+                        source_post_url: '',
+                        is_sticker: searchFilters.contentType === 'stickers' ? 1 : 0,
+                        import_datetime: '',
+                        trending_datetime: '',
+                        created: '',
+                        images: {
+                            original: { url: getTransparentUrl('original'), width: '', height: '' },
+                            downsized: { url: '', width: '', height: '' },
+                            downsized_large: { url: '', width: '', height: '' },
+                            downsized_medium: { url: '', width: '', height: '' },
+                            downsized_small: { url: '', width: '', height: '' },
+                            downsized_still: { url: '', width: '', height: '' },
+                            fixed_height: { url: '', width: '', height: '' },
+                            fixed_height_downsampled: { url: '', width: '', height: '' },
+                            fixed_height_small: { url: getTransparentUrl('small'), width: '', height: '' },
+                            fixed_height_small_still: { url: '', width: '', height: '' },
+                            fixed_height_still: { url: '', width: '', height: '' },
+                            fixed_width: { url: '', width: '', height: '' },
+                            fixed_width_downsampled: { url: '', width: '', height: '' },
+                            fixed_width_small: { url: '', width: '', height: '' },
+                            fixed_width_small_still: { url: '', width: '', height: '' },
+                            fixed_width_still: { url: '', width: '', height: '' },
+                            looping: { url: '', width: '', height: '' },
+                            original_still: { url: '', width: '', height: '' },
+                            original_mp4: { url: '', width: '', height: '' },
+                            preview: { url: '', width: '', height: '' },
+                            preview_gif: { url: '', width: '', height: '' },
+                            preview_webp: { url: '', width: '', height: '' }
+                        },
+                        user: undefined
+                    };
+                    const result = createGiphyResult(fakeGiphy, 'tenor', searchFilters.contentType === 'stickers' ? 'stickers' : 'gifs');
+                    if (!result.images.fixed_height_small.url && !result.images.original.url) {
+                        console.warn('Tenor result missing image URLs:', { item, result });
+                    }
+                    return result;
+                }));
                 setTotalResults(data.next || results.length);
             }
         } catch (err: any) {
@@ -1600,27 +1751,10 @@ const StreamingAssetsTab = React.memo(() => {
                 });
                 
                 setGifResults(response.data.map((gif: any) => {
-                    const result = {
-                        id: gif.id,
-                        title: gif.title,
-                        images: {
-                            fixed_height_small: { url: gif.images.fixed_height_small?.url },
-                            original: { url: gif.images.original?.url },
-                        },
-                        source: 'giphy',
-                        url: gif.url,
-                        rating: gif.rating,
-                        import_datetime: gif.import_datetime,
-                        trending_datetime: gif.trending_datetime,
-                        user: gif.user,
-                        type: searchType
-                    };
-                    
-                    // Debug logging for troubleshooting
+                    const result = createGiphyResult(gif, 'giphy', searchType);
                     if (!result.images.fixed_height_small.url && !result.images.original.url) {
                         console.warn('Giphy result missing image URLs:', { gif, result });
                     }
-                    
                     return result;
                 }));
                 setTotalResults(response.pagination.total_count);
