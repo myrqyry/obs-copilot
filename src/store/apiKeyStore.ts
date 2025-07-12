@@ -13,6 +13,10 @@ export const ApiService = {
   ICONFINDER: 'iconfinder',
   GIPHY: 'giphy',
   CHUTES: 'chutes',
+  TENOR: 'tenor',
+  WALLHAVEN: 'wallhaven',
+  OPENEMOJI: 'openemoji', // For generic emoji APIs that might need a key
+  UNSPLASH: 'unsplash', // Even if handled differently, store can hold the key
   // Add other services as needed
 } as const;
 

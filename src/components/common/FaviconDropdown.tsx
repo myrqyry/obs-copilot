@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { FaviconIcon } from './FaviconIcon';
 
@@ -62,8 +62,8 @@ export function FaviconDropdown({ options, value, onChange, className = '', plac
         setIsOpen(false);
     };
 
-    const dropdownId = `favicondropdown-${Math.random().toString(36).substr(2, 9)}`;
-    const listboxId = `favicondropdown-listbox-${Math.random().toString(36).substr(2, 9)}`;
+    const dropdownId = `favicondropdown-${React.useId()}`;
+    const listboxId = `favicondropdown-listbox-${React.useId()}`;
 
     return (
         <div className={`relative ${className}`}>

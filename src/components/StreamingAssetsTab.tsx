@@ -1,7 +1,7 @@
 import { getProxiedImageUrl } from "../utils/imageProxy";
 import { GiphyFetch } from '@giphy/js-fetch-api';
-import { getCustomApiKey } from './AdvancedPanel';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
 import { GiphyResult } from '../types/giphy';
 import { useAppStore } from '../store/appStore';
 import { catppuccinAccentColorsHexMap } from '../types';
@@ -69,100 +69,42 @@ interface SearchFilters {
     contentType: 'gifs' | 'stickers';
 }
 
-const getGiphyApiKey = () => {
-  const userKey = getCustomApiKey('giphy');
-  if (userKey) return userKey;
+// Helper to get API key: store override -> .env default
+// For VITE_ keys, these are defaults if no override is set by user.
+// For proxy calls, if no override is found here, the proxy will use its own server-side .env key.
+const getEffectiveApiKey = (serviceName: ApiService): string | undefined => {
+  const override = useApiKeyStore.getState().getApiKeyOverride(serviceName);
+  if (override) return override;
 
-  if (process.env.NODE_ENV === 'production') {
-    return '/.netlify/functions/proxy?api=giphy';
-  }
-
-  return import.meta.env.VITE_GIPHY_API_KEY || '';
-};
-const getTenorApiKey = () => getCustomApiKey('tenor') || import.meta.env.VITE_TENOR_API_KEY || '';
-const getImgflipApiKey = () => getCustomApiKey('imgflip') || import.meta.env.VITE_IMGFLIP_API_KEY || '';
-const getUnsplashApiKey = () => getCustomApiKey('unsplash') || import.meta.env.VITE_UNSPLASH_API_KEY || '';
-const getPexelsApiKey = () => getCustomApiKey('pexels') || import.meta.env.VITE_PEXELS_API_KEY || '';
-const getPixabayApiKey = () => getCustomApiKey('pixabay') || import.meta.env.VITE_PIXABAY_API_KEY || '';
-const getIconfinderApiKey = () => getCustomApiKey('iconfinder') || import.meta.env.VITE_ICONFINDER_API_KEY || '';
-const getOpenEmojiApiKey = () => getCustomApiKey('openemoji') || import.meta.env.VITE_OPENEMOJI_API_KEY || '';
-
-// API configurations for validation
-const gifApiConfigs = {
-    giphy: { requiresKey: true, keyGetter: getGiphyApiKey, label: 'Giphy' },
-    tenor: { requiresKey: true, keyGetter: getTenorApiKey, label: 'Tenor' },
-    imgflip: { requiresKey: false, keyGetter: getImgflipApiKey, label: 'Imgflip' },
-    reddit: { requiresKey: false, keyGetter: () => '', label: 'Reddit' },
-    imgur: { requiresKey: true, keyGetter: () => getCustomApiKey('imgur') || import.meta.env.VITE_IMGUR_API_KEY || '', label: 'Imgur' }
+  // Fallback to VITE_ prefixed keys for services that might use them directly
+  // or for display purposes, though proxy calls won't need these if no override.
+  const viteKeys: Partial<Record<ApiService, string | undefined>> = {
+    [ApiService.GIPHY]: import.meta.env.VITE_GIPHY_API_KEY,
+    [ApiService.TENOR]: import.meta.env.VITE_TENOR_API_KEY,
+    [ApiService.IMGFLIP]: import.meta.env.VITE_IMGFLIP_API_KEY,
+    [ApiService.UNSPLASH]: import.meta.env.VITE_UNSPLASH_API_KEY, // Unsplash service handles its own key
+    [ApiService.PEXELS]: import.meta.env.VITE_PEXELS_API_KEY,
+    [ApiService.PIXABAY]: import.meta.env.VITE_PIXABAY_API_KEY,
+    [ApiService.DEVIANTART]: import.meta.env.VITE_DEVIANTART_API_KEY,
+    [ApiService.ICONFINDER]: import.meta.env.VITE_ICONFINDER_API_KEY,
+    [ApiService.CHUTES]: import.meta.env.VITE_CHUTES_API_TOKEN,
+    // OPENEMOJI might not have a VITE_ default.
+  };
+  return viteKeys[serviceName];
 };
 
-const svgApiConfigs = {
-    iconfinder: { requiresKey: true, keyGetter: getIconfinderApiKey, label: 'Iconfinder' },
-    iconify: { requiresKey: false, keyGetter: () => '', label: 'Iconify' },
-    feather: { requiresKey: false, keyGetter: () => '', label: 'Feather Icons' },
-    heroicons: { requiresKey: false, keyGetter: () => '', label: 'Heroicons' },
-    lucide: { requiresKey: false, keyGetter: () => '', label: 'Lucide' },
-    tabler: { requiresKey: false, keyGetter: () => '', label: 'Tabler Icons' },
-    bootstrap: { requiresKey: false, keyGetter: () => '', label: 'Bootstrap Icons' },
-    fontawesome: { requiresKey: false, keyGetter: () => '', label: 'Font Awesome' }
-};
-
-const emojiApiConfigs = {
-    'emoji-api': { requiresKey: false, keyGetter: () => '', label: 'Emoji API' },
-    emojihub: { requiresKey: false, keyGetter: () => '', label: 'EmojiHub' },
-    'emoji-db': { requiresKey: false, keyGetter: () => '', label: 'Emoji DB' },
-    unicode: { requiresKey: false, keyGetter: () => '', label: 'Unicode Emoji' },
-    openmoji: { requiresKey: true, keyGetter: getOpenEmojiApiKey, label: 'OpenMoji' },
-    twemoji: { requiresKey: false, keyGetter: () => '', label: 'Twemoji' },
-    noto: { requiresKey: false, keyGetter: () => '', label: 'Noto Emoji' }
-};
-
-// Helper function to create GiphyResult objects with all required properties
-const createGiphyResult = (data: any, source: string, type: string): GiphyResult => ({
-    type: type,
-    id: data.id || '',
-    url: data.url || '',
-    slug: data.slug || '',
-    bitly_gif_url: data.bitly_gif_url || '',
-    bitly_url: data.bitly_url || '',
-    embed_url: data.embed_url || '',
-    username: data.username || '',
-    source: source,
-    title: data.title || '',
-    rating: data.rating || '',
-    content_url: data.content_url || '',
-    source_tld: data.source_tld || '',
-    source_post_url: data.source_post_url || '',
-    is_sticker: data.is_sticker || 0,
-    import_datetime: data.import_datetime || '',
-    trending_datetime: data.trending_datetime || '',
-    created: data.created || '',
-    images: {
-        original: { url: data.images?.original?.url || '', width: '', height: '' },
-        downsized: { url: data.images?.downsized?.url || '', width: '', height: '' },
-        downsized_large: { url: data.images?.downsized_large?.url || '', width: '', height: '' },
-        downsized_medium: { url: data.images?.downsized_medium?.url || '', width: '', height: '' },
-        downsized_small: { url: data.images?.downsized_small?.url || '', width: '', height: '' },
-        downsized_still: { url: data.images?.downsized_still?.url || '', width: '', height: '' },
-        fixed_height: { url: data.images?.fixed_height?.url || '', width: '', height: '' },
-        fixed_height_downsampled: { url: data.images?.fixed_height_downsampled?.url || '', width: '', height: '' },
-        fixed_height_small: { url: data.images?.fixed_height_small?.url || '', width: '', height: '' },
-        fixed_height_small_still: { url: data.images?.fixed_height_small_still?.url || '', width: '', height: '' },
-        fixed_height_still: { url: data.images?.fixed_height_still?.url || '', width: '', height: '' },
-        fixed_width: { url: data.images?.fixed_width?.url || '', width: '', height: '' },
-        fixed_width_downsampled: { url: data.images?.fixed_width_downsampled?.url || '', width: '', height: '' },
-        fixed_width_small: { url: data.images?.fixed_width_small?.url || '', width: '', height: '' },
-        fixed_width_small_still: { url: data.images?.fixed_width_small_still?.url || '', width: '', height: '' },
-        fixed_width_still: { url: data.images?.fixed_width_still?.url || '', width: '', height: '' },
-        looping: { url: data.images?.looping?.url || '', width: '', height: '' },
-        original_still: { url: data.images?.original_still?.url || '', width: '', height: '' },
-        original_mp4: { url: data.images?.original_mp4?.url || '', width: '', height: '' },
-        preview: { url: data.images?.preview?.url || '', width: '', height: '' },
-        preview_gif: { url: data.images?.preview_gif?.url || '', width: '', height: '' },
-        preview_webp: { url: data.images?.preview_webp?.url || '', width: '', height: '' }
-    },
-    user: data.user
-});
+// Specific getters using the new helper
+const getGiphyApiKey = () => getEffectiveApiKey(ApiService.GIPHY);
+const getTenorApiKey = () => getEffectiveApiKey(ApiService.TENOR);
+const getImgflipApiKey = () => getEffectiveApiKey(ApiService.IMGFLIP);
+const getUnsplashApiKey = () => getEffectiveApiKey(ApiService.UNSPLASH); // Still used by unsplashService directly
+const getPexelsApiKey = () => getEffectiveApiKey(ApiService.PEXELS);
+const getPixabayApiKey = () => getEffectiveApiKey(ApiService.PIXABAY);
+const getWallhavenApiKey = () => getEffectiveApiKey(ApiService.WALLHAVEN); // Added
+const getDeviantArtApiKey = () => getEffectiveApiKey(ApiService.DEVIANTART); // Added
+const getIconfinderApiKey = () => getEffectiveApiKey(ApiService.ICONFINDER); // Added
+const getOpenEmojiApiKey = () => getEffectiveApiKey(ApiService.OPENEMOJI); // Added
+const getImgurApiKey = () => getEffectiveApiKey(ApiService.IMGUR); // Added for consistency
 
 type ModalAction = {
     label: string;
@@ -282,18 +224,25 @@ const StreamingAssetsTab = React.memo(() => {
             console.log('Background search:', { backgroundApi, backgroundQuery });
             
             if (backgroundApi === 'wallhaven') {
-                // Use backend proxy to avoid CORS
-                // Use Netlify Function in production, local proxy in dev
-                let apiUrl = '';
-                const wallhavenKey = getCustomApiKey('wallhaven');
-                const keyParam = wallhavenKey ? `&apikey=${encodeURIComponent(wallhavenKey)}` : '';
-                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                    apiUrl = `/api/wallhaven?q=${encodeURIComponent(backgroundQuery)}&categories=111&purity=100&sorting=relevance&order=desc&page=1${keyParam}`;
-                } else {
-                    apiUrl = `/.netlify/functions/proxy?api=wallhaven&q=${encodeURIComponent(backgroundQuery)}&categories=111&purity=100&sorting=relevance&order=desc&page=1${keyParam}`;
-                }
-                console.log('Wallhaven API URL:', apiUrl);
-                const res = await fetch(apiUrl);
+                const apiUrlPath = '/api/wallhaven'; // Or /.netlify/functions/proxy?api=wallhaven
+                const params = new URLSearchParams({
+                    q: backgroundQuery,
+                    categories: '111',
+                    purity: '100',
+                    sorting: 'relevance',
+                    order: 'desc',
+                    page: '1',
+                });
+                const requestUrl = `${apiUrlPath}?${params.toString()}`;
+
+                const headers: HeadersInit = {};
+                const overrideKey = useApiKeyStore.getState().getApiKeyOverride(ApiService.WALLHAVEN);
+                if (overrideKey) {
+                    headers['X-Api-Key'] = overrideKey;
+                } // Wallhaven doesn't typically require a key via proxy by default in this setup, but if user provides one.
+
+                console.log('Wallhaven API URL:', requestUrl);
+                const res = await fetch(requestUrl, { headers });
                 if (!res.ok) {
                     const errorText = await res.text();
                     console.error('Wallhaven API Response Error:', {
@@ -346,18 +295,37 @@ const StreamingAssetsTab = React.memo(() => {
             } else if (backgroundApi === 'pexels') {
                 // Use proxy to avoid CORS issues
                 let apiUrl = '';
-                const pexelsKey = getPexelsApiKey();
-                if (!pexelsKey || pexelsKey === 'your_pexels_api_key_here') {
-                    throw new Error('Pexels API key required. Get one at https://www.pexels.com/api/ and add it in Advanced Panel → API Keys section.');
+                const pexelsKeyOverride = useApiKeyStore.getState().getApiKeyOverride(ApiService.PEXELS);
+                // Note: Pexels in proxy.cjs is configured to get key from envVars: ['PEXELS_API_KEY', 'VITE_PEXELS_API_KEY']
+                // and also queryParam: 'key'. We should rely on X-Api-Key for override.
+                // The original client code threw an error if VITE_PEXELS_API_KEY was default.
+                // Now, if no override, proxy uses its default. If proxy has no default, it will fail.
+                // We can still check for a VITE_ key for a client-side warning if desired.
+                const vitePexelsKey = import.meta.env.VITE_PEXELS_API_KEY;
+                if (!pexelsKeyOverride && (!vitePexelsKey || vitePexelsKey === 'your_pexels_api_key_here')) {
+                     console.warn('Pexels API key (VITE_PEXELS_API_KEY) is not set or is default. Proxy default will be attempted.');
+                     // Optionally, could throw new Error here if we want to prevent call without any client-side key indication.
                 }
+
+                const params = new URLSearchParams({
+                    query: backgroundQuery,
+                    per_page: '30',
+                    orientation: 'landscape',
+                });
+                // The key is NOT added to params here if it's an override. Proxy will use X-Api-Key.
+                // If proxy is also configured to accept 'key' in query, it might pick that up if X-Api-Key is not set by client AND proxy has no env var.
+                // For simplicity, we'll assume X-Api-Key is the primary override mechanism for the proxy.
                 
-                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                    apiUrl = `/api/pexels?key=${pexelsKey}&query=${encodeURIComponent(backgroundQuery)}&per_page=30&orientation=landscape`;
-                } else {
-                    apiUrl = `/.netlify/functions/proxy?api=pexels&key=${pexelsKey}&query=${encodeURIComponent(backgroundQuery)}&per_page=30&orientation=landscape`;
+                const requestUrlPath = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? '/api/pexels' : '/.netlify/functions/proxy?api=pexels';
+                const requestUrl = `${requestUrlPath}&${params.toString()}`; // Netlify proxy needs api=pexels in query
+
+                const headers: HeadersInit = {};
+                if (pexelsKeyOverride) {
+                    headers['X-Api-Key'] = pexelsKeyOverride;
                 }
-                console.log('Pexels API URL:', apiUrl);
-                const res = await fetch(apiUrl);
+
+                console.log('Pexels API URL:', requestUrl);
+                const res = await fetch(requestUrl, { headers });
                 if (!res.ok) {
                     const errorText = await res.text();
                     console.error('API Response Error:', {
@@ -390,20 +358,31 @@ const StreamingAssetsTab = React.memo(() => {
                     author: item.photographer || 'Unknown'
                 })) || []);
             } else if (backgroundApi === 'pixabay') {
-                const pixabayKey = getPixabayApiKey();
-                if (!pixabayKey || pixabayKey === 'your_pixabay_api_key_here') {
-                    throw new Error('Pixabay API key required. Get one at https://pixabay.com/api/docs/ and add it in Advanced Panel → API Keys section.');
+                const pixabayKeyOverride = useApiKeyStore.getState().getApiKeyOverride(ApiService.PIXABAY);
+                const vitePixabayKey = import.meta.env.VITE_PIXABAY_API_KEY;
+                if (!pixabayKeyOverride && (!vitePixabayKey || vitePixabayKey === 'your_pixabay_api_key_here')) {
+                    console.warn('Pixabay API key (VITE_PIXABAY_API_KEY) is not set or is default. Proxy default will be attempted.');
                 }
+
+                const params = new URLSearchParams({
+                    q: backgroundQuery,
+                    image_type: 'photo',
+                    orientation: 'horizontal',
+                    per_page: '30',
+                });
+                // Key is not added to params for override. Proxy uses X-Api-Key or its own default.
+                // Pixabay proxy config in proxy.cjs can take 'key' as paramName.
                 
-                // Use proxy to avoid CORS issues
-                let apiUrl = '';
-                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                    apiUrl = `/api/pixabay?key=${pixabayKey}&q=${encodeURIComponent(backgroundQuery)}&image_type=photo&orientation=horizontal&per_page=30`;
-                } else {
-                    apiUrl = `/.netlify/functions/proxy?api=pixabay&key=${pixabayKey}&q=${encodeURIComponent(backgroundQuery)}&image_type=photo&orientation=horizontal&per_page=30`;
+                const requestUrlPath = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? '/api/pixabay' : '/.netlify/functions/proxy?api=pixabay';
+                const requestUrl = `${requestUrlPath}&${params.toString()}`;
+
+                const headers: HeadersInit = {};
+                if (pixabayKeyOverride) {
+                    headers['X-Api-Key'] = pixabayKeyOverride;
                 }
-                console.log('Pixabay API URL:', apiUrl);
-                const res = await fetch(apiUrl);
+
+                console.log('Pixabay API URL:', requestUrl);
+                const res = await fetch(requestUrl, { headers });
                 if (!res.ok) {
                     const errorText = await res.text();
                     console.error('Pixabay API Response Error:', {
@@ -436,21 +415,29 @@ const StreamingAssetsTab = React.memo(() => {
                     author: item.user || 'Unknown'
                 })) || []);
             } else if (backgroundApi === 'deviantart') {
-                // DeviantArt API implementation
-                const deviantartKey = getCustomApiKey('deviantart') || import.meta.env.VITE_DEVIANTART_API_KEY || '';
-                if (!deviantartKey || deviantartKey === 'your_deviantart_api_key_here') {
-                    throw new Error('DeviantArt API key required. Get one at https://www.deviantart.com/developers/ and add it in Advanced Panel → API Keys section.');
+                const deviantArtKeyOverride = useApiKeyStore.getState().getApiKeyOverride(ApiService.DEVIANTART);
+                const viteDeviantArtKey = import.meta.env.VITE_DEVIANTART_API_KEY;
+                if (!deviantArtKeyOverride && (!viteDeviantArtKey || viteDeviantArtKey === 'your_deviantart_api_key_here')) {
+                     console.warn('DeviantArt API key (VITE_DEVIANTART_API_KEY) is not set or is default. Proxy default will be attempted.');
                 }
+
+                const params = new URLSearchParams({
+                    q: backgroundQuery,
+                    limit: '30',
+                    mature_content: 'false',
+                });
+                // Key is not added to params for override.
                 
-                // Use proxy to avoid CORS issues
-                let apiUrl = '';
-                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                    apiUrl = `/api/deviantart?key=${deviantartKey}&q=${encodeURIComponent(backgroundQuery)}&limit=30&mature_content=false`;
-                } else {
-                    apiUrl = `/.netlify/functions/proxy?api=deviantart&key=${deviantartKey}&q=${encodeURIComponent(backgroundQuery)}&limit=30&mature_content=false`;
+                const requestUrlPath = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? '/api/deviantart' : '/.netlify/functions/proxy?api=deviantart';
+                const requestUrl = `${requestUrlPath}&${params.toString()}`;
+
+                const headers: HeadersInit = {};
+                if (deviantArtKeyOverride) {
+                    headers['X-Api-Key'] = deviantArtKeyOverride;
                 }
-                console.log('DeviantArt API URL:', apiUrl);
-                const res = await fetch(apiUrl);
+
+                console.log('DeviantArt API URL:', requestUrl);
+                const res = await fetch(requestUrl, { headers });
                 
                 if (!res.ok) {
                     const errorText = await res.text();
@@ -551,7 +538,7 @@ const StreamingAssetsTab = React.memo(() => {
             useAppStore.getState().actions.addNotification({ type: 'error', message: `Error fetching backgrounds: ${errorMessage}` });
         }
         setBackgroundLoading(false);
-    }, [backgroundApi, backgroundQuery]); // Removed invalid dependency '배경ApiConfigs'
+    }, [backgroundApi, backgroundQuery, 배경ApiConfigs]); // Added apiConfigs to dependencies
 
     // Random SVG for header - generate once per component render
     const [randomHeaderSvg] = useState(() => getRandomSvg());
@@ -706,7 +693,13 @@ const StreamingAssetsTab = React.memo(() => {
             const searchQuery = selectedCategory ? `${gifQuery} ${selectedCategory}` : gifQuery;
             
             if (gifApi === 'giphy') {
-                const gfInstance = new GiphyFetch(getGiphyApiKey());
+                const giphyKeyOverride = useApiKeyStore.getState().getApiKeyOverride(ApiService.GIPHY);
+                const apiKeyForGiphySDK = giphyKeyOverride || getGiphyApiKey(); // SDK needs a key; getEffectiveApiKey provides VITE_ default if no override
+
+                if (!apiKeyForGiphySDK) {
+                    throw new Error('Giphy API key is missing. Please set an override or VITE_GIPHY_API_KEY.');
+                }
+                const gfInstance = new GiphyFetch(apiKeyForGiphySDK);
                 
                 // Determine search type based on stickersOnly filter
                 const searchType = searchFilters.contentType === 'stickers' ? 'stickers' : 'gifs';
@@ -720,18 +713,38 @@ const StreamingAssetsTab = React.memo(() => {
                 });
                 
                 setGifResults(response.data.map((gif: any) => {
-                    const result = createGiphyResult(gif, 'giphy', searchType);
+                    const result = {
+                        id: gif.id,
+                        title: gif.title,
+                        images: {
+                            fixed_height_small: { url: gif.images.fixed_height_small?.url },
+                            original: { url: gif.images.original?.url },
+                        },
+                        source: 'giphy',
+                        url: gif.url,
+                        rating: gif.rating,
+                        import_datetime: gif.import_datetime,
+                        trending_datetime: gif.trending_datetime,
+                        user: gif.user,
+                        type: searchType
+                    };
+
+                    // Debug logging for troubleshooting
                     if (!result.images.fixed_height_small.url && !result.images.original.url) {
                         console.warn('Giphy result missing image URLs:', { gif, result });
                     }
+
                     return result;
                 }));
                 setTotalResults(response.pagination.total_count);
                 
             } else if (gifApi === 'tenor') {
-                const tenorKey = getTenorApiKey();
+                const tenorKeyToUse = useApiKeyStore.getState().getApiKeyOverride(ApiService.TENOR) || getTenorApiKey();
+                if (!tenorKeyToUse) {
+                    throw new Error('Tenor API key is missing. Please set an override or VITE_TENOR_API_KEY.');
+                }
                 const params = new URLSearchParams({
-                    key: tenorKey,
+                    key: tenorKeyToUse,
                     q: searchQuery,
                     client_key: 'obs-copilot-gemini',
                     contentfilter: searchFilters.contentFilter,
@@ -795,56 +808,27 @@ const StreamingAssetsTab = React.memo(() => {
                         }
                     };
                     
-                    // Construct a fake Giphy-like object for Tenor
-                    const fakeGiphy = {
+                    const result = {
                         id: item.id,
-                        url: item.url || '',
-                        slug: item.id,
-                        bitly_gif_url: '',
-                        bitly_url: '',
-                        embed_url: '',
-                        username: '',
-                        source: 'tenor',
                         title: item.content_description || '',
-                        rating: item.content_rating || item.rating || '',
-                        content_url: '',
-                        source_tld: '',
-                        source_post_url: '',
-                        is_sticker: searchFilters.contentType === 'stickers' ? 1 : 0,
-                        import_datetime: '',
-                        trending_datetime: '',
-                        created: '',
                         images: {
-                            original: { url: getTransparentUrl('original'), width: '', height: '' },
-                            downsized: { url: '', width: '', height: '' },
-                            downsized_large: { url: '', width: '', height: '' },
-                            downsized_medium: { url: '', width: '', height: '' },
-                            downsized_small: { url: '', width: '', height: '' },
-                            downsized_still: { url: '', width: '', height: '' },
-                            fixed_height: { url: '', width: '', height: '' },
-                            fixed_height_downsampled: { url: '', width: '', height: '' },
-                            fixed_height_small: { url: getTransparentUrl('small'), width: '', height: '' },
-                            fixed_height_small_still: { url: '', width: '', height: '' },
-                            fixed_height_still: { url: '', width: '', height: '' },
-                            fixed_width: { url: '', width: '', height: '' },
-                            fixed_width_downsampled: { url: '', width: '', height: '' },
-                            fixed_width_small: { url: '', width: '', height: '' },
-                            fixed_width_small_still: { url: '', width: '', height: '' },
-                            fixed_width_still: { url: '', width: '', height: '' },
-                            looping: { url: '', width: '', height: '' },
-                            original_still: { url: '', width: '', height: '' },
-                            original_mp4: { url: '', width: '', height: '' },
-                            preview: { url: '', width: '', height: '' },
-                            preview_gif: { url: '', width: '', height: '' },
-                            preview_webp: { url: '', width: '', height: '' }
+                            fixed_height_small: {
+                                url: getTransparentUrl('small')
+                            },
+                            original: {
+                                url: getTransparentUrl('original')
+                            }
                         },
-                        user: undefined
+                        source: 'tenor',
+                        type: searchFilters.contentType === 'stickers' ? 'stickers' : 'gifs',
+                        rating: item.content_rating || item.rating,
                     };
-                    const result = createGiphyResult(fakeGiphy, 'tenor', searchFilters.contentType === 'stickers' ? 'stickers' : 'gifs');
+
                     // Debug logging for troubleshooting
                     if (!result.images.fixed_height_small.url && !result.images.original.url) {
                         console.warn('Tenor result missing image URLs:', { item, result });
                     }
+
                     return result;
                 }));
             } else if (gifApi === 'imgflip') {
@@ -885,8 +869,61 @@ const StreamingAssetsTab = React.memo(() => {
                     type: 'gifs'
                 })) || []);
                 setTotalResults(data.data?.length || 0);
+            } else if (gifApi === 'imgur') { // Corrected order, Imgur was next in original code
+                const imgurKeyOverride = useApiKeyStore.getState().getApiKeyOverride(ApiService.IMGUR);
+                // Imgur proxy in proxy.cjs expects Client-ID prefix and uses IMGUR_API_KEY from env.
+                // If client sends X-Api-Key, proxy should use it.
+                const headers: HeadersInit = {};
+                if (imgurKeyOverride) {
+                    headers['X-Api-Key'] = imgurKeyOverride; // Proxy will prepend 'Client-ID ' if it receives this
+                } else {
+                    // Check if VITE_IMGUR_API_KEY exists for client-side validation/warning, though proxy is main handler
+                    const viteImgurKey = import.meta.env.VITE_IMGUR_API_KEY;
+                    if (!viteImgurKey) {
+                         console.warn('Imgur Client ID (VITE_IMGUR_API_KEY) is not set. Proxy default will be attempted.');
+                    }
+                }
+
+                const params = new URLSearchParams({
+                    q: searchQuery,
+                    q_type: 'gif',
+                    sort: 'relevance',
+                    window: 'all',
+                    page: '1'
+                });
+
+                let apiUrlPath = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? '/api/imgur' : '/.netlify/functions/proxy?api=imgur';
+                const requestUrl = `${apiUrlPath}&${params.toString()}`;
+
+                const res = await fetch(requestUrl, { headers });
+                if (!res.ok) {
+                    throw new Error(`Imgur API error: ${res.status} ${res.statusText}`);
+                }
+
+                const data = await res.json();
+                console.log('Imgur API response:', data);
+
+                setGifResults(data.data?.map((item: any) => {
+                    const result = {
+                        id: item.id,
+                        title: item.title || '',
+                        images: {
+                            fixed_height_small: { url: item.images?.[0]?.link || item.link },
+                            original: { url: item.images?.[0]?.link || item.link },
+                        },
+                        source: 'imgur',
+                        url: item.link,
+                        rating: 'g', // Imgur doesn't provide standard ratings like Giphy/Tenor
+                        type: 'gifs'
+                    };
+                    if (!result.images.fixed_height_small.url && !result.images.original.url) {
+                        console.warn('Imgur result missing image URLs:', { item, result });
+                    }
+                    return result;
+                }) || []);
+                setTotalResults(data.data?.length || 0);
             } else if (gifApi === 'reddit') {
-                // Reddit API implementation (using r/gifs subreddit)
+                // Reddit API implementation (using r/gifs subreddit) - No API key needed for this endpoint
                 const res = await fetch(`https://www.reddit.com/r/gifs/search.json?q=${encodeURIComponent(searchQuery)}&limit=${searchFilters.limit}&sort=relevance&t=all`);
                 if (!res.ok) {
                     throw new Error(`Reddit API error: ${res.status} ${res.statusText}`);
@@ -994,25 +1031,39 @@ const StreamingAssetsTab = React.memo(() => {
             }
 
             if (gifApi === 'giphy') {
-                const gfInstance = new GiphyFetch(getGiphyApiKey());
+                // getGiphyApiKey() already handles override internally for SDK initialization
+                const apiKeyForGiphySDK = getGiphyApiKey();
+                if (!apiKeyForGiphySDK) {
+                    throw new Error('Giphy API key is missing for trending. Please set an override or VITE_GIPHY_API_KEY.');
+                }
+                const gfInstance = new GiphyFetch(apiKeyForGiphySDK);
                 const searchType = searchFilters.contentType === 'stickers' ? 'stickers' : 'gifs';
                 const response = await gfInstance.trending({ 
                     limit: searchFilters.limit, 
                     rating: searchFilters.rating as any,
                     type: searchType
                 });
-                setGifResults(response.data.map((gif: any) => {
-                    const result = createGiphyResult(gif, 'giphy', searchType);
-                    if (!result.images.fixed_height_small.url && !result.images.original.url) {
-                        console.warn('Giphy result missing image URLs:', { gif, result });
-                    }
-                    return result;
-                }));
+                setGifResults(response.data.map((gif: any) => ({
+                    id: gif.id,
+                    title: gif.title,
+                    images: {
+                        fixed_height_small: { url: gif.images.fixed_height_small?.url },
+                        original: { url: gif.images.original?.url },
+                    },
+                    source: 'giphy',
+                    type: searchType,
+                    rating: gif.rating,
+                    import_datetime: gif.import_datetime,
+                    trending_datetime: gif.trending_datetime,
+                })));
                 setTotalResults(response.pagination.total_count);
             } else if (gifApi === 'tenor') {
-                const tenorKey = getTenorApiKey();
+                const tenorKeyToUse = useApiKeyStore.getState().getApiKeyOverride(ApiService.TENOR) || getTenorApiKey();
+                if (!tenorKeyToUse) {
+                    throw new Error('Tenor API key is missing for featured. Please set an override or VITE_TENOR_API_KEY.');
+                }
                 const params = new URLSearchParams({
-                    key: tenorKey,
+                    key: tenorKeyToUse,
                     limit: String(searchFilters.limit),
                     media_filter: searchFilters.mediaFilter,
                     contentfilter: searchFilters.contentFilter,
@@ -1035,74 +1086,45 @@ const StreamingAssetsTab = React.memo(() => {
                 }
                 const data = await res.json();
                 setGifResults((data.results || []).map((item: any) => {
+                    // Helper function to get the best transparent URL for stickers
                     const getTransparentUrl = (size: 'small' | 'original') => {
                         if (searchFilters.contentType === 'stickers' && gifApi === 'tenor') {
                             if (size === 'small') {
+                                // For grid thumbnails, prefer tinywebp_transparent, then webp_transparent, then tinygif
                                 return item.media_formats?.tinywebp_transparent?.url || 
                                        item.media_formats?.webp_transparent?.url || 
                                        item.media_formats?.tinygif?.url || 
                                        item.media_formats?.gif?.url;
                             } else {
+                                // For modal previews, prefer webp_transparent, then gif_transparent, then gif
                                 return item.media_formats?.webp_transparent?.url || 
                                        item.media_formats?.gif_transparent?.url || 
                                        item.media_formats?.gif?.url || 
                                        item.media_formats?.mp4?.url;
                             }
                         } else {
+                            // For regular GIFs, use standard formats
                             return size === 'small' 
                                 ? (item.media_formats?.tinygif?.url || item.media_formats?.gif?.url)
                                 : (item.media_formats?.gif?.url || item.media_formats?.mp4?.url);
                         }
                     };
-                    const fakeGiphy = {
+
+                    return {
                         id: item.id,
-                        url: item.url || '',
-                        slug: item.id,
-                        bitly_gif_url: '',
-                        bitly_url: '',
-                        embed_url: '',
-                        username: '',
-                        source: 'tenor',
                         title: item.content_description || '',
-                        rating: item.content_rating || item.rating || '',
-                        content_url: '',
-                        source_tld: '',
-                        source_post_url: '',
-                        is_sticker: searchFilters.contentType === 'stickers' ? 1 : 0,
-                        import_datetime: '',
-                        trending_datetime: '',
-                        created: '',
                         images: {
-                            original: { url: getTransparentUrl('original'), width: '', height: '' },
-                            downsized: { url: '', width: '', height: '' },
-                            downsized_large: { url: '', width: '', height: '' },
-                            downsized_medium: { url: '', width: '', height: '' },
-                            downsized_small: { url: '', width: '', height: '' },
-                            downsized_still: { url: '', width: '', height: '' },
-                            fixed_height: { url: '', width: '', height: '' },
-                            fixed_height_downsampled: { url: '', width: '', height: '' },
-                            fixed_height_small: { url: getTransparentUrl('small'), width: '', height: '' },
-                            fixed_height_small_still: { url: '', width: '', height: '' },
-                            fixed_height_still: { url: '', width: '', height: '' },
-                            fixed_width: { url: '', width: '', height: '' },
-                            fixed_width_downsampled: { url: '', width: '', height: '' },
-                            fixed_width_small: { url: '', width: '', height: '' },
-                            fixed_width_small_still: { url: '', width: '', height: '' },
-                            fixed_width_still: { url: '', width: '', height: '' },
-                            looping: { url: '', width: '', height: '' },
-                            original_still: { url: '', width: '', height: '' },
-                            original_mp4: { url: '', width: '', height: '' },
-                            preview: { url: '', width: '', height: '' },
-                            preview_gif: { url: '', width: '', height: '' },
-                            preview_webp: { url: '', width: '', height: '' }
+                            fixed_height_small: {
+                                url: getTransparentUrl('small')
+                            },
+                            original: {
+                                url: getTransparentUrl('original')
+                            }
                         },
-                        user: undefined
+                        source: 'tenor',
+                        type: searchFilters.contentType === 'stickers' ? 'stickers' : 'gifs',
+                        rating: item.content_rating || item.rating,
                     };
-                    const result = createGiphyResult(fakeGiphy, 'tenor', searchFilters.contentType === 'stickers' ? 'stickers' : 'gifs');
-                    if (!result.images.fixed_height_small.url && !result.images.original.url) {
-                        console.warn('Tenor result missing image URLs:', { item, result });
-                    }
-                    return result;
                 }));
             }
         } catch (err: any) {
@@ -1133,7 +1155,12 @@ const StreamingAssetsTab = React.memo(() => {
             }
 
             if (gifApi === 'giphy') {
-                const gfInstance = new GiphyFetch(getGiphyApiKey());
+                // getGiphyApiKey() already handles override internally for SDK initialization
+                const apiKeyForGiphySDK = getGiphyApiKey();
+                 if (!apiKeyForGiphySDK) {
+                    throw new Error('Giphy API key is missing for categories. Please set an override or VITE_GIPHY_API_KEY.');
+                }
+                const gfInstance = new GiphyFetch(apiKeyForGiphySDK);
                 const response = await gfInstance.categories();
                 setGifCategories(response.data.map((cat: any) => ({
                     name: cat.name,
@@ -1142,9 +1169,12 @@ const StreamingAssetsTab = React.memo(() => {
                     source: 'giphy',
                 })));
             } else if (gifApi === 'tenor') {
-                const tenorKey = getTenorApiKey();
+                const tenorKeyToUse = useApiKeyStore.getState().getApiKeyOverride(ApiService.TENOR) || getTenorApiKey();
+                if (!tenorKeyToUse) {
+                    throw new Error('Tenor API key is missing for categories. Please set an override or VITE_TENOR_API_KEY.');
+                }
                 const params = new URLSearchParams({
-                    key: tenorKey,
+                    key: tenorKeyToUse,
                     client_key: 'obs-copilot-gemini', // Identify our integration
                     locale: 'en_US', // Default locale
                     country: 'US', // Default country
@@ -1196,26 +1226,40 @@ const StreamingAssetsTab = React.memo(() => {
                 }
             }
             if (gifApi === 'giphy') {
-                const gfInstance = new GiphyFetch(getGiphyApiKey());
+                // getGiphyApiKey() already handles override internally for SDK initialization
+                const apiKeyForGiphySDK = getGiphyApiKey();
+                if (!apiKeyForGiphySDK) {
+                    throw new Error('Giphy API key is missing for category search. Please set an override or VITE_GIPHY_API_KEY.');
+                }
+                const gfInstance = new GiphyFetch(apiKeyForGiphySDK);
                 const searchType = searchFilters.contentType === 'stickers' ? 'stickers' : 'gifs';
                 const response = await gfInstance.search(cat.name, { 
                     limit: searchFilters.limit, 
                     rating: searchFilters.rating as any,
                     type: searchType
                 });
-                setGifResults(response.data.map((gif: any) => {
-                    const result = createGiphyResult(gif, 'giphy', searchType);
-                    if (!result.images.fixed_height_small.url && !result.images.original.url) {
-                        console.warn('Giphy result missing image URLs:', { gif, result });
-                    }
-                    return result;
-                }));
+                setGifResults(response.data.map((gif: any) => ({
+                    id: gif.id,
+                    title: gif.title,
+                    images: {
+                        fixed_height_small: { url: gif.images.fixed_height_small?.url },
+                        original: { url: gif.images.original?.url },
+                    },
+                    source: 'giphy',
+                    type: searchType,
+                    rating: gif.rating,
+                    import_datetime: gif.import_datetime,
+                    trending_datetime: gif.trending_datetime,
+                })));
                 setTotalResults(response.pagination.total_count);
             } else if (gifApi === 'tenor') {
-                const tenorKey = getTenorApiKey();
+                const tenorKeyToUse = useApiKeyStore.getState().getApiKeyOverride(ApiService.TENOR) || getTenorApiKey();
+                if (!tenorKeyToUse) {
+                    throw new Error('Tenor API key is missing for category search. Please set an override or VITE_TENOR_API_KEY.');
+                }
                 const params = new URLSearchParams({
                     q: cat.name,
-                    key: tenorKey,
+                    key: tenorKeyToUse,
                     limit: String(searchFilters.limit),
                     media_filter: searchFilters.mediaFilter,
                     contentfilter: searchFilters.contentFilter,
@@ -1250,68 +1294,25 @@ const StreamingAssetsTab = React.memo(() => {
                     throw new Error('Invalid response format from Tenor API');
                 }
                 
-                setGifResults(results.map((item: any) => {
-                    const getTransparentUrl = (size: 'small' | 'original') => {
-                        if (searchFilters.contentType === 'stickers' && gifApi === 'tenor') {
-                            if (size === 'small') {
-                                return item.media_formats?.tinywebp_transparent?.url || item.media_formats?.webp_transparent?.url || item.media_formats?.tinygif?.url || item.media_formats?.gif?.url;
-                            } else {
-                                return item.media_formats?.webp_transparent?.url || item.media_formats?.gif_transparent?.url || item.media_formats?.gif?.url || item.media_formats?.mp4?.url;
-                            }
-                        } else {
-                            return size === 'small' ? (item.media_formats?.tinygif?.url || item.media_formats?.gif?.url) : (item.media_formats?.gif?.url || item.media_formats?.mp4?.url);
-                        }
-                    };
-                    const fakeGiphy = {
-                        id: item.id,
-                        url: item.url || '',
-                        slug: item.id,
-                        bitly_gif_url: '',
-                        bitly_url: '',
-                        embed_url: '',
-                        username: '',
-                        source: 'tenor',
-                        title: item.content_description || item.title || '',
-                        rating: item.content_rating || item.rating || '',
-                        content_url: '',
-                        source_tld: '',
-                        source_post_url: '',
-                        is_sticker: searchFilters.contentType === 'stickers' ? 1 : 0,
-                        import_datetime: '',
-                        trending_datetime: '',
-                        created: '',
-                        images: {
-                            original: { url: getTransparentUrl('original'), width: '', height: '' },
-                            downsized: { url: '', width: '', height: '' },
-                            downsized_large: { url: '', width: '', height: '' },
-                            downsized_medium: { url: '', width: '', height: '' },
-                            downsized_small: { url: '', width: '', height: '' },
-                            downsized_still: { url: '', width: '', height: '' },
-                            fixed_height: { url: '', width: '', height: '' },
-                            fixed_height_downsampled: { url: '', width: '', height: '' },
-                            fixed_height_small: { url: getTransparentUrl('small'), width: '', height: '' },
-                            fixed_height_small_still: { url: '', width: '', height: '' },
-                            fixed_height_still: { url: '', width: '', height: '' },
-                            fixed_width: { url: '', width: '', height: '' },
-                            fixed_width_downsampled: { url: '', width: '', height: '' },
-                            fixed_width_small: { url: '', width: '', height: '' },
-                            fixed_width_small_still: { url: '', width: '', height: '' },
-                            fixed_width_still: { url: '', width: '', height: '' },
-                            looping: { url: '', width: '', height: '' },
-                            original_still: { url: '', width: '', height: '' },
-                            original_mp4: { url: '', width: '', height: '' },
-                            preview: { url: '', width: '', height: '' },
-                            preview_gif: { url: '', width: '', height: '' },
-                            preview_webp: { url: '', width: '', height: '' }
+                setGifResults(results.map((item: any) => ({
+                    id: item.id,
+                    title: item.content_description || item.title || '',
+                    images: {
+                        fixed_height_small: {
+                            url: searchFilters.contentType === 'stickers'
+                                ? (item.media_formats?.tinywebp_transparent?.url || item.media_formats?.webp_transparent?.url || item.media_formats?.tinygif?.url || item.media_formats?.gif?.url)
+                                : (item.media_formats?.tinygif?.url || item.media_formats?.gif?.url)
                         },
-                        user: undefined
-                    };
-                    const result = createGiphyResult(fakeGiphy, 'tenor', searchFilters.contentType === 'stickers' ? 'stickers' : 'gifs');
-                    if (!result.images.fixed_height_small.url && !result.images.original.url) {
-                        console.warn('Tenor result missing image URLs:', { item, result });
-                    }
-                    return result;
-                }));
+                        original: {
+                            url: searchFilters.contentType === 'stickers'
+                                ? (item.media_formats?.webp_transparent?.url || item.media_formats?.gif_transparent?.url || item.media_formats?.gif?.url)
+                                : (item.media_formats?.gif?.url || item.media_formats?.mp4?.url)
+                        }
+                    },
+                    source: 'tenor',
+                    type: searchFilters.contentType === 'stickers' ? 'stickers' : 'gifs',
+                    rating: item.content_rating || item.rating,
+                })));
                 setTotalResults(data.next || results.length);
             }
         } catch (err: any) {
@@ -1347,28 +1348,42 @@ const StreamingAssetsTab = React.memo(() => {
 
             const limit = 48;
             if (svgApi === 'iconfinder') {
-                const apiKey = getIconfinderApiKey(); // Use the getter
-                if (!apiKey || apiKey.includes('your_')) {
-                     const errorMsg = `Iconfinder API key is missing or invalid. Please configure it in Advanced Settings.`;
-                    setSearchError(errorMsg);
-                    useAppStore.getState().actions.addNotification({ type: 'error', message: errorMsg });
-                    setSvgLoading(false);
-                    return;
-                }
+                const iconfinderKeyOverride = useApiKeyStore.getState().getApiKeyOverride(ApiService.ICONFINDER);
+                // No client-side VITE_ default check needed here if proxy handles it,
+                // but good to ensure proxy has a default if no override.
+                // We just need to pass the override if it exists.
+
                 const params = new URLSearchParams({
-                    api: 'iconfinder', // This tells proxy.cjs which config to use
+                    // api: 'iconfinder', // This was for a generic /api/proxy?api=... endpoint, now we use specific /api/iconfinder
                     query: svgQuery,
                     count: String(limit),
-                    // premium: '0', // These might be specific to direct API call, proxy handles defaults
-                    // vector: '1',
-                    // license: 'none',
                 });
-                // The /api/proxy endpoint will use the ICONFINDER_API_KEY from .env on the server-side
-                const url = `/.netlify/functions/proxy?${params.toString()}`;
-                const res = await fetch(url);
+
+                // Determine if using Netlify function path or local proxy path
+                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                const apiUrlPath = isLocal ? '/api/iconfinder' : '/.netlify/functions/proxy?api=iconfinder';
+                // For Netlify, we might still need the generic proxy if /api/iconfinder isn't set up in netlify.toml redirects for functions.
+                // Assuming /api/iconfinder is proxied correctly by Vite dev server and Netlify (if functions are used).
+                // The original code used `/.netlify/functions/proxy?api=iconfinder...`
+                // Let's adjust to use the direct path first, assuming proxy.cjs handles /api/iconfinder
+                // The `fetchFromApiHost` in proxy.cjs already handles /api/iconfinder via apiConfigs.
+
+                const requestUrl = `${isLocal ? '/api/iconfinder' : '/.netlify/functions/proxy?api=iconfinder'}&${params.toString()}`;
+
+                const headers: HeadersInit = {};
+                if (iconfinderKeyOverride) {
+                    headers['X-Api-Key'] = iconfinderKeyOverride;
+                } else {
+                    const viteKey = getIconfinderApiKey(); // gets VITE_ICONFINDER_API_KEY
+                    if (!viteKey || viteKey.includes('your_')) {
+                         console.warn(`Iconfinder API key (VITE_ICONFINDER_API_KEY) is not set or is default. Proxy's default will be attempted.`);
+                    }
+                }
+
+                const res = await fetch(requestUrl, { headers });
                 if (!res.ok) {
-                     const errorData = await res.json().catch(() => ({ details: 'Failed to parse error from Iconfinder proxy' }));
-                    throw new Error(errorData.details || `Iconfinder API error: ${res.status}`);
+                     const errorData = await res.json().catch(() => ({ details: `Failed to parse error from ${svgApi} proxy` }));
+                    throw new Error(errorData.details || `${svgApi} API error: ${res.status}`);
                 }
                 const data = await res.json();
                 // Map icons to add svg_url from vector_sizes
@@ -1447,15 +1462,16 @@ const StreamingAssetsTab = React.memo(() => {
                     emoji.group.toLowerCase().includes(query)
                 );
             } else if (emojiApi === 'openemoji') { // Example: Needs a key
-                const apiKey = getOpenEmojiApiKey(); // Use a getter
-                 if (!apiKey || apiKey.includes('your_')) {
+                const apiKeyToUse = useApiKeyStore.getState().getApiKeyOverride(ApiService.OPENEMOJI) || getOpenEmojiApiKey();
+                 if (!apiKeyToUse || apiKeyToUse.includes('your_')) { // Keep check for placeholder
                     const errorMsg = `OpenEmoji API key is missing or invalid. Please configure it.`;
                     setSearchError(errorMsg);
                     useAppStore.getState().actions.addNotification({ type: 'error', message: errorMsg });
                     setEmojiLoading(false);
                     return;
                 }
-                const res = await fetch(`https://emoji-api.com/emojis?search=${encodeURIComponent(query)}&access_key=${apiKey}`);
+                // This is a direct API call, not via our proxy. So, the key is used directly.
+                const res = await fetch(`https://emoji-api.com/emojis?search=${encodeURIComponent(query)}&access_key=${apiKeyToUse}`);
                 if (!res.ok) throw new Error(`OpenEmoji API error: ${res.status}`);
                 results = await res.json();
             }
@@ -1751,10 +1767,27 @@ const StreamingAssetsTab = React.memo(() => {
                 });
                 
                 setGifResults(response.data.map((gif: any) => {
-                    const result = createGiphyResult(gif, 'giphy', searchType);
+                    const result = {
+                        id: gif.id,
+                        title: gif.title,
+                        images: {
+                            fixed_height_small: { url: gif.images.fixed_height_small?.url },
+                            original: { url: gif.images.original?.url },
+                        },
+                        source: 'giphy',
+                        url: gif.url,
+                        rating: gif.rating,
+                        import_datetime: gif.import_datetime,
+                        trending_datetime: gif.trending_datetime,
+                        user: gif.user,
+                        type: searchType
+                    };
+
+                    // Debug logging for troubleshooting
                     if (!result.images.fixed_height_small.url && !result.images.original.url) {
                         console.warn('Giphy result missing image URLs:', { gif, result });
                     }
+
                     return result;
                 }));
                 setTotalResults(response.pagination.total_count);

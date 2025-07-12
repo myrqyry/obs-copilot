@@ -28,6 +28,10 @@ const PANEL_API_KEY_SERVICES: { id: ApiServiceName; label: string }[] = [
     { id: ApiService.ICONFINDER, label: 'Iconfinder' },
     { id: ApiService.DEVIANTART, label: 'DeviantArt' },
     { id: ApiService.IMGFLIP, label: 'Imgflip' },
+    { id: ApiService.TENOR, label: 'Tenor' },
+    { id: ApiService.WALLHAVEN, label: 'Wallhaven' },
+    { id: ApiService.OPENEMOJI, label: 'OpenEmoji (Generic)' },
+    { id: ApiService.UNSPLASH, label: 'Unsplash' },
 ];
 
 
