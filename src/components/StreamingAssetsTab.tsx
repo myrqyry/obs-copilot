@@ -233,13 +233,14 @@ const StreamingAssetsTab = React.memo(() => {
                     order: 'desc',
                     page: '1',
                 });
-                const requestUrl = `${apiUrlPath}?${params.toString()}`;
+
+                const requestUrl = isLocal ? `${apiUrlPath}?${params.toString()}` : `${apiUrlPath.replace('?api=wallhaven', '/api/wallhaven')}?${params.toString()}`;
 
                 const headers: HeadersInit = {};
                 const overrideKey = useApiKeyStore.getState().getApiKeyOverride(ApiService.WALLHAVEN);
                 if (overrideKey) {
                     headers['X-Api-Key'] = overrideKey;
-                } // Wallhaven doesn't typically require a key via proxy by default in this setup, but if user provides one.
+                }
 
                 console.log('Wallhaven API URL:', requestUrl);
                 const res = await fetch(requestUrl, { headers });
@@ -316,8 +317,10 @@ const StreamingAssetsTab = React.memo(() => {
                 // If proxy is also configured to accept 'key' in query, it might pick that up if X-Api-Key is not set by client AND proxy has no env var.
                 // For simplicity, we'll assume X-Api-Key is the primary override mechanism for the proxy.
                 
-                const requestUrlPath = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? '/api/pexels' : '/.netlify/functions/proxy?api=pexels';
-                const requestUrl = `${requestUrlPath}&${params.toString()}`; // Netlify proxy needs api=pexels in query
+                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                const requestUrlPath = isLocal ? '/api/pexels' : '/.netlify/functions/proxy';
+                const requestUrl = isLocal ? `${requestUrlPath}?${params.toString()}` : `${requestUrlPath}/api/pexels?${params.toString()}`;
+
 
                 const headers: HeadersInit = {};
                 if (pexelsKeyOverride) {
@@ -373,8 +376,9 @@ const StreamingAssetsTab = React.memo(() => {
                 // Key is not added to params for override. Proxy uses X-Api-Key or its own default.
                 // Pixabay proxy config in proxy.cjs can take 'key' as paramName.
                 
-                const requestUrlPath = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? '/api/pixabay' : '/.netlify/functions/proxy?api=pixabay';
-                const requestUrl = `${requestUrlPath}&${params.toString()}`;
+                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                const requestUrlPath = isLocal ? '/api/pixabay' : '/.netlify/functions/proxy';
+                const requestUrl = isLocal ? `${requestUrlPath}?${params.toString()}` : `${requestUrlPath}/api/pixabay?${params.toString()}`;
 
                 const headers: HeadersInit = {};
                 if (pixabayKeyOverride) {
@@ -428,8 +432,9 @@ const StreamingAssetsTab = React.memo(() => {
                 });
                 // Key is not added to params for override.
                 
-                const requestUrlPath = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? '/api/deviantart' : '/.netlify/functions/proxy?api=deviantart';
-                const requestUrl = `${requestUrlPath}&${params.toString()}`;
+                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                const requestUrlPath = isLocal ? '/api/deviantart' : '/.netlify/functions/proxy';
+                const requestUrl = isLocal ? `${requestUrlPath}?${params.toString()}` : `${requestUrlPath}/api/deviantart?${params.toString()}`;
 
                 const headers: HeadersInit = {};
                 if (deviantArtKeyOverride) {
@@ -838,19 +843,23 @@ const StreamingAssetsTab = React.memo(() => {
                     limit: searchFilters.limit.toString(),
                     page: '1'
                 });
-                if (imgflipKey) {
-                    params.append('api_key', imgflipKey);
-                }
+                // API key will be sent via X-Api-Key header by the proxy if overridden
                 
-                // Use proxy to avoid CORS issues
-                let apiUrl = '';
-                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                    apiUrl = `/api/imgflip?${params.toString()}`;
+                const headers: HeadersInit = {};
+                const imgflipKeyOverride = useApiKeyStore.getState().getApiKeyOverride(ApiService.IMGFLIP);
+                if (imgflipKeyOverride) {
+                    headers['X-Api-Key'] = imgflipKeyOverride;
                 } else {
-                    apiUrl = `/.netlify/functions/proxy?api=imgflip&${params.toString()}`;
+                    const viteKey = getImgflipApiKey(); // gets VITE_ default
+                    if (!viteKey) { // Imgflip can work without a key for some calls, but good to warn if no default either
+                        console.warn('Imgflip API key (VITE_IMGFLIP_API_KEY) is not set. Proxy default/keyless will be attempted.');
+                    }
                 }
                 
-                const res = await fetch(apiUrl);
+                let apiUrlPath = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? '/api/imgflip' : '/.netlify/functions/proxy/api/imgflip';
+                const requestUrl = `${apiUrlPath}?${params.toString()}`;
+
+                const res = await fetch(requestUrl, { headers });
                 if (!res.ok) {
                     throw new Error(`Imgflip API error: ${res.status} ${res.statusText}`);
                 }
@@ -892,8 +901,9 @@ const StreamingAssetsTab = React.memo(() => {
                     page: '1'
                 });
 
-                let apiUrlPath = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? '/api/imgur' : '/.netlify/functions/proxy?api=imgur';
-                const requestUrl = `${apiUrlPath}&${params.toString()}`;
+                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                const apiUrlPath = isLocal ? '/api/imgur' : '/.netlify/functions/proxy';
+                const requestUrl = isLocal ? `${apiUrlPath}?${params.toString()}` : `${apiUrlPath}/api/imgur?${params.toString()}`;
 
                 const res = await fetch(requestUrl, { headers });
                 if (!res.ok) {
@@ -1368,7 +1378,7 @@ const StreamingAssetsTab = React.memo(() => {
                 // Let's adjust to use the direct path first, assuming proxy.cjs handles /api/iconfinder
                 // The `fetchFromApiHost` in proxy.cjs already handles /api/iconfinder via apiConfigs.
 
-                const requestUrl = `${isLocal ? '/api/iconfinder' : '/.netlify/functions/proxy?api=iconfinder'}&${params.toString()}`;
+                const requestUrl = isLocal ? `/api/iconfinder?${params.toString()}` : `/.netlify/functions/proxy/api/iconfinder?${params.toString()}`;
 
                 const headers: HeadersInit = {};
                 if (iconfinderKeyOverride) {

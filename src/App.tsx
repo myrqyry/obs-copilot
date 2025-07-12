@@ -129,69 +129,11 @@ const App: React.FC = () => {
         document.documentElement.style.setProperty('--user-chat-bubble-color-rgb', adjustForExtraDarkMode(hexToRgb(catppuccinChatBubbleColorsHexMap[theme.userChatBubble])));
         document.documentElement.style.setProperty('--model-chat-bubble-color-rgb', adjustForExtraDarkMode(hexToRgb(catppuccinChatBubbleColorsHexMap[theme.modelChatBubble])));
         document.documentElement.style.setProperty('--dynamic-secondary-accent-rgb', adjustForExtraDarkMode(hexToRgb(catppuccinSecondaryAccentColorsHexMap[theme.secondaryAccent])));
-    }, [theme.accent, theme.secondaryAccent, theme.userChatBubble, theme.modelChatBubble, extraDarkModeFromStore]); // Changed extraDarkMode to extraDarkModeFromStore
+    }, [theme.accent, theme.secondaryAccent, theme.userChatBubble, theme.modelChatBubble, extraDarkModeFromStore, bubbleFillOpacity, chatBubbleBlendMode, backgroundOpacity, chatBackgroundBlendMode]); // Added missing dependencies from the second block
 
-    // const { extraDarkMode: extraDarkModeFromStore } = useAppStore((state: AppState) => state.userSettings); // Removed duplicate
-
-    useEffect(() => {
-        if (headerRef.current) {
-            setHeaderHeight(headerRef.current.offsetHeight);
-        }
-    }, []);
-
-    // Update CSS custom properties when theme changes
-    useEffect(() => {
-        // Set the data attribute for extra dark mode CSS selectors
-        document.documentElement.setAttribute('data-extra-dark-mode', extraDarkModeFromStore.toString());
-
-        // Adjust colors for extra dark mode
-        const adjustForExtraDarkMode = (rgb: string): string => {
-            if (!extraDarkModeFromStore) return rgb;
-            const [r, g, b] = rgb.split(',').map(Number);
-            return `${Math.max(r - 50, 0)}, ${Math.max(g - 50, 0)}, ${Math.max(b - 50, 0)}`;
-        };
-
-        // Set legacy dynamic accent properties (for components not yet migrated)
-        document.documentElement.style.setProperty('--dynamic-accent', catppuccinAccentColorsHexMap[theme.accent]);
-        document.documentElement.style.setProperty('--dynamic-secondary-accent', catppuccinSecondaryAccentColorsHexMap[theme.secondaryAccent]);
-        document.documentElement.style.setProperty('--user-chat-bubble-color', catppuccinChatBubbleColorsHexMap[theme.userChatBubble]);
-        document.documentElement.style.setProperty('--model-chat-bubble-color', catppuccinChatBubbleColorsHexMap[theme.modelChatBubble]);
-
-        // Set theme colors as CSS variables for markdown effects
-        document.documentElement.style.setProperty('--theme-accent', catppuccinAccentColorsHexMap[theme.accent]);
-        document.documentElement.style.setProperty('--theme-secondary-accent', catppuccinSecondaryAccentColorsHexMap[theme.secondaryAccent]);
-        document.documentElement.style.setProperty('--theme-user-bubble', catppuccinChatBubbleColorsHexMap[theme.userChatBubble]);
-        document.documentElement.style.setProperty('--theme-model-bubble', catppuccinChatBubbleColorsHexMap[theme.modelChatBubble]);
-
-        // Update RGB variables for chat bubble opacity
-        const hexToRgb = (hex: string): string => {
-            const r = parseInt(hex.slice(1, 3), 16);
-            const g = parseInt(hex.slice(3, 5), 16);
-            const b = parseInt(hex.slice(5, 7), 16);
-            return `${r}, ${g}, ${b}`;
-        };
-
-        document.documentElement.style.setProperty('--user-chat-bubble-color-rgb', adjustForExtraDarkMode(hexToRgb(catppuccinChatBubbleColorsHexMap[theme.userChatBubble])));
-        document.documentElement.style.setProperty('--model-chat-bubble-color-rgb', adjustForExtraDarkMode(hexToRgb(catppuccinChatBubbleColorsHexMap[theme.modelChatBubble])));
-        document.documentElement.style.setProperty('--dynamic-secondary-accent-rgb', adjustForExtraDarkMode(hexToRgb(catppuccinSecondaryAccentColorsHexMap[theme.secondaryAccent])));
-
-        // Set opacity and blend mode variables
-        document.documentElement.style.setProperty('--bubble-fill-opacity', String(bubbleFillOpacity));
-        document.documentElement.style.setProperty('--chat-bubble-blend-mode', chatBubbleBlendMode);
-        document.documentElement.style.setProperty('--chat-background-opacity', String(backgroundOpacity));
-        document.documentElement.style.setProperty('--chat-background-blend-mode', chatBackgroundBlendMode);
-
-    }, [
-        theme.accent,
-        theme.secondaryAccent,
-        theme.userChatBubble,
-        theme.modelChatBubble,
-        extraDarkModeFromStore,
-        bubbleFillOpacity,
-        chatBubbleBlendMode,
-        backgroundOpacity,
-        chatBackgroundBlendMode
-    ]);
+    // const { extraDarkMode: extraDarkModeFromStore } = useAppStore((state: AppState) => state.userSettings); // This line was correctly commented out as it's defined above.
+    // The second useEffect block starting from line 149 was a duplicate of the one starting on line 108 and has been removed.
+    // The dependencies from the (removed) second block have been merged into the first one above.
 
     // Handle initial Gemini messages
     const geminiMessagesRef = useRef(geminiMessages);
