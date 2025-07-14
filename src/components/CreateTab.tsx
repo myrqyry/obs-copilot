@@ -9,7 +9,7 @@ import Tooltip from './ui/Tooltip';
 import InlineMusicControls from './InlineMusicControls';
 import { ImageEditor } from './ImageEditor';
 import { Modal } from './common/Modal';
-import { addBrowserSource, addImageSource } from '../services/obsService';
+// Removed import of deleted obsService helpers. Use ObsClient instance methods instead.
 import { generateSourceName } from '../utils/obsSourceHelpers';
 import { copyToClipboard } from '../utils/persistence';
 import { pcm16ToWavUrl } from '../lib/pcmToWavUrl';
@@ -556,7 +556,7 @@ const CreateTab: React.FC = () => {
                                                 addNotification({ message: "OBS not connected.", type: 'error' });
                                                 return;
                                             }
-                                            await addImageSource(obsServiceInstance, currentProgramScene, generatedImage, generateSourceName("Generated Image"));
+                                            await obsServiceInstance.addImageSource(currentProgramScene, generatedImage, generateSourceName("Generated Image"));
                                             setImageModalOpen(false);
                                             addNotification({ message: "Added image to OBS.", type: 'success' });
                                         },
@@ -573,7 +573,7 @@ const CreateTab: React.FC = () => {
                                                 addNotification({ message: "OBS not connected.", type: 'error' });
                                                 return;
                                             }
-                                            await addBrowserSource(obsServiceInstance, currentProgramScene, generatedImage, generateSourceName("Generated Image"));
+                                            await obsServiceInstance.addBrowserSource(currentProgramScene, generatedImage, generateSourceName("Generated Image"));
                                             setImageModalOpen(false);
                                             addNotification({ message: "Added browser source to OBS.", type: 'success' });
                                         },

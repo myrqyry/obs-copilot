@@ -2,7 +2,7 @@
 import * as React from "react";
 import { useRef, useState } from "react";
 import { removeBackground } from "@imgly/background-removal";
-import { useToast } from "@/components/ui/use-toast";
+import { useAppStore } from '../store/appStore';
 import { Modal } from "./common/Modal";
 import Tooltip from "./ui/Tooltip";
 
@@ -15,7 +15,7 @@ export const ImageEditor: React.FC = () => {
     const [outputModalOpen, setOutputModalOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const toast = useToast();
+    const addNotification = useAppStore((state) => state.actions.addNotification);
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -28,7 +28,7 @@ export const ImageEditor: React.FC = () => {
 
     const handleRemoveBackground = async () => {
         if (!inputBlob) {
-            toast.error("No image file selected.");
+            addNotification({ message: "No image file selected.", type: 'error' });
             return;
         }
         setLoading(true);
@@ -39,11 +39,11 @@ export const ImageEditor: React.FC = () => {
                 const url = URL.createObjectURL(result);
                 setOutputUrl(url);
             } else {
-                toast.error("Background removal did not return an image Blob.");
+                addNotification({ message: "Background removal did not return an image Blob.", type: 'error' });
             }
         } catch (err) {
             console.error("Background removal failed:", err);
-            toast.error("Background removal failed: " + (err instanceof Error ? err.message : String(err)));
+            addNotification({ message: "Background removal failed: " + (err instanceof Error ? err.message : String(err)), type: 'error' });
         }
         setLoading(false);
     };

@@ -1,3 +1,31 @@
+// Configuration for each GIF API, including key management and labels
+const gifApiConfigs = {
+  giphy: {
+    label: 'Giphy',
+    requiresKey: true,
+    keyGetter: () => getGiphyApiKey(),
+  },
+  tenor: {
+    label: 'Tenor',
+    requiresKey: true,
+    keyGetter: () => getTenorApiKey(),
+  },
+  imgflip: {
+    label: 'Imgflip',
+    requiresKey: true,
+    keyGetter: () => getImgflipApiKey(),
+  },
+  reddit: {
+    label: 'Reddit GIFs',
+    requiresKey: false,
+    keyGetter: () => undefined,
+  },
+  imgur: {
+    label: 'Imgur',
+    requiresKey: true,
+    keyGetter: () => getEffectiveApiKey(ApiService.IMGUR),
+  },
+};
 import { getProxiedImageUrl } from "../utils/imageProxy";
 import { GiphyFetch } from '@giphy/js-fetch-api';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -5,7 +33,7 @@ import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
 import { GiphyResult } from '../types/giphy';
 import { useAppStore } from '../store/appStore';
 import { catppuccinAccentColorsHexMap } from '../types';
-import { addBrowserSource, addMediaSource, addSvgAsBrowserSource, addEmojiAsBrowserSource, addImageSource } from '../services/obsService';
+// Removed import of deleted obsService helpers. Use ObsClient instance methods instead.
 import { generateSourceName } from '../utils/obsSourceHelpers';
 import { copyToClipboard } from '../utils/persistence';
 import { Card, CardContent } from './ui/Card';
@@ -543,7 +571,7 @@ const StreamingAssetsTab = React.memo(() => {
             useAppStore.getState().actions.addNotification({ type: 'error', message: `Error fetching backgrounds: ${errorMessage}` });
         }
         setBackgroundLoading(false);
-    }, [backgroundApi, backgroundQuery, 배경ApiConfigs]); // Added apiConfigs to dependencies
+    }, [backgroundApi, backgroundQuery]); // Removed undefined variable from dependencies
 
     // Random SVG for header - generate once per component render
     const [randomHeaderSvg] = useState(() => getRandomSvg());
@@ -1500,71 +1528,71 @@ const StreamingAssetsTab = React.memo(() => {
     //     setTimeout(() => setFeedbackMessage(null), 3000);
     // };
 
-    const handleAddAsBrowserSource = async (url: string, sourceName: string) => {
-        if (!obsServiceInstance || !isConnected || !currentProgramScene) {
-            addNotification({ message: 'OBS not connected.', type: 'error' });
-            return;
-        }
-        try {
-            await addBrowserSource(obsServiceInstance, currentProgramScene, url, generateSourceName(sourceName));
-            addNotification({ message: `Added ${sourceName} to OBS.`, type: 'success' });
-        } catch (error) {
-            addNotification({ message: 'Failed to add source.', type: 'error' });
-        }
-    };
+const handleAddAsBrowserSource = async (url: string, sourceName: string) => {
+    if (!obsServiceInstance || !isConnected || !currentProgramScene) {
+        addNotification({ message: 'OBS not connected.', type: 'error' });
+        return;
+    }
+    try {
+        await obsServiceInstance.addBrowserSource(currentProgramScene, url, generateSourceName(sourceName));
+        addNotification({ message: `Added ${sourceName} to OBS.`, type: 'success' });
+    } catch (error) {
+        addNotification({ message: 'Failed to add source.', type: 'error' });
+    }
+};
 
-    const handleAddAsImageSource = async (url: string, sourceName: string) => {
-        if (!obsServiceInstance || !isConnected || !currentProgramScene) {
-            addNotification({ message: 'OBS not connected.', type: 'error' });
-            return;
-        }
-        try {
-            await addImageSource(obsServiceInstance, currentProgramScene, url, generateSourceName(sourceName));
-            addNotification({ message: `Added ${sourceName} to OBS.`, type: 'success' });
-        } catch (error) {
-            addNotification({ message: 'Failed to add source.', type: 'error' });
-        }
-    };
+const handleAddAsImageSource = async (url: string, sourceName: string) => {
+    if (!obsServiceInstance || !isConnected || !currentProgramScene) {
+        addNotification({ message: 'OBS not connected.', type: 'error' });
+        return;
+    }
+    try {
+        await obsServiceInstance.addImageSource(currentProgramScene, url, generateSourceName(sourceName));
+        addNotification({ message: `Added ${sourceName} to OBS.`, type: 'success' });
+    } catch (error) {
+        addNotification({ message: 'Failed to add source.', type: 'error' });
+    }
+};
 
-    const handleAddAsMediaSource = async (url: string, sourceName: string) => {
-        if (!obsServiceInstance || !isConnected || !currentProgramScene) {
-            addNotification({ message: 'OBS not connected.', type: 'error' });
-            return;
-        }
-        try {
-            await addMediaSource(obsServiceInstance, currentProgramScene, url, generateSourceName(sourceName));
-            addNotification({ message: `Added ${sourceName} to OBS.`, type: 'success' });
-        } catch (error) {
-            addNotification({ message: 'Failed to add source.', type: 'error' });
-        }
-    };
+const handleAddAsMediaSource = async (url: string, sourceName: string) => {
+    if (!obsServiceInstance || !isConnected || !currentProgramScene) {
+        addNotification({ message: 'OBS not connected.', type: 'error' });
+        return;
+    }
+    try {
+        await obsServiceInstance.addMediaSource(currentProgramScene, url, generateSourceName(sourceName));
+        addNotification({ message: `Added ${sourceName} to OBS.`, type: 'success' });
+    } catch (error) {
+        addNotification({ message: 'Failed to add source.', type: 'error' });
+    }
+};
 
-    const handleAddSvgAsBrowserSource = async (svg: string, sourceName: string) => {
-        if (!obsServiceInstance || !isConnected || !currentProgramScene) {
-            addNotification({ message: 'OBS not connected.', type: 'error' });
-            return;
-        }
-        try {
-            await addSvgAsBrowserSource(obsServiceInstance, currentProgramScene, svg, generateSourceName(sourceName));
-            addNotification({ message: `Added ${sourceName} to OBS.`, type: 'success' });
-        } catch (error) {
-            addNotification({ message: 'Failed to add source.', type: 'error' });
-        }
-    };
+const handleAddSvgAsBrowserSource = async (svg: string, sourceName: string) => {
+    if (!obsServiceInstance || !isConnected || !currentProgramScene) {
+        addNotification({ message: 'OBS not connected.', type: 'error' });
+        return;
+    }
+    try {
+        await obsServiceInstance.addSvgAsBrowserSource(currentProgramScene, svg, generateSourceName(sourceName));
+        addNotification({ message: `Added ${sourceName} to OBS.`, type: 'success' });
+    } catch (error) {
+        addNotification({ message: 'Failed to add source.', type: 'error' });
+    }
+};
 
-    const handleAddEmojiAsBrowserSource = async (emoji: any, sourceName: string) => {
-        if (!obsServiceInstance || !isConnected || !currentProgramScene) {
-            addNotification({ message: 'OBS not connected.', type: 'error' });
-            return;
-        }
-        try {
-            const emojiChar = getEmojiChar(emoji);
-            await addEmojiAsBrowserSource(obsServiceInstance, currentProgramScene, emojiChar, generateSourceName(sourceName));
-            addNotification({ message: `Added ${sourceName} to OBS.`, type: 'success' });
-        } catch (error) {
-            addNotification({ message: 'Failed to add source.', type: 'error' });
-        }
-    };
+const handleAddEmojiAsBrowserSource = async (emoji: any, sourceName: string) => {
+    if (!obsServiceInstance || !isConnected || !currentProgramScene) {
+        addNotification({ message: 'OBS not connected.', type: 'error' });
+        return;
+    }
+    try {
+        const emojiChar = getEmojiChar(emoji);
+        await obsServiceInstance.addEmojiAsBrowserSource(currentProgramScene, emojiChar, generateSourceName(sourceName));
+        addNotification({ message: `Added ${sourceName} to OBS.`, type: 'success' });
+    } catch (error) {
+        addNotification({ message: 'Failed to add source.', type: 'error' });
+    }
+};
 
     const getEmojiChar = (emojiData: any): string => {
         if (!emojiData) return '❓';
