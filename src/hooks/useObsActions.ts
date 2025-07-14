@@ -1,10 +1,10 @@
 import { useCallback } from 'react';
-import type { OBSWebSocketService } from '../services/obsService';
+import type { ObsClient } from '../services/ObsClient';
 import type { ObsAction } from '../types/obsActions';
 import type { OBSData } from '../types';
 
 interface UseObsActionsProps {
-    obsService: OBSWebSocketService;
+    obsService: ObsClient;
     obsData: OBSData;
     onRefreshData: () => Promise<void>;
     onAddMessage: (message: { role: 'system'; text: string }) => void;

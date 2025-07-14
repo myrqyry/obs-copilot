@@ -1,7 +1,7 @@
 import Tooltip from './ui/Tooltip';
 import React, { useState, useEffect } from 'react';
 import { CatppuccinAccentColorName, OBSVideoSettings } from '../types';
-import { OBSWebSocketService } from '../services/obsService';
+import { ObsClient } from '../services/ObsClient';
 import { Button } from './common/Button';
 import AddToContextButton from './common/AddToContextButton';
 import { TextInput } from './common/TextInput';
@@ -13,7 +13,7 @@ import { CollapsibleCard } from './common/CollapsibleCard';
 import { catppuccinAccentColorsHexMap } from '../types';
 
 interface ObsMainControlsProps {
-  obsService: OBSWebSocketService;
+  obsService: ObsClient;
   onRefreshData: () => Promise<void>;
   setErrorMessage: (message: string | null) => void;
   accentColorName?: CatppuccinAccentColorName;

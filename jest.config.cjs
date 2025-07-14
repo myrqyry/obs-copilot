@@ -43,10 +43,7 @@ module.exports = {
   ],
   // An array of regexp pattern strings that are matched against all test paths, matched tests are skipped
   testPathIgnorePatterns: ['/node_modules/', '/dist-node/'],
-  // This option sets the URL for the jsdom environment. It is reflected in properties such as location.href
-  testEnvironmentOptions: {
-    url: 'http://localhost',
-  },
+  testURL: 'http://localhost/',
   // Indicates whether each individual test should be reported during the run
   verbose: true,
   // Setup files after the environment is set up

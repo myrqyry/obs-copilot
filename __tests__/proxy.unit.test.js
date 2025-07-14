@@ -251,6 +251,6 @@ describe('Proxy Unit Tests - General API Handling', () => {
 
     expect(mockFetchImplementation).not.toHaveBeenCalled();
     expect(response.statusCode).toBe(500);
-    expect(response.body.error).toBe('Iconfinder API key not set in server env (ICONFINDER_API_KEY)');
+    expect(response.body.error).toBe('Iconfinder API key not set in server env (ICONFINDER_API_KEY) and no override provided.');
   });
 });

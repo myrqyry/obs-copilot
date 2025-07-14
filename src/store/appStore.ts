@@ -13,7 +13,7 @@ import type {
 } from '../types';
 import type { ObsAction } from '../types/obsActions';
 import type { AutomationRule } from '../types/automation';
-import type { OBSWebSocketService } from '../services/obsService';
+import type { ObsClient } from '../services/ObsClient';
 import type { StreamerBotService } from '../services/streamerBotService';
 import { loadUserSettings, saveUserSettings, isStorageAvailable } from '../utils/persistence';
 import { automationService } from '../services/automationService';
@@ -47,7 +47,7 @@ export interface AppState {
     obsLogFiles: any[] | null;
 
     // OBS service instance
-    obsServiceInstance: OBSWebSocketService | null;
+    obsServiceInstance: ObsClient | null;
 
     // Chat State
     geminiMessages: ChatMessage[];
@@ -134,7 +134,7 @@ export interface AppState {
         setChatBackgroundBlendMode: (mode: string) => void;
         setChatBubbleBlendMode: (mode: string) => void;
         setThemeColor: (type: 'accent' | 'secondaryAccent' | 'userChatBubble' | 'modelChatBubble', color: any) => void;
-        setObsServiceInstance: (instance: OBSWebSocketService | null) => void;
+        setObsServiceInstance: (instance: ObsClient | null) => void;
         updateOBSData: (data: Partial<{
             scenes: OBSScene[];
             currentProgramScene: string | null;

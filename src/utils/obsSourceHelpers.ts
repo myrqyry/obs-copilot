@@ -1,7 +1,7 @@
-import { OBSWebSocketService } from '../services/obsService';
+import { ObsClient } from '../services/ObsClient';
 
 export interface AddSourceOptions {
-    obsService: OBSWebSocketService;
+    obsService: ObsClient;
     currentScene?: string | null;
     onSuccess?: (message: string) => void;
     onError?: (error: string) => void;

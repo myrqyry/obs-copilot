@@ -23,7 +23,7 @@ import {
     catppuccinSecondaryAccentColorsHexMap,
     catppuccinChatBubbleColorsHexMap,
 } from './types';
-import { OBSWebSocketService } from './services/obsService';
+import { ObsClient, ObsClientImpl } from './services/ObsClient';
 import { StreamerBotService } from './services/streamerBotService';
 import { useAppStore, AppState } from './store/appStore'; // Import AppState
 import { DEFAULT_OBS_WEBSOCKET_URL } from './constants';
@@ -175,8 +175,8 @@ const App: React.FC = () => {
     }, [isGeminiClientInitialized, geminiInitializationError, geminiApiKey, streamerName, isConnected, isStreamerBotConnected]);
 
     // Define fetchData first with debouncing
-    const fetchData = useCallback(async (obsService?: OBSWebSocketService) => {
-        const serviceToUse = obsService || obsServiceInstance;
+const fetchData = useCallback(async () => {
+    const serviceToUse = obsServiceInstance;
         if (!serviceToUse) return;
 
         try {
@@ -257,11 +257,12 @@ const App: React.FC = () => {
                 eventSubscriptions: 0xFFFFFFFF // Subscribe to all events
             });
             setObs(newObs);
-            const newObsService = new OBSWebSocketService(newObs);
+const newObsService = new ObsClientImpl();
+newObsService.obs = newObs;
             actions.setObsServiceInstance(newObsService);
 
             // Fetch initial data after successful connection
-            await fetchData(newObsService); // Pass the newObsService instance
+            await fetchData();
 
             // Attempt to connect to Streamer.bot if address and port are provided and not already connected
             const finalAddress = streamerBotAddress || 'localhost';
@@ -409,7 +410,7 @@ const App: React.FC = () => {
     useEffect(() => {
         if (isConnected && obs && obsServiceInstance) {
             fetchData();
-            const debouncedFetch = debounce(fetchData, 300);
+            const debouncedFetch = debounce(() => fetchData(), 300);
 
             // Group events by relevance
             const sceneEvents = ['CurrentProgramSceneChanged', 'SceneItemListReindexed'];

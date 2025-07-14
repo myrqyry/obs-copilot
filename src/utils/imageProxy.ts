@@ -1,3 +1,7 @@
+export const getHostname = (): string => {
+    return window.location.hostname;
+};
+
 /**
  * Proxies an image URL through our Netlify function to avoid CORS issues
  * @param imageUrl The original image URL
@@ -31,7 +35,8 @@ export const getProxiedImageUrl = (imageUrl: string): string => {
     
     if (shouldProxy(imageUrl)) {
         // If we're in development, use the local proxy
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        const hostname = getHostname();
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
             return `/api/image?url=${encodeURIComponent(imageUrl)}`;
         }
         
