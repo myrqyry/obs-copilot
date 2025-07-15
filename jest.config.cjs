@@ -18,7 +18,14 @@ module.exports = {
         '<rootDir>/src/**/__tests__/**/*.test.ts',
         '<rootDir>/src/**/?(*.)+(spec|test).ts',
       ],
+      transform: {
+        '^.+\\.(ts|tsx)$': 'ts-jest',
+      },
+      transformIgnorePatterns: [
+        "node_modules/(?!obs-websocket-js)"
+      ],
       moduleNameMapper: {
+        '^obs-websocket-js$': '<rootDir>/src/services/__mocks__/obs-websocket-js.ts',
         // Handle module aliases (if you have them in tsconfig.json)
         // Example: '^@components/(.*)$': '<rootDir>/src/components/$1'
       },

@@ -1,5 +1,10 @@
-import { OBSWebSocket } from 'obs-websocket-js';
 import { Scene } from '../types/obs-websocket-js';
+
+// Dynamic import for OBSWebSocket
+let OBSWebSocket: any;
+import('obs-websocket-js').then(obs => {
+    OBSWebSocket = obs.default;
+});
 
 export class ObsError extends Error {
   constructor(message: string) {
@@ -9,7 +14,7 @@ export class ObsError extends Error {
 }
 
 export interface ObsClient {
-  connect(): Promise<void>;
+  connect(address: string, password?: string): Promise<void>;
   disconnect(): Promise<void>;
   getSceneList(): Promise<{ scenes: Scene[] }>;
   getCurrentProgramScene(): Promise<Scene>;
@@ -118,19 +123,31 @@ export interface ObsClient {
 }
 
 export class ObsClientImpl implements ObsClient {
-  private obs: OBSWebSocket;
+    public obs: OBSWebSocket;
 
-  constructor() {
-    this.obs = new OBSWebSocket();
-  }
-
-  async connect(): Promise<void> {
-    try {
-      await this.obs.connect();
-    } catch (error: any) {
-      throw new ObsError(error.message);
+    constructor() {
+        // The OBSWebSocket instance is created in the init method
     }
-  }
+
+    async init() {
+        if (!OBSWebSocket) {
+            await new Promise(resolve => setTimeout(resolve, 100)); // Wait for the dynamic import
+        }
+        this.obs = new OBSWebSocket();
+    }
+
+    async connect(address: string, password?: string): Promise<void> {
+        if (!this.obs) {
+            await this.init();
+        }
+        try {
+            await this.obs.connect(address, password, {
+                eventSubscriptions: 0xFFFFFFFF
+            });
+        } catch (error: any) {
+            throw new ObsError(`Failed to connect to OBS: ${error.message}`);
+        }
+    }
 
   async disconnect(): Promise<void> {
     try {
