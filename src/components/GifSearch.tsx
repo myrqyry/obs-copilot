@@ -19,9 +19,6 @@ import { GiphyFetch } from '@giphy/js-fetch-api';
 const GIF_APIS = [
     { value: 'giphy', label: 'Giphy', domain: 'giphy.com', icon: '🎬' },
     { value: 'tenor', label: 'Tenor', domain: 'tenor.com', icon: '🎭' },
-    { value: 'imgflip', label: 'Imgflip', domain: 'imgflip.com', icon: '🃏' },
-    { value: 'reddit', label: 'Reddit GIFs', domain: 'reddit.com', icon: '🤖' },
-    { value: 'imgur', label: 'Imgur', domain: 'imgur.com', icon: '📷' }
 ];
 
 // Enhanced search suggestions for better UX
@@ -34,15 +31,6 @@ const SEARCH_SUGGESTIONS = {
         'reaction', 'meme', 'funny', 'cute', 'dance', 'anime', 'gaming', 'sports',
         'celebration', 'love', 'sad', 'angry', 'surprised', 'confused', 'excited'
     ],
-    imgflip: [
-        'meme', 'funny', 'reaction', 'dank', 'viral', 'trending', 'classic', 'modern'
-    ],
-    reddit: [
-        'reaction', 'meme', 'funny', 'gaming', 'anime', 'sports', 'politics', 'technology'
-    ],
-    imgur: [
-        'reaction', 'meme', 'funny', 'gaming', 'anime', 'sports', 'art', 'photography'
-    ]
 };
 
 // Content rating options
@@ -80,14 +68,6 @@ const getEffectiveApiKey = (serviceName: ApiService): string | undefined => {
     const viteKeys: Partial<Record<ApiService, string | undefined>> = {
       [ApiService.GIPHY]: import.meta.env.VITE_GIPHY_API_KEY,
       [ApiService.TENOR]: import.meta.env.VITE_TENOR_API_KEY,
-      [ApiService.IMGFLIP]: import.meta.env.VITE_IMGFLIP_API_KEY,
-      [ApiService.UNSPLASH]: import.meta.env.VITE_UNSPLASH_API_KEY, // Unsplash service handles its own key
-      [ApiService.PEXELS]: import.meta.env.VITE_PEXELS_API_KEY,
-      [ApiService.PIXABAY]: import.meta.env.VITE_PIXABAY_API_KEY,
-      [ApiService.DEVIANTART]: import.meta.env.VITE_DEVIANTART_API_KEY,
-      [ApiService.ICONFINDER]: import.meta.env.VITE_ICONFINDER_API_KEY,
-      [ApiService.CHUTES]: import.meta.env.VITE_CHUTES_API_TOKEN,
-      // OPENEMOJI might not have a VITE_ default.
     };
     return viteKeys[serviceName];
   };
@@ -95,15 +75,6 @@ const getEffectiveApiKey = (serviceName: ApiService): string | undefined => {
   // Specific getters using the new helper
   const getGiphyApiKey = () => getEffectiveApiKey(ApiService.GIPHY);
   const getTenorApiKey = () => getEffectiveApiKey(ApiService.TENOR);
-  const getImgflipApiKey = () => getEffectiveApiKey(ApiService.IMGFLIP);
-  const getUnsplashApiKey = () => getEffectiveApiKey(ApiService.UNSPLASH); // Still used by unsplashService directly
-  const getPexelsApiKey = () => getEffectiveApiKey(ApiService.PEXELS);
-  const getPixabayApiKey = () => getEffectiveApiKey(ApiService.PIXABAY);
-  const getWallhavenApiKey = () => getEffectiveApiKey(ApiService.WALLHAVEN); // Added
-  const getDeviantArtApiKey = () => getEffectiveApiKey(ApiService.DEVIANTART); // Added
-  const getIconfinderApiKey = () => getEffectiveApiKey(ApiService.ICONFINDER); // Added
-  const getOpenEmojiApiKey = () => getEffectiveApiKey(ApiService.OPENEMOJI); // Added
-  const getImgurApiKey = () => getEffectiveApiKey(ApiService.IMGUR); // Added for consistency
 
 const GifSearch: React.FC = () => {
     const [modalContent, setModalContent] = useState<{ type: 'gif' | 'sticker', data: any } | null>(null);
@@ -355,125 +326,6 @@ const GifSearch: React.FC = () => {
 
                     return result;
                 }));
-            } else if (gifApi === 'imgflip') {
-                const imgflipKey = getImgflipApiKey();
-                const params = new URLSearchParams({
-                    q: searchQuery,
-                    limit: searchFilters.limit.toString(),
-                    page: '1'
-                });
-                // API key will be sent via X-Api-Key header by the proxy if overridden
-
-                const headers: HeadersInit = {};
-                const imgflipKeyOverride = useApiKeyStore.getState().getApiKeyOverride(ApiService.IMGFLIP);
-                if (imgflipKeyOverride) {
-                    headers['X-Api-Key'] = imgflipKeyOverride;
-                } else {
-                    const viteKey = getImgflipApiKey(); // gets VITE_ default
-                    if (!viteKey) { // Imgflip can work without a key for some calls, but good to warn if no default either
-                        console.warn('Imgflip API key (VITE_IMGFLIP_API_KEY) is not set. Proxy default/keyless will be attempted.');
-                    }
-                }
-
-                let apiUrlPath = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? '/api/imgflip' : '/.netlify/functions/proxy/api/imgflip';
-                const requestUrl = `${apiUrlPath}?${params.toString()}`;
-
-                const res = await fetch(requestUrl, { headers });
-                if (!res.ok) {
-                    throw new Error(`Imgflip API error: ${res.status} ${res.statusText}`);
-                }
-
-                const data = await res.json();
-                setGifResults(data.data?.map((item: any) => ({
-                    id: item.id,
-                    title: item.title || '',
-                    images: {
-                        fixed_height_small: { url: item.url },
-                        original: { url: item.url },
-                    },
-                    source: 'imgflip',
-                    url: item.url,
-                    rating: 'g',
-                    type: 'gifs'
-                })) || []);
-                setTotalResults(data.data?.length || 0);
-            } else if (gifApi === 'imgur') { // Corrected order, Imgur was next in original code
-                const imgurKeyOverride = useApiKeyStore.getState().getApiKeyOverride(ApiService.IMGUR);
-                // Imgur proxy in proxy.cjs expects Client-ID prefix and uses IMGUR_API_KEY from env.
-                // If client sends X-Api-Key, proxy should use it.
-                const headers: HeadersInit = {};
-                if (imgurKeyOverride) {
-                    headers['X-Api-Key'] = imgurKeyOverride; // Proxy will prepend 'Client-ID ' if it receives this
-                } else {
-                    // Check if VITE_IMGUR_API_KEY exists for client-side validation/warning, though proxy is main handler
-                    const viteImgurKey = import.meta.env.VITE_IMGUR_API_KEY;
-                    if (!viteImgurKey) {
-                         console.warn('Imgur Client ID (VITE_IMGUR_API_KEY) is not set. Proxy default will be attempted.');
-                    }
-                }
-
-                const params = new URLSearchParams({
-                    q: searchQuery,
-                    q_type: 'gif',
-                    sort: 'relevance',
-                    window: 'all',
-                    page: '1'
-                });
-
-                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-                const apiUrlPath = isLocal ? '/api/imgur' : '/.netlify/functions/proxy';
-                const requestUrl = isLocal ? `${apiUrlPath}?${params.toString()}` : `${apiUrlPath}/api/imgur?${params.toString()}`;
-
-                const res = await fetch(requestUrl, { headers });
-                if (!res.ok) {
-                    throw new Error(`Imgur API error: ${res.status} ${res.statusText}`);
-                }
-
-                const data = await res.json();
-                console.log('Imgur API response:', data);
-
-                setGifResults(data.data?.map((item: any) => {
-                    const result = {
-                        id: item.id,
-                        title: item.title || '',
-                        images: {
-                            fixed_height_small: { url: item.images?.[0]?.link || item.link },
-                            original: { url: item.images?.[0]?.link || item.link },
-                        },
-                        source: 'imgur',
-                        url: item.link,
-                        rating: 'g', // Imgur doesn't provide standard ratings like Giphy/Tenor
-                        type: 'gifs'
-                    };
-                    if (!result.images.fixed_height_small.url && !result.images.original.url) {
-                        console.warn('Imgur result missing image URLs:', { item, result });
-                    }
-                    return result;
-                }) || []);
-                setTotalResults(data.data?.length || 0);
-            } else if (gifApi === 'reddit') {
-                // Reddit API implementation (using r/gifs subreddit) - No API key needed for this endpoint
-                const res = await fetch(`https://www.reddit.com/r/gifs/search.json?q=${encodeURIComponent(searchQuery)}&limit=${searchFilters.limit}&sort=relevance&t=all`);
-                if (!res.ok) {
-                    throw new Error(`Reddit API error: ${res.status} ${res.statusText}`);
-                }
-
-                const data = await res.json();
-                const results = data.data?.children || [];
-
-                setGifResults(results.map((item: any) => ({
-                    id: item.data.id,
-                    title: item.data.title || '',
-                    images: {
-                        fixed_height_small: { url: item.data.thumbnail },
-                        original: { url: item.data.url }
-                    },
-                    source: 'reddit',
-                    type: 'gifs',
-                    rating: 'pg-13'
-                })));
-
-                setTotalResults(results.length);
             }
         } catch (error: any) {
             console.error('GIF search error:', error);
@@ -511,7 +363,7 @@ const GifSearch: React.FC = () => {
     };
 
     // Handle sort order changes
-    const handleSortOrderChange = (newSortOrder: 'relevance' | 'newest' | 'oldest' | 'popular'>) => {
+    const handleSortOrderChange = (newSortOrder: 'relevance' | 'newest' | 'oldest' | 'popular') => {
         setSortOrder(newSortOrder);
 
         // Auto-search when sort order changes if there's an active search
@@ -617,26 +469,6 @@ const GifSearch: React.FC = () => {
         >
             <CardContent className="px-3 pb-3 pt-2">
                 <div className={`${gifLoading && !gifResults.length ? 'animate-serviceSwitch' : ''}`}> {/* Apply animation conditionally based on loading state and results presence */}
-                    {/* API Key Information for Imgur */}
-                    {gifApi === 'imgur' && (
-                        <div className="mb-2 p-2 bg-blue-500/10 border border-blue-500/30 rounded text-xs">
-                            <div className="flex items-start gap-2">
-                                <span className="text-blue-500">🔑</span>
-                                <div>
-                                    <p className="text-blue-500 font-medium mb-1">
-                                        Imgur Client ID Required
-                                    </p>
-                                    <p className="text-muted-foreground mb-1">
-                                        Get your free Client ID at https://api.imgur.com/oauth2/addclient
-                                    </p>
-                                    <p className="text-muted-foreground">
-                                        Add your Client ID in the Advanced Panel → API Keys section
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
                     <form onSubmit={handleGifSearch} className="space-y-1">
                         {/* Search Input and Service Selection */}
                         <div className="flex items-center gap-1">
@@ -785,7 +617,7 @@ const GifSearch: React.FC = () => {
                                         <label className="text-xs text-muted-foreground">Sort By</label>
                                         <select
                                             value={sortOrder}
-                                            onChange={(e) => handleSortOrderChange(e.target.value as any)}
+                                            onChange={(e) => handleSortOrderChange(e.target.value as 'relevance' | 'newest' | 'oldest' | 'popular')}
                                             className="w-full text-xs bg-background border border-border rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                                         >
                                             <option value="relevance">Relevance</option>
