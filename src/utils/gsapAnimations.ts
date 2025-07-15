@@ -1,8 +1,6 @@
 import { gsap } from 'gsap';
 import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
 
-/* Removed duplicate gsap.registerPlugin(MorphSVGPlugin) as it is already registered in src/index.tsx */
-
 // Animation configuration constants
 export const ANIMATION_CONFIG = {
     // Duration settings
