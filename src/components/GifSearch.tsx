@@ -59,22 +59,8 @@ type ModalAction = {
     icon?: React.ReactNode;
 };
 
-const getEffectiveApiKey = (serviceName: ApiService): string | undefined => {
-    const override = useApiKeyStore.getState().getApiKeyOverride(serviceName);
-    if (override) return override;
-
-    // Fallback to VITE_ prefixed keys for services that might use them directly
-    // or for display purposes, though proxy calls won't need these if no override.
-    const viteKeys: Partial<Record<ApiService, string | undefined>> = {
-      [ApiService.GIPHY]: import.meta.env.VITE_GIPHY_API_KEY,
-      [ApiService.TENOR]: import.meta.env.VITE_TENOR_API_KEY,
-    };
-    return viteKeys[serviceName];
-  };
-
-  // Specific getters using the new helper
-  const getGiphyApiKey = () => getEffectiveApiKey(ApiService.GIPHY);
-  const getTenorApiKey = () => getEffectiveApiKey(ApiService.TENOR);
+// No longer need getEffectiveApiKey, getGiphyApiKey, or getTenorApiKey.
+// We will call useApiKeyStore.getState().getApiKey(ApiService.GIPHY) directly.
 
 const GifSearch: React.FC = () => {
     const [modalContent, setModalContent] = useState<{ type: 'gif' | 'sticker', data: any } | null>(null);
@@ -188,8 +174,7 @@ const GifSearch: React.FC = () => {
             const searchQuery = selectedCategory ? `${gifQuery} ${selectedCategory}` : gifQuery;
 
             if (gifApi === 'giphy') {
-                const giphyKeyOverride = useApiKeyStore.getState().getApiKeyOverride(ApiService.GIPHY);
-                const apiKeyForGiphySDK = giphyKeyOverride || getGiphyApiKey(); // SDK needs a key; getEffectiveApiKey provides VITE_ default if no override
+                const apiKeyForGiphySDK = useApiKeyStore.getState().getApiKey(ApiService.GIPHY);
 
                 if (!apiKeyForGiphySDK) {
                     throw new Error('Giphy API key is missing. Please set an override or VITE_GIPHY_API_KEY.');
@@ -234,7 +219,7 @@ const GifSearch: React.FC = () => {
                 setTotalResults(response.pagination.total_count);
 
             } else if (gifApi === 'tenor') {
-                const tenorKeyToUse = useApiKeyStore.getState().getApiKeyOverride(ApiService.TENOR) || getTenorApiKey();
+                const tenorKeyToUse = useApiKeyStore.getState().getApiKey(ApiService.TENOR);
                 if (!tenorKeyToUse) {
                     throw new Error('Tenor API key is missing. Please set an override or VITE_TENOR_API_KEY.');
                 }

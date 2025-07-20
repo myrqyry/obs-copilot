@@ -39,13 +39,13 @@ const OBS_SUBSCRIPTIONS_KEY = 'obsEventSubscriptions';
 
 const AdvancedPanel: React.FC = () => {
     // API Key Store
-    const { overrides, setApiKeyOverride, clearApiKeyOverride, getApiKeyOverride } = useApiKeyStore();
+    const { overrides, setApiKey, clearApiKey, getAllKeys } = useApiKeyStore();
     // Local state for input fields, to avoid updating Zustand on every keystroke
     const [localApiKeyInputs, setLocalApiKeyInputs] = useState<Partial<Record<ApiServiceName, string>>>({});
 
     // Initialize local inputs when component mounts or overrides change
     useEffect(() => {
-        setLocalApiKeyInputs(overrides);
+        setLocalApiKeyInputs(getAllKeys());
     }, [overrides]);
 
 
@@ -118,15 +118,15 @@ const AdvancedPanel: React.FC = () => {
     const handleApiKeySave = (service: ApiServiceName) => {
         const valueToSave = localApiKeyInputs[service]?.trim();
         if (valueToSave) {
-            setApiKeyOverride(service, valueToSave);
+            setApiKey(service, valueToSave);
         } else {
             // If input is empty, consider it as clearing the override
-            clearApiKeyOverride(service);
+            clearApiKey(service);
         }
     };
 
     const handleApiKeyRemove = (service: ApiServiceName) => {
-        clearApiKeyOverride(service);
+        clearApiKey(service);
         setLocalApiKeyInputs((prev) => {
             const newInputs = { ...prev };
             delete newInputs[service];

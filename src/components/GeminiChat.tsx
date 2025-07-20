@@ -21,11 +21,11 @@ import type {
   GeminiActionResponse
 } from '../types/obsActions';
 import { useAppStore } from '../store/appStore';
+import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
 import { useLockStore } from '../store/lockStore';
 import { logoAnimations, triggerTextSplitOnSend } from '../utils/gsapAnimations';
 
 interface GeminiChatProps {
-  geminiApiKeyFromInput?: string;
   streamerBotService: any;
   onRefreshData: () => Promise<void>;
   setErrorMessage: (message: string | null) => void;
@@ -43,7 +43,6 @@ interface GeminiChatProps {
 }
 
 export const GeminiChat: React.FC<GeminiChatProps> = ({
-  geminiApiKeyFromInput,
   streamerBotService,
   onRefreshData,
   setErrorMessage,
@@ -109,11 +108,12 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
 
   // Enhancement 6: Show progress indicator during Gemini initialization
   useEffect(() => {
-    if (geminiApiKeyFromInput) {
+    const geminiApiKey = useApiKeyStore.getState().getApiKey(ApiService.GEMINI);
+    if (geminiApiKey) {
       setIsGeminiInitializing(true);
       setTimeout(() => {
         try {
-          ai.current = new GoogleGenAI({ apiKey: geminiApiKeyFromInput });
+          ai.current = new GoogleGenAI({ apiKey: geminiApiKey });
           onSetIsGeminiClientInitialized(true);
           onSetGeminiInitializationError(null);
         } catch (error) {
@@ -131,7 +131,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
       onSetGeminiInitializationError('❗ Missing Gemini API key. Please provide a valid API key to use Gemini features.');
       setIsGeminiInitializing(false);
     }
-  }, [geminiApiKeyFromInput, onSetIsGeminiClientInitialized, onSetGeminiInitializationError, onAddMessage]);
+  }, [onSetIsGeminiClientInitialized, onSetGeminiInitializationError, onAddMessage]);
 
   // Enhancement 8: Fetch Streamer.bot actions for suggestions
   useEffect(() => {
