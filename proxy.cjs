@@ -168,6 +168,42 @@ app.post('/api/gemini/generate-image', async (req, res) => {
     });
 });
 
+let categoryCache = {
+    data: null,
+    lastFetched: 0,
+};
+const CACHE_DURATION = 3600 * 1000; // 1 hour
+
+app.get('/api/giphy/trending-categories', async (req, res) => {
+    const now = Date.now();
+    if (categoryCache.data && (now - categoryCache.lastFetched < CACHE_DURATION)) {
+        return res.json(categoryCache.data);
+    }
+
+    const apiKey = process.env.GIPHY_API_KEY || process.env.VITE_GIPHY_API_KEY;
+    if (!apiKey) {
+        return res.status(500).json({ error: 'Giphy API key not configured on the server.' });
+    }
+
+    try {
+        const url = `https://api.giphy.com/v1/trending/searches?api_key=${apiKey}`;
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Giphy API error: ${response.statusText}`);
+        }
+        const data = await response.json();
+
+        categoryCache = {
+            data: data,
+            lastFetched: now,
+        };
+
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch trending categories from Giphy.' });
+    }
+});
+
 // Proxy OBS WebSocket API
 app.all('/api/obs/:action', async (req, res) => {
     const obsUrl = process.env.OBS_HTTP_API_URL;
