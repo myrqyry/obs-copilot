@@ -59,11 +59,12 @@ For hotkeys, you can use triggerHotkeyByName with the exact hotkey name from the
 `;
 }
 
-export function buildStreamerBotSystemMessage(): string {
-    // In the future, we can dynamically fetch and cache actions from Streamer.bot here
-    // For now, we'll provide a static guide.
+export function buildStreamerBotSystemMessage(actions: { name: string }[] = []): string {
+    const actionNames = actions.map(a => a.name).join(', ');
+
     return `
 **Streamer.bot Context:**
+- Available Actions: ${actionNames || 'None'}
 - You can control Streamer.bot to perform complex stream automation.
 - To do this, respond with a JSON object containing a "streamerBotAction" field.
 - The \`type\` should be the Streamer.bot request name (e.g., 'DoAction', 'GetActions').

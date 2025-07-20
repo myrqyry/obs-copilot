@@ -196,11 +196,11 @@ Use these action types: createInput, setInputSettings, setSceneItemEnabled, getI
   }, [obsData]);
 
   // In src/components/GeminiChat.tsx  // Add this function alongside your existing buildObsSystemMessage const buildStreamerBotSystemMessage = useCallback(() => {   // In the future, we can dynamically fetch and cache actions from Streamer.bot here   // For now, we'll provide a static guide.   return ` **Streamer.bot Context:** - You can control Streamer.bot to perform complex stream automation. - To do this, respond with a JSON object containing a "streamerBotAction" field. - The `type` should be the Streamer.bot request name (e.g., 'DoAction', 'GetActions'). - The `args` object contains the parameters for that request.  **Key Action Types:** 1.  **DoAction**: To run an existing action. Use the action's name or ID.     - Example: { "streamerBotAction": { "type": "DoAction", "args": { "action": { "name": "My Cool Action" } } } } 2.  **CreateAction**: To create a new, simple action.     - Example: { "streamerBotAction": { "type": "CreateAction", "args": { "name": "New Greeting" } } }     - (Note: Complex action creation requires multiple steps) 3.  **Twitch Actions**: Streamer.bot has built-in Twitch actions. You can call them directly.     - **Create Poll**: { "streamerBotAction": { "type": "DoAction", "args": { "action": { "name": "Twitch Create Poll" }, "args": { "title": "Poll Title", "choices": ["A", "B"], "duration": 120 } } } }     - **Send Chat Message**: { "streamerBotAction": { "type": "DoAction", "args": { "action": { "name": "Twitch Send Message" }, "args": { "message": "Hello from the bot!" } } } }  When a user asks for a Streamer.bot action, use this format. `; }, []);
-  const buildStreamerBotSystemMessage = useCallback(() => {
-    // In the future, we can dynamically fetch and cache actions from Streamer.bot here
-    // For now, we'll provide a static guide.
+  const buildStreamerBotSystemMessage = useCallback((actions: { name: string }[] = []) => {
+    const actionNames = actions.map(a => a.name).join(', ');
     return `
 **Streamer.bot Context:**
+- Available Actions: ${actionNames || 'None'}
 - You can control Streamer.bot to perform complex stream automation.
 - To do this, respond with a JSON object containing a "streamerBotAction" field.
 - The \`type\` should be the Streamer.bot request name (e.g., 'DoAction', 'GetActions').
@@ -266,7 +266,7 @@ When a user asks for a Streamer.bot action, use this format.
     try {
       let finalPrompt = userMessageText;
       // Now include both OBS and web search capabilities in the system prompt
-      const baseSystemPrompt = `${INITIAL_SYSTEM_PROMPT}\n\n${buildObsSystemMessage()}\n\n${buildStreamerBotSystemMessage()}\n\n${buildMarkdownStylingSystemMessage()}\n\nIMPORTANT: When asked for an OBS action, respond ONLY with a valid JSON object, no extra text, no trailing commas, and no code block markers. Example: { "obsAction": { "type": "getSceneItemList", "sceneName": "Scene 4" } }`;
+      const baseSystemPrompt = `${INITIAL_SYSTEM_PROMPT}\n\n${buildObsSystemMessage()}\n\n${buildStreamerBotSystemMessage(streamerBotActions)}\n\n${buildMarkdownStylingSystemMessage()}\n\nIMPORTANT: When asked for an OBS action, respond ONLY with a valid JSON object, no extra text, no trailing commas, and no code block markers. Example: { "obsAction": { "type": "getSceneItemList", "sceneName": "Scene 4" } }`;
       const systemPrompt = useGoogleSearch
         ? `${baseSystemPrompt}\n\nYou can also use Google Search to find current information when needed. When you need to search for something, include it in your response. You can provide both OBS actions AND web search results in the same response when appropriate.`
         : baseSystemPrompt;
