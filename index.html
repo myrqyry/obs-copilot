@@ -29,6 +29,22 @@
 }
 </script>
   <link rel="stylesheet" href="/src/main.css">
+  <style>
+    .tab-indicator {
+      position: absolute;
+      bottom: -1px;
+      height: 2px;
+      background-color: var(--dynamic-accent, #cba6f7);
+      transition: left 0.3s ease, width 0.3s ease;
+      left: var(--indicator-left, 0);
+      width: var(--indicator-width, 0);
+      opacity: var(--indicator-opacity, 0);
+      transform-origin: center;
+      scale: var(--indicator-scale, 0.95);
+      border-radius: 2px;
+      box-shadow: 0 0 10px var(--dynamic-accent, #cba6f7), 0 0 20px var(--dynamic-accent, #cba6f7);
+    }
+  </style>
 </head>
 
 <body class="bg-background text-foreground">

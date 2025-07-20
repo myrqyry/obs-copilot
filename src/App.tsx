@@ -32,6 +32,7 @@ import { DEFAULT_OBS_WEBSOCKET_URL } from './constants';
 import { AnimatedTitleLogos } from './components/common/AnimatedTitleLogos';
 import { loadConnectionSettings, saveConnectionSettings, isStorageAvailable } from './utils/persistence';
 import { useStreamerBotActions } from './hooks/useStreamerBotActions';
+import { useAnimatedTabs } from './hooks/useAnimatedTabs';
 import { gsap } from 'gsap';
 import MiniPlayer from './components/common/MiniPlayer';
 import { debounce } from 'lodash';
@@ -80,6 +81,7 @@ const App: React.FC = () => {
 
     const tabContentRef = useRef<HTMLDivElement>(null);
     const tabOrder: AppTab[] = [AppTab.GEMINI, AppTab.OBS_STUDIO, AppTab.STREAMING_ASSETS, AppTab.CREATE, AppTab.SETTINGS, AppTab.CONNECTIONS, AppTab.ADVANCED];
+    const { tabBarRef, registerTab, handleTabClick, handleTabHover } = useAnimatedTabs(activeTab);
     const headerRef = useRef<HTMLDivElement>(null);
     const [headerHeight, setHeaderHeight] = useState(64);
 
@@ -575,8 +577,9 @@ newObsService.obs = newObs;
                 className="sticky z-10 px-2 pt-2"
                 style={{ top: `${headerHeight}px` }}
             >
-                <div role="tablist" aria-label="Main application tabs" className="py-2 px-4 border-b border-border text-sm font-semibold emoji-text bg-background rounded-t-lg font-sans text-primary shadow-md">
+                <div ref={tabBarRef} role="tablist" aria-label="Main application tabs" className="relative py-2 px-4 border-b border-border text-sm font-semibold emoji-text bg-background rounded-t-lg font-sans text-primary shadow-md">
                     <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2 min-w-0">
+                        <div className="tab-indicator" />
                         {tabOrder.map((tab, index) => {
                             const isActive = activeTab === tab;
 
@@ -631,11 +634,14 @@ newObsService.obs = newObs;
                             return (
                                 <button
                                     key={tab}
+                                    ref={(el) => registerTab(tab, el)}
                                     role="tab"
                                     aria-selected={isActive.toString()}
                                     aria-controls={`tabpanel-${tab}`} // Assuming tab panels will have corresponding IDs
                                     id={`tab-${tab}`}
-                                    onClick={() => setActiveTab(tab)}
+                                    onClick={handleTabClick(tab, setActiveTab)}
+                                    onMouseEnter={handleTabHover(true)}
+                                    onMouseLeave={handleTabHover(false)}
                                     onKeyDown={(e) => {
                                         let nextIndex = index;
                                         if (e.key === 'ArrowRight') {
