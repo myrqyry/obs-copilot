@@ -37,8 +37,6 @@ const MorphingLogos: React.FC = () => {
 
         const { accent1, accent2 } = getAccentColors();
 
-
-
         // Kill existing color animation completely
         if (colorAnimationRef.current) {
             colorAnimationRef.current.kill();
@@ -48,6 +46,18 @@ const MorphingLogos: React.FC = () => {
         // Force set the current colors immediately
         gsap.set(stop1, { attr: { 'stop-color': accent1 } });
         gsap.set(stop2, { attr: { 'stop-color': accent2 } });
+
+        // Bloom effect on color change
+        gsap.fromTo(morphingPathRef.current,
+            { filter: 'drop-shadow(0 0 0px transparent)' },
+            {
+                filter: `drop-shadow(0 0 10px ${accent1})`,
+                duration: 0.8,
+                ease: 'power2.inOut',
+                yoyo: true,
+                repeat: 1
+            }
+        );
 
         // Wait a moment then restart the animation with the new color targets
         setTimeout(() => {
@@ -125,7 +135,10 @@ const MorphingLogos: React.FC = () => {
 
     }, []);
 
-    // Removed redundant setInterval logic for color changes
+    const theme = useAppStore(state => state.userSettings.theme);
+    useEffect(() => {
+        updateColors();
+    }, [theme.accent, theme.secondaryAccent]);
 
     return (
         <svg
