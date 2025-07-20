@@ -222,7 +222,7 @@ describe('Proxy Unit Tests - General API Handling', () => {
   test('Test Case 4.2 (Favicon Proxy - Missing Domain): Should return 400 if domain is missing for /api/favicon', async () => {
     const response = await request(app).get('/api/favicon'); // Changed from /api/proxy?api=favicon
     expect(response.statusCode).toBe(400);
-    expect(response.body.error).toBe('Missing domain parameter'); // Adjusted to match actual error message
+    expect(response.body.error).toBe('Domain parameter is required for favicon proxy'); // Adjusted to match actual error message
   });
 
   // Test Case 4.3 removed as /api/proxy is deprecated. Its intent is covered by 4.3b.

@@ -52,6 +52,56 @@ describe('Proxy Integration Tests', () => {
 
         process.env = OLD_ENV; // Restore
       });
+
+    test('Test Case (Wallhaven Proxy - End-to-End Success)', async () => {
+      const mockWallhavenData = { data: [{ id: '123' }] };
+      nock('https://wallhaven.cc')
+        .get('/api/v1/search')
+        .query({ q: 'cats', categories: '111', purity: '100', sorting: 'relevance', order: 'desc' })
+        .reply(200, mockWallhavenData, { 'Content-Type': 'application/json' });
+
+      const response = await request(app).get('/api/wallhaven?q=cats');
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toEqual(mockWallhavenData);
+      expect(nock.isDone()).toBe(true);
+    });
+
+    test('Test Case (Pixabay Proxy - End-to-End Success with env key)', async () => {
+      const OLD_ENV = process.env;
+      jest.resetModules();
+      process.env = { ...OLD_ENV, PIXABAY_API_KEY: 'ENV_PIXABAY_KEY_INTEGRATION' };
+      const appWithEnv = require('../proxy.cjs');
+
+      const mockPixabayData = { hits: [{ id: 456 }] };
+      nock('https://pixabay.com')
+        .get('/api/')
+        .query({ q: 'dogs', key: 'ENV_PIXABAY_KEY_INTEGRATION' })
+        .reply(200, mockPixabayData, { 'Content-Type': 'application/json' });
+
+      const response = await request(appWithEnv).get('/api/pixabay?q=dogs');
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toEqual(mockPixabayData);
+      expect(nock.isDone()).toBe(true);
+
+      process.env = OLD_ENV;
+    });
+
+    test('Test Case (Giphy Proxy - End-to-End Success with client key)', async () => {
+      const clientApiKey = 'CLIENT_GIPHY_KEY';
+      const mockGiphyData = { data: [{ id: '789' }] };
+      nock('https://api.giphy.com')
+        .get('/v1/gifs/search')
+        .query({ q: 'memes', api_key: clientApiKey })
+        .reply(200, mockGiphyData, { 'Content-Type': 'application/json' });
+
+      const response = await request(app)
+        .get('/api/giphy?q=memes')
+        .set('x-api-key', clientApiKey);
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toEqual(mockGiphyData);
+      expect(nock.isDone()).toBe(true);
+    });
   });
 
   // Scenario 2: Proxy Failures
@@ -112,6 +162,30 @@ describe('Proxy Integration Tests', () => {
 
         process.env = OLD_ENV;
       });
+
+    test('Test Case (Pexels Proxy - Invalid API Key)', async () => {
+      const OLD_ENV = process.env;
+      jest.resetModules();
+      process.env = { ...OLD_ENV, PEXELS_API_KEY: 'INVALID_KEY' };
+      const appWithEnv = require('../proxy.cjs');
+
+      nock('https://api.pexels.com', {
+        reqheaders: {
+          'Authorization': 'INVALID_KEY'
+        }
+      })
+      .get('/v1/search')
+      .query({ query: 'nature' })
+      .reply(401, { error: 'Invalid API Key' }, { 'Content-Type': 'application/json' });
+
+      const response = await request(appWithEnv).get('/api/pexels?query=nature');
+      expect(response.statusCode).toBe(500);
+      expect(response.body.error).toBe('Proxy error for pexels');
+      expect(response.body.details).toBeDefined();
+      expect(nock.isDone()).toBe(true);
+
+      process.env = OLD_ENV;
+    });
   });
 
   // Scenario 3: Concurrent Proxies (Basic Check)
