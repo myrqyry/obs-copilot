@@ -26,6 +26,8 @@ import {
 import { ObsClient, ObsClientImpl } from './services/ObsClient';
 import { StreamerBotService } from './services/streamerBotService';
 import { useAppStore, AppState } from './store/appStore'; // Import AppState
+import { useSafeModeStore } from './store/safeModeStore';
+import { SafeModeModal } from './components/common/SafeModeModal';
 import { DEFAULT_OBS_WEBSOCKET_URL } from './constants';
 import { AnimatedTitleLogos } from './components/common/AnimatedTitleLogos';
 import { loadConnectionSettings, saveConnectionSettings, isStorageAvailable } from './utils/persistence';
@@ -68,6 +70,7 @@ const App: React.FC = () => {
     const [isStreamerBotConnecting, setIsStreamerBotConnecting] = useState<boolean>(false);
 
     const streamerBotService = useRef(new StreamerBotService()).current;
+    const { isOpen, actionDescription, onConfirm, onCancel, hideModal } = useSafeModeStore();
 
     const { handleStreamerBotAction } = useStreamerBotActions({
         streamerBotService,
@@ -712,6 +715,19 @@ newObsService.obs = newObs;
             {/* The tab content should ideally have role="tabpanel" and an id that matches aria-controls */}
             {/* Example: <div id={`tabpanel-${activeTab}`} role="tabpanel" ... > */}
             <NotificationManager /> {/* Add NotificationManager here */}
+            <SafeModeModal
+                isOpen={isOpen}
+                onConfirm={() => {
+                    if (onConfirm) onConfirm();
+                    hideModal();
+                }}
+                onCancel={() => {
+                    if (onCancel) onCancel();
+                    hideModal();
+                }}
+                actionDescription={actionDescription}
+                accentColorName={theme.accent}
+            />
         </div>
     );
 };
