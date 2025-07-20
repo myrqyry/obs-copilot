@@ -135,11 +135,15 @@ const App: React.FC = () => {
         document.documentElement.style.setProperty('--user-chat-bubble-color-rgb', adjustForExtraDarkMode(hexToRgb(catppuccinChatBubbleColorsHexMap[theme.userChatBubble])));
         document.documentElement.style.setProperty('--model-chat-bubble-color-rgb', adjustForExtraDarkMode(hexToRgb(catppuccinChatBubbleColorsHexMap[theme.modelChatBubble])));
         document.documentElement.style.setProperty('--dynamic-secondary-accent-rgb', adjustForExtraDarkMode(hexToRgb(catppuccinSecondaryAccentColorsHexMap[theme.secondaryAccent])));
-    }, [theme.accent, theme.secondaryAccent, theme.userChatBubble, theme.modelChatBubble, extraDarkModeFromStore, bubbleFillOpacity, chatBubbleBlendMode, backgroundOpacity, chatBackgroundBlendMode]); // Added missing dependencies from the second block
 
-    // const { extraDarkMode: extraDarkModeFromStore } = useAppStore((state: AppState) => state.userSettings); // This line was correctly commented out as it's defined above.
-    // The second useEffect block starting from line 149 was a duplicate of the one starting on line 108 and has been removed.
-    // The dependencies from the (removed) second block have been merged into the first one above.
+        // Set bubble fill opacity and blend mode
+        document.documentElement.style.setProperty('--bubble-fill-opacity', bubbleFillOpacity.toString());
+        document.documentElement.style.setProperty('--chat-bubble-blend-mode', chatBubbleBlendMode);
+
+        // Set background image opacity and blend mode
+        document.documentElement.style.setProperty('--background-opacity', backgroundOpacity.toString());
+        document.documentElement.style.setProperty('--chat-background-blend-mode', chatBackgroundBlendMode);
+    }, [theme.accent, theme.secondaryAccent, theme.userChatBubble, theme.modelChatBubble, extraDarkModeFromStore, bubbleFillOpacity, chatBubbleBlendMode, backgroundOpacity, chatBackgroundBlendMode]);
 
     // Handle initial Gemini messages
     const geminiMessagesRef = useRef(geminiMessages);
