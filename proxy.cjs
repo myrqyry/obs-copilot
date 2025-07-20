@@ -133,6 +133,34 @@ app.post('/api/gemini/generate-content', async (req, res) => {
     }
 });
 
+app.post('/api/gemini/generate-text-with-image', async (req, res) => {
+    const clientApiKey = req.headers['x-api-key'];
+    const serverApiKey = process.env.GEMINI_API_KEY;
+    const apiKeyToUse = clientApiKey || serverApiKey;
+
+    if (!apiKeyToUse) {
+        return res.status(500).json({ error: 'Gemini API key not set in server environment (GEMINI_API_KEY) and no override provided.' });
+    }
+
+    const model = 'gemini-pro-vision';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKeyToUse}`;
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(req.body),
+        });
+        const data = await response.json();
+        if (data.error) {
+            return res.status(400).json({ error: "Gemini API Error", details: data.error.message || JSON.stringify(data.error) });
+        }
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch from Gemini (generate-text-with-image)', details: err.message });
+    }
+});
+
 app.post('/api/gemini/generate-image', async (req, res) => {
     res.status(501).json({
         error: 'Not Implemented',

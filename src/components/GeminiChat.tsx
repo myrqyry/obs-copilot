@@ -3,7 +3,7 @@
 import Tooltip from './ui/Tooltip';
 import { motion } from 'framer-motion';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { GlobeAltIcon, CameraIcon } from '@heroicons/react/24/solid';
+import { GlobeAltIcon, CameraIcon, PaperClipIcon } from '@heroicons/react/24/solid';
 import { GoogleGenAI } from '@google/genai';
 import { Button } from './common/Button';
 import { LoadingSpinner } from './common/LoadingSpinner';
@@ -95,10 +95,12 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
   const [contextMessages, setContextMessages] = useState<string[]>([]);
   const [isGeminiInitializing, setIsGeminiInitializing] = useState<boolean>(false);
   const [streamerBotActions, setStreamerBotActions] = useState<{ id: string; name: string }[]>([]);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const ai = useRef<GoogleGenAI | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Handle adding messages to context
   const handleAddToContext = useCallback((text: string) => {
@@ -219,7 +221,7 @@ When a user asks for a Streamer.bot action, use this format.
   }, []);
 
   const handleSend = async () => {
-    if (!chatInputValue.trim() || !ai.current || isLoading) return;
+    if ((!chatInputValue.trim() && !selectedImage) || !ai.current || isLoading) return;
 
     // Trigger text split animation before sending
     const inputElement = chatInputRef.current;
@@ -242,7 +244,24 @@ When a user asks for a Streamer.bot action, use this format.
 
     setIsLoading(true);
     onChatInputChange('');
-    onAddMessage({ role: 'user', text: userMessageText });
+
+    let imageBase64 = '';
+    if (selectedImage) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            imageBase64 = reader.result as string;
+            // Now we can proceed with sending the message
+            proceedWithSend(userMessageText, imageBase64);
+        };
+        reader.readAsDataURL(selectedImage);
+    } else {
+        proceedWithSend(userMessageText, '');
+    }
+  };
+
+  const proceedWithSend = async (userMessageText: string, imageBase64: string) => {
+    onAddMessage({ role: 'user', text: userMessageText, imageData: imageBase64 });
+    setSelectedImage(null);
 
     try {
       let finalPrompt = userMessageText;
@@ -265,12 +284,17 @@ When a user asks for a Streamer.bot action, use this format.
         finalPrompt = `Please search for information about: ${userMessageText}`;
       }
 
+      const modelName = selectedImage ? 'gemini-pro-vision' : GEMINI_MODEL_NAME;
+
       const response = await ai.current.models.generateContent({
-        model: GEMINI_MODEL_NAME,
+        model: modelName,
         contents: [
           {
             role: 'user',
-            parts: [{ text: `${systemPrompt}${contextPrompt}\n\n${finalPrompt}` }]
+            parts: [
+              { text: `${systemPrompt}${contextPrompt}\n\n${finalPrompt}` },
+              ...(imageBase64 ? [{ inlineData: { mimeType: 'image/jpeg', data: imageBase64.split(',')[1] } }] : [])
+            ]
           }
         ]
       });
@@ -895,6 +919,29 @@ modelChatBubbleColorName="lavender" // Default CatppuccinAccentColorName
                 <CameraIcon className="w-4 h-4" />
               </button>
             </Tooltip>
+            <Tooltip content="Attach Image">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={!isGeminiClientInitialized}
+                className={`p-1 rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary/50 ${
+                  selectedImage ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                } ${!isGeminiClientInitialized ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                aria-label="Attach Image"
+              >
+                <PaperClipIcon className="w-4 h-4" />
+              </button>
+            </Tooltip>
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              accept="image/*"
+              onChange={(e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                  setSelectedImage(e.target.files[0]);
+                }
+              }}
+            />
           </div>
           {/* The correct input and Button JSX is now above. This duplicate/broken block is removed. */}
           {/* Removed status text per user request */}

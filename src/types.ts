@@ -61,6 +61,7 @@ export interface ChatMessage {
   showSuggestions?: boolean;
   choices?: string[];
   choiceType?: string;
+  imageData?: string;
 }
 
 export interface GroundingChunk {
