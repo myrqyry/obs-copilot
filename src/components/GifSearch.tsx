@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
 import { GiphyResult } from '../types/giphy';
-import { useAppStore } from '../store/appStore';
+import { useToastStore } from '../store/toastStore';
 import { addBrowserSource, addMediaSource } from '../services/obsService';
 import { generateSourceName } from '../utils/obsSourceHelpers';
 import { copyToClipboard } from '../utils/persistence';
@@ -106,10 +106,10 @@ const GifSearch: React.FC = () => {
     const [searchError, setSearchError] = useState<string | null>(null);
     const gridRef = useStaggeredAnimation(gifResults);
 
+    const addToast = useToastStore(state => state.addToast);
     const obsServiceInstance = useAppStore(state => state.obsServiceInstance);
     const currentProgramScene = useAppStore(state => state.currentProgramScene);
     const isConnected = useAppStore(state => state.isConnected);
-    const addNotification = useAppStore((state) => state.actions.addNotification);
 
     const accentColorName = useAppStore(state => state.theme.accent);
     const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
@@ -118,40 +118,40 @@ const GifSearch: React.FC = () => {
 
     const handleAddAsBrowserSource = async (url: string, sourceName: string) => {
         if (!obsServiceInstance || !isConnected || !currentProgramScene) {
-            addNotification({ message: 'OBS not connected.', type: 'error' });
+            addToast('OBS not connected.', 'error');
             return;
         }
         try {
             await addBrowserSource(obsServiceInstance, currentProgramScene, url, generateSourceName(sourceName));
-            addNotification({ message: `Added ${sourceName} to OBS.`, type: 'success' });
+            addToast(`Added ${sourceName} to OBS.`, 'success');
         } catch (error) {
-            addNotification({ message: 'Failed to add source.', type: 'error' });
+            addToast('Failed to add source.', 'error');
         }
     };
 
     const handleAddAsMediaSource = async (url: string, sourceName: string) => {
         if (!obsServiceInstance || !isConnected || !currentProgramScene) {
-            addNotification({ message: 'OBS not connected.', type: 'error' });
+            addToast('OBS not connected.', 'error');
             return;
         }
         try {
             await addMediaSource(obsServiceInstance, currentProgramScene, url, generateSourceName(sourceName));
-            addNotification({ message: `Added ${sourceName} to OBS.`, type: 'success' });
+            addToast(`Added ${sourceName} to OBS.`, 'success');
         } catch (error) {
-            addNotification({ message: 'Failed to add source.', type: 'error' });
+            addToast('Failed to add source.', 'error');
         }
     };
 
     const handleAddAsImageSource = async (url: string, sourceName: string) => {
         if (!obsServiceInstance || !isConnected || !currentProgramScene) {
-            addNotification({ message: 'OBS not connected.', type: 'error' });
+            addToast('OBS not connected.', 'error');
             return;
         }
         try {
             await addImageSource(obsServiceInstance, currentProgramScene, url, generateSourceName(sourceName));
-            addNotification({ message: `Added ${sourceName} to OBS.`, type: 'success' });
+            addToast(`Added ${sourceName} to OBS.`, 'success');
         } catch (error) {
-            addNotification({ message: 'Failed to add source.', type: 'error' });
+            addToast('Failed to add source.', 'error');
         }
     };
 
@@ -160,13 +160,13 @@ const GifSearch: React.FC = () => {
             case 'sticker':
                 return [
                     { label: 'Add as Image Source', onClick: () => handleAddAsImageSource(data.images?.original?.url || data.png_url, data.name || 'sticker'), variant: 'primary' },
-                    { label: 'Copy Image URL', onClick: () => { copyToClipboard(data.images?.original?.url || data.png_url); addNotification({ message: 'Copied image URL!', type: 'info' }); } },
+                    { label: 'Copy Image URL', onClick: () => { copyToClipboard(data.images?.original?.url || data.png_url); addToast('Copied image URL!', 'info'); } },
                 ];
             case 'gif':
                 return [
                     { label: 'Add as Browser Source', onClick: () => handleAddAsBrowserSource(data.images.original.url, data.title || data.source || 'gif'), variant: 'primary' },
                     { label: 'Add as Media Source', onClick: () => handleAddAsMediaSource(data.images.original.url, data.title || data.source || 'gif'), variant: 'secondary' },
-                    { label: 'Copy URL', onClick: () => { copyToClipboard(data.images.original.url); addNotification({ message: 'Copied GIF URL!', type: 'info' }); } },
+                    { label: 'Copy URL', onClick: () => { copyToClipboard(data.images.original.url); addToast('Copied GIF URL!', 'info'); } },
                 ];
             default:
                 return [];
@@ -333,7 +333,7 @@ const GifSearch: React.FC = () => {
             console.error('GIF search error:', error);
             setSearchError(error.message || 'Failed to search GIFs');
             setGifResults([]);
-            useAppStore.getState().actions.addNotification({ type: 'error', message: `GIF Search Error: ${error.message || 'Failed to search GIFs'}` });
+            addToast(`GIF Search Error: ${error.message || 'Failed to search GIFs'}`, 'error');
         } finally {
             setGifLoading(false);
         }

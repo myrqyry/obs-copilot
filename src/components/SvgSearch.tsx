@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
-import { useAppStore } from '../store/appStore';
+import { useToastStore } from '../store/toastStore';
 import { addSvgAsBrowserSource } from '../services/obsService';
 import { generateSourceName } from '../utils/obsSourceHelpers';
 import { copyToClipboard } from '../utils/persistence';
@@ -45,10 +45,10 @@ const SvgSearch: React.FC = () => {
     const [modalContent, setModalContent] = useState<{ type: 'svg', data: any } | null>(null);
     const gridRef = useStaggeredAnimation(svgResults);
 
+    const addToast = useToastStore(state => state.addToast);
     const obsServiceInstance = useAppStore(state => state.obsServiceInstance);
     const currentProgramScene = useAppStore(state => state.currentProgramScene);
     const isConnected = useAppStore(state => state.isConnected);
-    const addNotification = useAppStore((state) => state.actions.addNotification);
     const accentColorName = useAppStore(state => state.theme.accent);
     const accentColor = useAppStore(state => state.theme.accent);
 
@@ -56,21 +56,21 @@ const SvgSearch: React.FC = () => {
 
     const handleAddSvgAsBrowserSource = async (svg: string, sourceName: string) => {
         if (!obsServiceInstance || !isConnected || !currentProgramScene) {
-            addNotification({ message: 'OBS not connected.', type: 'error' });
+            addToast('OBS not connected.', 'error');
             return;
         }
         try {
             await addSvgAsBrowserSource(obsServiceInstance, currentProgramScene, svg, generateSourceName(sourceName));
-            addNotification({ message: `Added ${sourceName} to OBS.`, type: 'success' });
+            addToast(`Added ${sourceName} to OBS.`, 'success');
         } catch (error) {
-            addNotification({ message: 'Failed to add source.', type: 'error' });
+            addToast('Failed to add source.', 'error');
         }
     };
 
     const getModalActions = (type: 'svg', data: any): ModalAction[] => {
         return [
             { label: 'Add as Browser Source', onClick: () => handleAddSvgAsBrowserSource(data.svg, data.name), variant: 'primary' },
-            { label: 'Copy SVG Code', onClick: () => { copyToClipboard(data.svg); addNotification({ message: 'Copied SVG code!', type: 'info' }); } },
+            { label: 'Copy SVG Code', onClick: () => { copyToClipboard(data.svg); addToast('Copied SVG code!', 'info'); } },
         ];
     };
 
@@ -142,7 +142,7 @@ const SvgSearch: React.FC = () => {
             console.error('SVG fetch error:', err);
             const errorMsg = `Error fetching SVGs from ${svgApi}: ${err.message || 'Unknown error'}`;
             setSearchError(errorMsg);
-            useAppStore.getState().actions.addNotification({ type: 'error', message: errorMsg });
+            addToast(errorMsg, 'error');
         }
         setSvgLoading(false);
     }, [svgApi, svgQuery]);

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
-import { useAppStore } from '../store/appStore';
+import { useToastStore } from '../store/toastStore';
 import { addBrowserSource, addImageSource } from '../services/obsService';
 import { generateSourceName } from '../utils/obsSourceHelpers';
 import { copyToClipboard } from '../utils/persistence';
@@ -61,31 +61,31 @@ const BackgroundSearch: React.FC = () => {
     const [modalContent, setModalContent] = useState<{ type: 'background', data: any } | null>(null);
     const gridRef = useStaggeredAnimation(backgroundResults);
 
+    const addToast = useToastStore(state => state.addToast);
     const obsServiceInstance = useAppStore(state => state.obsServiceInstance);
     const currentProgramScene = useAppStore(state => state.currentProgramScene);
     const isConnected = useAppStore(state => state.isConnected);
-    const addNotification = useAppStore((state) => state.actions.addNotification);
     const accentColor = useAppStore(state => state.theme.accent);
 
     const ITEMS_PER_PAGE = 16;
 
     const handleAddAsBrowserSource = async (url: string, sourceName: string) => {
         if (!obsServiceInstance || !isConnected || !currentProgramScene) {
-            addNotification({ message: 'OBS not connected.', type: 'error' });
+            addToast('OBS not connected.', 'error');
             return;
         }
         try {
             await addBrowserSource(obsServiceInstance, currentProgramScene, url, generateSourceName(sourceName));
-            addNotification({ message: `Added ${sourceName} to OBS.`, type: 'success' });
+            addToast(`Added ${sourceName} to OBS.`, 'success');
         } catch (error) {
-            addNotification({ message: 'Failed to add source.', type: 'error' });
+            addToast('Failed to add source.', 'error');
         }
     };
 
     const getModalActions = (type: 'background', data: any): ModalAction[] => {
         return [
             { label: 'Add as Browser Source', onClick: () => handleAddAsBrowserSource(data.path, data.id || 'background'), variant: 'primary' },
-            { label: 'Copy Image URL', onClick: () => { copyToClipboard(data.path); addNotification({ message: 'Copied image URL!', type: 'info' }); } },
+            { label: 'Copy Image URL', onClick: () => { copyToClipboard(data.path); addToast('Copied image URL!', 'info'); } },
         ];
     };
 
@@ -239,7 +239,7 @@ const BackgroundSearch: React.FC = () => {
             console.error('Backgrounds fetch error:', err);
             const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
             setSearchError(errorMessage);
-            useAppStore.getState().actions.addNotification({ type: 'error', message: `Error fetching backgrounds: ${errorMessage}` });
+            addToast(`Error fetching backgrounds: ${errorMessage}`, 'error');
         }
         setBackgroundLoading(false);
     }, [backgroundApi, backgroundQuery]);

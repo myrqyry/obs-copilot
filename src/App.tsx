@@ -37,6 +37,7 @@ import { gsap } from 'gsap';
 import MiniPlayer from './components/common/MiniPlayer';
 import { debounce } from 'lodash';
 import NotificationManager from './components/common/NotificationManager'; // Import NotificationManager
+import ToastManager from './components/common/ToastManager';
 
 const App: React.FC = () => {
     // Music mini controller state (shared with CreateTab)
@@ -721,6 +722,7 @@ newObsService.obs = newObs;
             {/* The tab content should ideally have role="tabpanel" and an id that matches aria-controls */}
             {/* Example: <div id={`tabpanel-${activeTab}`} role="tabpanel" ... > */}
             <NotificationManager /> {/* Add NotificationManager here */}
+            <ToastManager />
             <SafeModeModal
                 isOpen={isOpen}
                 onConfirm={() => {
