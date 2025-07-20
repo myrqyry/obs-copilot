@@ -14,6 +14,7 @@ import { FaviconDropdown } from './common/FaviconDropdown';
 import { CollapsibleCard } from './common/CollapsibleCard';
 import { TextInput } from './common/TextInput';
 import { GiphyFetch } from '@giphy/js-fetch-api';
+import { useStaggeredAnimation } from '../hooks/useStaggeredAnimation';
 
 // Enhanced API configurations with more parameters
 const GIF_APIS = [
@@ -103,6 +104,7 @@ const GifSearch: React.FC = () => {
     });
     const [gifSearched, setGifSearched] = useState(false);
     const [searchError, setSearchError] = useState<string | null>(null);
+    const gridRef = useStaggeredAnimation(gifResults);
 
     const obsServiceInstance = useAppStore(state => state.obsServiceInstance);
     const currentProgramScene = useAppStore(state => state.currentProgramScene);
@@ -749,7 +751,7 @@ const GifSearch: React.FC = () => {
                                 </div>
                             ) : gifResults.length > 0 ? (
                                 <div>
-                                    <div className="grid grid-cols-4 gap-1">
+                                    <div ref={gridRef} className="grid grid-cols-4 gap-1">
                                         {gifResults.map((gif) => (
                                             <GridItem
                                                 key={gif.id}

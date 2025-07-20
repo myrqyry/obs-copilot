@@ -12,6 +12,7 @@ import Tooltip from './ui/Tooltip';
 import { FaviconDropdown } from './common/FaviconDropdown';
 import { CollapsibleCard } from './common/CollapsibleCard';
 import { TextInput } from './common/TextInput';
+import { useStaggeredAnimation } from '../hooks/useStaggeredAnimation';
 
 const EMOJI_APIS = [
     { value: 'emoji-api', label: 'Emoji API', domain: 'emoji-api.com', icon: '😀' },
@@ -41,6 +42,7 @@ const EmojiSearch: React.FC = () => {
     const [emojiSearched, setEmojiSearched] = useState(false);
     const [searchError, setSearchError] = useState<string | null>(null);
     const [modalContent, setModalContent] = useState<{ type: 'emoji', data: any } | null>(null);
+    const gridRef = useStaggeredAnimation(emojiResults);
 
     const obsServiceInstance = useAppStore(state => state.obsServiceInstance);
     const currentProgramScene = useAppStore(state => state.currentProgramScene);
@@ -166,7 +168,7 @@ const EmojiSearch: React.FC = () => {
                     </form>
                     {emojiLoading && <div className="text-center text-xs">Loading...</div>}
                     {!emojiLoading && emojiSearched && emojiResults.length === 0 && <div className="text-center text-muted-foreground text-xs">No results found.</div>}
-                    <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-1">
+                    <div ref={gridRef} className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-1">
                         {getPaginatedItems(emojiResults, emojiPage).map((emoji, index) => (
                             <div key={`${emoji.slug}-${index}`} className="relative group cursor-pointer p-1 bg-slate-800 rounded-md flex items-center justify-center aspect-square text-2xl sm:text-3xl md:text-4xl" onClick={() => setModalContent({ type: 'emoji', data: emoji })}>
                                 {getEmojiChar(emoji)}

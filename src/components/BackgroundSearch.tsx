@@ -14,6 +14,7 @@ import { CollapsibleCard } from './common/CollapsibleCard';
 import { TextInput } from './common/TextInput';
 import { getProxiedImageUrl } from '../utils/imageProxy';
 import { unsplashService, UnsplashPhoto } from '../services/unsplashService';
+import { useStaggeredAnimation } from '../hooks/useStaggeredAnimation';
 
 const BACKGROUND_APIS = [
     { value: 'wallhaven', label: 'Wallhaven', domain: 'wallhaven.cc', icon: '🖼️' },
@@ -58,6 +59,7 @@ const BackgroundSearch: React.FC = () => {
     const [backgroundSearched, setBackgroundSearched] = useState(false);
     const [searchError, setSearchError] = useState<string | null>(null);
     const [modalContent, setModalContent] = useState<{ type: 'background', data: any } | null>(null);
+    const gridRef = useStaggeredAnimation(backgroundResults);
 
     const obsServiceInstance = useAppStore(state => state.obsServiceInstance);
     const currentProgramScene = useAppStore(state => state.currentProgramScene);
@@ -291,7 +293,7 @@ const BackgroundSearch: React.FC = () => {
                     </form>
                     {backgroundLoading && <div className="text-center text-xs">Loading...</div>}
                     {!backgroundLoading && backgroundSearched && backgroundResults.length === 0 && <div className="text-center text-muted-foreground text-xs">No results found.</div>}
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
+                    <div ref={gridRef} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
                         {getPaginatedItems(backgroundResults, backgroundPage).map((bg) => {
                             const imageUrl = getProxiedImageUrl(bg.thumbs?.large || bg.thumbs?.original || bg.path);
                             return (

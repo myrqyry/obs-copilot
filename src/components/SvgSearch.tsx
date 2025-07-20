@@ -12,6 +12,7 @@ import Tooltip from './ui/Tooltip';
 import { FaviconDropdown } from './common/FaviconDropdown';
 import { CollapsibleCard } from './common/CollapsibleCard';
 import { TextInput } from './common/TextInput';
+import { useStaggeredAnimation } from '../hooks/useStaggeredAnimation';
 
 const SVG_APIS = [
     { value: 'iconfinder', label: 'Iconfinder', domain: 'iconfinder.com', icon: '🎨' },
@@ -42,6 +43,7 @@ const SvgSearch: React.FC = () => {
     const [svgSearched, setSvgSearched] = useState(false);
     const [searchError, setSearchError] = useState<string | null>(null);
     const [modalContent, setModalContent] = useState<{ type: 'svg', data: any } | null>(null);
+    const gridRef = useStaggeredAnimation(svgResults);
 
     const obsServiceInstance = useAppStore(state => state.obsServiceInstance);
     const currentProgramScene = useAppStore(state => state.currentProgramScene);
@@ -181,7 +183,7 @@ const SvgSearch: React.FC = () => {
                     </form>
                     {svgLoading && <div className="text-center text-xs">Loading...</div>}
                     {!svgLoading && svgSearched && svgResults.length === 0 && <div className="text-center text-muted-foreground text-xs">No results found.</div>}
-                    <div className="grid grid-cols-4 gap-1">
+                    <div ref={gridRef} className="grid grid-cols-4 gap-1">
                         {getPaginatedItems(svgResults, svgPage).map((result) => (
                             <div key={result.name} className="relative group cursor-pointer p-1 bg-slate-800 rounded-md flex items-center justify-center aspect-square" onClick={() => setModalContent({ type: 'svg', data: result })}>
                                 <div className="w-full h-full svg-container" dangerouslySetInnerHTML={{ __html: result.svg }} />
