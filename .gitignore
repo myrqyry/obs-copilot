@@ -10,6 +10,7 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+dist-node
 *.local
 
 # Editor directories and files
@@ -50,6 +51,12 @@ coverage/
 # Environment files
 .env.*
 .env.local
+
+# Dependency directories
+node_modules/
+dist/
+dist-ssr/
+dist-node/
 
 # OS generated files
 Thumbs.db
