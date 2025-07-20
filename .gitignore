@@ -10,6 +10,7 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+dist-node
 *.local
 
 # Editor directories and files
@@ -55,3 +56,10 @@ coverage/
 Thumbs.db
 ehthumbs.db
 desktop.ini
+
+# Vite
+.vite
+.vite-node
+
+# Windsurf
+.windsurfrules
