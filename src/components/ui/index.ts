@@ -1,3 +1,3 @@
-export { Button } from '../common/Button';
+export { Button } from './Button';
 export * from './Card';
 export * from './Tooltip';
