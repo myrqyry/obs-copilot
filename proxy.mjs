@@ -1,7 +1,7 @@
-require('dotenv').config();
-const express = require('express');
-const fetch = require('node-fetch'); // Ensure this is node-fetch v2 for CJS
-const cors = require('cors');
+import 'dotenv/config';
+import express from 'express';
+import fetch from 'node-fetch';
+import cors from 'cors';
 const app = express();
 
 app.use(cors());
@@ -672,8 +672,6 @@ app.all('/api/*', (req, res) => {
 
 
 const PORT = process.env.PORT || 3001;
-if (require.main === module) {
-  app.listen(PORT, () => console.log(`Proxy server running on port ${PORT}`));
-}
+app.listen(PORT, () => console.log(`Proxy server running on port ${PORT}`));
 
-module.exports = app;
+export default app;

@@ -12,28 +12,6 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     define: {
-      // Expose environment variables to your client-side code
-      // IMPORTANT: Ensure API_KEY is set in your build environment (e.g., Netlify settings)
-      // For local development, you can use a .env.local file (e.g., VITE_GEMINI_API_KEY=your_actual_key_here)
-      'process.env.API_KEY': JSON.stringify(env.API_KEY),
-
-      // Core API Keys
-      'process.env.VITE_GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY),
-      'process.env.VITE_GIPHY_API_KEY': JSON.stringify(env.VITE_GIPHY_API_KEY),
-      'process.env.VITE_TENOR_API_KEY': JSON.stringify(env.VITE_TENOR_API_KEY),
-      'process.env.VITE_ICONFINDER_API_KEY': JSON.stringify(env.VITE_ICONFINDER_API_KEY),
-
-      // Image and Photo APIs
-      'process.env.VITE_UNSPLASH_API_KEY': JSON.stringify(env.VITE_UNSPLASH_API_KEY),
-      'process.env.VITE_PEXELS_API_KEY': JSON.stringify(env.VITE_PEXELS_API_KEY),
-      'process.env.VITE_PIXABAY_API_KEY': JSON.stringify(env.VITE_PIXABAY_API_KEY),
-      'process.env.VITE_DEVIANTART_API_KEY': JSON.stringify(env.VITE_DEVIANTART_API_KEY),
-
-      // GIF and Media APIs
-      'process.env.VITE_IMGFLIP_API_KEY': JSON.stringify(env.VITE_IMGFLIP_API_KEY),
-      'process.env.VITE_IMGUR_API_KEY': JSON.stringify(env.VITE_IMGUR_API_KEY),
-      'process.env.VITE_CHUTES_API_TOKEN': JSON.stringify(env.VITE_CHUTES_API_TOKEN),
-
       // Firebase Configuration
       'process.env.VITE_FIREBASE_API_KEY': JSON.stringify(env.VITE_FIREBASE_API_KEY),
       'process.env.VITE_FIREBASE_AUTH_DOMAIN': JSON.stringify(env.VITE_FIREBASE_AUTH_DOMAIN),

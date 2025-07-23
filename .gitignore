@@ -54,6 +54,7 @@ coverage/
 
 # Dependency directories
 node_modules/
+/dist-node/
 dist/
 dist-ssr/
 dist-node/

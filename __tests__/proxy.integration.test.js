@@ -1,6 +1,8 @@
-const request = require('supertest');
-const nock = require('nock');
-const app = require('../proxy.cjs'); // Path to your proxy app
+import request from 'supertest';
+import nock from 'nock';
+import app from '../proxy.mjs'; // Path to your proxy app
+
+console.log('Running proxy.integration.test.js');
 
 describe('Proxy Integration Tests', () => {
   afterEach(() => {
@@ -28,10 +30,7 @@ describe('Proxy Integration Tests', () => {
 
     test('Test Case (Pexels Proxy - End-to-End Success with env key)', async () => {
         const OLD_ENV = process.env;
-        jest.resetModules(); // Clear module cache
         process.env = { ...OLD_ENV, PEXELS_API_KEY: 'ENV_PEXELS_KEY_INTEGRATION' };
-        const appWithEnv = require('../proxy.cjs'); // Re-require to get new env
-
 
         const mockPexelsData = { photos: [{ id: 1, src: { original: 'url' } }] };
 
@@ -44,7 +43,7 @@ describe('Proxy Integration Tests', () => {
           .query({ query: 'nature' })
           .reply(200, mockPexelsData, { 'Content-Type': 'application/json' });
 
-        const response = await request(appWithEnv).get('/api/pexels?query=nature');
+        const response = await request(app).get('/api/pexels?query=nature');
 
         expect(response.statusCode).toBe(200);
         expect(response.body).toEqual(mockPexelsData);
@@ -89,9 +88,7 @@ describe('Proxy Integration Tests', () => {
 
     test('Test Case (Pexels Proxy - Target API Error): Handles Pexels API error', async () => {
         const OLD_ENV = process.env;
-        jest.resetModules();
         process.env = { ...OLD_ENV, PEXELS_API_KEY: 'ENV_PEXELS_KEY_FOR_API_ERROR' };
-        const appWithEnv = require('../proxy.cjs');
 
         nock('https://api.pexels.com', {
             reqheaders: {
@@ -102,9 +99,9 @@ describe('Proxy Integration Tests', () => {
           .query({ query: 'forbidden' })
           .reply(403, { error: 'Your account is suspended' }, { 'Content-Type': 'application/json' });
 
-        const response = await request(appWithEnv).get('/api/pexels?query=forbidden');
+        const response = await request(app).get('/api/pexels?query=forbidden');
 
-        expect(response.statusCode).toBe(500); // proxy.cjs returns 500 for upstream errors
+        expect(response.statusCode).toBe(500); // proxy.mjs returns 500 for upstream errors
         expect(response.body.error).toBe('Proxy error for pexels'); // Updated expected error message
         // Details might include the stringified error or parts of it
         expect(response.body.details).toBeDefined();
@@ -153,14 +150,11 @@ describe('Proxy Integration Tests', () => {
 
     test('(Pexels Proxy - Missing API Key, no query key): Should return 500 if Pexels API key is missing', async () => {
         const OLD_ENV = process.env;
-        jest.resetModules();
         process.env = { ...OLD_ENV }; // Start fresh
         delete process.env.PEXELS_API_KEY;
         delete process.env.VITE_PEXELS_API_KEY;
 
-        const appWithoutKey = require('../proxy.cjs');
-
-        const response = await request(appWithoutKey).get('/api/pexels?query=nature');
+        const response = await request(app).get('/api/pexels?query=nature');
         expect(response.statusCode).toBe(500);
         expect(response.body.error).toContain('Pexels API key not provided');
 
