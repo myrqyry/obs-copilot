@@ -20,7 +20,6 @@ describe('ObsClientImpl', () => {
     beforeEach(async () => {
         // Now, when you instantiate ObsClientImpl, it will use the mock
         obsClient = new ObsClientImpl();
-        await obsClient.init();
         // We can cast the internal obs instance to the mocked type for testing
         mockObs = obsClient.obs as jest.Mocked<OBSWebSocket>;
     });

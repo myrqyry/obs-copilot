@@ -1,10 +1,6 @@
 import { Scene } from '../types/obs-websocket-js';
 
-// Dynamic import for OBSWebSocket
-let OBSWebSocket: any;
-import('obs-websocket-js').then(obs => {
-    OBSWebSocket = obs.default;
-});
+import OBSWebSocket from 'obs-websocket-js';
 
 export class ObsError extends Error {
   constructor(message: string) {
@@ -126,20 +122,10 @@ export class ObsClientImpl implements ObsClient {
     public obs: OBSWebSocket;
 
     constructor() {
-        // The OBSWebSocket instance is created in the init method
-    }
-
-    async init() {
-        if (!OBSWebSocket) {
-            await new Promise(resolve => setTimeout(resolve, 100)); // Wait for the dynamic import
-        }
         this.obs = new OBSWebSocket();
     }
 
     async connect(address: string, password?: string): Promise<void> {
-        if (!this.obs) {
-            await this.init();
-        }
         try {
             await this.obs.connect(address, password, {
                 eventSubscriptions: 0xFFFFFFFF
@@ -157,85 +143,70 @@ export class ObsClientImpl implements ObsClient {
     }
   }
 
-  async getSceneList(): Promise<{ scenes: Scene[] }> {
+  /**
+   * A helper function to make calls to the OBS WebSocket API.
+   * This function wraps the obs.call method and throws an ObsError on failure.
+   * @param method The name of the OBS WebSocket request to make.
+   * @param params The parameters for the request.
+   * @returns A promise that resolves with the response from OBS.
+   */
+  private async callObs<T>(method: string, params?: any): Promise<T> {
     try {
-      return await this.obs.call('GetSceneList');
+      return await this.obs.call(method, params);
     } catch (error: any) {
       throw new ObsError(error.message);
     }
+  }
+
+  async getSceneList(): Promise<{ scenes: Scene[] }> {
+    return this.callObs('GetSceneList');
   }
 
   async getCurrentProgramScene(): Promise<Scene> {
-    try {
-      return await this.obs.call('GetCurrentProgramScene');
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    return this.callObs('GetCurrentProgramScene');
   }
 
   async setCurrentProgramScene(sceneName: string): Promise<void> {
-    try {
-      await this.obs.call('SetCurrentProgramScene', { sceneName });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('SetCurrentProgramScene', { sceneName });
   }
 
   async getSceneItemList(sceneName: string): Promise<{ sceneItems: SceneItem[] }> {
-    try {
-      return await this.obs.call('GetSceneItemList', { sceneName });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    return this.callObs('GetSceneItemList', { sceneName });
   }
 
   async setSceneItemEnabled(sceneName: string, sceneItemId: number, sceneItemEnabled: boolean): Promise<void> {
-    try {
-      await this.obs.call('SetSceneItemEnabled', { sceneName, sceneItemId, sceneItemEnabled });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('SetSceneItemEnabled', { sceneName, sceneItemId, sceneItemEnabled });
   }
 
+  /**
+   * Gets the ID of a scene item from its name.
+   * @param sceneName The name of the scene to search in.
+   * @param sourceName The name of the source to find.
+   * @returns A promise that resolves with the ID of the scene item, or null if it's not found.
+   */
   async getSceneItemId(sceneName: string, sourceName: string): Promise<number | null> {
-    try {
-      const response = await this.obs.call('GetSceneItemList', { sceneName });
-      const sceneItem = response.sceneItems.find((item: any) =>
-        item.sourceName === sourceName || item.inputName === sourceName
-      );
-      if (sceneItem) {
-        const id = sceneItem.sceneItemId;
-        if (typeof id === 'number') return id;
-        if (typeof id === 'string' && !isNaN(Number(id))) return Number(id);
-      }
-      return null;
-    } catch (error: any) {
-      throw new ObsError(error.message);
+    const response = await this.callObs('GetSceneItemList', { sceneName });
+    const sceneItem = response.sceneItems.find((item: any) =>
+      item.sourceName === sourceName || item.inputName === sourceName
+    );
+    if (sceneItem) {
+      const id = sceneItem.sceneItemId;
+      if (typeof id === 'number') return id;
+      if (typeof id === 'string' && !isNaN(Number(id))) return Number(id);
     }
+    return null;
   }
 
   async getStreamStatus(): Promise<StreamStatus> {
-    try {
-      return await this.obs.call('GetStreamStatus');
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    return this.callObs('GetStreamStatus');
   }
 
   async startStream(): Promise<void> {
-    try {
-      await this.obs.call('StartStream');
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('StartStream');
   }
 
   async stopStream(): Promise<void> {
-    try {
-      await this.obs.call('StopStream');
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('StopStream');
   }
 
   async toggleStream(): Promise<void> {
@@ -248,27 +219,15 @@ export class ObsClientImpl implements ObsClient {
   }
 
   async getRecordStatus(): Promise<RecordStatus> {
-    try {
-      return await this.obs.call('GetRecordStatus');
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    return this.callObs('GetRecordStatus');
   }
 
   async startRecord(): Promise<void> {
-    try {
-      await this.obs.call('StartRecord');
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('StartRecord');
   }
 
   async stopRecord(): Promise<void> {
-    try {
-      await this.obs.call('StopRecord');
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('StopRecord');
   }
 
   async toggleRecord(): Promise<void> {
@@ -281,19 +240,11 @@ export class ObsClientImpl implements ObsClient {
   }
 
   async getVideoSettings(): Promise<VideoSettings> {
-    try {
-      return await this.obs.call('GetVideoSettings');
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    return this.callObs('GetVideoSettings');
   }
 
   async setVideoSettings(settings: VideoSettings): Promise<void> {
-    try {
-      await this.obs.call('SetVideoSettings', settings);
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('SetVideoSettings', settings);
   }
 
   async createInput(
@@ -303,512 +254,308 @@ export class ObsClientImpl implements ObsClient {
     sceneName?: string,
     sceneItemEnabled: boolean = true
   ): Promise<void> {
-    try {
-      const requestParams = {
-        inputName,
-        inputKind,
-        inputSettings,
-        sceneItemEnabled,
-      };
-      if (sceneName) {
-        (requestParams as any).sceneName = sceneName;
-      }
-
-      await this.obs.call('CreateInput', requestParams);
-    } catch (error: any) {
-      throw new ObsError(error.message);
+    const requestParams: {
+      inputName: string;
+      inputKind: string;
+      inputSettings?: InputSettings;
+      sceneItemEnabled: boolean;
+      sceneName?: string;
+    } = {
+      inputName,
+      inputKind,
+      inputSettings,
+      sceneItemEnabled,
+    };
+    if (sceneName) {
+      requestParams.sceneName = sceneName;
     }
+
+    await this.callObs('CreateInput', requestParams);
   }
 
   async setInputSettings(inputName: string, inputSettings: InputSettings, overlay: boolean = true): Promise<void> {
-    try {
-      await this.obs.call('SetInputSettings', { inputName, inputSettings, overlay });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('SetInputSettings', { inputName, inputSettings, overlay });
   }
 
   async getInputSettings(inputName: string): Promise<{ inputSettings: InputSettings, inputKind: string }> {
-    try {
-      return await this.obs.call('GetInputSettings', { inputName });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    return this.callObs('GetInputSettings', { inputName });
   }
 
   async getSourceFilterList(sourceName: string): Promise<{ filters: Filter[] }> {
-    try {
-      return await this.obs.call('GetSourceFilterList', { sourceName });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    return this.callObs('GetSourceFilterList', { sourceName });
   }
 
   async getSourceFilter(sourceName: string, filterName: string): Promise<Filter> {
-    try {
-      return await this.obs.call('GetSourceFilter', { sourceName, filterName });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    return this.callObs('GetSourceFilter', { sourceName, filterName });
   }
 
   // Scene Management
   async createScene(sceneName: string): Promise<void> {
-    try {
-      await this.obs.call('CreateScene', { sceneName });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('CreateScene', { sceneName });
   }
 
   async removeScene(sceneName: string): Promise<void> {
-    try {
-      await this.obs.call('RemoveScene', { sceneName });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('RemoveScene', { sceneName });
   }
 
   // Source/Input Management
   async removeInput(inputName: string): Promise<void> {
-    try {
-      await this.obs.call('RemoveInput', { inputName });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('RemoveInput', { inputName });
   }
 
   async duplicateSceneItem(sceneName: string, sceneItemId: number, destinationSceneName?: string): Promise<void> {
-    try {
-      await this.obs.call('DuplicateSceneItem', {
-        sceneName,
-        sceneItemId,
-        destinationSceneName: destinationSceneName || sceneName
-      });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('DuplicateSceneItem', {
+      sceneName,
+      sceneItemId,
+      destinationSceneName: destinationSceneName || sceneName
+    });
   }
 
   // Scene Item Transform
   async setSceneItemTransform(sceneName: string, sceneItemId: number, sceneItemTransform: SceneItemTransform): Promise<void> {
-    try {
-      await this.obs.call('SetSceneItemTransform', {
-        sceneName,
-        sceneItemId,
-        sceneItemTransform
-      });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('SetSceneItemTransform', {
+      sceneName,
+      sceneItemId,
+      sceneItemTransform
+    });
   }
 
   async getSceneItemTransform(sceneName: string, sceneItemId: number): Promise<{ sceneItemTransform: SceneItemTransform }> {
-    try {
-      return await this.obs.call('GetSceneItemTransform', { sceneName, sceneItemId });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    return this.callObs('GetSceneItemTransform', { sceneName, sceneItemId });
   }
 
   // Filters
   async createSourceFilter(sourceName: string, filterName: string, filterKind: string, filterSettings?: Record<string, any>): Promise<void> {
-    try {
-      await this.obs.call('CreateSourceFilter', {
-        sourceName,
-        filterName,
-        filterKind,
-        filterSettings: filterSettings || {}
-      });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('CreateSourceFilter', {
+      sourceName,
+      filterName,
+      filterKind,
+      filterSettings: filterSettings || {}
+    });
   }
 
   async removeSourceFilter(sourceName: string, filterName: string): Promise<void> {
-    try {
-      await this.obs.call('RemoveSourceFilter', { sourceName, filterName });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('RemoveSourceFilter', { sourceName, filterName });
   }
 
   async setSourceFilterEnabled(sourceName: string, filterName: string, filterEnabled: boolean): Promise<void> {
-    try {
-      await this.obs.call('SetSourceFilterEnabled', { sourceName, filterName, filterEnabled });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('SetSourceFilterEnabled', { sourceName, filterName, filterEnabled });
   }
 
   async setSourceFilterSettings(sourceName: string, filterName: string, filterSettings: Record<string, any>, overlay: boolean = true): Promise<void> {
-    try {
-      await this.obs.call('SetSourceFilterSettings', { sourceName, filterName, filterSettings, overlay });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('SetSourceFilterSettings', { sourceName, filterName, filterSettings, overlay });
   }
 
   // Advanced Filter Modification
 
   // Reorder filter
   async setSourceFilterIndex(sourceName: string, filterName: string, filterIndex: number): Promise<void> {
-    try {
-      await this.obs.call('SetSourceFilterIndex', { sourceName, filterName, filterIndex });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('SetSourceFilterIndex', { sourceName, filterName, filterIndex });
   }
 
   // Rename filter
   async setSourceFilterName(sourceName: string, filterName: string, newFilterName: string): Promise<void> {
-    try {
-      await this.obs.call('SetSourceFilterName', { sourceName, filterName, newFilterName });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('SetSourceFilterName', { sourceName, filterName, newFilterName });
   }
 
   // Duplicate filter
   async duplicateSourceFilter(sourceName: string, filterName: string, newFilterName: string): Promise<void> {
-    try {
-      await (this.obs as any).call('DuplicateSourceFilter', { sourceName, filterName, newFilterName });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('DuplicateSourceFilter', { sourceName, filterName, newFilterName });
   }
 
   // Audio/Volume
   async getInputVolume(inputName: string): Promise<InputVolume> {
-    try {
-      return await this.obs.call('GetInputVolume', { inputName });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    return this.callObs('GetInputVolume', { inputName });
   }
 
   async setInputVolume(inputName: string, inputVolumeMul?: number, inputVolumeDb?: number): Promise<void> {
-    try {
-      const params: any = { inputName };
-      if (inputVolumeMul !== undefined) params.inputVolumeMul = inputVolumeMul;
-      if (inputVolumeDb !== undefined) params.inputVolumeDb = inputVolumeDb;
-      await this.obs.call('SetInputVolume', params);
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    const params: {
+      inputName: string;
+      inputVolumeMul?: number;
+      inputVolumeDb?: number;
+    } = { inputName };
+    if (inputVolumeMul !== undefined) params.inputVolumeMul = inputVolumeMul;
+    if (inputVolumeDb !== undefined) params.inputVolumeDb = inputVolumeDb;
+    await this.callObs('SetInputVolume', params);
   }
 
   async setInputMute(inputName: string, inputMuted: boolean): Promise<void> {
-    try {
-      await this.obs.call('SetInputMute', { inputName, inputMuted });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('SetInputMute', { inputName, inputMuted });
   }
 
   // Virtual Camera
   async getVirtualCamStatus(): Promise<VirtualCamStatus> {
-    try {
-      return await this.obs.call('GetVirtualCamStatus');
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    return this.callObs('GetVirtualCamStatus');
   }
 
   async startVirtualCam(): Promise<void> {
-    try {
-      await this.obs.call('StartVirtualCam');
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('StartVirtualCam');
   }
 
   async stopVirtualCam(): Promise<void> {
-    try {
-      await this.obs.call('StopVirtualCam');
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('StopVirtualCam');
   }
 
   // Studio mode
   async toggleStudioMode(): Promise<void> {
-    try {
-      const studioMode = await this.getStudioModeEnabled();
-      await this.obs.call('SetStudioModeEnabled', { studioModeEnabled: !studioMode.studioModeEnabled });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    const studioMode = await this.getStudioModeEnabled();
+    await this.callObs('SetStudioModeEnabled', { studioModeEnabled: !studioMode.studioModeEnabled });
   }
 
   async getStudioModeEnabled(): Promise<StudioModeStatus> {
-    try {
-      return await this.obs.call('GetStudioModeEnabled');
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    return this.callObs('GetStudioModeEnabled');
   }
 
   // UI Dialog methods
   async openInputFiltersDialog(inputName: string): Promise<void> {
-    try {
-      await this.obs.call('OpenInputFiltersDialog', { inputName });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('OpenInputFiltersDialog', { inputName });
   }
 
   async openInputPropertiesDialog(inputName: string): Promise<void> {
-    try {
-      await this.obs.call('OpenInputPropertiesDialog', { inputName });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('OpenInputPropertiesDialog', { inputName });
   }
 
   async openInputInteractDialog(inputName: string): Promise<void> {
-    try {
-      await this.obs.call('OpenInputInteractDialog', { inputName });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('OpenInputInteractDialog', { inputName });
   }
 
   // Output status
   async getOutputStatus(outputName: string): Promise<OutputStatus> {
-    try {
-      return await this.obs.call('GetOutputStatus', { outputName });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    return this.callObs('GetOutputStatus', { outputName });
   }
 
   // Streamer username (this might need to be implemented based on your specific needs)
   async getStreamerUsername(): Promise<string | null> {
     // This is a placeholder - you may need to implement this based on your specific requirements
     // It could be from OBS profile info, stream service settings, etc.
-    try {
-      const profile = await this.obs.call('GetProfileList');
-      return profile.currentProfileName || null;
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    const profile = await this.callObs('GetProfileList');
+    return profile.currentProfileName || null;
   }
 
   // Screenshot functionality
   async getSourceScreenshot(sourceName: string, imageFormat: 'png' | 'jpg' = 'png', imageWidth?: number, imageHeight?: number, imageCompressionQuality?: number): Promise<string> {
-    try {
-      const params: any = {
-        sourceName,
-        imageFormat
-      };
+    const params: {
+      sourceName: string;
+      imageFormat: 'png' | 'jpg';
+      imageWidth?: number;
+      imageHeight?: number;
+      imageCompressionQuality?: number;
+    } = {
+      sourceName,
+      imageFormat
+    };
 
-      if (imageWidth) params.imageWidth = imageWidth;
-      if (imageHeight) params.imageHeight = imageHeight;
-      if (imageCompressionQuality) params.imageCompressionQuality = imageCompressionQuality;
+    if (imageWidth) params.imageWidth = imageWidth;
+    if (imageHeight) params.imageHeight = imageHeight;
+    if (imageCompressionQuality) params.imageCompressionQuality = imageCompressionQuality;
 
-      const response = await this.obs.call('GetSourceScreenshot', params);
-      return response.imageData;
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    const response = await this.callObs('GetSourceScreenshot', params);
+    return response.imageData;
   }
 
   async getCurrentSceneScreenshot(imageFormat: 'png' | 'jpg' = 'png', imageWidth?: number, imageHeight?: number, imageCompressionQuality?: number): Promise<string> {
-    try {
-      const currentScene = await this.getCurrentProgramScene();
-      return this.getSourceScreenshot(currentScene.sceneName, imageFormat, imageWidth, imageHeight, imageCompressionQuality);
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    const currentScene = await this.getCurrentProgramScene();
+    return this.getSourceScreenshot(currentScene.sceneName, imageFormat, imageWidth, imageHeight, imageCompressionQuality);
   }
 
   // Replay Buffer
   async startReplayBuffer(): Promise<void> {
-    try {
-      await this.obs.call('StartReplayBuffer');
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('StartReplayBuffer');
   }
 
   async saveReplayBuffer(): Promise<void> {
-    try {
-      await this.obs.call('SaveReplayBuffer');
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('SaveReplayBuffer');
   }
 
   async stopReplayBuffer(): Promise<void> {
-    try {
-      await this.obs.call('StopReplayBuffer');
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('StopReplayBuffer');
   }
 
   async getReplayBufferStatus(): Promise<ReplayBufferStatus> {
-    try {
-      return await this.obs.call('GetReplayBufferStatus');
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    return this.callObs('GetReplayBufferStatus');
   }
 
   // Studio Mode
   async triggerStudioModeTransition(): Promise<void> {
-    try {
-      await this.obs.call('TriggerStudioModeTransition');
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('TriggerStudioModeTransition');
   }
 
   async setStudioModeEnabled(enabled: boolean): Promise<void> {
-    try {
-      await this.obs.call('SetStudioModeEnabled', { studioModeEnabled: enabled });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('SetStudioModeEnabled', { studioModeEnabled: enabled });
   }
 
   // Audio Monitoring
   async setInputAudioMonitorType(inputName: string, monitorType: "OBS_MONITORING_TYPE_NONE" | "OBS_MONITORING_TYPE_MONITOR_ONLY" | "OBS_MONITORING_TYPE_MONITOR_AND_OUTPUT"): Promise<void> {
-    try {
-      await this.obs.call('SetInputAudioMonitorType', { inputName, monitorType });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('SetInputAudioMonitorType', { inputName, monitorType });
   }
 
   // Scene Item Blend Mode (OBS 29+)
   async setSceneItemBlendMode(sceneName: string, sceneItemId: number, blendMode: string): Promise<void> {
-    try {
-      await this.obs.call('SetSceneItemBlendMode', { sceneName, sceneItemId, sceneItemBlendMode: blendMode });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('SetSceneItemBlendMode', { sceneName, sceneItemId, sceneItemBlendMode: blendMode });
   }
 
   // Browser Source
   async refreshBrowserSource(inputName: string): Promise<void> {
-    try {
-      await this.obs.call('PressInputPropertiesButton', { inputName, propertyName: 'refresh' });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('PressInputPropertiesButton', { inputName, propertyName: 'refresh' });
   }
 
   // Hotkeys
   async triggerHotkeyByName(hotkeyName: string): Promise<void> {
-    try {
-      await this.obs.call('TriggerHotkeyByName', { hotkeyName });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('TriggerHotkeyByName', { hotkeyName });
   }
 
   async triggerHotkeyByKeySequence(keyId: string, keyModifiers: { shift: boolean, control: boolean, alt: boolean, command: boolean }): Promise<void> {
-    try {
-      await this.obs.call('TriggerHotkeyByKeySequence', { keyId, keyModifiers });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('TriggerHotkeyByKeySequence', { keyId, keyModifiers });
   }
 
   async getHotkeyList(): Promise<{ hotkeys: Hotkey[] }> {
-    try {
-      return await this.obs.call('GetHotkeyList');
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    return this.callObs('GetHotkeyList');
   }
 
   // Performance Stats
   async getStats(): Promise<Stats> {
-    try {
-      return await this.obs.call('GetStats');
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    return this.callObs('GetStats');
   }
 
   // Log Management
   async getLogFileList(): Promise<{ logFiles: Log[] }> {
-    try {
-      return await this.obs.call('GetLogFileList');
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    return this.callObs('GetLogFileList');
   }
 
   async uploadLog(): Promise<void> {
-    try {
-      await this.obs.call('UploadLog');
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('UploadLog');
   }
 
   // Source Filter Settings
   async getSourceFilterSettings(sourceName: string, filterName: string): Promise<Filter> {
-    try {
-      return await (this.obs as any).call('GetSourceFilterSettings', { sourceName, filterName });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    return this.callObs('GetSourceFilterSettings', { sourceName, filterName });
   }
 
   async getSourceFilterDefaultSettings(filterKind: string): Promise<{ filterSettings: { [key: string]: any } }> {
-    try {
-      return await this.obs.call('GetSourceFilterDefaultSettings', { filterKind });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    return this.callObs('GetSourceFilterDefaultSettings', { filterKind });
   }
 
   // Scene Name
   async setSceneName(sceneName: string, newSceneName: string): Promise<void> {
-    try {
-      await this.obs.call('SetSceneName', { sceneName, newSceneName });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('SetSceneName', { sceneName, newSceneName });
   }
 
   // Profile
   async getCurrentProfile(): Promise<Profile> {
-    try {
-      return await this.obs.call('GetCurrentProfile');
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    return this.callObs('GetCurrentProfile');
   }
 
   async setCurrentProfile(profileName: string): Promise<void> {
-    try {
-      await this.obs.call('SetCurrentProfile', { profileName });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('SetCurrentProfile', { profileName });
   }
 
   // Scene Collection
   async getCurrentSceneCollection(): Promise<SceneCollection> {
-    try {
-      return await this.obs.call('GetCurrentSceneCollection');
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    return this.callObs('GetCurrentSceneCollection');
   }
 
   async setCurrentSceneCollection(sceneCollectionName: string): Promise<void> {
-    try {
-      await this.obs.call('SetCurrentSceneCollection', { sceneCollectionName });
-    } catch (error: any) {
-      throw new ObsError(error.message);
-    }
+    await this.callObs('SetCurrentSceneCollection', { sceneCollectionName });
   }
 
   async addBrowserSource(

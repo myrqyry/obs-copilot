@@ -1,11 +1,11 @@
 module.exports = {
-  preset: 'ts-jest',
   testEnvironment: 'node',
-  testMatch: [
-    '**/__tests__/**/*.+(ts|tsx|js)',
-    '**/?(*.)+(spec|test).+(ts|tsx|js)',
-  ],
   transform: {
-    '^.+\\.(ts|tsx|js|mjs)$': 'ts-jest',
+    '^.+\\.(ts|tsx|mjs)$': 'ts-jest',
+    '^.+\\.js$': 'babel-jest',
   },
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'mjs', 'json', 'node'],
+  transformIgnorePatterns: [
+    'node_modules/(?!(obs-websocket-js)/)',
+  ],
 };
