@@ -2,7 +2,7 @@ import React, { useState, useRef, useLayoutEffect, useMemo } from 'react';
 import { catppuccinChatBubbleColorsHexMap, catppuccinMochaColors, catppuccinSecondaryAccentColorsHexMap } from '../../types';
 import { ChevronDownIcon, ChevronUpIcon, ClipboardDocumentIcon, ArrowPathIcon, ChatBubbleLeftEllipsisIcon } from '@heroicons/react/24/solid';
 import { gsap } from 'gsap';
-import { MarkdownRenderer } from './MarkdownRenderer';
+import { ExpressiveCodeRenderer } from './ExpressiveCodeRenderer';
 import { getRandomSuggestions } from '../../constants/chatSuggestions';
 import { ChatMessage, CatppuccinAccentColorName, OBSSource, CatppuccinChatBubbleColorName } from '../../types';
 import { useAppStore } from '../../store/appStore';
@@ -276,7 +276,28 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                         ) : (
                             <div className="relative">
                                 <div style={{ color: textColor, fontStyle: isSystem ? 'italic' : 'normal', wordBreak: 'break-word', whiteSpace: 'normal' }}>
-                                    <MarkdownRenderer content={message.text} />
+                                    {(() => {
+                                        const parts = [];
+                                        let lastIndex = 0;
+                                        const codeBlockRegex = /```(\w*)\s*\n?([\s\S]*?)\n?\s*```/g;
+                                        let match;
+
+                                        while ((match = codeBlockRegex.exec(message.text)) !== null) {
+                                            if (match.index > lastIndex) {
+                                                parts.push(<div key={lastIndex} dangerouslySetInnerHTML={{ __html: message.text.substring(lastIndex, match.index) }} />);
+                                            }
+                                            const lang = match[1]?.toLowerCase() || 'text';
+                                            const code = match[2];
+                                            parts.push(<ExpressiveCodeRenderer key={match.index} code={code} lang={lang} />);
+                                            lastIndex = codeBlockRegex.lastIndex;
+                                        }
+
+                                        if (lastIndex < message.text.length) {
+                                            parts.push(<div key={lastIndex} dangerouslySetInnerHTML={{ __html: message.text.substring(lastIndex) }} />);
+                                        }
+
+                                        return parts;
+                                    })()}
                                 </div>
 
                                 {/* Show suggestion buttons for greeting system messages */}
