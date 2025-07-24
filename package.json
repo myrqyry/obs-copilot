@@ -36,6 +36,7 @@
     "@google/generative-ai": "^0.21.0",
     "@heroicons/react": "^2.2.0",
     "@imgly/background-removal": "^1.6.0",
+    "@radix-ui/react-toast": "^1.2.14",
     "@streamerbot/client": "^1.11.0",
     "@types/axios": "^0.9.36",
     "axios": "^1.10.0",
