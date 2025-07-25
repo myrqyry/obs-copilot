@@ -14,7 +14,7 @@ describe('Image Proxy Utilities', () => {
       jest.spyOn(imageProxy, 'getHostname').mockReturnValue('localhost');
       const { getProxiedImageUrl } = imageProxy;
       const imageUrl = 'http://images.unsplash.com/photo.jpg';
-      const expected = `/api/image?url=${encodeURIComponent(imageUrl)}`;
+      const expected = `/.netlify/functions/proxy/image?url=${encodeURIComponent(imageUrl)}`;
       expect(getProxiedImageUrl(imageUrl)).toBe(expected);
     });
 
@@ -30,7 +30,7 @@ describe('Image Proxy Utilities', () => {
       jest.spyOn(imageProxy, 'getHostname').mockReturnValue('my-app.netlify.app');
       const { getProxiedImageUrl } = imageProxy;
       const imageUrl = 'http://images.unsplash.com/photo.jpg';
-      const expected = `/.netlify/functions/proxy?api=image&url=${encodeURIComponent(imageUrl)}`;
+      const expected = `/api/image?url=${encodeURIComponent(imageUrl)}`;
       expect(getProxiedImageUrl(imageUrl)).toBe(expected);
     });
 

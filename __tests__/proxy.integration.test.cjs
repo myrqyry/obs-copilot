@@ -1,6 +1,20 @@
-import request from 'supertest';
-import nock from 'nock';
-import app from '../proxy.mjs'; // Path to your proxy app
+const request = require('supertest');
+const nock = require('nock');
+const app = require('../proxy.mjs');
+
+const http = require('http');
+let server;
+let app;
+
+beforeAll((done) => {
+    app = require('../proxy.mjs').default;
+    server = http.createServer(app);
+    server.listen(3002, done);
+});
+
+afterAll((done) => {
+    server.close(done);
+});
 
 console.log('Running proxy.integration.test.js');
 

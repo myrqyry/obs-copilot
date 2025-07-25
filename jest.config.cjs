@@ -1,11 +1,22 @@
 module.exports = {
-  testEnvironment: 'node',
-  transform: {
-    '^.+\\.(ts|tsx|mjs)$': 'ts-jest',
-    '^.+\\.js$': 'babel-jest',
-  },
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'mjs', 'json', 'node'],
-  transformIgnorePatterns: [
-    'node_modules/(?!(obs-websocket-js)/)',
+  runInBand: true,
+  projects: [
+    {
+      displayName: 'node',
+      testEnvironment: 'node',
+      testMatch: ['<rootDir>/__tests__/**/*.test.cjs'],
+      transform: {
+        '^.+\\.m?js$': 'babel-jest',
+      },
+    },
+    {
+      displayName: 'jsdom',
+      testEnvironment: 'jsdom',
+      testMatch: ['<rootDir>/src/**/*.test.ts'],
+      transform: {
+        '^.+\\.(ts|tsx)$': 'ts-jest',
+      },
+      setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+    },
   ],
 };

@@ -1,28 +1,23 @@
-import request from 'supertest';
-import { jest } from '@jest/globals';
+const request = require('supertest');
+const nock = require('nock');
 // This is THE mock function that will replace 'node-fetch'
-const mockFetchImplementation = jest.fn();
-jest.mock('node-fetch', () => {
-    const original = jest.requireActual('node-fetch');
-    return {
-        __esModule: true,
-        default: mockFetchImplementation,
-        Response: original.Response,
-        Headers: original.Headers,
-    };
-});
+const fetch = require('node-fetch');
+jest.mock('node-fetch', () => jest.fn());
 
 describe('Proxy Unit Tests', () => {
     let app;
 
-    beforeAll(async () => {
-        const module = await import('../proxy.mjs');
+    let server;
+    beforeAll((done) => {
+        const module = require('../proxy.mjs');
         app = module.default;
+        server = app.listen(3003, done);
     });
 
-    beforeEach(() => {
-        mockFetchImplementation.mockClear();
+    afterAll((done) => {
+        server.close(done);
     });
+
 
     describe('/api/image', () => {
         test('Test Case 1.1 (Image Proxy - Success): Should proxy a valid image URL successfully', async () => {
@@ -30,17 +25,15 @@ describe('Proxy Unit Tests', () => {
             const mockImageContentType = 'image/jpeg';
             const targetUrl = 'http://example.com/image.jpg';
 
-            mockFetchImplementation.mockResolvedValueOnce(
-                new Response(mockImageData, {
-                    status: 200,
-                    headers: new Headers({ 'Content-Type': mockImageContentType }),
-                })
-            );
+            fetch.mockResolvedValue(new Response(mockImageData, {
+                status: 200,
+                headers: { 'Content-Type': mockImageContentType },
+            }));
 
             const response = await request(app).get(`/api/image?url=${encodeURIComponent(targetUrl)}`);
 
-            expect(mockFetchImplementation).toHaveBeenCalledTimes(1);
-            expect(mockFetchImplementation).toHaveBeenCalledWith(targetUrl);
+            expect(fetch).toHaveBeenCalledTimes(1);
+            expect(fetch).toHaveBeenCalledWith(targetUrl);
             expect(response.statusCode).toBe(200);
             expect(response.headers['content-type']).toBe(mockImageContentType);
             expect(response.body.toString()).toBe(mockImageData);

@@ -64,6 +64,8 @@
     "tailwind-merge": "^2.6.0",
     "type-fest": "3.0.0",
     "unsplash-js": "^7.0.19",
+    "web-streams-polyfill": "^4.1.0",
+    "whatwg-fetch": "^3.6.20",
     "zustand": "^5.0.5"
   },
   "devDependencies": {
