@@ -139,48 +139,59 @@ This guide helps you get OBS Copilot running quickly to explore its core feature
 
 ### Prerequisites
 
-1.  **Node.js**: Ensure you have Node.js version 18.x or newer. You can download it from [nodejs.org](https://nodejs.org/).
-2.  **OBS Studio**: Install the latest version of OBS Studio from [obsproject.com](https://obsproject.com/).
-3.  **OBS WebSocket Plugin**: Make sure the OBS WebSocket plugin is installed and enabled in OBS (usually included with OBS Studio 28+).
-    *   In OBS, go to `Tools` -> `WebSocket Server Settings`.
-    *   Ensure `Enable WebSocket server` is checked.
-    *   Note the `Server Port` (default is `4455`) and set a `Server Password` if you haven't already. You'll need these in the app.
-4.  **Google Gemini API Key**: This is required for the AI chat features.
-    *   Get your free API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
+- Node.js 18+ and npm 9+
+- OBS Studio 29+ with WebSocket server enabled
+- Google Cloud API key with Gemini Pro access
+- (Optional) Streamer.bot for advanced automation
 
-### Setup & Running
+### Installation
 
-1.  **Clone the Repository:**
-    ```bash
-    git clone https://github.com/myrqyry/obs-copilot.git
-    cd obs-copilot
-    ```
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/obs-copilot.git
+   cd obs-copilot
+   ```
 
-2.  **Install Dependencies:**
-    ```bash
-    npm install
-    ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-3.  **Configure Environment Variables:**
-    *   Create a new file named `.env.local` in the root of the project (next to `.env.local.example`).
-    *   Add your Google Gemini API key to this file:
-        ```env
-        VITE_GEMINI_API_KEY=your_gemini_api_key_here
-        ```
-    *   **That's it for essential variables!** Other API keys (for Giphy, Unsplash, etc.) listed in `.env.local.example` are optional and can be added later to enable more features.
+3. Copy the example environment file and update with your API keys:
+   ```bash
+   cp .env.example .env.local
+   ```
+   Then edit `.env.local` and add your API keys.
 
-4.  **Run the Development Server:**
-    ```bash
-    npm run dev
-    ```
-    This will typically start the app on `http://localhost:5173` (Vite's default) or `http://localhost:3000`. Check your terminal output for the exact URL.
+### Project Maintenance
 
-5.  **Connect to OBS:**
-    *   Open the app URL in your browser or as an OBS Dock (`View` -> `Docks` -> `Custom Browser Docks...`).
-    *   In the app's connection panel, enter your OBS WebSocket URL (e.g., `ws://localhost:4455`) and password.
-    *   Click "Connect".
+#### Cleaning Up
 
-You should now be able to interact with the OBS Copilot! Try sending a message to the AI or exploring the OBS controls. For more advanced features and other API integrations, refer to the `.env.local.example` file and add the corresponding API keys to your `.env.local` file.
+We've included several scripts to help maintain the project:
+
+- `npm run clean`: Cleans up build artifacts, cache, and temporary files
+- `npm run check-deps`: Checks for unused dependencies
+- `npm run lint`: Runs ESLint to check code quality
+
+#### Updating Dependencies
+
+To update dependencies:
+
+```bash
+# Check for outdated packages
+npm outdated
+
+# Update packages (be cautious with major version updates)
+npm update
+```
+
+#### Environment Files
+
+- `.env.example`: Template with all required environment variables
+- `.env.local`: Local development overrides (not tracked by git)
+- `.env`: Production environment variables (not tracked by git)
+
+Never commit sensitive information in `.env` or `.env.local` files.
 
 ---
 
@@ -217,6 +228,19 @@ npm run build    # Production build
 npm run preview  # Preview build
 npm run lint     # Lint code
 ```
+
+---
+
+## 📦 Scripts
+
+- `npm run dev`: Start development server with hot reload
+- `npm run build`: Build for production
+- `npm run preview`: Preview production build locally
+- `npm run test`: Run tests
+- `npm run clean`: Clean up build artifacts and temporary files
+- `npm run check-deps`: Check for unused dependencies
+- `npm run lint`: Run ESLint for code quality checks
+- `npm run proxy`: Start the development proxy server
 
 ---
 

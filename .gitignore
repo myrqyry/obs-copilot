@@ -7,11 +7,25 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-dist-node
-*.local
+# Dependencies
+node_modules/
+
+# Build outputs
+/dist
+/dist-ssr
+/dist-node
+/build
+/out
+
+# Cache and temp files
+.cache/
+.temp/
+.tmp/
+/tmp
+/temp
+*.tmp
+*.temp
+*.tsbuildinfo
 
 # Editor directories and files
 .vscode/*
@@ -22,44 +36,54 @@ dist-node
 *.ntvs*
 *.njsproj
 *.sln
-*.sw?
+*.swp
+*.swo
 
+# Environment
 .env
+.env.*
+!.env.example
 
-# Data and cache
-dataref/
-cache/
-*.cache
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
 
-# Build output
-build
-out
-tmp/
-temp/
-*.tmp
-*.temp
+# Testing
+/coverage
+.nyc_output
 
-# Netlify
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local development
+.netlify
 .netlify/
 
 # AppMap
-tmp/appmap/
+/tmp/appmap/
 
-# Test coverage
-coverage/
-
-# Environment files
-.env.*
-.env.local
-
-# Dependency directories
-node_modules/
-dist/
-dist-ssr/
-dist-node/
-dist-node
+# Data and cache
+/dataref
+/cache
+*.cache
 
 # OS generated files
 Thumbs.db
 ehthumbs.db
 desktop.ini
+.DS_Store
+
+# IDE specific files
+.idea/
+.vscode/
+*.sublime-*
+
+# Build tool specific
+.vite/
+.eslintcache
+
+.env
