@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { useAppStore } from '../store/appStore';
+import { useAudioStore } from '../store/audioStore';
+import { useSettingsStore } from '../store/settingsStore';
+import { useToast } from './ui/use-toast';
 import { CardContent } from './ui/Card';
-import { Button } from './common/Button';
+import { Button } from './ui/Button';
 import { TextInput } from './common/TextInput';
 import Tooltip from './ui/Tooltip';
 import InlineMusicControls from './InlineMusicControls';
@@ -49,8 +51,8 @@ function getRandomPrompt() {
 }
 
 const MusicGeneration: React.FC = () => {
-    const { startMusicGeneration } = useAppStore(state => state.actions);
-    const addNotification = useAppStore((state) => state.actions.addNotification);
+    const { startMusicGeneration } = useAudioStore(state => state.actions);
+    const { toast } = useToast();
 
     // State for music generation UI only
     const [musicPrompt, setMusicPrompt] = useState('');
@@ -64,15 +66,15 @@ const MusicGeneration: React.FC = () => {
     const [muteDrums, setMuteDrums] = useState(false);
     const [onlyBassAndDrums, setOnlyBassAndDrums] = useState(false);
 
-    const accentColorName = useAppStore(state => state.theme.accent);
+    const accentColorName = useSettingsStore(state => state.theme.accent);
     const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
 
     // Music generation handler: just calls store action
     const handleGenerateMusic = () => {
         // Always get the latest Gemini API key from Zustand store
-        const currentGeminiApiKey = useAppStore.getState().geminiApiKey;
+        const currentGeminiApiKey = useApiKeyStore.getState().getApiKey(ApiService.GEMINI);
         if (!currentGeminiApiKey) {
-            addNotification({ message: 'Gemini API key is missing. Please set it in the Connections tab.', type: 'error' });
+            toast({ message: 'Gemini API key is missing. Please set it in the Connections tab.', type: 'error' });
             return;
         }
         const config = {
@@ -124,7 +126,7 @@ const MusicGeneration: React.FC = () => {
                         </Button>
                     </Tooltip>
                     <Button
-                        variant="primary"
+                        variant="default"
                         size="sm"
                         onClick={handleGenerateMusic}
                         disabled={!musicPrompt.trim()}

@@ -1,12 +1,12 @@
 import React, { useEffect, useRef } from 'react';
-import { useGeminiChat } from '../../hooks/useGeminiChat';
+import { useGeminiChat } from '../hooks/useGeminiChat';
 import { MessageList } from './chat/MessageList';
 import { ChatInput } from './chat/ChatInput';
-import { useConnectionStore } from '../../store/connectionStore';
-import { useObsStore } from '../../store/obsStore';
-import { useChatStore } from '../../store/chatStore';
-import { useSettingsStore } from '../../store/settingsStore';
-import { CatppuccinAccentColorName, AppTab, ChatMessage } from '../../types';
+import { useConnectionStore } from '../store/connectionStore';
+import { useObsStore } from '../store/obsStore';
+import { useChatStore } from '../store/chatStore';
+import { useSettingsStore } from '../store/settingsStore';
+import { CatppuccinAccentColorName, AppTab, ChatMessage } from '../types';
 
 interface GeminiChatProps {
     streamerBotService: any;

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useEffect, useRef } from 'react';
-import { logoAnimations } from '../../utils/gsapAnimations';
+import { gsap } from 'gsap';
 
 interface MusicVisualizerProps {
     onClick?: () => void;
@@ -15,7 +15,7 @@ const MusicVisualizer: React.FC<MusicVisualizerProps> = ({ onClick }) => {
 
     useEffect(() => {
         if (innerCircleRef.current) {
-            logoAnimations.pulse(innerCircleRef.current, { scale: 1.1, duration: 2 });
+            gsap.to(innerCircleRef.current, { scale: 1.1, duration: 2, repeat: -1, yoyo: true });
         }
     }, []);
 

@@ -1,12 +1,13 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
-import { useAppStore } from '../store/appStore';
-import { addBrowserSource, addImageSource } from '../services/obsService';
+import { useConnectionStore } from '../store/connectionStore';
+import { useSettingsStore } from '../store/settingsStore';
+import { useToast } from './ui/use-toast';
 import { generateSourceName } from '../utils/obsSourceHelpers';
 import { copyToClipboard } from '../utils/persistence';
 import { Card, CardContent } from './ui/Card';
 import { Modal } from './common/Modal';
-import { Button } from './common/Button';
+import { Button } from './ui/Button';
 import { FaviconIcon } from './common/FaviconIcon';
 import Tooltip from './ui/Tooltip';
 import { FaviconDropdown } from './common/FaviconDropdown';
@@ -14,6 +15,8 @@ import { CollapsibleCard } from './common/CollapsibleCard';
 import { TextInput } from './common/TextInput';
 import { getProxiedImageUrl } from '../utils/imageProxy';
 import { unsplashService, UnsplashPhoto } from '../services/unsplashService';
+import { catppuccinAccentColorsHexMap } from '../types';
+import { useObsStore } from '../store/obsStore';
 
 const BACKGROUND_APIS = [
     { value: 'wallhaven', label: 'Wallhaven', domain: 'wallhaven.cc', icon: '🖼️' },
@@ -31,11 +34,11 @@ type ModalAction = {
     icon?: React.ReactNode;
 };
 
-const getEffectiveApiKey = (serviceName: ApiService): string | undefined => {
-    const override = useApiKeyStore.getState().getApiKeyOverride(serviceName);
+const getEffectiveApiKey = (serviceName: typeof ApiService): string | undefined => {
+    const override = useApiKeyStore.getState().getApiKey(serviceName);
     if (override) return override;
 
-    const viteKeys: Partial<Record<ApiService, string | undefined>> = {
+    const viteKeys: Partial<Record<typeof ApiService, string | undefined>> = {
       [ApiService.UNSPLASH]: import.meta.env.VITE_UNSPLASH_API_KEY,
       [ApiService.PEXELS]: import.meta.env.VITE_PEXELS_API_KEY,
       [ApiService.PIXABAY]: import.meta.env.VITE_PIXABAY_API_KEY,
@@ -59,31 +62,31 @@ const BackgroundSearch: React.FC = () => {
     const [searchError, setSearchError] = useState<string | null>(null);
     const [modalContent, setModalContent] = useState<{ type: 'background', data: any } | null>(null);
 
-    const obsServiceInstance = useAppStore(state => state.obsServiceInstance);
-    const currentProgramScene = useAppStore(state => state.currentProgramScene);
-    const isConnected = useAppStore(state => state.isConnected);
-    const addNotification = useAppStore((state) => state.actions.addNotification);
-    const accentColor = useAppStore(state => state.theme.accent);
+    const { obsServiceInstance, isConnected } = useConnectionStore();
+    const { currentProgramScene } = useObsStore();
+    const { toast, error } = useToast();
+    const accentColorName = useSettingsStore(state => state.theme.accent);
+    const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
 
     const ITEMS_PER_PAGE = 16;
 
     const handleAddAsBrowserSource = async (url: string, sourceName: string) => {
         if (!obsServiceInstance || !isConnected || !currentProgramScene) {
-            addNotification({ message: 'OBS not connected.', type: 'error' });
+            error('OBS not connected.');
             return;
         }
         try {
-            await addBrowserSource(obsServiceInstance, currentProgramScene, url, generateSourceName(sourceName));
-            addNotification({ message: `Added ${sourceName} to OBS.`, type: 'success' });
-        } catch (error) {
-            addNotification({ message: 'Failed to add source.', type: 'error' });
+            await obsServiceInstance.addBrowserSource(currentProgramScene, url, generateSourceName(sourceName));
+            toast({ title: 'Success', description: `Added ${sourceName} to OBS.` });
+        } catch (err: any) {
+            error(`Failed to add source: ${err.message}`);
         }
     };
 
     const getModalActions = (type: 'background', data: any): ModalAction[] => {
         return [
             { label: 'Add as Browser Source', onClick: () => handleAddAsBrowserSource(data.path, data.id || 'background'), variant: 'primary' },
-            { label: 'Copy Image URL', onClick: () => { copyToClipboard(data.path); addNotification({ message: 'Copied image URL!', type: 'info' }); } },
+            { label: 'Copy Image URL', onClick: () => { copyToClipboard(data.path); toast({ title: 'Info', description: 'Copied image URL!' }); } },
         ];
     };
 
@@ -236,11 +239,10 @@ const BackgroundSearch: React.FC = () => {
         } catch (err: any) {
             console.error('Backgrounds fetch error:', err);
             const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-            setSearchError(errorMessage);
-            useAppStore.getState().actions.addNotification({ type: 'error', message: `Error fetching backgrounds: ${errorMessage}` });
+            error(`Error fetching backgrounds: ${errorMessage}`);
         }
         setBackgroundLoading(false);
-    }, [backgroundApi, backgroundQuery]);
+    }, [backgroundApi, backgroundQuery, obsServiceInstance, currentProgramScene, isConnected, toast, error]);
 
     const getPaginatedItems = (items: any[], page: number) => {
         const start = page * ITEMS_PER_PAGE;

@@ -1,17 +1,20 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
-import { useAppStore } from '../store/appStore';
-import { addSvgAsBrowserSource } from '../services/obsService';
+import { useConnectionStore } from '../store/connectionStore';
+import { useSettingsStore } from '../store/settingsStore';
+import { useToast } from './ui/use-toast';
 import { generateSourceName } from '../utils/obsSourceHelpers';
 import { copyToClipboard } from '../utils/persistence';
 import { Card, CardContent } from './ui/Card';
 import { Modal } from './common/Modal';
-import { Button } from './common/Button';
+import { Button } from './ui/Button';
 import { FaviconIcon } from './common/FaviconIcon';
 import Tooltip from './ui/Tooltip';
 import { FaviconDropdown } from './common/FaviconDropdown';
 import { CollapsibleCard } from './common/CollapsibleCard';
 import { TextInput } from './common/TextInput';
+import { catppuccinAccentColorsHexMap } from '../types';
+import { useObsStore } from '../store/obsStore';
 
 const SVG_APIS = [
     { value: 'iconfinder', label: 'Iconfinder', domain: 'iconfinder.com', icon: '🎨' },
@@ -43,32 +46,31 @@ const SvgSearch: React.FC = () => {
     const [searchError, setSearchError] = useState<string | null>(null);
     const [modalContent, setModalContent] = useState<{ type: 'svg', data: any } | null>(null);
 
-    const obsServiceInstance = useAppStore(state => state.obsServiceInstance);
-    const currentProgramScene = useAppStore(state => state.currentProgramScene);
-    const isConnected = useAppStore(state => state.isConnected);
-    const addNotification = useAppStore((state) => state.actions.addNotification);
-    const accentColorName = useAppStore(state => state.theme.accent);
-    const accentColor = useAppStore(state => state.theme.accent);
+    const { obsServiceInstance, isConnected } = useConnectionStore();
+    const { currentProgramScene } = useObsStore();
+    const { toast, error } = useToast();
+    const accentColorName = useSettingsStore(state => state.theme.accent);
+    const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
 
     const ITEMS_PER_PAGE = 16;
 
     const handleAddSvgAsBrowserSource = async (svg: string, sourceName: string) => {
         if (!obsServiceInstance || !isConnected || !currentProgramScene) {
-            addNotification({ message: 'OBS not connected.', type: 'error' });
+            error('OBS not connected.');
             return;
         }
         try {
-            await addSvgAsBrowserSource(obsServiceInstance, currentProgramScene, svg, generateSourceName(sourceName));
-            addNotification({ message: `Added ${sourceName} to OBS.`, type: 'success' });
-        } catch (error) {
-            addNotification({ message: 'Failed to add source.', type: 'error' });
+            await obsServiceInstance.addSvgAsBrowserSource(currentProgramScene, svg, generateSourceName(sourceName));
+            toast({ title: 'Success', description: `Added ${sourceName} to OBS.` });
+        } catch (err: any) {
+            error(`Failed to add source: ${err.message}`);
         }
     };
 
     const getModalActions = (type: 'svg', data: any): ModalAction[] => {
         return [
             { label: 'Add as Browser Source', onClick: () => handleAddSvgAsBrowserSource(data.svg, data.name), variant: 'primary' },
-            { label: 'Copy SVG Code', onClick: () => { copyToClipboard(data.svg); addNotification({ message: 'Copied SVG code!', type: 'info' }); } },
+            { label: 'Copy SVG Code', onClick: () => { copyToClipboard(data.svg); toast({ title: 'Info', description: 'Copied SVG code!' }); } },
         ];
     };
 
@@ -85,7 +87,7 @@ const SvgSearch: React.FC = () => {
         try {
             const limit = 48;
             if (svgApi === 'iconfinder') {
-                const iconfinderKeyOverride = useApiKeyStore.getState().getApiKeyOverride(ApiService.ICONFINDER);
+                const iconfinderKeyOverride = useApiKeyStore.getState().getApiKey(ApiService.ICONFINDER);
                 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
                 const apiUrlPath = isLocal ? '/api/iconfinder' : '/.netlify/functions/proxy?api=iconfinder';
                 const params = new URLSearchParams({
@@ -138,12 +140,11 @@ const SvgSearch: React.FC = () => {
             }
         } catch (err: any) {
             console.error('SVG fetch error:', err);
-            const errorMsg = `Error fetching SVGs from ${svgApi}: ${err.message || 'Unknown error'}`;
-            setSearchError(errorMsg);
-            useAppStore.getState().actions.addNotification({ type: 'error', message: errorMsg });
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+            error(`Error fetching SVGs: ${errorMessage}`);
         }
         setSvgLoading(false);
-    }, [svgApi, svgQuery]);
+    }, [svgApi, svgQuery, obsServiceInstance, isConnected, currentProgramScene, toast, error]);
 
     const getPaginatedItems = (items: any[], page: number) => {
         const start = page * ITEMS_PER_PAGE;

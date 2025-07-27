@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAppStore } from '../../store/appStore';
+import { useSettingsStore } from '../../store/settingsStore';
 import Tooltip from '../ui/Tooltip';
 
 interface FaviconIconProps {

@@ -1,13 +1,15 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
 import { GiphyResult } from '../types/giphy';
-import { useAppStore } from '../store/appStore';
+import { useConnectionStore } from '../store/connectionStore';
+import { useSettingsStore } from '../store/settingsStore';
+import { useToast } from './ui/use-toast';
 import { ObsClient } from '../services/ObsClient';
 import { generateSourceName } from '../utils/obsSourceHelpers';
 import { copyToClipboard } from '../utils/persistence';
 import { Card, CardContent } from './ui/Card';
 import { Modal } from './common/Modal';
-import { Button } from './common/Button';
+import { Button } from './ui/Button';
 import { FaviconIcon } from './common/FaviconIcon';
 import Tooltip from './ui/Tooltip';
 import { FaviconDropdown } from './common/FaviconDropdown';
@@ -29,12 +31,10 @@ const ImageGeneration: React.FC = () => {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [modalOpen, setModalOpen] = useState(false);
 
-    const obsServiceInstance = useAppStore(state => state.obsServiceInstance);
-    const currentProgramScene = useAppStore(state => state.currentProgramScene);
-    const isConnected = useAppStore(state => state.isConnected);
-    const addNotification = useAppStore((state) => state.actions.addNotification);
+    const { obsServiceInstance, currentProgramScene, isConnected } = useConnectionStore();
+    const { toast } = useToast();
 
-    const accentColorName = useAppStore(state => state.theme.accent);
+    const accentColorName = useSettingsStore(state => state.theme.accent);
     const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
 
     const handleGenerateImage = async () => {
@@ -78,27 +78,51 @@ const ImageGeneration: React.FC = () => {
 
     const handleAddAsBrowserSource = async () => {
         if (!obsServiceInstance || !isConnected || !currentProgramScene || !imageUrl) {
-            addNotification({ message: 'OBS not connected or no image generated.', type: 'error' });
+            toast({
+                title: 'Error',
+                description: 'OBS not connected or no image generated.',
+                variant: 'destructive',
+            });
             return;
         }
         try {
             await (obsServiceInstance as ObsClient).addBrowserSource(currentProgramScene, imageUrl, generateSourceName('Generated Image'));
-            addNotification({ message: 'Added generated image to OBS.', type: 'success' });
-        } catch (error) {
-            addNotification({ message: 'Failed to add source.', type: 'error' });
+            toast({
+                title: 'Success',
+                description: 'Added generated image to OBS.',
+                variant: 'default',
+            });
+        } catch (error: any) {
+            toast({
+                title: 'Error',
+                description: `Failed to add source: ${error.message}`,
+                variant: 'destructive',
+            });
         }
     };
 
     const handleAddAsImageSource = async () => {
         if (!obsServiceInstance || !isConnected || !currentProgramScene || !imageUrl) {
-            addNotification({ message: 'OBS not connected or no image generated.', type: 'error' });
+            toast({
+                title: 'Error',
+                description: 'OBS not connected or no image generated.',
+                variant: 'destructive',
+            });
             return;
         }
         try {
             await (obsServiceInstance as ObsClient).addImageSource(currentProgramScene, imageUrl, generateSourceName('Generated Image'));
-            addNotification({ message: 'Added generated image to OBS.', type: 'success' });
-        } catch (error) {
-            addNotification({ message: 'Failed to add source.', type: 'error' });
+            toast({
+                title: 'Success',
+                description: 'Added generated image to OBS.',
+                variant: 'default',
+            });
+        } catch (error: any) {
+            toast({
+                title: 'Error',
+                description: `Failed to add source: ${error.message}`,
+                variant: 'destructive',
+            });
         }
     };
 
@@ -183,7 +207,7 @@ const ImageGeneration: React.FC = () => {
                         actions={[
                             { label: 'Add as Browser Source', onClick: handleAddAsBrowserSource, variant: 'primary' },
                             { label: 'Add as Image Source', onClick: handleAddAsImageSource, variant: 'secondary' },
-                            { label: 'Copy URL', onClick: () => { copyToClipboard(imageUrl!); addNotification({ message: 'Copied image URL!', type: 'info' }); } },
+                            { label: 'Copy URL', onClick: () => { copyToClipboard(imageUrl!); toast({ title: 'Info', description: 'Copied image URL!', variant: 'default' }); } },
                         ]}
                     >
                         {imageUrl && <img src={imageUrl} alt="Generated" className="max-w-full max-h-[70vh] mx-auto" />}

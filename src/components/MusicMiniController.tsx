@@ -1,7 +1,7 @@
 // src/components/common/FloatingMusicPlayer.tsx
 import React, { useState, useEffect } from 'react';
-import { useAppStore, AppState } from '../store/appStore';
-import { Button } from './common/Button';
+import { useAudioStore } from '../store/audioStore';
+import { Button } from './ui/Button';
 import { Modal } from './common/Modal';
 import MusicVisualizer from './common/MusicVisualizer';
 import { TextInput } from './common/TextInput';
@@ -18,7 +18,7 @@ const FloatingMusicPlayer: React.FC = () => {
         currentMusicPrompt,
         audioContext,
         actions,
-    } = useAppStore((state: AppState) => ({
+    } = useAudioStore((state) => ({
         isMusicPlaying: state.isMusicPlaying,
         currentMusicPrompt: state.currentMusicPrompt,
         audioContext: state.audioContext,
@@ -88,7 +88,7 @@ const FloatingMusicPlayer: React.FC = () => {
                     <div className="flex gap-2 justify-center items-center border-t border-border pt-3 mt-2">
                         <Button size="sm" onClick={actions.pauseMusic} aria-label="Pause"><PauseIcon /></Button>
                         <Button size="sm" onClick={handleResume} aria-label="Resume"><PlayIcon /></Button>
-                        <Button size="sm" variant="danger" onClick={actions.stopMusic} aria-label="Stop"><StopIcon /></Button>
+                        <Button size="sm" variant="destructive" onClick={actions.stopMusic} aria-label="Stop"><StopIcon /></Button>
                     </div>
                 </div>
             </Modal>

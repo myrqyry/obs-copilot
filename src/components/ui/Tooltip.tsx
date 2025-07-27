@@ -7,7 +7,7 @@ declare global {
         __activeTooltipHide?: (() => void) | null;
     }
 }
-import { useAppStore } from '../../store/appStore';
+import { useSettingsStore } from '../../store/settingsStore';
 import { catppuccinAccentColorsHexMap, catppuccinMochaColors } from '../../types';
 
 interface TooltipProps {
@@ -125,8 +125,8 @@ const Tooltip: React.FC<TooltipProps> = ({
     };
 
     // Theme and mode
-    const accentColorName = useAppStore(state => state.theme.accent);
-    const extraDarkMode = useAppStore(state => state.extraDarkMode);
+    const accentColorName = useSettingsStore(state => state.theme.accent);
+    const extraDarkMode = useSettingsStore(state => state.extraDarkMode);
     const accentColor = catppuccinAccentColorsHexMap[accentColorName] || catppuccinMochaColors.mauve;
     const textColor = extraDarkMode ? accentColor : catppuccinMochaColors.crust;
     const tooltipBg = extraDarkMode

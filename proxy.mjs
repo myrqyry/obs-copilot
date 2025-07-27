@@ -190,8 +190,8 @@ async function fetchFromApiHost(apiConfig, queryParamsFromRequest, apiKeyOverrid
     results = []; // Default to empty array if not an array
   } else if (!Array.isArray(results) && !apiConfig.responseDataPath) {
     // If no path, data itself should be the array or an object that the client handles
-    // This case is fine if the API returns a single object instead of an array (e.g. getPhoto)
     // For search APIs, we typically expect an array.
+    // This case is fine if the API returns a single object instead of an array (e.g. getPhoto)
   }
 
 
@@ -223,6 +223,7 @@ async function fetchFromApiHost(apiConfig, queryParamsFromRequest, apiKeyOverrid
 // --- Special Proxy Endpoints (Iconfinder SVG, Favicon, Image, Gemini, OBS, StreamerBot, Chutes) ---
 // These are kept separate due to their unique logic or streaming nature.
 
+console.log('[Proxy] Attempting to register /api/iconfinder/svg route');
 app.get('/api/iconfinder/svg', async (req, res) => {
     const svgUrl = req.query.url;
     if (!svgUrl || typeof svgUrl !== 'string' || !svgUrl.startsWith('https://api.iconfinder.com/')) {
@@ -273,46 +274,6 @@ app.get('/api/iconfinder/svg', async (req, res) => {
     }
 });
 
-app.get('/api/favicon', async (req, res) => {
-    // This specific logic for Google Favicons is kept as is
-    const { domain, sz = 16 } = req.query;
-    if (!domain) {
-        res.set({
-            'Access-Control-Allow-Origin': '*',
-            'Cross-Origin-Resource-Policy': 'cross-origin',
-            'Cross-Origin-Embedder-Policy': 'unsafe-none'
-        });
-        return res.status(400).json({ error: 'Missing domain parameter' });
-    }
-    const url = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=${sz}`;
-    try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            const errorText = await response.text();
-            res.set({
-                'Access-Control-Allow-Origin': '*',
-                'Cross-Origin-Resource-Policy': 'cross-origin',
-                'Cross-Origin-Embedder-Policy': 'unsafe-none'
-            });
-            res.status(response.status).json({ error: 'Failed to fetch favicon', details: errorText });
-            return;
-        }
-        res.set({
-            'Access-Control-Allow-Origin': '*',
-            'Content-Type': response.headers.get('content-type') || 'image/png',
-            'Cross-Origin-Resource-Policy': 'cross-origin',
-            'Cross-Origin-Embedder-Policy': 'unsafe-none'
-        });
-        response.body.pipe(res);
-    } catch (e) {
-        res.set({
-            'Access-Control-Allow-Origin': '*',
-            'Cross-Origin-Resource-Policy': 'cross-origin',
-            'Cross-Origin-Embedder-Policy': 'unsafe-none'
-        });
-        res.status(500).json({ error: 'Failed to fetch favicon', details: e.message });
-    }
-});
 
 // Unified Favicon Fetch Function
 async function fetchAndServeFavicon(req, res) {
@@ -372,30 +333,26 @@ async function fetchAndServeFavicon(req, res) {
 }
 
 // Original /api/favicon route now uses the unified function
+console.log('[Proxy] Attempting to register /api/favicon route');
 app.get('/api/favicon', fetchAndServeFavicon);
 
 // --- Unified Path-Based Proxy Endpoint ---
 const pathBasedApiRoutes = Object.keys(apiConfigs).map(key => `/api/${key}`);
 
-app.get(pathBasedApiRoutes, async (req, res) => {
-    const pathSegments = req.path.split('/'); // e.g., ['', 'api', 'wallhaven']
-    const apiType = pathSegments.length > 2 ? pathSegments[2] : null;
-
+console.log('[Proxy] Attempting to register path-based API routes:', pathBasedApiRoutes);
+app.get('/api/:apiType', async (req, res) => {
+    const apiType = req.params.apiType;
     const apiConfig = apiConfigs[apiType];
+
     if (!apiConfig) {
-      // This case should ideally not be hit if routes are specific enough
-      // or a final catch-all 404 is desired from Express.
-      // However, if it does, it means an /api/something route was matched but not in apiConfigs.
-      return res.status(400).json({ error: `Unknown API endpoint: ${req.path}` });
+        return res.status(400).json({ error: `Unknown API endpoint: ${req.path}` });
     }
 
-    // Prioritize X-Api-Key header from client for overrides
     let apiKeyToUse = req.headers['x-api-key'];
 
-    if (!apiKeyToUse) {
-        // If no client override, try query parameter (some APIs might use this, though header is preferred)
-        apiKeyToUse = req.query[apiConfig.apiKey?.queryParam] || null;
-        if (!apiKeyToUse && apiConfig.apiKey?.envVars) { // Then check server environment variables
+    if (!apiKeyToUse && apiConfig.apiKey) {
+        apiKeyToUse = req.query[apiConfig.apiKey.queryParam] || null;
+        if (!apiKeyToUse && apiConfig.apiKey.envVars) {
             for (const envVar of apiConfig.apiKey.envVars) {
                 if (process.env[envVar]) {
                     apiKeyToUse = process.env[envVar];
@@ -411,21 +368,19 @@ app.get(pathBasedApiRoutes, async (req, res) => {
     }
 
     if (req.headers['x-api-key']) {
-        console.log(`[Proxy ${apiType || 'Generic'}] Using client-provided API key for ${apiConfig.label}.`);
-    } else if (apiKeyToUse) { // Indicates it came from query or server env
+        console.log(`[Proxy ${apiType || 'Generic'}] Using client-provided API key.`);
+    } else if (apiKeyToUse) {
         console.log(`[Proxy ${apiType || 'Generic'}] Using server default or query param API key for ${apiConfig.label}.`);
     } else if (apiConfig.requiresKey) {
-        // This case should ideally be caught by the check above
         console.log(`[Proxy ${apiType || 'Generic'}] No API key available for ${apiConfig.label}, but one is required.`);
     } else {
         console.log(`[Proxy ${apiType || 'Generic'}] No API key needed or provided for ${apiConfig.label}.`);
     }
 
     try {
-        // Pass the determined apiKeyToUse to fetchFromApiHost
         const results = await fetchFromApiHost(apiConfig, req.query, apiKeyToUse);
         res.set('Access-Control-Allow-Origin', '*');
-        return res.json(results); // fetchFromApiHost returns the full data structure as API provides it
+        return res.json(results);
     } catch (err) {
         return res.status(500).json({ error: `Proxy error for ${apiType}`, details: err.message });
     }
@@ -434,8 +389,7 @@ app.get(pathBasedApiRoutes, async (req, res) => {
 
 // Allow CORS preflight for all API routes
 const allApiRoutesForOptions = [
-    ...pathBasedApiRoutes, // Includes all from apiConfigs
-    // '/api/proxy', // Removed as it's deprecated by path-based routes
+    '/api/:apiType', // Handles all from apiConfigs
     '/api/favicon',
     '/api/iconfinder/svg',
     '/api/gemini/generate-content',
@@ -453,7 +407,7 @@ app.options(allApiRoutesForOptions, (req, res) => {
 });
 
 
-// Proxy Gemini API
+console.log('[Proxy] Attempting to register /api/gemini/generate-content route');
 app.post('/api/gemini/generate-content', async (req, res) => {
     const clientApiKey = req.headers['x-api-key'];
     const serverApiKey = process.env.GEMINI_API_KEY;
@@ -494,6 +448,7 @@ app.post('/api/gemini/generate-content', async (req, res) => {
     }
 });
 
+console.log('[Proxy] Attempting to register /api/gemini/generate-image route');
 app.post('/api/gemini/generate-image', async (req, res) => {
     const clientApiKey = req.headers['x-api-key'];
     const serverApiKey = process.env.GEMINI_API_KEY;
@@ -520,10 +475,6 @@ app.post('/api/gemini/generate-image', async (req, res) => {
     console.log(`[Proxy /api/gemini/generate-image] Called with body:`, req.body);
     // Since the actual Google Gemini API for direct image generation from text like this is typically part of multimodal models
     // or might have a different request structure, we'll return a placeholder or error for now.
-    // If using a specific image generation model via Vertex AI or other Google Cloud services, the URL and body would change.
-
-    // For now, let's simulate an error or a not implemented response,
-    // as the original proxy didn't have image generation logic.
     // If you have a specific image generation endpoint for Gemini, replace this.
     console.warn("/api/gemini/generate-image is a placeholder and not fully implemented for actual image generation with Gemini API in this proxy version.");
     res.status(501).json({
@@ -552,14 +503,14 @@ app.post('/api/gemini/generate-image', async (req, res) => {
     */
 });
 
-// Proxy OBS WebSocket API (example: for HTTP endpoints, not WebSocket)
+console.log('[Proxy] Attempting to register /api/obs/:action route');
 app.all('/api/obs/:action', async (req, res) => {
     const obsUrl = process.env.OBS_HTTP_API_URL;
     if (!obsUrl) {
         return res.status(500).json({ error: 'OBS_HTTP_API_URL not set in environment' });
     }
     try {
-        const response = await fetch(obsUrl, { // This should be the OBS HTTP server URL
+        const response = await fetch(`${obsUrl}/${req.params.action}`, { // This should be the OBS HTTP server URL
             method: req.method,
             headers: { 'Content-Type': 'application/json', ...(req.headers.authorization && { 'Authorization': req.headers.authorization }) },
             body: req.method !== 'GET' && req.body ? JSON.stringify(req.body) : undefined,
@@ -571,31 +522,31 @@ app.all('/api/obs/:action', async (req, res) => {
     }
 });
 
-// Proxy Streamer.bot API
-app.all('/api/streamerbot/:action', async (req, res) => {
-    const streamerBotUrl = process.env.STREAMERBOT_API_URL; // e.g. http://localhost:8080/
-    if (!streamerBotUrl) {
-        return res.status(500).json({ error: 'STREAMERBOT_API_URL not set in environment' });
-    }
-    // Construct the full URL to Streamer.bot, assuming actions are POST requests to the base URL
-    // This might need adjustment based on how Streamer.bot's HTTP server actually works.
-    // Typically, actions are sent as JSON body to a single endpoint if it's a generic action handler.
-    // If actions are separate paths, then `${streamerBotUrl}${req.params.action}` might be needed.
-    // For now, assuming a single endpoint that takes action in body or query.
-    try {
-        const response = await fetch(streamerBotUrl, { // This should be the Streamer.bot HTTP server URL
-            method: 'POST', // Streamer.bot actions are typically POST
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(req.body), // Send the whole body which should contain the action details
-        });
-        const data = await response.json();
-        res.status(response.status).json(data);
-    } catch (err) {
-        res.status(500).json({ error: 'Failed to fetch from Streamer.bot', details: err.message });
-    }
-});
+// console.log('[Proxy] Attempting to register /api/streamerbot/:action route');
+// app.all('/api/streamerbot/:action', async (req, res) => {
+//     const streamerBotUrl = process.env.STREAMERBOT_API_URL; // e.g. http://localhost:8080/
+//     if (!streamerBotUrl) {
+//         return res.status(500).json({ error: 'STREAMERBOT_API_URL not set in environment' });
+//     }
+//     // Construct the full URL to Streamer.bot, assuming actions are POST requests to the base URL
+//     // This might need adjustment based on how Streamer.bot's HTTP server actually works.
+//     // Typically, actions are sent as JSON body to a single endpoint if it's a generic action handler.
+//     // If actions are separate paths, then `${streamerBotUrl}${req.params.action}` might be needed.
+//     // For now, assuming a single endpoint that takes action in body or query.
+//     try {
+//         const response = await fetch(`${streamerBotUrl}/${req.params.action}`, { // This should be the Streamer.bot HTTP server URL
+//             method: 'POST', // Streamer.bot actions are typically POST
+//             headers: { 'Content-Type': 'application/json' },
+//             body: JSON.stringify(req.body), // Send the whole body which should contain the action details
+//         });
+//         const data = await response.json();
+//         res.status(response.status).json(data);
+//     } catch (err) {
+//         res.status(500).json({ error: 'Failed to fetch from Streamer.bot', details: err.message });
+//     }
+// });
 
-// Image proxy to handle CORS issues with external images
+console.log('[Proxy] Attempting to register /api/image route');
 app.get('/api/image', async (req, res) => {
     const { url } = req.query;
     if (!url) {
@@ -629,6 +580,7 @@ app.get('/api/image', async (req, res) => {
     }
 });
 
+console.log('[Proxy] Attempting to register /api/chutes route');
 app.post('/api/chutes', async (req, res) => {
     const clientApiKey = req.headers['x-api-key'];
     // For Chutes, the proxy.cjs used to check CHUTES_API_TOKEN then VITE_CHUTES_API_TOKEN.
@@ -665,7 +617,7 @@ app.post('/api/chutes', async (req, res) => {
     }
 });
 
-// Fallback for any /api routes not caught by specific handlers or the generic one
+console.log('[Proxy] Attempting to register /api/* fallback route');
 app.all('/api/*', (req, res) => {
     res.status(404).json({ error: 'API endpoint not found.' });
 });

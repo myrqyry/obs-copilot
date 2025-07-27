@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { OBSScene, OBSSource, OBSStreamStatus, OBSRecordStatus, OBSVideoSettings } from '../types';
-import { ObsClient } from '../services/ObsClient';
+import { ObsClient, ObsClientImpl } from '../services/ObsClient';
 import { saveUserSettings } from '../utils/persistence';
 
 export interface ConnectionState {
@@ -8,7 +8,7 @@ export interface ConnectionState {
     isConnecting: boolean;
     connectError: string | null;
     streamerName: string | null;
-    obsServiceInstance: ObsClient | null;
+    obsServiceInstance: ObsClientImpl | null;
     actions: {
         setConnecting: () => void;
         setConnected: (obsData: {
@@ -22,7 +22,7 @@ export interface ConnectionState {
         }) => void;
         setDisconnected: (error?: string | null) => void;
         setStreamerName: (name: string | null) => void;
-        setObsServiceInstance: (instance: ObsClient | null) => void;
+        setObsServiceInstance: (instance: ObsClientImpl | null) => void;
     };
 }
 

@@ -2,10 +2,9 @@ import React, { useState, useRef, useLayoutEffect, useMemo } from 'react';
 import { catppuccinChatBubbleColorsHexMap, catppuccinMochaColors, catppuccinSecondaryAccentColorsHexMap } from '../../types';
 import { ChevronDownIcon, ChevronUpIcon, ClipboardDocumentIcon, ArrowPathIcon, ChatBubbleLeftEllipsisIcon } from '@heroicons/react/24/solid';
 import { gsap } from 'gsap';
-import { ExpressiveCodeRenderer } from './ExpressiveCodeRenderer';
 import { getRandomSuggestions } from '../../constants/chatSuggestions';
 import { ChatMessage, CatppuccinAccentColorName, OBSSource, CatppuccinChatBubbleColorName } from '../../types';
-import { useAppStore } from '../../store/appStore';
+import { useSettingsStore } from '../../store/settingsStore';
 import Tooltip from '../ui/Tooltip';
 
 interface ChatMessageItemProps {
@@ -48,10 +47,10 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     const bubbleRef = useRef<HTMLDivElement>(null);
 
     // Get styling from store using individual selectors to prevent infinite re-renders
-    const bubbleFillOpacity = useAppStore(state => state.bubbleFillOpacity);
-    const chatBubbleBlendMode = useAppStore(state => state.chatBubbleBlendMode);
-    const accentColorName = useAppStore(state => state.theme.accent);
-    const secondaryAccentColorName = useAppStore(state => state.theme.secondaryAccent);
+    const bubbleFillOpacity = useSettingsStore(state => state.bubbleFillOpacity);
+    const chatBubbleBlendMode = useSettingsStore(state => state.chatBubbleBlendMode);
+    const accentColorName = useSettingsStore(state => state.theme.accent);
+    const secondaryAccentColorName = useSettingsStore(state => state.theme.secondaryAccent);
     // Use the passed-in bubble color names for user/model
     // theme is no longer needed
 
@@ -288,7 +287,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                                             }
                                             const lang = match[1]?.toLowerCase() || 'text';
                                             const code = match[2];
-                                            parts.push(<ExpressiveCodeRenderer key={match.index} code={code} lang={lang} />);
+                                            parts.push(<div key={match.index} />); {/* Removed ExpressiveCodeRenderer */}
                                             lastIndex = codeBlockRegex.lastIndex;
                                         }
 
@@ -479,3 +478,5 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
         </div>
     );
 };
+
+export default ChatMessageItem;

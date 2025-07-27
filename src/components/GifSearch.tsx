@@ -1,17 +1,16 @@
 import React, { useState } from 'react';
-import { useGifSearch } from '../../hooks/useGifSearch';
+import { useGifSearch } from '../hooks/useGifSearch.ts';
 import { GifGrid } from './gif/GifGrid';
 import { GifSearchFilters } from './gif/GifSearchFilters';
 import { GifDetailsModal } from './gif/GifDetailsModal';
-import { GiphyResult } from '../../types/giphy';
-import { useConnectionStore } from '../../store/connectionStore';
-import { useObsStore } from '../../store/obsStore';
-import { useChatStore } from '../../store/chatStore';
-import { addBrowserSource, addMediaSource } from '../../services/obsService';
-import { generateSourceName } from '../../utils/obsSourceHelpers';
-import { copyToClipboard } from '../../utils/persistence';
-import { CollapsibleCard } from '../common/CollapsibleCard';
-import { CardContent } from '../ui/Card';
+import { GiphyResult } from '../types/giphy';
+import { useConnectionStore } from '../store/connectionStore';
+import { useObsStore } from '../store/obsStore';
+import { useChatStore } from '../store/chatStore';
+import { generateSourceName } from '../utils/obsSourceHelpers';
+import { copyToClipboard } from '../utils/persistence';
+import { CollapsibleCard } from './common/CollapsibleCard';
+import { CardContent } from './ui/Card';
 
 const GifSearch: React.FC = () => {
     const {
@@ -31,31 +30,31 @@ const GifSearch: React.FC = () => {
     const [showFilters, setShowFilters] = useState(false);
     const { obsServiceInstance, isConnected } = useConnectionStore();
     const { currentProgramScene } = useObsStore();
-    const { actions: { addNotification } } = useChatStore();
+    const { actions: { addMessage } } = useChatStore();
 
     const handleAddAsBrowserSource = async (url: string, sourceName: string) => {
         if (!obsServiceInstance || !isConnected || !currentProgramScene) {
-            addNotification({ message: 'OBS not connected.', type: 'error' });
+            addMessage({ role: 'system', text: 'OBS not connected.' });
             return;
         }
         try {
-            await addBrowserSource(obsServiceInstance, currentProgramScene, url, generateSourceName(sourceName));
-            addNotification({ message: `Added ${sourceName} to OBS.`, type: 'success' });
-        } catch (error) {
-            addNotification({ message: 'Failed to add source.', type: 'error' });
+            await obsServiceInstance.addBrowserSource(currentProgramScene, url, generateSourceName(sourceName));
+            addMessage({ role: 'system', text: `Added ${sourceName} to OBS.` });
+        } catch (error: any) {
+            addMessage({ role: 'system', text: `Failed to add source: ${error.message}` });
         }
     };
 
     const handleAddAsMediaSource = async (url: string, sourceName: string) => {
         if (!obsServiceInstance || !isConnected || !currentProgramScene) {
-            addNotification({ message: 'OBS not connected.', type: 'error' });
+            addMessage({ role: 'system', text: 'OBS not connected.' });
             return;
         }
         try {
-            await addMediaSource(obsServiceInstance, currentProgramScene, url, generateSourceName(sourceName));
-            addNotification({ message: `Added ${sourceName} to OBS.`, type: 'success' });
-        } catch (error) {
-            addNotification({ message: 'Failed to add source.', type: 'error' });
+            await obsServiceInstance.addMediaSource(currentProgramScene, url, generateSourceName(sourceName));
+            addMessage({ role: 'system', text: `Added ${sourceName} to OBS.` });
+        } catch (error: any) {
+            addMessage({ role: 'system', text: `Failed to add source: ${error.message}` });
         }
     };
 
@@ -65,7 +64,7 @@ const GifSearch: React.FC = () => {
                 return [
                     { label: 'Add as Browser Source', onClick: () => handleAddAsBrowserSource(data.images.original.url, data.title || 'gif'), variant: 'primary' },
                     { label: 'Add as Media Source', onClick: () => handleAddAsMediaSource(data.images.original.url, data.title || 'gif'), variant: 'secondary' },
-                    { label: 'Copy URL', onClick: () => { copyToClipboard(data.images.original.url); addNotification({ message: 'Copied GIF URL!', type: 'info' }); } },
+                    { label: 'Copy URL', onClick: () => { copyToClipboard(data.images.original.url); addMessage({ role: 'system', text: 'Copied GIF URL!' }); } },
                 ];
             default:
                 return [];
@@ -88,7 +87,7 @@ const GifSearch: React.FC = () => {
                     handleGifSearch={handleGifSearch}
                     gifLoading={gifLoading}
                     searchFilters={searchFilters}
-                    handleFilterChange={(key, value) => setSearchFilters(prev => ({ ...prev, [key]: value }))}
+                    handleFilterChange={(key, value) => setSearchFilters((prev: any) => ({ ...prev, [key]: value }))}
                     showFilters={showFilters}
                     setShowFilters={setShowFilters}
                 />
@@ -97,7 +96,7 @@ const GifSearch: React.FC = () => {
                     gifLoading={gifLoading}
                     gifSearched={gifSearched}
                     searchFilters={searchFilters}
-                    onGifClick={(gif) => setModalContent({ type: gif.type, data: gif })}
+                    onGifClick={(gif) => setModalContent({ type: gif.type as 'gif' | 'sticker', data: gif })}
                 />
                 <GifDetailsModal
                     modalContent={modalContent}

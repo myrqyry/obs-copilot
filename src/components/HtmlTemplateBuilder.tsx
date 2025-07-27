@@ -1,9 +1,10 @@
 import Tooltip from './ui/Tooltip';
 import React, { useState, useEffect } from 'react';
-import { Button } from './common/Button';
+import { Button } from './ui/Button';
 import { TextInput } from './common/TextInput';
 import { Modal } from './common/Modal';
-import { useAppStore } from '../store/appStore';
+import { useConnectionStore } from '../store/connectionStore';
+import { useSettingsStore } from '../store/settingsStore';
 import { HtmlTemplateService, TemplateConfig } from '../services/htmlTemplateService';
 import { catppuccinAccentColorsHexMap, CatppuccinAccentColorName } from '../types';
 import ExternalHtmlRenderer from './ExternalHtmlRenderer';
@@ -14,7 +15,7 @@ interface HtmlTemplateBuilderProps {
 
 
 const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({ accentColorName }) => {
-    const { obsServiceInstance, currentProgramScene, isConnected } = useAppStore();
+    const { obsServiceInstance, currentProgramScene, isConnected } = useConnectionStore();
     const [selectedPreset, setSelectedPreset] = useState<string>('assets-showcase');
     const [customConfig, setCustomConfig] = useState<Partial<TemplateConfig>>({
         layout: 'overlay',
@@ -331,8 +332,7 @@ const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({ accentColorNa
                     <Button
                         onClick={handleCreateBrowserSource}
                         disabled={!isConnected || isCreating}
-                        variant="primary"
-                        accentColorName={accentColorName}
+                        variant="default"
                         size="sm"
                     >
                         {isCreating ? 'Creating...' : '✨ Create'}
@@ -341,7 +341,6 @@ const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({ accentColorNa
                         onClick={handleUpdateExistingSource}
                         disabled={!isConnected || isCreating}
                         variant="secondary"
-                        accentColorName={accentColorName}
                         size="sm"
                     >
                         {isCreating ? 'Updating...' : '🛠 Update'}
@@ -349,7 +348,6 @@ const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({ accentColorNa
                     <Button
                         onClick={() => setShowPreview(true)}
                         variant="secondary"
-                        accentColorName={accentColorName}
                         size="sm"
                     >
                         🖥 Preview
@@ -357,7 +355,6 @@ const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({ accentColorNa
                     <Button
                         onClick={copyTemplateUrl}
                         variant="secondary"
-                        accentColorName={accentColorName}
                         size="sm"
                     >
                         📋 Copy URL
@@ -378,7 +375,6 @@ const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({ accentColorNa
                 <Modal
                     title="Template Preview"
                     onClose={() => setShowPreview(false)}
-                    accentColorName={accentColorName}
                 >
                     <div className="space-y-4">
                         <div className="bg-muted p-3 rounded-md">

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Button } from './Button';
+import { Button } from '../ui/Button';
 import { CatppuccinAccentColorName } from '../../types';
 
 interface ModalAction {
@@ -32,6 +32,8 @@ export const Modal: React.FC<ModalProps> = ({
   blendMode
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
+  const titleId = React.useId();
+  const contentId = React.useId();
 
   const sizeClasses = {
     sm: 'max-w-sm',
@@ -105,8 +107,7 @@ export const Modal: React.FC<ModalProps> = ({
                 <Button
                   key={`${action.label}-${index}`}
                   onClick={action.onClick}
-                  variant={action.variant || 'secondary'}
-                  accentColorName={accentColorName}
+                  variant={action.variant === 'danger' ? 'destructive' : action.variant === 'primary' ? 'default' : (action.variant === 'success' ? 'default' : (action.variant === 'warning' ? 'destructive' : 'secondary'))}
                   disabled={action.disabled}
                   className="text-sm"
                 >
@@ -116,7 +117,6 @@ export const Modal: React.FC<ModalProps> = ({
               <Button
                 onClick={onClose}
                 variant="secondary"
-                accentColorName={accentColorName}
                 className="text-sm"
               >
                 Close
@@ -125,8 +125,7 @@ export const Modal: React.FC<ModalProps> = ({
           ) : (
             <Button
               onClick={onClose}
-              variant="primary"
-              accentColorName={accentColorName}
+              variant="default"
             >
               Close
             </Button>

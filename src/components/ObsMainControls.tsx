@@ -1,12 +1,13 @@
 import Tooltip from './ui/Tooltip';
 import React, { useState, useEffect } from 'react';
-import { CatppuccinAccentColorName, OBSVideoSettings } from '../types';
+import { CatppuccinAccentColorName, OBSVideoSettings, OBSScene, OBSSource } from '../types';
 import { ObsClient } from '../services/ObsClient';
-import { Button } from './common/Button';
-import AddToContextButton from './common/AddToContextButton';
+import { Button } from './ui/Button';
+import { AddToContextButton } from './common/AddToContextButton';
+import { LockToggle } from './common/LockToggle';
 import { TextInput } from './common/TextInput';
 import { LoadingSpinner } from './common/LoadingSpinner';
-import { useAppStore } from '../store/appStore';
+import { useObsStore } from '../store/obsStore';
 import { useLockStore } from '../store/lockStore';
 import { COMMON_RESOLUTIONS, COMMON_FPS } from '../constants';
 import { CollapsibleCard } from './common/CollapsibleCard';
@@ -16,6 +17,7 @@ interface ObsMainControlsProps {
   obsService: ObsClient;
   onRefreshData: () => Promise<void>;
   setErrorMessage: (message: string | null) => void;
+  onSendToGeminiContext: (contextText: string) => void;
   accentColorName?: CatppuccinAccentColorName;
 }
 
@@ -23,6 +25,7 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
   obsService,
   onRefreshData,
   setErrorMessage,
+  onSendToGeminiContext,
   accentColorName
 }) => {
   // Collapsible state for each section
@@ -40,7 +43,7 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
     recordStatus,
     videoSettings: initialVideoSettings,
     obsStats,
-  } = useAppStore();
+  } = useObsStore();
   const [isLoading, setIsLoading] = React.useState(false);
 
   // Video settings state
@@ -246,58 +249,6 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
     return <div className="flex justify-center items-center h-64"><LoadingSpinner size={12} /></div>;
   }
 
-  // Lock toggle component with tooltip
-  const LockToggle = ({ lockKey }: { lockKey: string }) => (
-    <Tooltip content={`${isLocked(lockKey) ? 'Unlock' : 'Lock'} controls`}>
-      <button
-        type="button"
-        aria-label={`${isLocked(lockKey) ? 'Unlock' : 'Lock'} controls for this section`}
-        onClick={() => setLock(lockKey, !isLocked(lockKey))}
-        className={`w-5 h-5 p-0.5 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-offset-background ${
-          isLocked(lockKey)
-            ? 'bg-red-500 hover:bg-red-600 text-white focus:ring-red-500'
-            : 'bg-gray-500 hover:bg-gray-600 text-white focus:ring-gray-500'
-        }`}
-      >
-        <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full">
-          {isLocked(lockKey) ? (
-            <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6z"/>
-          ) : (
-            <path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6z"/>
-          )}
-        </svg>
-      </button>
-    </Tooltip>
-  );
-
-  // Gemini-controlled lock toggle component
-  const GeminiLockToggle = ({ lockKey }: { lockKey: string }) => {
-    const geminiLockKey = `${lockKey}_gemini`;
-    const isGeminiLocked = isLocked(geminiLockKey);
-    
-    return (
-      <Tooltip content={`${isGeminiLocked ? 'Allow' : 'Prevent'} Gemini control`}>
-        <button
-        type="button"
-        aria-label={`${isGeminiLocked ? 'Allow' : 'Prevent'} Gemini control for this section`}
-          onClick={() => setLock(geminiLockKey, !isGeminiLocked)}
-        className={`w-5 h-5 p-0.5 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-offset-background ${
-            isGeminiLocked
-            ? 'bg-purple-500 hover:bg-purple-600 text-white focus:ring-purple-500'
-            : 'bg-gray-500 hover:bg-gray-600 text-white focus:ring-gray-500'
-          }`}
-        >
-          <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full">
-            {isGeminiLocked ? (
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-            ) : (
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-            )}
-          </svg>
-        </button>
-      </Tooltip>
-    );
-  };
 
   // Get accent color hex from Zustand
   const accentColor = catppuccinAccentColorsHexMap[accentColorName || 'sky'] || '#89b4fa';
@@ -315,7 +266,6 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
       >
         <div className="absolute top-1 right-1 sm:right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
           <LockToggle lockKey={STREAM_RECORD_LOCK} />
-          <GeminiLockToggle lockKey={STREAM_RECORD_LOCK} />
         </div>
         <div className="flex flex-col sm:flex-row gap-2 items-center mb-1">
           <Button
@@ -349,10 +299,9 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
       >
         <div className="absolute top-1 right-1 sm:right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
           <LockToggle lockKey="scenes" />
-          <GeminiLockToggle lockKey="scenes" />
         </div>
         <ul className="space-y-1 sm:space-y-1.5">
-          {scenes.map((scene) => (
+          {scenes.map((scene: OBSScene) => (
             <li key={scene.sceneName} className="flex flex-col xs:flex-row items-stretch xs:items-center justify-between gap-1">
               <span className={`truncate text-sm py-1 xs:py-0 ${scene.sceneName === currentProgramScene ? 'font-bold text-accent' : ''}`}>{scene.sceneName}</span>
               <div className="flex items-center gap-1 self-end xs:self-center">
@@ -360,13 +309,13 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
                   onClick={() => handleSetCurrentScene(scene.sceneName)}
                   disabled={isLocked('scenes') || scene.sceneName === currentProgramScene}
                   variant="secondary"
-                  accentColorName={accentColorName}
                   size="sm"
                 >
                   {scene.sceneName === currentProgramScene ? 'Active' : 'Switch'}
                 </Button>
                 <AddToContextButton
                   contextText={`OBS Scene: '${scene.sceneName}'${scene.sceneName === currentProgramScene ? ' (currently active)' : ''}`}
+                  onAddToContext={onSendToGeminiContext}
                   disabled={isLocked('scenes')}
                   title={`Add scene '${scene.sceneName}' to chat context`}
                 />
@@ -387,10 +336,9 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
       >
         <div className="absolute top-1 right-1 sm:right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
           <LockToggle lockKey="sources" />
-          <GeminiLockToggle lockKey="sources" />
         </div>
         <ul className="space-y-1 sm:space-y-1.5">
-          {sources.map((source) => (
+          {sources.map((source: OBSSource) => (
             <li key={source.sceneItemId} className="flex flex-col xs:flex-row items-stretch xs:items-center justify-between gap-1">
               <span className="truncate text-sm py-1 xs:py-0">{source.sourceName}</span>
               <div className="flex items-center gap-1 self-end xs:self-center">
@@ -399,14 +347,14 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
                     if (currentProgramScene) toggleSourceVisibility(currentProgramScene, source.sceneItemId, source.sceneItemEnabled);
                   }}
                   disabled={isLocked('sources') || !currentProgramScene}
-                  variant={source.sceneItemEnabled ? 'primary' : 'secondary'}
-                  accentColorName={accentColorName}
+                  variant={source.sceneItemEnabled ? 'default' : 'secondary'}
                   size="sm"
                 >
                   {source.sceneItemEnabled ? 'Hide' : 'Show'}
                 </Button>
                 <AddToContextButton
                   contextText={`OBS Source: '${source.sourceName}' is ${source.sceneItemEnabled ? 'visible' : 'hidden'} in scene '${currentProgramScene || ''}'`}
+                  onAddToContext={onSendToGeminiContext}
                   disabled={isLocked('sources') || !currentProgramScene}
                   title={`Add source '${source.sourceName}' to chat context`}
                 />
@@ -427,7 +375,6 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
       >
         <div className="absolute top-1 right-1 sm:right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
           <LockToggle lockKey={VIDEO_SETTINGS_LOCK} />
-          <GeminiLockToggle lockKey={VIDEO_SETTINGS_LOCK} />
         </div>
         <div className="flex flex-col gap-2 sm:gap-1">
           {/* Base Resolution */}
@@ -518,8 +465,7 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
             <Button
               onClick={handleSaveVideoSettings}
               disabled={isLocked(VIDEO_SETTINGS_LOCK) || isVideoSettingsLoading || !editableSettings}
-              variant="primary"
-              accentColorName={accentColorName}
+              variant="default"
               size="sm"
               className="w-full xs:w-auto"
             >
@@ -540,7 +486,6 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
       >
         <div className="absolute top-1 right-1 sm:right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
           <LockToggle lockKey="stats" />
-          <GeminiLockToggle lockKey="stats" />
         </div>
         {obsStats ? (
           <div className="text-xs space-y-0.5 sm:space-y-1">

@@ -1,7 +1,8 @@
 import Tooltip from './ui/Tooltip';
+import { ApiService } from '../store/apiKeyStore';
 import React, { useState, useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
-import { Button } from './common/Button';
+import { Button } from './ui/Button';
 import { TextInput } from './common/TextInput';
 import { FaviconIcon } from './common/FaviconIcon';
 import { CatppuccinAccentColorName } from '../types';
@@ -9,7 +10,9 @@ import { loadConnectionSettings, saveConnectionSettings, isStorageAvailable } fr
 import { CardContent } from './ui';
 import { cn } from '../lib/utils';
 import { CollapsibleCard } from './common/CollapsibleCard';
-import { useAppStore, AppState } from '../store/appStore';
+import { useConnectionStore } from '../store/connectionStore';
+import useApiKeyStore from '../store/apiKeyStore';
+import { useSettingsStore } from '../store/settingsStore';
 import { catppuccinAccentColorsHexMap } from '../types';
 
 interface ConnectionFormProps {
@@ -57,7 +60,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
   isStreamerBotConnecting = false,
   // accentColorName, // This prop is not used, storeAccentColorName is used instead
 }) => {
-  const storeAccentColorName = useAppStore(state => state.userSettings.theme.accent);
+  const storeAccentColorName = useSettingsStore(state => state.theme.accent);
   const accentColor = catppuccinAccentColorsHexMap[storeAccentColorName] || '#89b4fa';
 
   const persistedConnectionSettings = isStorageAvailable() ? loadConnectionSettings() : {};
@@ -75,7 +78,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
   const [autoConnect, setAutoConnect] = useState<boolean>(
     Boolean(persistedConnectionSettings.autoConnect)
   );
-  const storedGeminiApiKey = useAppStore((state: AppState) => state.geminiApiKey);
+  const storedGeminiApiKey = useApiKeyStore(state => state.getApiKey(ApiService.GEMINI));
   const [showApiKeyOverride, setShowApiKeyOverride] = useState<boolean>(
     Boolean(storedGeminiApiKey)
   );
@@ -239,7 +242,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
                   onChange={handleAddressChange}
                   disabled={isConnected || isConnecting}
                   placeholder="ws://localhost:4455"
-                  accentColorName={storeAccentColorName} // Use storeAccentColorName
+                  // accentColorName={storeAccentColorName} // Removed accentColorName
                   size="sm"
                 />
               </div>
@@ -282,7 +285,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
                   onChange={handlePasswordChange}
                   disabled={isConnected || isConnecting}
                   placeholder="Enter OBS WebSocket password"
-                  accentColorName={storeAccentColorName} // Use storeAccentColorName
+                  // accentColorName={storeAccentColorName} // Removed accentColorName
                   size="sm"
                   autoComplete="current-password"
                 />
@@ -297,11 +300,11 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
               <div className="flex justify-start pt-1">
                 <Button
                   type="submit"
-                  variant="primary"
+                  variant="default"
                   isLoading={isConnecting}
                   disabled={isConnecting}
                   size="sm"
-                  accentColorName={storeAccentColorName} // Use storeAccentColorName
+                  // accentColorName={storeAccentColorName} // Removed accentColorName
                 >
                   {isConnecting ? 'Connecting...' : 'Connect'}
                 </Button>
@@ -342,16 +345,16 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
           </div>
           <div className="space-y-2 sm:space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <TextInput label="Address" id="streamerbot-address" type="text" value={streamerBotAddress || 'localhost'} onChange={(e) => setStreamerBotAddress(e.target.value || 'localhost')} accentColorName={storeAccentColorName} className="text-sm" size="sm" />
-              <TextInput label="Port" id="streamerbot-port" type="text" value={streamerBotPort || '8080'} onChange={(e) => setStreamerBotPort(e.target.value || '8080')} accentColorName={storeAccentColorName} className="text-sm" size="sm" />
+              <TextInput label="Address" id="streamerbot-address" type="text" value={streamerBotAddress || 'localhost'} onChange={(e) => setStreamerBotAddress(e.target.value || 'localhost')} className="text-sm" size="sm" />
+              <TextInput label="Port" id="streamerbot-port" type="text" value={streamerBotPort || '8080'} onChange={(e) => setStreamerBotPort(e.target.value || '8080')} className="text-sm" size="sm" />
             </div>
             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
               {!isStreamerBotConnected ? (
-                <Button onClick={onStreamerBotConnect} disabled={!(streamerBotAddress || 'localhost').trim() || !(streamerBotPort || '8080').trim() || isStreamerBotConnecting} isLoading={isStreamerBotConnecting} size="sm" className="flex-1" accentColorName={storeAccentColorName}>
+                <Button onClick={onStreamerBotConnect} disabled={!(streamerBotAddress || 'localhost').trim() || !(streamerBotPort || '8080').trim() || isStreamerBotConnecting} isLoading={isStreamerBotConnecting} size="sm" className="flex-1">
                   {isStreamerBotConnecting ? 'Connecting...' : 'Connect'}
                 </Button>
               ) : (
-                <Button onClick={onStreamerBotDisconnect} variant="secondary" size="sm" className="flex-1" accentColorName={storeAccentColorName}>
+                <Button onClick={onStreamerBotDisconnect} variant="secondary" size="sm" className="flex-1">
                   Disconnect
                 </Button>
               )}
@@ -422,11 +425,11 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
             <form onSubmit={(e) => { e.preventDefault(); }}>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 items-end">
                 <div className="md:col-span-2 lg:col-span-2">
-                  <TextInput label={`API Key ${envGeminiApiKey ? '(Override Environment)' : '(Required)'}`} id="gemini-api-key" name="gemini-api-key" type="password" value={localGeminiKey} onChange={handleLocalGeminiKeyChange} placeholder={envGeminiApiKey ? "Leave empty to use environment variable" : "Enter your Gemini API Key"} accentColorName={storeAccentColorName} size="sm" />
+                  <TextInput label={`API Key ${envGeminiApiKey ? '(Override Environment)' : '(Required)'}`} id="gemini-api-key" name="gemini-api-key" type="password" value={localGeminiKey} onChange={handleLocalGeminiKeyChange} placeholder={envGeminiApiKey ? "Leave empty to use environment variable" : "Enter your Gemini API Key"} size="sm" />
                 </div>
                 <div className="flex gap-1 sm:gap-2">
-                  <Button type="button" variant="secondary" size="sm" onClick={async () => { if (navigator.clipboard) { try { const text = await navigator.clipboard.readText(); setLocalGeminiKey(text); onGeminiApiKeyChange(text); } catch (err) { console.error("Failed to read clipboard:", err); }}}} accentColorName={storeAccentColorName} className="flex-1">📋 Paste</Button>
-                  {localGeminiKey && (<Button type="button" variant="secondary" size="sm" onClick={() => { setLocalGeminiKey(''); onGeminiApiKeyChange(''); }} accentColorName={storeAccentColorName} className="flex-1">🗑️ Clear</Button>)}
+                  <Button type="button" variant="secondary" size="sm" onClick={async () => { if (navigator.clipboard) { try { const text = await navigator.clipboard.readText(); setLocalGeminiKey(text); onGeminiApiKeyChange(text); } catch (err) { console.error("Failed to read clipboard:", err); }}}} className="flex-1">📋 Paste</Button>
+                  {localGeminiKey && (<Button type="button" variant="secondary" size="sm" onClick={() => { setLocalGeminiKey(''); onGeminiApiKeyChange(''); }} className="flex-1">🗑️ Clear</Button>)}
                 </div>
               </div>
             </form>

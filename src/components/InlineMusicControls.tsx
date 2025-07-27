@@ -1,6 +1,6 @@
 import React from 'react';
-import { useAppStore } from '../store/appStore';
-import { Button } from './common/Button';
+import { useAudioStore } from '../store/audioStore';
+import { Button } from './ui/Button';
 import MusicVisualizer from './common/MusicVisualizer';
 
 const PlayIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>;
@@ -8,9 +8,9 @@ const PauseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" heigh
 const StopIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z" /></svg>;
 
 const InlineMusicControls: React.FC = () => {
-    const isMusicPlaying = useAppStore(state => state.isMusicPlaying);
-    const currentMusicPrompt = useAppStore(state => state.currentMusicPrompt);
-    const actions = useAppStore(state => state.actions);
+    const isMusicPlaying = useAudioStore(state => state.isMusicPlaying);
+    const currentMusicPrompt = useAudioStore(state => state.currentMusicPrompt);
+    const actions = useAudioStore(state => state.actions);
 
     if (!isMusicPlaying && !currentMusicPrompt) return null;
 
@@ -22,7 +22,7 @@ const InlineMusicControls: React.FC = () => {
             </span>
             <Button size="sm" onClick={actions.resumeMusic} aria-label="Resume"><PlayIcon /></Button>
             <Button size="sm" onClick={actions.pauseMusic} aria-label="Pause"><PauseIcon /></Button>
-            <Button size="sm" variant="danger" onClick={actions.stopMusic} aria-label="Stop"><StopIcon /></Button>
+            <Button size="sm" variant="destructive" onClick={actions.stopMusic} aria-label="Stop"><StopIcon /></Button>
         </div>
     );
 };

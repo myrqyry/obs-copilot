@@ -47,8 +47,10 @@ export const useObsConnection = (
                 streamStatus: streamStatusData,
                 recordStatus: recordStatusData,
                 videoSettings: videoSettingsData,
+                streamerName: null, // You might want to fetch this as well
             };
 
+            setConnected(obsData);
             updateOBSData(obsData);
         } catch (error: any) {
             setErrorMessage(`Error fetching OBS data: ${error.message}`);
@@ -74,20 +76,20 @@ export const useObsConnection = (
             newObsService.obs = newObs;
             setObsServiceInstance(newObsService);
             await fetchData(newObsService);
-            setConnected({ scenes: [], currentProgramScene: null, sources: [], streamStatus: null, recordStatus: null, videoSettings: null, streamerName: null });
         } catch (error: any) {
             setDisconnected(error.message || "Failed to connect to OBS WebSocket.");
             setObs(null);
         }
     }, [setConnecting, setConnected, setDisconnected, setObsServiceInstance, fetchData, setObs]);
 
-    const handleDisconnect = useCallback(async (obs: any) => {
+    const handleDisconnect = useCallback(async (obs: any): Promise<void> => {
         if (obs) {
             await obs.disconnect();
             setObs(null);
             setDisconnected();
             setObsServiceInstance(null);
         }
+        return Promise.resolve();
     }, [setObs, setDisconnected, setObsServiceInstance]);
 
     return { handleConnect, handleDisconnect, fetchData };

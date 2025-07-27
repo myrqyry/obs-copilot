@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '../common/Button';
+import { Button } from '../ui/Button';
 import { TextInput } from '../common/TextInput';
 import { AutomationCondition } from '../../types/automation';
 import { CONDITION_FIELD_OPTIONS } from '../../types/automation';
@@ -44,7 +44,7 @@ export const ConditionsStep: React.FC<ConditionsStepProps> = ({
                                 </span>
                                 <Button
                                     onClick={() => removeCondition(condition.id)}
-                                    variant="danger"
+                                    variant="destructive"
                                     size="sm"
                                 >
                                     Remove

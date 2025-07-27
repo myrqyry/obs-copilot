@@ -1,8 +1,8 @@
 
 
 import React, { useEffect, useRef, useState } from 'react';
-import { useAppStore } from '../store/appStore';
-import { Button } from './common/Button';
+import { useAudioStore } from '../store/audioStore';
+import { Button } from './ui/Button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/Card';
 
 const AudioOutputSelector: React.FC = () => {
@@ -10,11 +10,11 @@ const AudioOutputSelector: React.FC = () => {
     const audioRef = useRef<HTMLAudioElement>(null);
     const [sinkError, setSinkError] = useState<string | null>(null);
     // Use separate selectors for each value to avoid infinite re-renders
-    const audioDevices = useAppStore(state => state.audioDevices);
-    const selectedAudioOutputId = useAppStore(state => state.selectedAudioOutputId);
-    const audioPermissionGranted = useAppStore(state => state.audioPermissionGranted);
-    const loadAudioDevices = useAppStore(state => state.actions.loadAudioDevices);
-    const setAudioOutputDevice = useAppStore(state => state.actions.setAudioOutputDevice);
+    const audioDevices = useAudioStore(state => state.audioDevices);
+    const selectedAudioOutputId = useAudioStore(state => state.selectedAudioOutputId);
+    const audioPermissionGranted = useAudioStore(state => state.audioPermissionGranted);
+    const loadAudioDevices = useAudioStore(state => state.actions.loadAudioDevices);
+    const setAudioOutputDevice = useAudioStore(state => state.actions.setAudioOutputDevice);
 
     // Fetch devices if permission was granted previously, but only if not already loaded
     useEffect(() => {

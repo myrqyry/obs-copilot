@@ -13,9 +13,9 @@ import {
   catppuccinChatBubbleColorsHexMap
 } from '../types';
 import { ChatBubblePreview } from './common/ChatBubblePreview';
-import { useAppStore } from '../store/appStore';
+import { useSettingsStore } from '../store/settingsStore';
 import { CollapsibleSection } from './common/CollapsibleSection';
-import { Button } from './common/Button';
+import { Button } from './ui/Button';
 import { cn } from '../lib/utils';
 
 interface ObsSettingsPanelActions {
@@ -45,18 +45,16 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
   actions
 }) => {
   // Zustand selectors
-const autoApplySuggestions = useAppStore(state => state.userSettings.autoApplySuggestions);
-const extraDarkMode = useAppStore(state => state.userSettings.extraDarkMode);
-const customChatBackground = useAppStore(state => state.userSettings.customChatBackground);
-const bubbleFillOpacity = useAppStore(state => state.userSettings.bubbleFillOpacity);
-const chatBubbleBlendMode = useAppStore(state => state.userSettings.chatBubbleBlendMode);
-const backgroundOpacity = useAppStore(state => state.userSettings.backgroundOpacity);
-const chatBackgroundBlendMode = useAppStore(state => state.userSettings.chatBackgroundBlendMode);
-const storeActions = useAppStore(state => state.actions);
+const autoApplySuggestions = useSettingsStore(state => state.autoApplySuggestions);
+const extraDarkMode = useSettingsStore(state => state.extraDarkMode);
+const customChatBackground = useSettingsStore(state => state.customChatBackground);
+const bubbleFillOpacity = useSettingsStore(state => state.bubbleFillOpacity);
+const chatBubbleBlendMode = useSettingsStore(state => state.chatBubbleBlendMode);
+const backgroundOpacity = useSettingsStore(state => state.backgroundOpacity);
+const chatBackgroundBlendMode = useSettingsStore(state => state.chatBackgroundBlendMode);
+const storeActions = useSettingsStore(state => state.actions);
 
   const [showResetModal, setShowResetModal] = useState(false);
-
-  // Removed inline ColorChooser definition to avoid duplication
 
   // Collapsible state for each section
   const [openTheme, setOpenTheme] = useState(true);
@@ -67,24 +65,23 @@ const storeActions = useAppStore(state => state.actions);
   const [showBubbleSettingsModal, setShowBubbleSettingsModal] = useState(false);
 
   // Get accent color hex from Zustand
-  const accentColor = useAppStore(state => catppuccinAccentColorsHexMap[state.userSettings.theme.accent] || '#89b4fa');
+  const accentColor = catppuccinAccentColorsHexMap[selectedAccentColorName] || '#89b4fa';
 
   return (
     <div className="space-y-2 max-w-4xl mx-auto p-0">
       {/* Theme Section */}
-
-<CollapsibleSection
-  isOpen={openTheme}
-  onToggle={() => setOpenTheme(!openTheme)}
-  title="Theme Settings"
-  emoji="🎨"
-  accentColor={accentColor}
->
+      <CollapsibleSection
+        isOpen={openTheme}
+        onToggle={() => setOpenTheme(!openTheme)}
+        title="Theme Settings"
+        emoji="🎨"
+        accentColor={accentColor}
+      >
         <ColorChooser
           label="🎨 Primary Accent Color"
           onChange={(color) => storeActions.setThemeColor('accent', color)}
           colorsHexMap={catppuccinAccentColorsHexMap}
-          selectedColorName={useAppStore(state => state.userSettings.theme.accent)}
+          selectedColorName={useSettingsStore(state => state.theme.accent)}
           themeKey="accent"
           colorNameTypeGuard={(name): name is CatppuccinAccentColorName => name in catppuccinAccentColorsHexMap}
         />
@@ -92,7 +89,7 @@ const storeActions = useAppStore(state => state.actions);
           label="🎨 Secondary Accent Color"
           onChange={(color) => storeActions.setThemeColor('secondaryAccent', color)}
           colorsHexMap={catppuccinSecondaryAccentColorsHexMap}
-          selectedColorName={useAppStore(state => state.userSettings.theme.secondaryAccent)}
+          selectedColorName={useSettingsStore(state => state.theme.secondaryAccent)}
           themeKey="secondaryAccent"
           colorNameTypeGuard={(name): name is CatppuccinSecondaryAccentColorName => name in catppuccinSecondaryAccentColorsHexMap}
         />
@@ -106,17 +103,17 @@ const storeActions = useAppStore(state => state.actions);
         emoji="💬"
         accentColor={accentColor}
       >
-<ChatBubblePreview
-  userColor={useAppStore(state => state.userSettings.theme.userChatBubble)}
-  modelColor={useAppStore(state => state.userSettings.theme.modelChatBubble)}
-  flipSides={useAppStore(state => state.userSettings.flipSides)}
-  extraDarkMode={useAppStore(state => state.userSettings.extraDarkMode)}
-  customBackground={useAppStore(state => state.userSettings.customChatBackground)}
-  bubbleFillOpacity={useAppStore(state => state.userSettings.bubbleFillOpacity)}
-  backgroundOpacity={useAppStore(state => state.userSettings.backgroundOpacity)}
-  chatBackgroundBlendMode={useAppStore(state => state.userSettings.chatBackgroundBlendMode) as React.CSSProperties['mixBlendMode']}
-  chatBubbleBlendMode={useAppStore(state => state.userSettings.chatBubbleBlendMode) as React.CSSProperties['mixBlendMode']}
-/>
+        <ChatBubblePreview
+          userColor={useSettingsStore(state => state.theme.userChatBubble)}
+          modelColor={useSettingsStore(state => state.theme.modelChatBubble)}
+          flipSides={useSettingsStore(state => state.flipSides)}
+          extraDarkMode={useSettingsStore(state => state.extraDarkMode)}
+          customBackground={useSettingsStore(state => state.customChatBackground)}
+          bubbleFillOpacity={useSettingsStore(state => state.bubbleFillOpacity)}
+          backgroundOpacity={useSettingsStore(state => state.backgroundOpacity)}
+          chatBackgroundBlendMode={useSettingsStore(state => state.chatBackgroundBlendMode) as React.CSSProperties['mixBlendMode']}
+          chatBubbleBlendMode={useSettingsStore(state => state.chatBubbleBlendMode) as React.CSSProperties['mixBlendMode']}
+        />
         <div className="space-y-4">
           {/* User Chat Bubble Color with Opacity Slider */}
           <div>
@@ -130,7 +127,7 @@ const storeActions = useAppStore(state => state.actions);
                   aria-label="Open chat bubble fill settings"
                   onClick={() => setShowBubbleSettingsModal(true)}
                 >
-                  <CogIcon className="w-5 h-5" style={{ color: accentColor }} />
+                  <CogIcon className={cn("w-5 h-5", `text-[${accentColor}]`)} />
                 </button>
               </div>
             </div>
@@ -325,10 +322,9 @@ const storeActions = useAppStore(state => state.actions);
                 aria-label="Open chat background settings"
                 onClick={() => setShowBgSettingsModal(true)}
               >
-                <CogIcon className="w-5 h-5" style={{ color: accentColor }} />
+                  <CogIcon className={cn("w-5 h-5", `text-[${accentColor}]`)} />
               </button>
             </div>
-
             {/* Chat Background Settings Modal */}
             <Modal
               title="Chat Background Settings"
@@ -381,46 +377,6 @@ const storeActions = useAppStore(state => state.actions);
           </div>
         </div>
       </CollapsibleSection>
-
-      {/* Reset Section */}
-      <div className="mt-8 flex justify-end">
-        <Button
-          variant="destructive"
-          onClick={() => setShowResetModal(true)}
-        >
-          Reset Settings
-        </Button>
-      </div>
-      <Modal
-        title="Reset Settings"
-        isOpen={showResetModal}
-        onClose={() => setShowResetModal(false)}
-        accentColorName={selectedAccentColorName}
-        size="sm"
-      >
-        <div className="flex flex-col gap-4 items-center py-2 w-64">
-          <div className="text-center text-sm text-foreground">
-            Are you sure you want to reset all settings? This action cannot be undone.
-          </div>
-          <div className="flex gap-2 justify-center">
-            <Button
-              variant="destructive"
-              onClick={() => {
-                setShowResetModal(false);
-                actions.resetSettings && actions.resetSettings();
-              }}
-            >
-              Yes, Reset
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => setShowResetModal(false)}
-            >
-              Cancel
-            </Button>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 };

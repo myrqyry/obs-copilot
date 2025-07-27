@@ -1,17 +1,20 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
-import { useAppStore } from '../store/appStore';
-import { addEmojiAsBrowserSource } from '../services/obsService';
+import { useConnectionStore } from '../store/connectionStore';
+import { useSettingsStore } from '../store/settingsStore';
+import { useToast } from './ui/use-toast';
 import { generateSourceName } from '../utils/obsSourceHelpers';
 import { copyToClipboard } from '../utils/persistence';
 import { Card, CardContent } from './ui/Card';
 import { Modal } from './common/Modal';
-import { Button } from './common/Button';
+import { Button } from './ui/Button';
 import { FaviconIcon } from './common/FaviconIcon';
 import Tooltip from './ui/Tooltip';
 import { FaviconDropdown } from './common/FaviconDropdown';
 import { CollapsibleCard } from './common/CollapsibleCard';
 import { TextInput } from './common/TextInput';
+import { catppuccinAccentColorsHexMap } from '../types';
+import { useObsStore } from '../store/obsStore';
 
 const EMOJI_APIS = [
     { value: 'emoji-api', label: 'Emoji API', domain: 'emoji-api.com', icon: '😀' },
@@ -42,25 +45,25 @@ const EmojiSearch: React.FC = () => {
     const [searchError, setSearchError] = useState<string | null>(null);
     const [modalContent, setModalContent] = useState<{ type: 'emoji', data: any } | null>(null);
 
-    const obsServiceInstance = useAppStore(state => state.obsServiceInstance);
-    const currentProgramScene = useAppStore(state => state.currentProgramScene);
-    const isConnected = useAppStore(state => state.isConnected);
-    const addNotification = useAppStore((state) => state.actions.addNotification);
-    const accentColor = useAppStore(state => state.theme.accent);
+    const { obsServiceInstance, isConnected } = useConnectionStore();
+    const { currentProgramScene } = useObsStore();
+    const { toast, error } = useToast();
+    const accentColorName = useSettingsStore(state => state.theme.accent);
+    const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
 
     const ITEMS_PER_PAGE = 24;
 
     const handleAddEmojiAsBrowserSource = async (emoji: any, sourceName: string) => {
         if (!obsServiceInstance || !isConnected || !currentProgramScene) {
-            addNotification({ message: 'OBS not connected.', type: 'error' });
+            error('OBS not connected.');
             return;
         }
         try {
             const emojiChar = getEmojiChar(emoji);
-            await addEmojiAsBrowserSource(obsServiceInstance, currentProgramScene, emojiChar, generateSourceName(sourceName));
-            addNotification({ message: `Added ${sourceName} to OBS.`, type: 'success' });
-        } catch (error) {
-            addNotification({ message: 'Failed to add source.', type: 'error' });
+            await obsServiceInstance.addEmojiAsBrowserSource(currentProgramScene, emojiChar, generateSourceName(sourceName));
+            toast({ title: 'Success', description: `Added ${sourceName} to OBS.` });
+        } catch (err: any) {
+            error(`Failed to add source: ${err.message}`);
         }
     };
 
@@ -81,7 +84,7 @@ const EmojiSearch: React.FC = () => {
         const emojiChar = getEmojiChar(data);
         return [
             { label: 'Add as Browser Source', onClick: () => handleAddEmojiAsBrowserSource(emojiChar, data.name || 'emoji'), variant: 'primary' },
-            { label: 'Copy Emoji', onClick: () => { copyToClipboard(emojiChar); addNotification({ message: 'Copied Emoji!', type: 'info' }); } },
+            { label: 'Copy Emoji', onClick: () => { copyToClipboard(emojiChar); toast({ title: 'Info', description: 'Copied Emoji!' }); } },
         ];
     };
 
@@ -108,11 +111,11 @@ const EmojiSearch: React.FC = () => {
                     emoji.group.toLowerCase().includes(query)
                 );
             } else if (emojiApi === 'openemoji') { // Example: Needs a key
-                const apiKeyToUse = useApiKeyStore.getState().getApiKeyOverride(ApiService.OPENEMOJI);
+                const apiKeyToUse = useApiKeyStore.getState().getApiKey(ApiService.OPENEMOJI);
                  if (!apiKeyToUse || apiKeyToUse.includes('your_')) { // Keep check for placeholder
                     const errorMsg = `OpenEmoji API key is missing or invalid. Please configure it.`;
                     setSearchError(errorMsg);
-                    useAppStore.getState().actions.addNotification({ type: 'error', message: errorMsg });
+                    error(errorMsg);
                     setEmojiLoading(false);
                     return;
                 }
@@ -123,12 +126,11 @@ const EmojiSearch: React.FC = () => {
             setEmojiResults(results.slice(0, 48));
         } catch (err: any) {
             console.error('Emoji fetch error:', err);
-            const errorMsg = `Error fetching Emojis from ${emojiApi}: ${err.message || 'Unknown error'}`;
-            setSearchError(errorMsg);
-            useAppStore.getState().actions.addNotification({ type: 'error', message: errorMsg });
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+            error(`Error fetching Emojis: ${errorMessage}`);
         }
         setEmojiLoading(false);
-    }, [emojiApi, emojiQuery]);
+    }, [emojiApi, emojiQuery, obsServiceInstance, currentProgramScene, isConnected, toast, error]);
 
     const getPaginatedItems = (items: any[], page: number) => {
         const start = page * ITEMS_PER_PAGE;

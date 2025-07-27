@@ -26,12 +26,14 @@
     "proxy": "node proxy.mjs",
     "test": "jest",
     "clean": "node scripts/cleanup.js",
-    "check-deps": "node scripts/check-unused-deps.js",
-    "postinstall": "npm run check-deps"
+    "check-deps": "node scripts/check-unused-deps.js"
   },
   "dependencies": {
+    "@expressive-code/plugin-shiki": "^0.35.3",
+    "@giphy/js-fetch-api": "^5.7.0",
     "@google/generative-ai": "^0.21.0",
     "@heroicons/react": "^2.2.0",
+    "@imgly/background-removal": "^1.0.0",
     "@radix-ui/react-toast": "^1.2.14",
     "@streamerbot/client": "^1.11.0",
     "axios": "^1.10.0",
@@ -39,6 +41,7 @@
     "clsx": "^2.1.1",
     "dompurify": "^3.2.6",
     "dotenv": "^16.5.0",
+    "expressive-code": "^0.35.3",
     "framer-motion": "^12.23.0",
     "gsap": "^3.13.0",
     "lucide-react": "^0.515.0",

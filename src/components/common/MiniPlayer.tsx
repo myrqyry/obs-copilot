@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useAppStore } from '../../store/appStore';
+import { useAudioStore } from '../../store/audioStore';
 import gsap from 'gsap';
 import AudioReactiveNote from './AudioReactiveNote';
 
@@ -19,12 +19,12 @@ export const MiniPlayerIcons = {
 };
 
 const MiniPlayer = () => {
-    const isPlayerVisible = useAppStore(state => state.isPlayerVisible);
-    const activeAudioSource = useAppStore(state => state.activeAudioSource);
-    const currentMusicPrompt = useAppStore(state => state.currentMusicPrompt);
-    const setMusicPrompt = useAppStore(state => state.actions.setMusicPrompt);
-    const setActiveAudioSource = useAppStore(state => state.actions.setActiveAudioSource);
-    const actions = useAppStore(state => state.actions);
+    const isPlayerVisible = useAudioStore(state => state.isPlayerVisible);
+    const activeAudioSource = useAudioStore(state => state.activeAudioSource);
+    const currentMusicPrompt = useAudioStore(state => state.currentMusicPrompt);
+    const setMusicPrompt = useAudioStore(state => state.actions.setMusicPrompt);
+    const setActiveAudioSource = useAudioStore(state => state.actions.setActiveAudioSource);
+    const actions = useAudioStore(state => state.actions);
     const [minimized, setMinimized] = useState(false);
     const audioRef = useRef<HTMLAudioElement>(null);
 const noteRef = useRef<HTMLDivElement>(null);

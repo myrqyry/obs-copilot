@@ -1,0 +1,68 @@
+/* src/index.css */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Define initial semantic colors using Catppuccin Mocha hex values.
+       These are then overridden by `App.tsx` based on user theme selection.
+       Using HSL values here to align with custom properties. */
+    --background: 240 20% 15%; /* ctp-base */
+    --foreground: 226 66% 88%; /* ctp-text */
+
+    --card: 233 12% 31%; /* ctp-surface1 */
+    --card-foreground: 226 66% 88%; /* ctp-text */
+
+    --popover: 233 12% 31%; /* ctp-surface1 */
+    --popover-foreground: 226 66% 88%; /* ctp-text */
+
+    --primary: 270 80% 85%; /* ctp-mauve (default accent) */
+    --primary-foreground: 240 20% 15%; /* ctp-base */
+
+    --secondary: 237 13% 23%; /* ctp-surface0 */
+    --secondary-foreground: 227 27% 75%; /* ctp-subtext0 */
+
+    --muted: 230 11% 48%; /* ctp-overlay0 */
+    --muted-foreground: 225 42% 86%; /* ctp-subtext1 */
+
+    --accent: 169 56% 76%; /* ctp-teal */
+    --accent-foreground: 240 20% 15%; /* ctp-base */
+
+    --destructive: 340 82% 81%; /* ctp-red */
+    --destructive-foreground: 240 20% 15%; /* ctp-base */
+
+    --border: 233 11% 39%; /* ctp-surface2 */
+    --input: 237 13% 23%; /* ctp-surface0 */
+    --ring: 270 80% 85%; /* ctp-mauve (Primary Accent) */
+
+    --radius: 0.75rem; /* 12px, matches original rounded-lg */
+  }
+
+  /* ... rest of the CSS ... */
+
+  /* Global class for dynamic accent colors (used by MorphingLogos and AnimatedTitleLogos) */
+  .dynamic-accent-gradient {
+    background: radial-gradient(circle, var(--dynamic-accent), var(--dynamic-secondary-accent));
+  }
+
+  /* Global class for the animated title gradient */
+  .animated-title-gradient {
+    background: linear-gradient(135deg,
+        var(--dynamic-accent) 0%,
+        var(--dynamic-secondary-accent) 15%,
+        var(--dynamic-accent) 30%,
+        var(--dynamic-secondary-accent) 45%,
+        var(--dynamic-accent) 60%,
+        var(--dynamic-secondary-accent) 75%,
+        var(--dynamic-accent) 90%,
+        var(--dynamic-secondary-accent) 100%);
+    background-size: 400% 400%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: gradient-shift 12s ease-in-out infinite;
+  }
+}

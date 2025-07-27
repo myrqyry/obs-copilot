@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '../common/Button';
+import { Button } from '../ui/Button';
 import { TextInput } from '../common/TextInput';
 import { AutomationAction } from '../../types/automation';
 import { ObsAction } from '../../types/obsActions';
@@ -61,7 +61,7 @@ export const ActionsStep: React.FC<ActionsStepProps> = ({
                                 </span>
                                 <Button
                                     onClick={() => removeAction(action.id)}
-                                    variant="danger"
+                                    variant="destructive"
                                     size="sm"
                                 >
                                     Remove

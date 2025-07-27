@@ -2,11 +2,15 @@ import Tooltip from './ui/Tooltip';
 import React, { useState, useEffect } from 'react';
 import AudioOutputSelector from './AudioOutputSelector';
 import { OBS_EVENT_LIST } from '../constants/obsEvents';
-import { useAppStore } from '../store/appStore';
-import { Button } from './common/Button';
-import { Card, CardContent } from './ui';
+import { useAutomationStore } from '../store/automationStore';
+import { useObsStore } from '../store/obsStore';
+import { useConnectionStore } from '../store/connectionStore';
+import { useChatStore } from '../store/chatStore';
+import { useSettingsStore } from '../store/settingsStore';
+import { Button } from './ui/Button';
+import { Card, CardContent } from './ui/Card';
 import { cn } from '../lib/utils';
-import AddToContextButton from './common/AddToContextButton';
+import { AddToContextButton } from './common/AddToContextButton';
 import AutomationRuleBuilder from './AutomationRuleBuilder';
 import { automationService } from '../services/automationService';
 import type { AutomationRule } from '../types/automation';
@@ -50,19 +54,14 @@ const AdvancedPanel: React.FC = () => {
 
 
     // Automation Rules State
-    const automationRules = useAppStore((state) => state.automationRules);
-    const obsLogFiles = useAppStore((state) => state.obsLogFiles);
+    const automationRules = useAutomationStore((state) => state.automationRules);
     const {
-        // addAutomationRule,
-        // updateAutomationRule,
         deleteAutomationRule,
         toggleAutomationRule,
-        handleObsAction,
-        // setStreamerBotServiceInstance,
-        getLogFiles,
-        uploadLog
-    } = useAppStore((state) => state.actions);
-    const streamerBotServiceInstance = useAppStore((state) => state.streamerBotServiceInstance);
+    } = useAutomationStore((state) => state.actions);
+    const { obsLogFiles, actions: obsActions } = useObsStore();
+    const { getLogFiles, uploadLog } = obsActions;
+    const { obsServiceInstance: obsServiceInstanceFromConnection, streamerBotServiceInstance } = useConnectionStore();
 
     const [openAutomation, setOpenAutomation] = useState(false);
     const [openAudio, setOpenAudio] = useState(false);
@@ -96,19 +95,15 @@ const AdvancedPanel: React.FC = () => {
                 : [...prev, eventName]
         );
     };
-    const userDefinedContext = useAppStore((state) => state.userDefinedContext);
-    const addToUserDefinedContext = useAppStore((state) => state.actions.addToUserDefinedContext);
-    const removeFromUserDefinedContext = useAppStore((state) => state.actions.removeFromUserDefinedContext);
-    const clearUserDefinedContext = useAppStore((state) => state.actions.clearUserDefinedContext);
+    const { userDefinedContext, actions: chatActions } = useChatStore();
+    const { addToUserDefinedContext, removeFromUserDefinedContext, clearUserDefinedContext } = chatActions;
     const [userInput, setUserInput] = useState('');
     const [openMemory, setOpenMemory] = useState(true);
     const [openReset, setOpenReset] = useState(false);
     const [openApiKeys, setOpenApiKeys] = useState(false);
 
-    // Get the current OBSWebSocketService instance from the store
-    const obsServiceInstance = useAppStore((state) => state.obsServiceInstance);
     // Get the addMessage action from the store
-    const addMessage = useAppStore((state) => state.actions.addMessage);
+    const { addMessage } = chatActions;
 
 
     const handleApiKeyInputChange = (service: ApiServiceName, value: string) => {
@@ -146,19 +141,19 @@ const AdvancedPanel: React.FC = () => {
 
     // Initialize automation service when services are available
     useEffect(() => {
-        if (obsServiceInstance || streamerBotServiceInstance) {
+        if (obsServiceInstanceFromConnection || streamerBotServiceInstance) {
             automationService.initialize(
                 automationRules,
                 streamerBotServiceInstance,
-                handleObsAction,
+                obsActions.handleObsAction, // Use the action from obsStore
                 addMessage
             );
         }
-    }, [obsServiceInstance, streamerBotServiceInstance, automationRules, handleObsAction, addMessage]);
+    }, [obsServiceInstanceFromConnection, streamerBotServiceInstance, automationRules, obsActions.handleObsAction, addMessage]);
 
     // Wire up event subscriptions when obsServiceInstance or obsEventSubscriptions change
     useEffect(() => {
-        if (!obsServiceInstance) return;
+        if (!obsServiceInstanceFromConnection) return;
         // Build handlers for all checked events
         const handlers: Record<string, (...args: any[]) => void> = {};
         obsEventSubscriptions.forEach(eventName => {
@@ -173,8 +168,8 @@ const AdvancedPanel: React.FC = () => {
                 automationService.processEvent(eventName, event);
             };
         });
-        obsServiceInstance.subscribeToEvents(handlers);
-    }, [obsServiceInstance, obsEventSubscriptions, addMessage]);
+        obsServiceInstanceFromConnection.subscribeToEvents(handlers);
+    }, [obsServiceInstanceFromConnection, obsEventSubscriptions, addMessage]);
 
     // Automation rule handlers
     const handleCreateRule = (eventName?: string) => {
@@ -205,7 +200,7 @@ const AdvancedPanel: React.FC = () => {
     const automationStats = automationService.getStatistics();
 
     // Get accent color hex from Zustand
-    const accentColorName = useAppStore(state => state.theme.accent);
+    const accentColorName = useSettingsStore(state => state.theme.accent);
     const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
 
     return (
@@ -252,7 +247,7 @@ const AdvancedPanel: React.FC = () => {
                                             <span className="text-foreground flex-1 mr-2">{context}</span>
                                             <Button
                                                 onClick={() => removeFromUserDefinedContext(context)}
-                                                variant="danger"
+                                                variant="destructive"
                                                 size="sm"
                                             >
                                                 Remove
@@ -352,7 +347,7 @@ const AdvancedPanel: React.FC = () => {
                                                 <Button
                                                     onClick={() => handleDeleteRule(rule.id)}
                                                     size="sm"
-                                                    variant="danger"
+                                                    variant="destructive"
                                                 >
                                                     Delete
                                                 </Button>
@@ -437,7 +432,7 @@ const AdvancedPanel: React.FC = () => {
                                     </label>
                                     <AddToContextButton
                                         contextText={`OBS Event: '${event.name}'\n\nExample: \`\`\`json\n${JSON.stringify({ event: event.name, example: '...event data here...' }, null, 2)}\n\`\`\``}
-                                    // Tooltip for AddToContextButton handled in AddToContextButton itself
+                                        onAddToContext={addToUserDefinedContext}
                                     />
                                     <Tooltip content={`Create automation rule for ${event.name}`}>
                                         <Button
@@ -589,7 +584,7 @@ const AdvancedPanel: React.FC = () => {
                             Enter your own API keys for supported services. These are stored only in your browser and used instead of the default keys.
                         </p>
                         <div className="space-y-3">
-                            {API_KEY_SERVICES.map(({ id, label }) => (
+                            {PANEL_API_KEY_SERVICES.map(({ id, label }) => (
                                 <div key={id} className="flex flex-col gap-1">
                                     <label className="text-sm font-medium text-primary">{label} API Key</label>
                                     <div className="flex gap-2 items-center">
@@ -651,7 +646,7 @@ const AdvancedPanel: React.FC = () => {
                         </p>
                         <Button
                             onClick={handleResetAllSettings}
-                            variant="danger"
+                            variant="destructive"
                             size="sm"
                         >
                             Reset All Settings

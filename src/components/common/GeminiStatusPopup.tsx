@@ -8,20 +8,25 @@ interface GeminiStatusPopupProps {
     accentColorName?: CatppuccinAccentColorName;
 }
 
+import { cn } from '../../lib/utils';
+
 export const GeminiStatusPopup: React.FC<GeminiStatusPopupProps> = ({ status, message, onClose }) => {
-    const statusColor = {
-        initializing: 'hsl(var(--secondary))',
-        connected: 'hsl(var(--primary))',
-        error: 'hsl(var(--destructive))',
-        unavailable: 'orange',
-        'missing-key': 'purple',
-    }[status];
+    const statusClasses = cn(
+        "px-5 py-3 rounded-xl shadow-xl border border-border bg-card flex items-center space-x-3 animate-modal-appear",
+        {
+            'text-secondary': status === 'initializing',
+            'text-primary': status === 'connected',
+            'text-destructive': status === 'error',
+            'text-yellow-500': status === 'unavailable',
+            'text-purple-500': status === 'missing-key',
+        }
+    );
 
     return (
         <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50">
             <div
-                className="px-5 py-3 rounded-xl shadow-xl border border-border bg-card flex items-center space-x-3 animate-modal-appear"
-                style={{ color: statusColor, minWidth: 280, maxWidth: 400 }}
+                className={statusClasses}
+                style={{ minWidth: 280, maxWidth: 400 }}
             >
                 <span className="text-xl">
                     {status === 'connected' && '✅'}
@@ -30,7 +35,7 @@ export const GeminiStatusPopup: React.FC<GeminiStatusPopupProps> = ({ status, me
                     {status === 'unavailable' && '🚪'}
                     {status === 'missing-key' && '🔑'}
                 </span>
-                <span className="flex-1 text-sm" style={{ color: statusColor }}>{message}</span>
+                <span className="flex-1 text-sm">{message}</span>
                 {onClose && (
                     <button
                         onClick={onClose}

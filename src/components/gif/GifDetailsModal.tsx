@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal } from '../common/Modal';
-import { Button } from '../common/Button';
+import { Button } from '../ui/Button';
 import { GiphyResult } from '../../types/giphy';
 
 interface GifDetailsModalProps {

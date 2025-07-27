@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { useAppStore } from '../store/appStore';
+import { useSettingsStore } from '../store/settingsStore';
+import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
+import { useToast } from './ui/use-toast';
 import { GeminiService } from '../services/geminiService';
 import { CardContent } from './ui/Card';
-import { Button } from './common/Button';
+import { Button } from './ui/Button';
 import { pcm16ToWavUrl } from '../lib/pcmToWavUrl';
 import { CollapsibleCard } from './common/CollapsibleCard';
 import { catppuccinAccentColorsHexMap } from '../types';
@@ -37,7 +39,7 @@ const SpeechGeneration: React.FC = () => {
         '', 'neutral', 'happy', 'sad', 'angry', 'excited', 'calm', 'shouting', 'whispering', 'unfriendly', 'hopeful', 'empathetic', 'apologetic', 'confident', 'tentative', 'unsure', 'encouraging', 'declarative', 'narration', 'advertisement', 'conversational', 'formal', 'informal', 'newscast', 'poetry', 'singing', 'sports', 'storytelling', 'telephony', 'video-game', 'robotic', 'child', 'elderly', 'young-adult', 'middle-aged', 'senior', 'male', 'female', 'gender-neutral'
     ];
 
-    const accentColorName = useAppStore(state => state.theme.accent);
+    const accentColorName = useSettingsStore(state => state.theme.accent);
     const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
 
     // Add/remove/edit speakers
@@ -62,7 +64,7 @@ const SpeechGeneration: React.FC = () => {
         setScript('');
         try {
             // Always get the latest Gemini API key from Zustand store
-            const currentGeminiApiKey = useAppStore.getState().geminiApiKey;
+            const currentGeminiApiKey = useApiKeyStore.getState().getApiKey(ApiService.GEMINI);
             if (!currentGeminiApiKey) throw new Error('Gemini API key is missing.');
             const geminiService = new GeminiService();
             const prompt = `Hi, please generate a short (like 100 words) transcript that reads like it was clipped from a podcast from the following speakers: ${speakers.map(s => s.name).join(', ')}. Format as Speaker: line.`;
@@ -83,7 +85,7 @@ const SpeechGeneration: React.FC = () => {
         setGeneratedAudio(null);
         try {
             // Always get the latest Gemini API key from Zustand store
-            const currentGeminiApiKey = useAppStore.getState().geminiApiKey;
+            const currentGeminiApiKey = useApiKeyStore.getState().getApiKey(ApiService.GEMINI);
             if (!currentGeminiApiKey) {
                 setAudioError('Gemini API key is missing. Please set it in the Connections tab.');
                 setAudioLoading(false);
@@ -245,12 +247,12 @@ const SpeechGeneration: React.FC = () => {
                     </label>
                     <div className="flex gap-2 mt-1">
                         <Button variant="secondary" size="sm" onClick={handleGenerateStory} isLoading={storyLoading} disabled={storyLoading}>AI Generate Story</Button>
-                        <Button variant="primary" size="sm" onClick={handleGenerateAudio} isLoading={audioLoading} disabled={audioLoading || !script.trim()}>Generate Audio</Button>
+                        <Button variant="default" size="sm" onClick={handleGenerateAudio} isLoading={audioLoading} disabled={audioLoading || !script.trim()}>Generate Audio</Button>
                     </div>
                 </div>
                 {/* Advanced TTS controls */}
                 <div className="flex flex-wrap gap-2 mb-2 items-center">
-                    <label className="text-xs flex flex-col w-32">
+                    <label className="text-xs flex flex-col">
                         <Tooltip content="Speaking rate (speed). 1.0 is normal, 0.25 is slowest, 4.0 is fastest.">
                             <span className="inline-flex items-center gap-1">Speaking Rate <span className="text-primary cursor-help">ⓘ</span></span>
                         </Tooltip>
@@ -265,7 +267,7 @@ const SpeechGeneration: React.FC = () => {
                         />
                         <span className="text-xs text-muted-foreground">{speakingRate.toFixed(2)}</span>
                     </label>
-                    <label className="text-xs flex flex-col w-32">
+                    <label className="text-xs flex flex-col">
                         <Tooltip content="Pitch in semitones. 0 is default, -20 is lowest, 20 is highest.">
                             <span className="inline-flex items-center gap-1">Pitch <span className="text-primary cursor-help">ⓘ</span></span>
                         </Tooltip>
@@ -280,7 +282,7 @@ const SpeechGeneration: React.FC = () => {
                         />
                         <span className="text-xs text-muted-foreground">{pitch.toFixed(1)}</span>
                     </label>
-                    <label className="text-xs flex flex-col w-32">
+                    <label className="text-xs flex flex-col">
                         <Tooltip content="Volume gain in dB. 0 is default, -96 is quietest, 16 is loudest.">
                             <span className="inline-flex items-center gap-1">Volume Gain (dB) <span className="text-primary cursor-help">ⓘ</span></span>
                         </Tooltip>

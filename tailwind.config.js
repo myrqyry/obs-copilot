@@ -1,4 +1,33 @@
 /** @type {import('tailwindcss').Config} */
+const catppuccinMochaColors = {
+  rosewater: '#f5e0dc',
+  flamingo: '#f2cdcd',
+  pink: '#f5c2e7',
+  mauve: '#cba6f7',
+  red: '#f38ba8',
+  maroon: '#eba0ac',
+  peach: '#fab387',
+  yellow: '#f9e2af',
+  green: '#a6e3a1',
+  teal: '#94e2d5',
+  sky: '#89dceb',
+  sapphire: '#74c7ec',
+  blue: '#89b4fa',
+  lavender: '#b4befe',
+  text: '#cdd6f4',
+  subtext1: '#bac2de',
+  subtext0: '#a6adc8',
+  overlay2: '#9399b2',
+  overlay1: '#7f849c',
+  overlay0: '#6c7086',
+  surface2: '#585b70',
+  surface1: '#45475a',
+  surface0: '#313244',
+  base: '#1e1e2e',
+  mantle: '#181825',
+  crust: '#11111b',
+}
+
 module.exports = {
   darkMode: ["class"],
   content: [
@@ -25,33 +54,7 @@ module.exports = {
         'obs-dark': '#202020',
         'obs-light': '#E6E6E6',
 
-        // Catppuccin Mocha palette
-        'ctp-rosewater': '#f5e0dc',
-        'ctp-flamingo': '#f2cdcd',
-        'ctp-pink': '#f5c2e7',
-        'ctp-mauve': '#cba6f7',
-        'ctp-red': '#f38ba8',
-        'ctp-maroon': '#eba0ac',
-        'ctp-peach': '#fab387',
-        'ctp-yellow': '#f9e2af',
-        'ctp-green': '#a6e3a1',
-        'ctp-teal': '#94e2d5',
-        'ctp-sky': '#89dceb',
-        'ctp-sapphire': '#74c7ec',
-        'ctp-blue': '#89b4fa',
-        'ctp-lavender': '#b4befe',
-        'ctp-text': '#cdd6f4',
-        'ctp-subtext1': '#bac2de',
-        'ctp-subtext0': '#a6adc8',
-        'ctp-overlay2': '#9399b2',
-        'ctp-overlay1': '#7f849c',
-        'ctp-overlay0': '#6c7086',
-        'ctp-surface2': '#585b70',
-        'ctp-surface1': '#45475a',
-        'ctp-surface0': '#313244',
-        'ctp-base': '#1e1e2e',
-        'ctp-mantle': '#181825',
-        'ctp-crust': '#11111b',
+        ...catppuccinMochaColors,
 
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -133,6 +136,7 @@ module.exports = {
         '9xl': ['8rem', { lineHeight: '1' }],
       },
       animation: {
+        "gradient-shift": "gradient-shift 12s ease-in-out infinite",
         'spin-slow': 'spin 3s linear infinite',
         'spin-fast': 'spin 0.5s linear infinite',
         'ping-slow': 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite',
@@ -164,6 +168,14 @@ module.exports = {
         'glass-fade-in': 'glass-fade-in var(--duration-slow) var(--ease-out)',
       },
       keyframes: {
+        "gradient-shift": {
+          "0%, 100%": {
+            "background-position": "0% 50%",
+          },
+          "50%": {
+            "background-position": "100% 50%",
+          },
+        },
         "serviceSwitch": {
           '0%': { opacity: '1', transform: 'scale(1)' },
           '50%': { opacity: '0.7', transform: 'scale(0.98)' },

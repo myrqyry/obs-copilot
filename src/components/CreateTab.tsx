@@ -1,15 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { gsap } from 'gsap';
-import { useAppStore } from '../store/appStore';
+import { useSettingsStore } from '../store/settingsStore';
+import { useConnectionStore } from '../store/connectionStore';
 import { GeminiService } from '../services/geminiService';
 import { CardContent } from './ui/Card';
-import { Button } from './common/Button';
+import { Button } from './ui/Button';
 import { TextInput } from './common/TextInput';
 import Tooltip from './ui/Tooltip';
 import InlineMusicControls from './InlineMusicControls';
 import { ImageEditor } from './ImageEditor';
 import { Modal } from './common/Modal';
-import { addBrowserSource, addImageSource } from '../services/obsService';
 import { generateSourceName } from '../utils/obsSourceHelpers';
 import { copyToClipboard } from '../utils/persistence';
 import { pcm16ToWavUrl } from '../lib/pcmToWavUrl';
@@ -21,11 +21,24 @@ import SpeechGeneration from './SpeechGeneration';
 import MusicGeneration from './MusicGeneration';
 
 const CreateTab: React.FC = () => {
-    const accentColorName = useAppStore(state => state.theme.accent);
+    const { obsServiceInstance } = useConnectionStore();
+    const accentColorName = useSettingsStore(state => state.theme.accent);
     const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
 
     // Collapsible state for each section
     const [openImageEdit, setOpenImageEdit] = useState(false);
+
+    const addBrowserSource = (sceneName: string, sourceName: string, url: string, settings: any) => {
+        if (obsServiceInstance) {
+            obsServiceInstance.addBrowserSource(sceneName, url, sourceName, settings);
+        }
+    };
+
+    const addImageSource = (sceneName: string, sourceName: string, url: string) => {
+        if (obsServiceInstance) {
+            obsServiceInstance.addImageSource(sceneName, url, sourceName);
+        }
+    };
 
     return (
         <>

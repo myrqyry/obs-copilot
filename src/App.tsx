@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useObsConnection } from './hooks/useObsConnection';
 import { useStreamerBotConnection } from './hooks/useStreamerBotConnection';
 import { Header } from './components/layout/Header';
+import { catppuccinAccentColorsHexMap, catppuccinSecondaryAccentColorsHexMap } from './types';
 import { TabNavigation } from './components/layout/TabNavigation';
 import { ConnectionPanel } from './components/ConnectionPanel';
 import { ObsMainControls } from './components/ObsMainControls';
@@ -20,9 +21,9 @@ import { useSettingsStore } from './store/settingsStore';
 import { useStreamerBotActions } from './hooks/useStreamerBotActions';
 import { gsap } from 'gsap';
 import MiniPlayer from './components/common/MiniPlayer';
-import NotificationManager from './components/common/NotificationManager';
+import { NotificationManager } from './components/common/NotificationManager';
 import { loadConnectionSettings, saveConnectionSettings, isStorageAvailable } from './utils/persistence';
-import config from './config';
+import { DEFAULT_OBS_WEBSOCKET_URL } from './constants';
 
 const App: React.FC = () => {
     const [obs, setObs] = useState<any>(null);
@@ -59,20 +60,25 @@ const App: React.FC = () => {
         }
     }, [connectError]);
 
+    const setupObsListeners = (obsInstance: any, fetch: (service: any) => void) => {
+        const events = [
+            'CurrentProgramSceneChanged',
+            'SceneItemListReindexed',
+            'InputCreated',
+            'InputRemoved',
+        ];
+        const listener = () => fetch(obsServiceInstance);
+        events.forEach(event => obsInstance.on(event, listener));
+        return () => {
+            events.forEach(event => obsInstance.off(event, listener));
+        };
+    };
+
     useEffect(() => {
         if (isConnected && obs && obsServiceInstance) {
             fetchData(obsServiceInstance);
-            const debouncedFetch = () => fetchData(obsServiceInstance);
-            obs.on('CurrentProgramSceneChanged', debouncedFetch);
-            obs.on('SceneItemListReindexed', debouncedFetch);
-            obs.on('InputCreated', debouncedFetch);
-            obs.on('InputRemoved', debouncedFetch);
-            return () => {
-                obs.off('CurrentProgramSceneChanged', debouncedFetch);
-                obs.off('SceneItemListReindexed', debouncedFetch);
-                obs.off('InputCreated', debouncedFetch);
-                obs.off('InputRemoved', debouncedFetch);
-            };
+            const cleanup = setupObsListeners(obs, fetchData);
+            return cleanup;
         }
     }, [isConnected, obs, obsServiceInstance, fetchData]);
 
@@ -82,26 +88,24 @@ const App: React.FC = () => {
         }
     }, [activeTab]);
 
-    const renderTabContent = () => {
-        switch (activeTab) {
-            case AppTab.CONNECTIONS:
-                return <ConnectionPanel onConnect={handleConnect} onDisconnect={() => handleDisconnect(obs)} isConnected={isConnected} isConnecting={isConnecting} error={connectError} geminiApiKey={geminiApiKey} onGeminiApiKeyChange={chatActions.setGeminiApiKey} isGeminiClientInitialized={isGeminiClientInitialized} geminiInitializationError={geminiInitializationError} accentColorName={theme.accent} streamerBotAddress={streamerBotAddress} setStreamerBotAddress={setStreamerBotAddress} streamerBotPort={streamerBotPort} setStreamerBotPort={setStreamerBotPort} onStreamerBotConnect={() => handleStreamerBotConnect(streamerBotAddress, streamerBotPort)} onStreamerBotDisconnect={handleStreamerBotDisconnect} isStreamerBotConnected={isStreamerBotConnected} isStreamerBotConnecting={isStreamerBotConnecting} />;
-            case AppTab.OBS_STUDIO:
-                return <>{!isConnected || !obsServiceInstance ? <p>Please connect to OBS.</p> : <ObsMainControls obsService={obsServiceInstance} onRefreshData={() => fetchData(obsServiceInstance)} setErrorMessage={setErrorMessage} accentColorName={theme.accent} />}</>;
-            case AppTab.SETTINGS:
-                return <ObsSettingsPanel selectedAccentColorName={theme.accent} selectedSecondaryAccentColorName={theme.secondaryAccent} selectedUserChatBubbleColorName={theme.userChatBubble} selectedModelChatBubbleColorName={theme.modelChatBubble} flipSides={flipSides} actions={settingsActions} />;
-            case AppTab.ADVANCED:
-                return <AdvancedPanel />;
-            case AppTab.GEMINI:
-                return <GeminiChat streamerBotService={streamerBotService} onRefreshData={() => obsServiceInstance && fetchData(obsServiceInstance)} setErrorMessage={setErrorMessage} chatInputValue={geminiChatInput} onChatInputChange={setGeminiChatInput} accentColorName={theme.accent} messages={geminiMessages} onAddMessage={chatActions.addMessage} isGeminiClientInitialized={isGeminiClientInitialized} geminiInitializationError={geminiInitializationError} onSetIsGeminiClientInitialized={chatActions.setGeminiClientInitialized} onSetGeminiInitializationError={chatActions.setGeminiInitializationError} activeTab={activeTab} onStreamerBotAction={handleStreamerBotAction} />;
-            default:
-                return null;
-        }
+    const handleSendToGeminiContext = (contextText: string) => {
+        setGeminiChatInput(prev => `${contextText}\n${prev}`);
+        setActiveTab(AppTab.GEMINI);
+    };
+
+    const tabComponents: Record<AppTab, React.ReactNode> = {
+        [AppTab.CONNECTIONS]: <ConnectionPanel onConnect={handleConnect} onDisconnect={() => handleDisconnect(obs)} isConnected={isConnected} isConnecting={isConnecting} error={connectError} geminiApiKey={geminiApiKey} onGeminiApiKeyChange={chatActions.setGeminiApiKey} isGeminiClientInitialized={isGeminiClientInitialized} geminiInitializationError={geminiInitializationError} accentColorName={theme.accent} streamerBotAddress={streamerBotAddress} setStreamerBotAddress={setStreamerBotAddress} streamerBotPort={streamerBotPort} setStreamerBotPort={setStreamerBotPort} onStreamerBotConnect={() => handleStreamerBotConnect(streamerBotAddress, streamerBotPort)} onStreamerBotDisconnect={handleStreamerBotDisconnect} isStreamerBotConnected={isStreamerBotConnected} isStreamerBotConnecting={isStreamerBotConnecting} defaultUrl={DEFAULT_OBS_WEBSOCKET_URL} />,
+        [AppTab.OBS_STUDIO]: <>{!isConnected || !obsServiceInstance ? <p>Please connect to OBS.</p> : <ObsMainControls obsService={obsServiceInstance} onRefreshData={() => fetchData(obsServiceInstance)} setErrorMessage={setErrorMessage} onSendToGeminiContext={handleSendToGeminiContext} accentColorName={theme.accent} />}</>,
+        [AppTab.SETTINGS]: <ObsSettingsPanel selectedAccentColorName={theme.accent} selectedSecondaryAccentColorName={theme.secondaryAccent} selectedUserChatBubbleColorName={theme.userChatBubble} selectedModelChatBubbleColorName={theme.modelChatBubble} flipSides={flipSides} actions={settingsActions} />,
+        [AppTab.ADVANCED]: <AdvancedPanel />,
+        [AppTab.GEMINI]: <GeminiChat streamerBotService={streamerBotService} onRefreshData={async () => { if (obsServiceInstance) await fetchData(obsServiceInstance); }} setErrorMessage={setErrorMessage} chatInputValue={geminiChatInput} onChatInputChange={setGeminiChatInput} accentColorName={theme.accent} messages={geminiMessages} onAddMessage={chatActions.addMessage} isGeminiClientInitialized={isGeminiClientInitialized} geminiInitializationError={geminiInitializationError} onSetIsGeminiClientInitialized={chatActions.setGeminiClientInitialized} onSetGeminiInitializationError={chatActions.setGeminiInitializationError} activeTab={activeTab} onStreamerBotAction={handleStreamerBotAction} />,
+        [AppTab.STREAMING_ASSETS]: <StreamingAssetsTab />,
+        [AppTab.CREATE]: <CreateTab />,
     };
 
     return (
         <div className="h-screen max-h-screen bg-gradient-to-br from-background to-card text-foreground flex flex-col overflow-hidden">
-            <Header headerRef={headerRef} />
+            <Header headerRef={headerRef} accentColor={catppuccinAccentColorsHexMap[theme.accent]} secondaryAccentColor={catppuccinSecondaryAccentColorsHexMap[theme.secondaryAccent]} />
             <div className="sticky z-10 px-2 pt-2" style={{ top: `${headerHeight}px` }}>
                 <TabNavigation activeTab={activeTab} setActiveTab={setActiveTab} tabOrder={[AppTab.GEMINI, AppTab.OBS_STUDIO, AppTab.STREAMING_ASSETS, AppTab.CREATE, AppTab.SETTINGS, AppTab.CONNECTIONS, AppTab.ADVANCED]} />
             </div>
@@ -109,7 +113,7 @@ const App: React.FC = () => {
                 {isConnecting && !isConnected && <div className="flex justify-center items-center mt-1 text-orange-500 p-2"><LoadingSpinner size={4} /><span className="ml-2 text-sm">Connecting to OBS...</span></div>}
                 {errorMessage && <Modal title="Error" onClose={() => setErrorMessage(null)}><p>{errorMessage}</p></Modal>}
                 <div ref={tabContentRef} id={`tabpanel-${activeTab}`} role="tabpanel" aria-labelledby={`tab-${activeTab}`} className="flex-grow flex flex-col min-h-0 h-full">
-                    {renderTabContent()}
+                    {tabComponents[activeTab]}
                 </div>
                 <MiniPlayer />
             </main>

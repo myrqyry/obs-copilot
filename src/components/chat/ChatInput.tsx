@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '../common/Button';
+import { Button } from '../ui/Button';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { GlobeAltIcon, CameraIcon } from '@heroicons/react/24/solid';
 import Tooltip from '../ui/Tooltip';
@@ -57,9 +57,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                         />
                         <Button
                             type="button"
-                            variant="primary"
+                            variant="default"
                             size="sm"
-                            accentColorName={accentColorName}
                             onClick={handleSend}
                             disabled={isLoading || !chatInputValue.trim()}
                             className="ml-2 flex items-center justify-center"

@@ -23,8 +23,11 @@ const toastVariants = cva(
   }
 );
 
-interface ToastProps extends React.ComponentPropsWithoutRef<typeof ToastPrimitive.Root> &
-  VariantProps<typeof toastVariants> {}
+// Define the variant type separately
+type ToastVariants = VariantProps<typeof toastVariants>;
+
+// Extend the base props and the variant props
+interface ToastProps extends React.ComponentPropsWithoutRef<typeof ToastPrimitive.Root>, ToastVariants {}
 
 const Toast = React.forwardRef<React.ElementRef<typeof ToastPrimitive.Root>, ToastProps>(
   ({ className, variant, ...props }, ref) => {
@@ -142,5 +145,4 @@ export {
   ToastDescription,
   ToastClose,
   ToastAction,
-  useToast,
 };

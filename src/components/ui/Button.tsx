@@ -1,15 +1,52 @@
 import React from 'react';
 import { motion, HTMLMotionProps } from 'framer-motion';
 import { cn } from '../../lib/utils';
+import { LoadingSpinner } from '../common/LoadingSpinner';
 
 interface ButtonProps extends HTMLMotionProps<'button'> {
-    variant?: 'default' | 'secondary' | 'destructive' | 'outline' | 'ghost';
-    size?: 'default' | 'sm' | 'lg';
+    variant?: 'default' | 'secondary' | 'destructive' | 'outline' | 'ghost' | 'link';
+    size?: 'default' | 'sm' | 'lg' | 'icon';
+    isLoading?: boolean;
     children: React.ReactNode;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-    ({ className, variant = 'default', size = 'default', ...props }, ref) => {
+    ({ className, variant = 'default', size = 'default', isLoading = false, children, ...props }, ref) => {
+        const emojiMap: Record<string, string> = {
+            "Connect": "🔗",
+            "Disconnect": "🔌",
+            "Start Streaming": "▶️",
+            "Stop Streaming": "⏹️",
+            "Start Recording": "🔴",
+            "Stop Recording": "⏹️",
+            "Refresh Data": "🔄",
+            "Save Video Settings": "💾",
+            "Send": "➡️",
+            "Show": "👁️",
+            "Hide": "🙈",
+            "Show 🔽": "🔽",
+            "Hide 🔼": "🔼",
+            "Close": "🚪",
+            "Reconnect": "🔄",
+            "Copy URL": "📋",
+            "Copy SVG Code": "📋",
+            "Copy Emoji": "📋",
+            "Paste": "📋",
+            "Reset All Settings": "♻️",
+            "Update Existing": "🛠",
+            "Create Browser Source": "✨",
+            "Preview": "🖥",
+            "Switch": "↔️",
+        };
+
+        let buttonContent = children;
+        if (typeof children === 'string') {
+            const cleanedChildren = children.replace(/ [🔽🔼️]$/, '');
+            if (emojiMap[cleanedChildren]) {
+                buttonContent = <><span role="img" aria-hidden="true" className="mr-1.5">{emojiMap[cleanedChildren]}</span> {children}</>;
+            }
+        }
+
         return (
             <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -24,18 +61,23 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                         'bg-destructive text-destructive-foreground hover:bg-destructive/90': variant === 'destructive',
                         'border border-input hover:bg-accent hover:text-accent-foreground': variant === 'outline',
                         'hover:bg-accent hover:text-accent-foreground': variant === 'ghost',
+                        'underline-offset-4 hover:underline text-primary': variant === 'link',
                     },
                     // Size styles
                     {
                         'h-10 py-2 px-4': size === 'default',
                         'h-9 px-3 rounded-md': size === 'sm',
                         'h-11 px-8 rounded-md': size === 'lg',
+                        'h-10 w-10': size === 'icon',
                     },
                     className
                 )}
                 ref={ref}
+                disabled={isLoading || props.disabled}
                 {...props}
-            />
+            >
+                {isLoading ? <LoadingSpinner size={5} className="text-current" /> : buttonContent}
+            </motion.button>
         );
     }
 );

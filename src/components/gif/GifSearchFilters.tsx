@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '../common/Button';
+import { Button } from '../ui/Button';
 import { FaviconDropdown } from '../common/FaviconDropdown';
 import { TextInput } from '../common/TextInput';
 

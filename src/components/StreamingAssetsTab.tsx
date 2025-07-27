@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAppStore } from '../store/appStore';
+import { useSettingsStore } from '../store/settingsStore';
 import { catppuccinAccentColorsHexMap } from '../types';
 import { Card, CardContent } from './ui/Card';
 import HtmlTemplateBuilder from './HtmlTemplateBuilder';
@@ -10,7 +10,7 @@ import EmojiSearch from './EmojiSearch';
 import BackgroundSearch from './BackgroundSearch';
 
 const StreamingAssetsTab = React.memo(() => {
-    const accentColorName = useAppStore(state => state.userSettings.theme.accent);
+    const accentColorName = useSettingsStore(state => state.theme.accent);
     const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
 
     const [openCards, setOpenCards] = useState<{
