@@ -33,15 +33,23 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: false, // Set to true if your proxy server uses HTTPS, but for local dev 'false' is common
           // No rewrite needed if proxy.cjs expects paths like /api/gemini, /api/wallhaven etc.
-          // If proxy.cjs expects paths without /api prefix, you might need:
-          // rewrite: (path) => path.replace(/^\/api/, ''),
-          // However, based on proxy.cjs, it expects /api/* paths.
+          // Rewrite /api/proxy to /api to handle deprecated favicon calls
+          rewrite: (path) => path.replace(/^\/api\/proxy/, '/api'),
         },
       },
       headers: {
         'Cross-Origin-Opener-Policy': 'same-origin',
         'Cross-Origin-Embedder-Policy': 'require-corp'
-      }
+      },
+      // Add a server hook to ensure the proxy is ready before Vite attempts to connect
+      configureServer({ middlewares }) {
+        middlewares.use(async (req, res, next) => {
+          // A simple delay to give the proxy server time to start.
+          // In a more robust solution, you'd implement a proper readiness check.
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          next();
+        });
+      },
     },
     build: {
       outDir: 'dist', // Optional: specify output directory
