@@ -1,11 +1,10 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
-import { catppuccinAccentColorsHexMap } from '../types';
-import { GiphyResult } from '../types/giphy';
 import { useConnectionManagerStore } from '../store/connectionManagerStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { useToast } from './ui/use-toast';
 import { ObsClient } from '../services/ObsClient';
+import { catppuccinAccentColorsHexMap } from '../types';
+import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
 import { generateSourceName } from '../utils/obsSourceHelpers';
 import { copyToClipboard } from '../utils/persistence';
 import { Card, CardContent } from './ui/Card';
