@@ -1,6 +1,5 @@
 const request = require('supertest');
 const nock = require('nock');
-const app = require('../proxy.mjs');
 
 const http = require('http');
 let server;
@@ -18,6 +17,9 @@ afterAll((done) => {
 
 console.log('Running proxy.integration.test.js');
 
+const PEXELS_API_URL = 'https://api.pexels.com';
+const IMAGE_SERVER_URL = 'http://external-image-server.com';
+
 describe('Proxy Integration Tests', () => {
   afterEach(() => {
     nock.cleanAll(); // Clean up nock interceptors after each test
@@ -26,11 +28,11 @@ describe('Proxy Integration Tests', () => {
   // Scenario 1: Normal Proxy Operations
   describe('Normal Operations', () => {
     test('Test Case II.1.1 (Image Proxy - End-to-End Success): Successfully proxies an image request', async () => {
-      const targetImageUrl = 'http://external-image-server.com/image.png';
+      const targetImageUrl = `${IMAGE_SERVER_URL}/image.png`;
       const mockImageData = 'dummyimagedata';
       const mockImageContentType = 'image/png';
 
-      nock('http://external-image-server.com')
+      nock(IMAGE_SERVER_URL)
         .get('/image.png')
         .reply(200, mockImageData, { 'Content-Type': mockImageContentType });
 
@@ -48,7 +50,7 @@ describe('Proxy Integration Tests', () => {
 
         const mockPexelsData = { photos: [{ id: 1, src: { original: 'url' } }] };
 
-        nock('https://api.pexels.com', {
+        nock(PEXELS_API_URL, {
             reqheaders: {
               'Authorization': 'ENV_PEXELS_KEY_INTEGRATION'
             }
@@ -70,9 +72,9 @@ describe('Proxy Integration Tests', () => {
   // Scenario 2: Proxy Failures
   describe('Proxy Failures', () => {
     test('Test Case II.2.1 (Image Proxy - Target Server Error): Handles target server error gracefully', async () => {
-      const targetImageUrl = 'http://external-image-server.com/errorimage.png';
+      const targetImageUrl = `${IMAGE_SERVER_URL}/errorimage.png`;
 
-      nock('http://external-image-server.com')
+      nock(IMAGE_SERVER_URL)
         .get('/errorimage.png')
         .reply(503, 'Service Unavailable');
 
@@ -85,9 +87,9 @@ describe('Proxy Integration Tests', () => {
     });
 
     test('Test Case II.2.2 (Image Proxy - Target Timeout): Handles target server timeout', async () => {
-      const targetImageUrl = 'http://external-image-server.com/timeoutimage.png';
+      const targetImageUrl = `${IMAGE_SERVER_URL}/timeoutimage.png`;
 
-      nock('http://external-image-server.com')
+      nock(IMAGE_SERVER_URL)
         .get('/timeoutimage.png')
         .reply(504, 'Gateway Timeout'); // Simulate a gateway timeout from the target server
 
@@ -104,7 +106,7 @@ describe('Proxy Integration Tests', () => {
         const OLD_ENV = process.env;
         process.env = { ...OLD_ENV, PEXELS_API_KEY: 'ENV_PEXELS_KEY_FOR_API_ERROR' };
 
-        nock('https://api.pexels.com', {
+        nock(PEXELS_API_URL, {
             reqheaders: {
               'Authorization': 'ENV_PEXELS_KEY_FOR_API_ERROR'
             }

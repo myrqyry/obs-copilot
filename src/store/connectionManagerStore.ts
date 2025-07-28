@@ -29,7 +29,6 @@ export interface ConnectionManagerState {
     videoSettings: OBSVideoSettings | null;
     obsStats: any | null;
     obsHotkeys: any[] | null;
-    obsLogFiles: any[] | null;
 
     actions: {
         // Actions from connectionStore
@@ -52,7 +51,6 @@ export interface ConnectionManagerState {
         handleObsAction: (action: ObsAction | ObsAction[]) => Promise<{ success: boolean; message: string; error?: string }>;
         getStats: () => Promise<void>;
         getHotkeys: () => Promise<void>;
-        getLogFiles: () => Promise<void>;
         uploadLog: () => Promise<{ success: boolean; url?: string; message: string }>;
     };
 }
@@ -75,7 +73,6 @@ export const useConnectionManagerStore = create<ConnectionManagerState>((set, ge
     videoSettings: null,
     obsStats: null,
     obsHotkeys: null,
-    obsLogFiles: null,
 
     actions: {
         // Actions from connectionStore
@@ -133,12 +130,6 @@ export const useConnectionManagerStore = create<ConnectionManagerState>((set, ge
             if (!obsServiceInstance) throw new Error('OBS service not available');
             const hotkeys = await obsServiceInstance.getHotkeyList();
             set({ obsHotkeys: hotkeys.hotkeys });
-        },
-        getLogFiles: async () => {
-            const { obsServiceInstance } = get();
-            if (!obsServiceInstance) throw new Error('OBS service not available');
-            const logs = await obsServiceInstance.getLogFileList();
-            set({ obsLogFiles: logs.logFiles });
         },
         uploadLog: async () => {
             const { obsServiceInstance } = get();

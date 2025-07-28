@@ -1,12 +1,9 @@
 const request = require('supertest');
-const nock = require('nock');
-// This is THE mock function that will replace 'node-fetch'
 const fetch = require('node-fetch');
-jest.mock('node-fetch', () => jest.fn());
+jest.mock('node-fetch');
 
 describe('Proxy Unit Tests', () => {
     let app;
-
     let server;
     beforeAll((done) => {
         const module = require('../proxy.mjs');
@@ -41,12 +38,11 @@ describe('Proxy Unit Tests', () => {
 
         test('Test Case 2.1 (Image Proxy - Target 404): Should return 500 if target image URL returns 404', async () => {
             const targetUrl = 'http://example.com/notfound.jpg';
-            mockFetchImplementation.mockResolvedValueOnce(
-                new Response('Not Found', {
-                    status: 404,
-                    statusText: 'Not Found',
-                })
-            );
+            fetch.mockResolvedValueOnce({
+                ok: false,
+                status: 404,
+                statusText: 'Not Found',
+            });
 
             const response = await request(app).get(`/api/image?url=${encodeURIComponent(targetUrl)}`);
 
@@ -70,18 +66,16 @@ describe('Proxy Unit Tests', () => {
             delete process.env.PEXELS_API_KEY;
             const mockPexelsData = { photos: [{ id: 1 }] };
             const apiKey = 'TEST_PEXELS_KEY_QUERY';
-            mockFetchImplementation.mockResolvedValueOnce(
-                new Response(JSON.stringify(mockPexelsData), {
-                    status: 200,
-                    headers: new Headers({ 'Content-Type': 'application/json' }),
-                })
-            );
+            fetch.mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve(mockPexelsData),
+            });
 
             const response = await request(app).get(`/api/pexels?query=nature&key=${apiKey}`);
 
             expect(response.statusCode).toBe(200);
             expect(response.body).toEqual(mockPexelsData);
-            expect(mockFetchImplementation.mock.calls[0][1].headers.Authorization).toBe(apiKey);
+            expect(fetch.mock.calls[0][1].headers.Authorization).toBe(apiKey);
         });
 
         test('Test Case 2.3 (Pexels Proxy - Missing API Key): Should return 500 if Pexels API key is missing', async () => {

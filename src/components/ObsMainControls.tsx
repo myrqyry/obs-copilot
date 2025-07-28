@@ -17,7 +17,7 @@ interface ObsMainControlsProps {
   obsService: ObsClient;
   onRefreshData: () => Promise<void>;
   setErrorMessage: (message: string | null) => void;
-  onSendToGeminiContext: (contextText: string) => void;
+  addSystemMessageToChat: (contextText: string) => void;
   accentColorName?: CatppuccinAccentColorName;
 }
 
@@ -25,7 +25,7 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
   obsService,
   onRefreshData,
   setErrorMessage,
-  onSendToGeminiContext,
+  addSystemMessageToChat,
   accentColorName
 }) => {
   // Collapsible state for each section
@@ -315,7 +315,7 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
                 </Button>
                 <AddToContextButton
                   contextText={`OBS Scene: '${scene.sceneName}'${scene.sceneName === currentProgramScene ? ' (currently active)' : ''}`}
-                  onAddToContext={onSendToGeminiContext}
+                  onAddToContext={addSystemMessageToChat}
                   disabled={isLocked('scenes')}
                   title={`Add scene '${scene.sceneName}' to chat context`}
                 />
@@ -354,7 +354,7 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
                 </Button>
                 <AddToContextButton
                   contextText={`OBS Source: '${source.sourceName}' is ${source.sceneItemEnabled ? 'visible' : 'hidden'} in scene '${currentProgramScene || ''}'`}
-                  onAddToContext={onSendToGeminiContext}
+                  onAddToContext={addSystemMessageToChat}
                   disabled={isLocked('sources') || !currentProgramScene}
                   title={`Add source '${source.sourceName}' to chat context`}
                 />

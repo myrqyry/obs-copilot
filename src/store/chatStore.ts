@@ -17,7 +17,7 @@ export interface ChatState {
         addToUserDefinedContext: (context: string) => void;
         removeFromUserDefinedContext: (context: string) => void;
         clearUserDefinedContext: () => void;
-        onSendToGeminiContext: (contextText: string) => void;
+        addSystemMessageToChat: (contextText: string) => void;
     };
 }
 
@@ -65,7 +65,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             set({ userDefinedContext: [] });
             saveUserSettings({ userDefinedContext: [] });
         },
-        onSendToGeminiContext: (contextText) => {
+        addSystemMessageToChat: (contextText) => {
             get().actions.addMessage({ role: 'system', text: contextText });
         },
     }

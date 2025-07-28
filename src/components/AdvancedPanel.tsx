@@ -58,8 +58,9 @@ const AdvancedPanel: React.FC = () => {
         deleteAutomationRule,
         toggleAutomationRule,
     } = useAutomationStore((state) => state.actions);
-    const { obsLogFiles, actions: obsActions, obsServiceInstance, streamerBotServiceInstance } = useConnectionManagerStore();
-    const { getLogFiles, uploadLog } = obsActions;
+    const { actions: obsActions, obsServiceInstance, streamerBotServiceInstance } = useConnectionManagerStore();
+    const { uploadLog } = obsActions;
+    const [obsLogFiles, setObsLogFiles] = useState<any[] | null>(null);
     
     const [openAutomation, setOpenAutomation] = useState(false);
     const [openAudio, setOpenAudio] = useState(false);
@@ -466,8 +467,10 @@ const AdvancedPanel: React.FC = () => {
                         <div className="flex items-center gap-2">
                             <Button
                                 onClick={async () => {
+                                    if (!obsServiceInstance) return;
                                     try {
-                                        await getLogFiles();
+                                        const logs = await obsServiceInstance.getLogFileList();
+                                        setObsLogFiles(logs.logFiles);
                                     } catch (error: any) {
                                         console.error('Failed to fetch log files:', error);
                                     }

@@ -131,16 +131,24 @@ const apiConfigs = {
     cacheable: true, // Mark Giphy as cacheable
     // transformResult: (item) => item,
   },
-  unsplash: { // Unsplash API
-    label: 'Unsplash',
-    baseUrl: 'https://api.unsplash.com/',
-    paramMappings: {}, // Handled by specific sub-routes
-    authHeader: 'Authorization',
-    apiKey: { envVars: ['UNSPLASH_API_KEY'], prefix: 'Client-ID ' },
-    requiresKey: true,
-    responseDataPath: 'results', // Default for search results
-  }
 };
+
+// --- API Key Validation ---
+function isValidApiKey(key, serviceName) {
+    if (!key || typeof key !== 'string') return false;
+    // Simple validation rules, can be expanded
+    const rules = {
+        pexels: /^.{56}$/, // Pexels keys are 56 chars long
+        pixabay: /^\d+-[a-zA-Z0-9]+$/,
+        giphy: /^[a-zA-Z0-9]{32}$/,
+        unsplash: /^[a-zA-Z0-9_-]{43}$/,
+        // Add other simple format checks here
+    };
+    if (rules[serviceName]) {
+        return rules[serviceName].test(key);
+    }
+    return true; // Default to true if no specific rule
+}
 
 // --- Generic API Fetch Function ---
 async function fetchFromApiHost(apiConfig, queryParamsFromRequest, apiKeyOverride) {
@@ -267,22 +275,19 @@ async function fetchFromApiHost(apiConfig, queryParamsFromRequest, apiKeyOverrid
 // These are kept separate due to their unique logic or streaming nature.
 
 console.log('[Proxy] Attempting to register /api/iconfinder/svg route');
-app.get('/api/iconfinder/svg', async (req, res) => {
+app.get('/api/iconfinder/svg', async (req, res, next) => {
     const svgUrl = req.query.url;
     if (!svgUrl || typeof svgUrl !== 'string' || !svgUrl.startsWith('https://api.iconfinder.com/')) {
-        res.status(400).json({ error: 'Invalid or missing SVG url' });
-        return;
+        return next({ status: 400, message: 'Invalid or missing SVG url' });
     }
 
     const clientApiKey = req.headers['x-api-key'];
     const serverApiKey = process.env.ICONFINDER_API_KEY; // Primary server-side key
-    // VITE_ICONFINDER_API_KEY was a fallback, but client should send override if it has one from VITE_ var.
     const apiKeyToUse = clientApiKey || serverApiKey;
 
     if (!apiKeyToUse) {
         console.log(`[Proxy Iconfinder SVG] No API key available.`);
-        res.status(500).json({ error: 'Iconfinder API key not set in server env (ICONFINDER_API_KEY) and no override provided.' });
-        return;
+        return next({ status: 500, message: 'Iconfinder API key not set in server env (ICONFINDER_API_KEY) and no override provided.' });
     }
 
     if (clientApiKey) {
@@ -297,8 +302,7 @@ app.get('/api/iconfinder/svg', async (req, res) => {
         });
         if (!response.ok) {
             const errText = await response.text();
-            res.status(response.status).json({ error: 'Iconfinder SVG fetch error', details: errText });
-            return;
+            return next({ status: response.status, message: 'Iconfinder SVG fetch error', details: errText });
         }
         res.set({
             'Content-Type': 'image/svg+xml',
@@ -313,22 +317,16 @@ app.get('/api/iconfinder/svg', async (req, res) => {
             'Cross-Origin-Resource-Policy': 'cross-origin',
             'Cross-Origin-Embedder-Policy': 'unsafe-none'
         });
-        res.status(500).json({ error: 'Proxy error', details: err.message });
+        return next({ status: 500, message: 'Proxy error', details: err.message });
     }
 });
 
 
 // Unified Favicon Fetch Function
-async function fetchAndServeFavicon(req, res) {
+async function fetchAndServeFavicon(req, res, next) {
     const { domain, sz = 16 } = req.query;
     if (!domain) {
-        // Standard headers for error responses
-        res.set({
-            'Access-Control-Allow-Origin': '*',
-            'Cross-Origin-Resource-Policy': 'cross-origin', // Consider if needed for error JSON
-            'Cross-Origin-Embedder-Policy': 'unsafe-none',  // Consider if needed for error JSON
-        });
-        return res.status(400).json({ error: 'Domain parameter is required for favicon proxy' });
+        return next({ status: 400, message: 'Domain parameter is required for favicon proxy' });
     }
     try {
         const googleUrl = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=${sz}`;
@@ -341,17 +339,6 @@ async function fetchAndServeFavicon(req, res) {
         }
         const contentType = response.headers.get('content-type') || 'image/x-icon'; // Default to x-icon if not provided
 
-        // For streaming directly:
-        // res.set({
-        //     'Access-Control-Allow-Origin': '*',
-        //     'Content-Type': contentType,
-        //     'Cache-Control': 'public, max-age=86400', // Cache for 24 hours
-        //     'Cross-Origin-Resource-Policy': 'cross-origin',
-        //     'Cross-Origin-Embedder-Policy': 'unsafe-none',
-        // });
-        // response.body.pipe(res);
-
-        // For sending as buffer (as in original /api/proxy?api=favicon):
         const buffer = await response.buffer();
         res.set({
             'Access-Control-Allow-Origin': '*',
@@ -359,19 +346,17 @@ async function fetchAndServeFavicon(req, res) {
             'Cache-Control': 'public, max-age=86400',
             'Cross-Origin-Resource-Policy': 'cross-origin',
             'Cross-Origin-Embedder-Policy': 'unsafe-none',
-            // 'Access-Control-Allow-Headers': 'Content-Type', // Typically for OPTIONS or if request has custom headers
         });
         res.send(buffer);
 
     } catch (err) {
+        console.error(`Favicon fetch error for domain "${domain}":`, err.message);
         res.set({
             'Access-Control-Allow-Origin': '*',
-            // 'Access-Control-Allow-Headers': 'Content-Type', // Less critical for error response
             'Cross-Origin-Resource-Policy': 'cross-origin',
             'Cross-Origin-Embedder-Policy': 'unsafe-none',
         });
-        console.error(`Favicon fetch error for domain "${domain}":`, err.message);
-        res.status(500).json({ error: 'Failed to fetch favicon', details: err.message });
+        return next({ status: 500, message: 'Failed to fetch favicon', details: err.message });
     }
 }
 
@@ -383,12 +368,12 @@ app.get('/api/favicon', fetchAndServeFavicon);
 const pathBasedApiRoutes = Object.keys(apiConfigs).map(key => `/api/${key}`);
 
 console.log('[Proxy] Attempting to register path-based API routes:', pathBasedApiRoutes);
-app.get('/api/:apiType', async (req, res) => {
+app.get('/api/:apiType', async (req, res, next) => {
     const apiType = req.params.apiType;
     const apiConfig = apiConfigs[apiType];
 
     if (!apiConfig) {
-        return res.status(400).json({ error: `Unknown API endpoint: ${req.path}` });
+        return next({ status: 400, message: `Unknown API endpoint: ${req.path}` });
     }
 
     // Caching check
@@ -418,7 +403,12 @@ app.get('/api/:apiType', async (req, res) => {
 
     if (apiConfig.requiresKey && !apiKeyToUse) {
         console.log(`[Proxy ${apiType || 'Generic'}] API key required but none available (checked client override, query params, server env).`);
-        return res.status(500).json({ error: `${apiConfig.label || apiType} API key not provided by client or server environment.` });
+        return next({ status: 500, message: `${apiConfig.label || apiType} API key not provided by client or server environment.` });
+    }
+
+    if (apiKeyToUse && !isValidApiKey(apiKeyToUse, apiType)) {
+        console.warn(`[Proxy ${apiType}] Invalid API key format detected.`);
+        return next({ status: 400, message: `Invalid API key format for ${apiConfig.label}.` });
     }
 
     if (req.headers['x-api-key']) {
@@ -439,7 +429,7 @@ app.get('/api/:apiType', async (req, res) => {
         res.set('Access-Control-Allow-Origin', '*');
         return res.json(results);
     } catch (err) {
-        return res.status(500).json({ error: `Proxy error for ${apiType}`, details: err.message });
+        return next({ status: 500, message: `Proxy error for ${apiType}`, details: err.message });
     }
 });
 
@@ -475,13 +465,13 @@ app.options(allApiRoutesForOptions, (req, res) => {
 
 
 console.log('[Proxy] Attempting to register /api/gemini/generate-content route');
-app.post('/api/gemini/generate-content', async (req, res) => {
+app.post('/api/gemini/generate-content', async (req, res, next) => {
     const clientApiKey = req.headers['x-api-key'];
     const serverApiKey = process.env.GEMINI_API_KEY;
     const apiKeyToUse = clientApiKey || serverApiKey;
 
     if (!apiKeyToUse) {
-        return res.status(500).json({ error: 'Gemini API key not set in server environment (GEMINI_API_KEY) and no override provided.' });
+        return next({ status: 500, message: 'Gemini API key not set in server environment (GEMINI_API_KEY) and no override provided.' });
     }
 
     // Determine model from request body or a default
@@ -506,36 +496,36 @@ app.post('/api/gemini/generate-content', async (req, res) => {
         const data = await response.json();
         if (data.error) {
             console.error("Gemini API Error (generate-content):", data.error);
-            return res.status(400).json({ error: "Gemini API Error", details: data.error.message || JSON.stringify(data.error) });
+            return next({ status: 400, message: "Gemini API Error", details: data.error.message || JSON.stringify(data.error) });
         }
         res.json(data);
     } catch (err) {
         console.error("Gemini Proxy Fetch Error (generate-content):", err);
-        res.status(500).json({ error: 'Failed to fetch from Gemini (generate-content)', details: err.message });
+        return next({ status: 500, message: 'Failed to fetch from Gemini (generate-content)', details: err.message });
     }
 });
 
 console.log('[Proxy] Attempting to register /api/gemini/generate-image route');
-app.post('/api/gemini/generate-image', async (req, res) => {
+app.post('/api/gemini/generate-image', async (req, res, next) => {
     const clientApiKey = req.headers['x-api-key'];
     const serverApiKey = process.env.GEMINI_API_KEY;
     const apiKeyToUse = clientApiKey || serverApiKey;
 
     if (!apiKeyToUse) {
-        return res.status(500).json({ error: 'Gemini API key not set for image generation and no override provided.' });
+        return next({ status: 500, message: 'Gemini API key not set for image generation and no override provided.' });
     }
 
     // Input validation for image generation
     const { model, prompt, contents } = req.body;
 
     if (!prompt && !contents) {
-        return res.status(400).json({ error: 'Missing prompt or contents in request body for image generation.' });
+        return next({ status: 400, message: 'Missing prompt or contents in request body for image generation.' });
     }
     if (prompt && typeof prompt !== 'string') {
-        return res.status(400).json({ error: 'Prompt must be a string for image generation.' });
+        return next({ status: 400, message: 'Prompt must be a string for image generation.' });
     }
     if (contents && !Array.isArray(contents)) {
-        return res.status(400).json({ error: 'Contents must be an array for image generation.' });
+        return next({ status: 400, message: 'Contents must be an array for image generation.' });
     }
     // Further validation could be added for contents array structure if needed
 
@@ -572,20 +562,20 @@ app.post('/api/gemini/generate-image', async (req, res) => {
 
         if (data.error) {
             console.error("Gemini API Error (generate-image):", data.error);
-            return res.status(400).json({ error: "Gemini API Error", details: data.error.message || JSON.stringify(data.error) });
+            return next({ status: 400, message: "Gemini API Error", details: data.error.message || JSON.stringify(data.error) });
         }
         res.json(data);
     } catch (err) {
         console.error("Gemini Proxy Fetch Error (generate-image):", err);
-        res.status(500).json({ error: 'Failed to fetch from Gemini (generate-image)', details: err.message });
+        return next({ status: 500, message: 'Failed to fetch from Gemini (generate-image)', details: err.message });
     }
 });
 
 console.log('[Proxy] Attempting to register /api/obs/:action route');
-app.all('/api/obs/:action', async (req, res) => {
+app.all('/api/obs/:action', async (req, res, next) => {
     const obsUrl = process.env.OBS_HTTP_API_URL;
     if (!obsUrl) {
-        return res.status(500).json({ error: 'OBS_HTTP_API_URL not set in environment' });
+        return next({ status: 500, message: 'OBS_HTTP_API_URL not set in environment' });
     }
     try {
         const response = await fetch(`${obsUrl}/${req.params.action}`, { // This should be the OBS HTTP server URL
@@ -596,15 +586,15 @@ app.all('/api/obs/:action', async (req, res) => {
         const data = await response.json();
         res.status(response.status).json(data);
     } catch (err) {
-        res.status(500).json({ error: 'Failed to fetch from OBS', details: err.message });
+        return next({ status: 500, message: 'Failed to fetch from OBS', details: err.message });
     }
 });
 
 console.log('[Proxy] Attempting to register /api/streamerbot/:action route');
-app.all('/api/streamerbot/:action', async (req, res) => {
+app.all('/api/streamerbot/:action', async (req, res, next) => {
     const streamerBotUrl = process.env.STREAMERBOT_API_URL; // e.g. http://localhost:8080/
     if (!streamerBotUrl) {
-        return res.status(500).json({ error: 'STREAMERBOT_API_API_URL not set in environment' });
+        return next({ status: 500, message: 'STREAMERBOT_API_API_URL not set in environment' });
     }
     // Streamer.bot actions are typically POST requests, sending a JSON body.
     // The action is usually part of the body, or the path for specific endpoint actions.
@@ -622,15 +612,15 @@ app.all('/api/streamerbot/:action', async (req, res) => {
         res.status(response.status).json(data);
     } catch (err) {
         console.error("Streamer.bot Proxy Fetch Error:", err);
-        res.status(500).json({ error: 'Failed to fetch from Streamer.bot', details: err.message });
+        return next({ status: 500, message: 'Failed to fetch from Streamer.bot', details: err.message });
     }
 });
 
 console.log('[Proxy] Attempting to register /api/image route');
-app.get('/api/image', async (req, res) => {
+app.get('/api/image', async (req, res, next) => {
     const { url } = req.query;
     if (!url) {
-        return res.status(400).json({ error: 'URL parameter is required for image proxy' });
+        return next({ status: 400, message: 'URL parameter is required for image proxy' });
     }
 
     try {
@@ -656,12 +646,12 @@ app.get('/api/image', async (req, res) => {
             'Cross-Origin-Resource-Policy': 'cross-origin',
             'Cross-Origin-Embedder-Policy': 'unsafe-none'
         });
-        res.status(500).json({ error: 'Failed to fetch image', details: err.message });
+        return next({ status: 500, message: 'Failed to fetch image', details: err.message });
     }
 });
 
 console.log('[Proxy] Attempting to register /api/chutes route');
-app.post('/api/chutes', async (req, res) => {
+app.post('/api/chutes', async (req, res, next) => {
     const clientApiKey = req.headers['x-api-key'];
     // For Chutes, the proxy.cjs used to check CHUTES_API_TOKEN then VITE_CHUTES_API_TOKEN.
     // We'll simplify: client key, then proxy's CHUTES_API_TOKEN.
@@ -669,7 +659,7 @@ app.post('/api/chutes', async (req, res) => {
     const apiKeyToUse = clientApiKey || serverApiKey;
 
     if (!apiKeyToUse) {
-        return res.status(500).json({ error: 'Chute API token not set in server environment (CHUTES_API_TOKEN) and no override provided.' });
+        return next({ status: 500, message: 'Chute API token not set in server environment (CHUTES_API_TOKEN) and no override provided.' });
     }
 
     if (clientApiKey) {
@@ -693,18 +683,18 @@ app.post('/api/chutes', async (req, res) => {
         const data = await response.json();
         res.status(response.status).json(data);
     } catch (err) {
-        res.status(500).json({ error: 'Failed to fetch from Chute API', details: err.message });
+        return next({ status: 500, message: 'Failed to fetch from Chute API', details: err.message });
     }
 });
 
 // Unsplash proxy routes
-app.post('/api/unsplash/search-photos', async (req, res) => {
+app.post('/api/unsplash/search-photos', async (req, res, next) => {
     const { query, options } = req.body;
     const unsplashConfig = apiConfigs.unsplash;
     const apiKeyToUse = process.env.UNSPLASH_API_KEY; // Only use server-side key
 
     if (!apiKeyToUse) {
-        return res.status(500).json({ error: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
+        return next({ status: 500, message: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
     }
 
     try {
@@ -728,17 +718,17 @@ app.post('/api/unsplash/search-photos', async (req, res) => {
         res.status(response.status).json(data);
     } catch (err) {
         console.error("Unsplash Proxy Error (search-photos):", err);
-        res.status(500).json({ error: 'Failed to fetch from Unsplash (search-photos)', details: err.message });
+        return next({ status: 500, message: 'Failed to fetch from Unsplash (search-photos)', details: err.message });
     }
 });
 
-app.post('/api/unsplash/get-random-photo', async (req, res) => {
+app.post('/api/unsplash/get-random-photo', async (req, res, next) => {
     const { options } = req.body;
     const unsplashConfig = apiConfigs.unsplash;
     const apiKeyToUse = process.env.UNSPLASH_API_KEY;
 
     if (!apiKeyToUse) {
-        return res.status(500).json({ error: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
+        return next({ status: 500, message: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
     }
 
     try {
@@ -763,17 +753,17 @@ app.post('/api/unsplash/get-random-photo', async (req, res) => {
         res.status(response.status).json({ photos: data }); // Unsplash returns an array directly for random photos
     } catch (err) {
         console.error("Unsplash Proxy Error (get-random-photo):", err);
-        res.status(500).json({ error: 'Failed to fetch from Unsplash (get-random-photo)', details: err.message });
+        return next({ status: 500, message: 'Failed to fetch from Unsplash (get-random-photo)', details: err.message });
     }
 });
 
-app.get('/api/unsplash/get-photo/:id', async (req, res) => {
+app.get('/api/unsplash/get-photo/:id', async (req, res, next) => {
     const { id } = req.params;
     const unsplashConfig = apiConfigs.unsplash;
     const apiKeyToUse = process.env.UNSPLASH_API_KEY;
 
     if (!apiKeyToUse) {
-        return res.status(500).json({ error: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
+        return next({ status: 500, message: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
     }
 
     try {
@@ -788,17 +778,17 @@ app.get('/api/unsplash/get-photo/:id', async (req, res) => {
         res.status(response.status).json(data);
     } catch (err) {
         console.error("Unsplash Proxy Error (get-photo):", err);
-        res.status(500).json({ error: 'Failed to fetch from Unsplash (get-photo)', details: err.message });
+        return next({ status: 500, message: 'Failed to fetch from Unsplash (get-photo)', details: err.message });
     }
 });
 
-app.post('/api/unsplash/track-download', async (req, res) => {
+app.post('/api/unsplash/track-download', async (req, res, next) => {
     const { downloadLocation } = req.body;
     const unsplashConfig = apiConfigs.unsplash;
     const apiKeyToUse = process.env.UNSPLASH_API_KEY;
 
     if (!apiKeyToUse) {
-        return res.status(500).json({ error: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
+        return next({ status: 500, message: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
     }
 
     try {
@@ -813,17 +803,17 @@ app.post('/api/unsplash/track-download', async (req, res) => {
         res.status(response.status).send();
     } catch (err) {
         console.error("Unsplash Proxy Error (track-download):", err);
-        res.status(500).json({ error: 'Failed to track download from Unsplash', details: err.message });
+        return next({ status: 500, message: 'Failed to track download from Unsplash', details: err.message });
     }
 });
 
-app.post('/api/unsplash/list-photos', async (req, res) => {
+app.post('/api/unsplash/list-photos', async (req, res, next) => {
     const { options } = req.body;
     const unsplashConfig = apiConfigs.unsplash;
     const apiKeyToUse = process.env.UNSPLASH_API_KEY;
 
     if (!apiKeyToUse) {
-        return res.status(500).json({ error: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
+        return next({ status: 500, message: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
     }
 
     try {
@@ -844,17 +834,17 @@ app.post('/api/unsplash/list-photos', async (req, res) => {
         res.status(response.status).json({ results: data }); // Unsplash returns an array directly for list photos
     } catch (err) {
         console.error("Unsplash Proxy Error (list-photos):", err);
-        res.status(500).json({ error: 'Failed to fetch from Unsplash (list-photos)', details: err.message });
+        return next({ status: 500, message: 'Failed to fetch from Unsplash (list-photos)', details: err.message });
     }
 });
 
-app.post('/api/unsplash/list-collections', async (req, res) => {
+app.post('/api/unsplash/list-collections', async (req, res, next) => {
     const { options } = req.body;
     const unsplashConfig = apiConfigs.unsplash;
     const apiKeyToUse = process.env.UNSPLASH_API_KEY;
 
     if (!apiKeyToUse) {
-        return res.status(500).json({ error: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
+        return next({ status: 500, message: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
     }
 
     try {
@@ -874,18 +864,18 @@ app.post('/api/unsplash/list-collections', async (req, res) => {
         res.status(response.status).json({ results: data });
     } catch (err) {
         console.error("Unsplash Proxy Error (list-collections):", err);
-        res.status(500).json({ error: 'Failed to fetch from Unsplash (list-collections)', details: err.message });
+        return next({ status: 500, message: 'Failed to fetch from Unsplash (list-collections)', details: err.message });
     }
 });
 
-app.post('/api/unsplash/get-collection-photos/:id', async (req, res) => {
+app.post('/api/unsplash/get-collection-photos/:id', async (req, res, next) => {
     const { id } = req.params;
     const { options } = req.body;
     const unsplashConfig = apiConfigs.unsplash;
     const apiKeyToUse = process.env.UNSPLASH_API_KEY;
 
     if (!apiKeyToUse) {
-        return res.status(500).json({ error: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
+        return next({ status: 500, message: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
     }
 
     try {
@@ -906,17 +896,17 @@ app.post('/api/unsplash/get-collection-photos/:id', async (req, res) => {
         res.status(response.status).json({ results: data });
     } catch (err) {
         console.error("Unsplash Proxy Error (get-collection-photos):", err);
-        res.status(500).json({ error: 'Failed to fetch from Unsplash (get-collection-photos)', details: err.message });
+        return next({ status: 500, message: 'Failed to fetch from Unsplash (get-collection-photos)', details: err.message });
     }
 });
 
-app.post('/api/unsplash/list-topics', async (req, res) => {
+app.post('/api/unsplash/list-topics', async (req, res, next) => {
     const { options } = req.body;
     const unsplashConfig = apiConfigs.unsplash;
     const apiKeyToUse = process.env.UNSPLASH_API_KEY;
 
     if (!apiKeyToUse) {
-        return res.status(500).json({ error: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
+        return next({ status: 500, message: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
     }
 
     try {
@@ -937,18 +927,18 @@ app.post('/api/unsplash/list-topics', async (req, res) => {
         res.status(response.status).json({ results: data });
     } catch (err) {
         console.error("Unsplash Proxy Error (list-topics):", err);
-        res.status(500).json({ error: 'Failed to fetch from Unsplash (list-topics)', details: err.message });
+        return next({ status: 500, message: 'Failed to fetch from Unsplash (list-topics)', details: err.message });
     }
 });
 
-app.post('/api/unsplash/get-topic-photos/:id', async (req, res) => {
+app.post('/api/unsplash/get-topic-photos/:id', async (req, res, next) => {
     const { id } = req.params;
     const { options } = req.body;
     const unsplashConfig = apiConfigs.unsplash;
     const apiKeyToUse = process.env.UNSPLASH_API_KEY;
 
     if (!apiKeyToUse) {
-        return res.status(500).json({ error: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
+        return next({ status: 500, message: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
     }
 
     try {
@@ -969,18 +959,18 @@ app.post('/api/unsplash/get-topic-photos/:id', async (req, res) => {
         res.status(response.status).json({ results: data });
     } catch (err) {
         console.error("Unsplash Proxy Error (get-topic-photos):", err);
-        res.status(500).json({ error: 'Failed to fetch from Unsplash (get-topic-photos)', details: err.message });
+        return next({ status: 500, message: 'Failed to fetch from Unsplash (get-topic-photos)', details: err.message });
     }
 });
 
-app.post('/api/unsplash/get-user-photos/:username', async (req, res) => {
+app.post('/api/unsplash/get-user-photos/:username', async (req, res, next) => {
     const { username } = req.params;
     const { options } = req.body;
     const unsplashConfig = apiConfigs.unsplash;
     const apiKeyToUse = process.env.UNSPLASH_API_KEY;
 
     if (!apiKeyToUse) {
-        return res.status(500).json({ error: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
+        return next({ status: 500, message: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
     }
 
     try {
@@ -1002,13 +992,34 @@ app.post('/api/unsplash/get-user-photos/:username', async (req, res) => {
         res.status(response.status).json({ results: data });
     } catch (err) {
         console.error("Unsplash Proxy Error (get-user-photos):", err);
-        res.status(500).json({ error: 'Failed to fetch from Unsplash (get-user-photos)', details: err.message });
+        return next({ status: 500, message: 'Failed to fetch from Unsplash (get-user-photos)', details: err.message });
     }
 });
 
 console.log('[Proxy] Attempting to register /api/* fallback route');
 app.all('/api/*', (req, res) => {
     res.status(404).json({ error: 'API endpoint not found.' });
+});
+
+// Centralized Error Handler
+// This middleware will catch errors from any of the routes
+app.use((err, req, res, next) => {
+    console.error("[Proxy Error Handler]", err);
+
+    // Default error response
+    const status = err.status || 500;
+    const message = err.message || 'Something went wrong on the server.';
+    const details = err.details || (process.env.NODE_ENV === 'development' ? err.stack : undefined);
+
+    // Avoid sending response if one has already been sent
+    if (res.headersSent) {
+        return next(err);
+    }
+
+    res.status(status).json({
+        error: message,
+        ...(details && { details }) // Include details only if they exist
+    });
 });
 
 
