@@ -10,7 +10,7 @@ import { loadConnectionSettings, saveConnectionSettings, isStorageAvailable } fr
 import { CardContent } from './ui';
 import { cn } from '../lib/utils';
 import { CollapsibleCard } from './common/CollapsibleCard';
-import { useConnectionStore } from '../store/connectionStore';
+import { useConnectionManagerStore } from '../store/connectionManagerStore';
 import useApiKeyStore from '../store/apiKeyStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { catppuccinAccentColorsHexMap } from '../types';
@@ -18,10 +18,7 @@ import { catppuccinAccentColorsHexMap } from '../types';
 interface ConnectionFormProps {
   onConnect: (address: string, password?: string) => void;
   onDisconnect: () => void;
-  isConnected: boolean;
-  isConnecting: boolean;
   defaultUrl: string;
-  error: string | null;
   geminiApiKey: string;
   envGeminiApiKey?: string;
   onGeminiApiKeyChange: (key: string) => void;
@@ -41,10 +38,7 @@ interface ConnectionFormProps {
 export const ConnectionForm: React.FC<ConnectionFormProps> = ({
   onConnect,
   onDisconnect,
-  isConnected,
-  isConnecting,
   defaultUrl,
-  error,
   geminiApiKey,
   envGeminiApiKey,
   onGeminiApiKeyChange,
@@ -63,6 +57,9 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
   const storeAccentColorName = useSettingsStore(state => state.theme.accent);
   const accentColor = catppuccinAccentColorsHexMap[storeAccentColorName] || '#89b4fa';
 
+  // Destructure from the new unified store
+  const { isConnected, isConnecting, connectError: error } = useConnectionManagerStore();
+
   const persistedConnectionSettings = isStorageAvailable() ? loadConnectionSettings() : {};
 
   const [address, setAddress] = useState<string>(
@@ -78,7 +75,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
   const [autoConnect, setAutoConnect] = useState<boolean>(
     Boolean(persistedConnectionSettings.autoConnect)
   );
-  const storedGeminiApiKey = useApiKeyStore(state => state.getApiKey(ApiService.GEMINI));
+  const storedGeminiApiKey = useApiKeyStore(state => state.getApiKeyOverride(ApiService.GEMINI));
   const [showApiKeyOverride, setShowApiKeyOverride] = useState<boolean>(
     Boolean(storedGeminiApiKey)
   );

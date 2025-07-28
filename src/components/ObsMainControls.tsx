@@ -7,7 +7,7 @@ import { AddToContextButton } from './common/AddToContextButton';
 import { LockToggle } from './common/LockToggle';
 import { TextInput } from './common/TextInput';
 import { LoadingSpinner } from './common/LoadingSpinner';
-import { useObsStore } from '../store/obsStore';
+import { useConnectionManagerStore } from '../store/connectionManagerStore';
 import { useLockStore } from '../store/lockStore';
 import { COMMON_RESOLUTIONS, COMMON_FPS } from '../constants';
 import { CollapsibleCard } from './common/CollapsibleCard';
@@ -43,7 +43,7 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
     recordStatus,
     videoSettings: initialVideoSettings,
     obsStats,
-  } = useObsStore();
+  } = useConnectionManagerStore();
   const [isLoading, setIsLoading] = React.useState(false);
 
   // Video settings state

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { gsap } from 'gsap';
 import { useSettingsStore } from '../store/settingsStore';
-import { useConnectionStore } from '../store/connectionStore';
+import { useConnectionManagerStore } from '../store/connectionManagerStore';
 import { GeminiService } from '../services/geminiService';
 import { CardContent } from './ui/Card';
 import { Button } from './ui/Button';
@@ -21,7 +21,7 @@ import SpeechGeneration from './SpeechGeneration';
 import MusicGeneration from './MusicGeneration';
 
 const CreateTab: React.FC = () => {
-    const { obsServiceInstance } = useConnectionStore();
+    const { obsServiceInstance } = useConnectionManagerStore();
     const accentColorName = useSettingsStore(state => state.theme.accent);
     const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
 

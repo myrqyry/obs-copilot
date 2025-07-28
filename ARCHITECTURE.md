@@ -1,0 +1,2 @@
+- Consolidated `connectionStore`, `obsStore`, and `streamerBotStore` into a single `connectionManagerStore` to eliminate synchronization issues and provide a single source of truth for connection state.
+- Improved API key management UI in `AdvancedPanel.tsx` to include a visibility toggle for API keys and clearer indications for required vs. optional keys.

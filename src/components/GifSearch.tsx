@@ -4,8 +4,7 @@ import { GifGrid } from './gif/GifGrid';
 import { GifSearchFilters } from './gif/GifSearchFilters';
 import { GifDetailsModal } from './gif/GifDetailsModal';
 import { GiphyResult } from '../types/giphy';
-import { useConnectionStore } from '../store/connectionStore';
-import { useObsStore } from '../store/obsStore';
+import { useConnectionManagerStore } from '../store/connectionManagerStore';
 import { useChatStore } from '../store/chatStore';
 import { generateSourceName } from '../utils/obsSourceHelpers';
 import { copyToClipboard } from '../utils/persistence';
@@ -28,8 +27,7 @@ const GifSearch: React.FC = () => {
 
     const [modalContent, setModalContent] = useState<{ type: 'gif' | 'sticker', data: GiphyResult } | null>(null);
     const [showFilters, setShowFilters] = useState(false);
-    const { obsServiceInstance, isConnected } = useConnectionStore();
-    const { currentProgramScene } = useObsStore();
+    const { obsServiceInstance, isConnected, currentProgramScene } = useConnectionManagerStore();
     const { actions: { addMessage } } = useChatStore();
 
     const handleAddAsBrowserSource = async (url: string, sourceName: string) => {

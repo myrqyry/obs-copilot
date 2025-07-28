@@ -1,6 +1,6 @@
 import React from 'react';
 import { AppTab } from '../../types';
-import { useConnectionStore } from '../../store/connectionStore';
+import { useConnectionManagerStore } from '../../store/connectionManagerStore';
 import { useChatStore } from '../../store/chatStore';
 
 interface TabNavigationProps {
@@ -20,7 +20,7 @@ const tabEmojis: Record<AppTab, string> = {
 };
 
 export const TabNavigation: React.FC<TabNavigationProps> = ({ activeTab, setActiveTab, tabOrder }) => {
-    const { isConnected, isConnecting } = useConnectionStore();
+    const { isConnected, isConnecting } = useConnectionManagerStore();
     const { isGeminiClientInitialized } = useChatStore();
 
     return (
@@ -48,7 +48,7 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({ activeTab, setActi
                         <button
                             key={tab}
                             role="tab"
-                            aria-selected={isActive.toString()}
+                            aria-selected={isActive}
                             id={`tab-${tab}`}
                             onClick={() => setActiveTab(tab)}
                             className={`flex items-center gap-1 xs:gap-0 sm:gap-1 px-2 xs:px-1.5 sm:px-3 py-1.5 sm:py-2 rounded-md font-medium transition-all duration-300 ease-out relative whitespace-nowrap hover:bg-muted/50 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-1 focus:ring-offset-background ${isActive ? 'bg-primary/20 text-primary border border-primary/30 shadow-sm text-xs sm:text-sm' : 'text-muted-foreground text-xs sm:text-sm'}`}

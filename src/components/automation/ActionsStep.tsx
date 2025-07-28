@@ -3,8 +3,7 @@ import { Button } from '../ui/Button';
 import { TextInput } from '../common/TextInput';
 import { AutomationAction } from '../../types/automation';
 import { ObsAction } from '../../types/obsActions';
-import { useObsStore } from '../../store/obsStore';
-import { useAutomationStore } from '../../store/automationStore';
+import { useConnectionManagerStore } from '../../store/connectionManagerStore';
 
 interface ActionsStepProps {
     actions: AutomationAction[];
@@ -19,8 +18,7 @@ export const ActionsStep: React.FC<ActionsStepProps> = ({
     updateAction,
     removeAction,
 }) => {
-    const { scenes } = useObsStore();
-    const { streamerBotServiceInstance } = useAutomationStore();
+    const { scenes, streamerBotServiceInstance } = useConnectionManagerStore();
     const [streamerBotActions, setStreamerBotActions] = React.useState<any[]>([]);
 
     React.useEffect(() => {

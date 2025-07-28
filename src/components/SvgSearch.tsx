@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
-import { useConnectionStore } from '../store/connectionStore';
+import { useConnectionManagerStore } from '../store/connectionManagerStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { useToast } from './ui/use-toast';
 import { generateSourceName } from '../utils/obsSourceHelpers';
@@ -14,7 +14,6 @@ import { FaviconDropdown } from './common/FaviconDropdown';
 import { CollapsibleCard } from './common/CollapsibleCard';
 import { TextInput } from './common/TextInput';
 import { catppuccinAccentColorsHexMap } from '../types';
-import { useObsStore } from '../store/obsStore';
 
 const SVG_APIS = [
     { value: 'iconfinder', label: 'Iconfinder', domain: 'iconfinder.com', icon: '🎨' },
@@ -46,8 +45,7 @@ const SvgSearch: React.FC = () => {
     const [searchError, setSearchError] = useState<string | null>(null);
     const [modalContent, setModalContent] = useState<{ type: 'svg', data: any } | null>(null);
 
-    const { obsServiceInstance, isConnected } = useConnectionStore();
-    const { currentProgramScene } = useObsStore();
+    const { obsServiceInstance, isConnected, currentProgramScene } = useConnectionManagerStore();
     const { toast, error } = useToast();
     const accentColorName = useSettingsStore(state => state.theme.accent);
     const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
@@ -87,7 +85,7 @@ const SvgSearch: React.FC = () => {
         try {
             const limit = 48;
             if (svgApi === 'iconfinder') {
-                const iconfinderKeyOverride = useApiKeyStore.getState().getApiKey(ApiService.ICONFINDER);
+                const iconfinderKeyOverride = useApiKeyStore.getState().getApiKeyOverride(ApiService.ICONFINDER);
                 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
                 const apiUrlPath = isLocal ? '/api/iconfinder' : '/.netlify/functions/proxy?api=iconfinder';
                 const params = new URLSearchParams({

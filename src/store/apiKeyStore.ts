@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
-// Define the services for which API keys can be overridden.
-// Using an enum or a const object for service names can help maintain consistency.
+// Define the services for which API keys could *theoretically* be overridden.
+// This list is now primarily for UI purposes or potential future local overrides,
+// as actual keys are handled server-side.
 export const ApiService = {
   GEMINI: 'gemini',
   PEXELS: 'pexels',
@@ -15,26 +16,24 @@ export const ApiService = {
   CHUTES: 'chutes',
   TENOR: 'tenor',
   WALLHAVEN: 'wallhaven',
-  OPENEMOJI: 'openemoji', // For generic emoji APIs that might need a key
-  UNSPLASH: 'unsplash', // Even if handled differently, store can hold the key
+  OPENEMOJI: 'openemoji',
+  UNSPLASH: 'unsplash',
   // Add other services as needed
 } as const;
 
 export type ApiServiceName = typeof ApiService[keyof typeof ApiService];
 
 interface ApiKeyState {
-  overrides: Partial<Record<ApiServiceName, string>>; // Store API keys as serviceName: apiKey
+  // The 'overrides' now only store user-provided overrides, not sensitive keys.
+  // These overrides are sent to the proxy as 'X-Api-Key' headers.
+  overrides: Partial<Record<ApiServiceName, string>>;
   setApiKey: (serviceName: ApiServiceName, apiKey: string) => void;
   clearApiKey: (serviceName: ApiServiceName) => void;
-  getApiKey: (serviceName: ApiServiceName) => string;
-  getAllKeys: () => Record<string, string>;
+  // This method now only returns the override, as environment variables are not accessed client-side.
+  getApiKeyOverride: (serviceName: ApiServiceName) => string | undefined;
+  // This method is primarily for displaying stored overrides in the UI, not for API calls directly.
+  getAllOverrides: () => Record<string, string>;
 }
-
-// Helper to get environment variables safely
-const getEnvVar = (name: string) => {
-    const env = import.meta.env;
-    return env[name] || '';
-};
 
 const useApiKeyStore = create<ApiKeyState>()(
   persist(
@@ -56,26 +55,16 @@ const useApiKeyStore = create<ApiKeyState>()(
           return { overrides: newOverrides };
         }),
 
-      // The key getter logic with fallback to environment variables
-      getApiKey: (serviceName) => {
+      // This now only returns the stored override, no fallback to client-side env vars.
+      getApiKeyOverride: (serviceName) => {
         const state = get();
-        const override = state.overrides[serviceName];
-        if (override) {
-          return override;
-        }
-        // Fallback to environment variables
-        const envVarName = `VITE_${serviceName.toUpperCase()}_API_KEY`;
-        return getEnvVar(envVarName);
+        return state.overrides[serviceName];
       },
 
-      // Get all keys (overrides and environment variables)
-      getAllKeys: () => {
+      // This now only returns stored overrides.
+      getAllOverrides: () => {
         const state = get();
-        const allKeys: Record<string, string> = {};
-        for (const serviceName of Object.values(ApiService)) {
-            allKeys[serviceName] = state.getApiKey(serviceName);
-        }
-        return allKeys;
+        return { ...state.overrides };
       }
     }),
     {

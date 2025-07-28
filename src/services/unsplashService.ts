@@ -1,4 +1,5 @@
 import axios from 'axios';
+// import { createApi } from 'unsplash-js'; // This is no longer needed as we are proxying all requests.
 
 export interface UnsplashPhoto {
   id: string;
@@ -139,17 +140,13 @@ class UnsplashService {
     orderBy?: 'latest' | 'oldest';
   }): Promise<UnsplashPhoto[]> {
     try {
-      const result = await unsplash.photos.list({
-        page: options?.page || 1,
-        perPage: options?.perPage || 20,
-        orderBy: options?.orderBy as any || 'latest',
+      const response = await axios.post(`${this.proxyEndpoint}/list-photos`, {
+        options: {
+          ...options,
+          type: 'trending' // Add a type to differentiate on the proxy
+        }
       });
-
-      if (result.type === 'success') {
-        return result.response.results as UnsplashPhoto[];
-      } else {
-        throw new Error(`Unsplash API error: ${result.errors?.join(', ')}`);
-      }
+      return response.data.results;
     } catch (error) {
       console.error('Error getting trending Unsplash photos:', error);
       throw error;
@@ -164,16 +161,10 @@ class UnsplashService {
     perPage?: number;
   }): Promise<UnsplashCollection[]> {
     try {
-      const result = await unsplash.collections.list({
-        page: options?.page || 1,
-        perPage: options?.perPage || 20,
+      const response = await axios.post(`${this.proxyEndpoint}/list-collections`, {
+        options,
       });
-
-      if (result.type === 'success') {
-        return result.response.results as UnsplashCollection[];
-      } else {
-        throw new Error(`Unsplash API error: ${result.errors?.join(', ')}`);
-      }
+      return response.data.results;
     } catch (error) {
       console.error('Error getting Unsplash collections:', error);
       throw error;
@@ -189,18 +180,10 @@ class UnsplashService {
     orientation?: 'landscape' | 'portrait' | 'squarish';
   }): Promise<UnsplashPhoto[]> {
     try {
-      const result = await unsplash.collections.getPhotos({
-        collectionId,
-        page: options?.page || 1,
-        perPage: options?.perPage || 20,
-        orientation: options?.orientation,
+      const response = await axios.post(`${this.proxyEndpoint}/get-collection-photos/${collectionId}`, {
+        options,
       });
-
-      if (result.type === 'success') {
-        return result.response.results as UnsplashPhoto[];
-      } else {
-        throw new Error(`Unsplash API error: ${result.errors?.join(', ')}`);
-      }
+      return response.data.results;
     } catch (error) {
       console.error('Error getting collection photos:', error);
       throw error;
@@ -216,17 +199,10 @@ class UnsplashService {
     orderBy?: 'latest' | 'oldest' | 'featured' | 'position';
   }): Promise<UnsplashTopic[]> {
     try {
-      const result = await unsplash.topics.list({
-        page: options?.page || 1,
-        perPage: options?.perPage || 20,
-        orderBy: options?.orderBy as any || 'position',
+      const response = await axios.post(`${this.proxyEndpoint}/list-topics`, {
+        options,
       });
-
-      if (result.type === 'success') {
-        return result.response.results as UnsplashTopic[];
-      } else {
-        throw new Error(`Unsplash API error: ${result.errors?.join(', ')}`);
-      }
+      return response.data.results;
     } catch (error) {
       console.error('Error getting Unsplash topics:', error);
       throw error;
@@ -242,18 +218,10 @@ class UnsplashService {
     orientation?: 'landscape' | 'portrait' | 'squarish';
   }): Promise<UnsplashPhoto[]> {
     try {
-      const result = await unsplash.topics.getPhotos({
-        topicIdOrSlug,
-        page: options?.page || 1,
-        perPage: options?.perPage || 20,
-        orientation: options?.orientation,
+      const response = await axios.post(`${this.proxyEndpoint}/get-topic-photos/${topicIdOrSlug}`, {
+        options,
       });
-
-      if (result.type === 'success') {
-        return result.response.results as UnsplashPhoto[];
-      } else {
-        throw new Error(`Unsplash API error: ${result.errors?.join(', ')}`);
-      }
+      return response.data.results;
     } catch (error) {
       console.error('Error getting topic photos:', error);
       throw error;
@@ -270,19 +238,10 @@ class UnsplashService {
     orientation?: 'landscape' | 'portrait' | 'squarish';
   }): Promise<UnsplashPhoto[]> {
     try {
-      const result = await unsplash.users.getPhotos({
-        username,
-        page: options?.page || 1,
-        perPage: options?.perPage || 20,
-        orderBy: options?.orderBy as any || 'latest',
-        orientation: options?.orientation,
+      const response = await axios.post(`${this.proxyEndpoint}/get-user-photos/${username}`, {
+        options,
       });
-
-      if (result.type === 'success') {
-        return result.response.results as UnsplashPhoto[];
-      } else {
-        throw new Error(`Unsplash API error: ${result.errors?.join(', ')}`);
-      }
+      return response.data.results;
     } catch (error) {
       console.error('Error getting user photos:', error);
       throw error;

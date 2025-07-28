@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from './ui/Button';
 import { TextInput } from './common/TextInput';
 import { Modal } from './common/Modal';
-import { useConnectionStore } from '../store/connectionStore';
+import { useConnectionManagerStore } from '../store/connectionManagerStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { HtmlTemplateService, TemplateConfig } from '../services/htmlTemplateService';
 import { catppuccinAccentColorsHexMap, CatppuccinAccentColorName } from '../types';
@@ -15,7 +15,7 @@ interface HtmlTemplateBuilderProps {
 
 
 const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({ accentColorName }) => {
-    const { obsServiceInstance, currentProgramScene, isConnected } = useConnectionStore();
+    const { obsServiceInstance, currentProgramScene, isConnected } = useConnectionManagerStore();
     const [selectedPreset, setSelectedPreset] = useState<string>('assets-showcase');
     const [customConfig, setCustomConfig] = useState<Partial<TemplateConfig>>({
         layout: 'overlay',

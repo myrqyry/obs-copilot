@@ -2,10 +2,43 @@ import 'dotenv/config';
 import express from 'express';
 import fetch from 'node-fetch';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit'; // Import rate-limit
 const app = express();
+
+// Rate limiting middleware
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again after 15 minutes',
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+
+// Apply rate limiting to all API routes
+app.use('/api/', limiter);
 
 app.use(cors());
 app.use(express.json());
+
+// In-memory cache for API responses
+const cache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+function setCache(key, data) {
+    cache.set(key, { data, timestamp: Date.now() });
+    setTimeout(() => {
+        cache.delete(key);
+    }, CACHE_TTL);
+}
+
+function getCache(key) {
+    const entry = cache.get(key);
+    if (entry && (Date.now() - entry.timestamp < CACHE_TTL)) {
+        return entry.data;
+    }
+    cache.delete(key); // Invalidate if expired
+    return null;
+}
 
 // --- API Configurations ---
 const apiConfigs = {
@@ -95,7 +128,17 @@ const apiConfigs = {
     apiKey: { queryParam: 'api_key', envVars: ['GIPHY_API_KEY', 'VITE_GIPHY_API_KEY'], paramName: 'api_key' },
     requiresKey: true,
     responseDataPath: 'data',
+    cacheable: true, // Mark Giphy as cacheable
     // transformResult: (item) => item,
+  },
+  unsplash: { // Unsplash API
+    label: 'Unsplash',
+    baseUrl: 'https://api.unsplash.com/',
+    paramMappings: {}, // Handled by specific sub-routes
+    authHeader: 'Authorization',
+    apiKey: { envVars: ['UNSPLASH_API_KEY'], prefix: 'Client-ID ' },
+    requiresKey: true,
+    responseDataPath: 'results', // Default for search results
   }
 };
 
@@ -348,6 +391,17 @@ app.get('/api/:apiType', async (req, res) => {
         return res.status(400).json({ error: `Unknown API endpoint: ${req.path}` });
     }
 
+    // Caching check
+    if (apiConfig.cacheable) {
+        const cacheKey = req.originalUrl;
+        const cachedResponse = getCache(cacheKey);
+        if (cachedResponse) {
+            console.log(`[Proxy ${apiType}] Serving from cache: ${cacheKey}`);
+            res.set('Access-Control-Allow-Origin', '*');
+            return res.json(cachedResponse);
+        }
+    }
+
     let apiKeyToUse = req.headers['x-api-key'];
 
     if (!apiKeyToUse && apiConfig.apiKey) {
@@ -379,6 +433,9 @@ app.get('/api/:apiType', async (req, res) => {
 
     try {
         const results = await fetchFromApiHost(apiConfig, req.query, apiKeyToUse);
+        if (apiConfig.cacheable) {
+            setCache(req.originalUrl, results);
+        }
         res.set('Access-Control-Allow-Origin', '*');
         return res.json(results);
     } catch (err) {
@@ -389,7 +446,7 @@ app.get('/api/:apiType', async (req, res) => {
 
 // Allow CORS preflight for all API routes
 const allApiRoutesForOptions = [
-    '/api/:apiType', // Handles all from apiConfigs
+    // '/api/:apiType', // Handles all from apiConfigs - Temporarily removed for debugging
     '/api/favicon',
     '/api/iconfinder/svg',
     '/api/gemini/generate-content',
@@ -397,7 +454,17 @@ const allApiRoutesForOptions = [
     '/api/obs/:action',
     '/api/streamerbot/:action',
     '/api/image',
-    '/api/chutes'
+    '/api/chutes',
+    '/api/unsplash/search-photos',
+    '/api/unsplash/get-random-photo',
+    '/api/unsplash/get-photo/:id',
+    '/api/unsplash/track-download',
+    '/api/unsplash/list-photos',
+    '/api/unsplash/list-collections',
+    '/api/unsplash/get-collection-photos/:id',
+    '/api/unsplash/list-topics',
+    '/api/unsplash/get-topic-photos/:id',
+    '/api/unsplash/get-user-photos/:username',
 ];
 app.options(allApiRoutesForOptions, (req, res) => {
     res.set('Access-Control-Allow-Origin', '*');
@@ -458,6 +525,20 @@ app.post('/api/gemini/generate-image', async (req, res) => {
         return res.status(500).json({ error: 'Gemini API key not set for image generation and no override provided.' });
     }
 
+    // Input validation for image generation
+    const { model, prompt, contents } = req.body;
+
+    if (!prompt && !contents) {
+        return res.status(400).json({ error: 'Missing prompt or contents in request body for image generation.' });
+    }
+    if (prompt && typeof prompt !== 'string') {
+        return res.status(400).json({ error: 'Prompt must be a string for image generation.' });
+    }
+    if (contents && !Array.isArray(contents)) {
+        return res.status(400).json({ error: 'Contents must be an array for image generation.' });
+    }
+    // Further validation could be added for contents array structure if needed
+
     // Placeholder: Actual image generation API endpoint and request structure for Gemini (or other service)
     // When implementing, ensure `apiKeyToUse` is used for the actual API call.
     if (clientApiKey) {
@@ -470,37 +551,34 @@ app.post('/api/gemini/generate-image', async (req, res) => {
     // would need to be determined. This assumes a hypothetical endpoint or a model that handles image prompts.
     // For this example, we'll assume it's a different model or a specific API call.
     // This part would need to be updated with actual Gemini image generation API details.
-    const imageModel = req.body.model || 'gemini-pro-vision'; // Example, might be different
-    // const imageUrl = `https://generativelanguage.googleapis.com/v1beta/models/${imageModel}:generateImage?key=${geminiApiKey}`;
-    console.log(`[Proxy /api/gemini/generate-image] Called with body:`, req.body);
-    // Since the actual Google Gemini API for direct image generation from text like this is typically part of multimodal models
-    // or might have a different request structure, we'll return a placeholder or error for now.
-    // If you have a specific image generation endpoint for Gemini, replace this.
-    console.warn("/api/gemini/generate-image is a placeholder and not fully implemented for actual image generation with Gemini API in this proxy version.");
-    res.status(501).json({
-        error: 'Not Implemented',
-        message: 'Gemini image generation endpoint is not fully configured in the proxy.',
-        details: 'The proxy needs to be updated with the correct Google API for image generation if available directly or via a specific model.'
-    });
-    // Example of how it might look if there was a direct API (this is hypothetical):
-    /*
+    const imageModel = model || 'gemini-pro-vision'; // Default model for image input
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${imageModel}:generateContent?key=${apiKeyToUse}`;
+
     try {
-        const response = await fetch(imageUrl, {
+        const requestBody = {
+            contents: contents || [{
+                parts: [{ text: prompt }]
+            }]
+        };
+
+        const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: req.body.prompt }), // Assuming body has a prompt for image
+            body: JSON.stringify(requestBody),
         });
+
         const data = await response.json();
+
         if (data.error) {
             console.error("Gemini API Error (generate-image):", data.error);
             return res.status(400).json({ error: "Gemini API Error", details: data.error.message || JSON.stringify(data.error) });
         }
-        res.json(data); // data should contain imageUrl
+        res.json(data);
     } catch (err) {
         console.error("Gemini Proxy Fetch Error (generate-image):", err);
         res.status(500).json({ error: 'Failed to fetch from Gemini (generate-image)', details: err.message });
     }
-    */
 });
 
 console.log('[Proxy] Attempting to register /api/obs/:action route');
@@ -522,29 +600,31 @@ app.all('/api/obs/:action', async (req, res) => {
     }
 });
 
-// console.log('[Proxy] Attempting to register /api/streamerbot/:action route');
-// app.all('/api/streamerbot/:action', async (req, res) => {
-//     const streamerBotUrl = process.env.STREAMERBOT_API_URL; // e.g. http://localhost:8080/
-//     if (!streamerBotUrl) {
-//         return res.status(500).json({ error: 'STREAMERBOT_API_URL not set in environment' });
-//     }
-//     // Construct the full URL to Streamer.bot, assuming actions are POST requests to the base URL
-//     // This might need adjustment based on how Streamer.bot's HTTP server actually works.
-//     // Typically, actions are sent as JSON body to a single endpoint if it's a generic action handler.
-//     // If actions are separate paths, then `${streamerBotUrl}${req.params.action}` might be needed.
-//     // For now, assuming a single endpoint that takes action in body or query.
-//     try {
-//         const response = await fetch(`${streamerBotUrl}/${req.params.action}`, { // This should be the Streamer.bot HTTP server URL
-//             method: 'POST', // Streamer.bot actions are typically POST
-//             headers: { 'Content-Type': 'application/json' },
-//             body: JSON.stringify(req.body), // Send the whole body which should contain the action details
-//         });
-//         const data = await response.json();
-//         res.status(response.status).json(data);
-//     } catch (err) {
-//         res.status(500).json({ error: 'Failed to fetch from Streamer.bot', details: err.message });
-//     }
-// });
+console.log('[Proxy] Attempting to register /api/streamerbot/:action route');
+app.all('/api/streamerbot/:action', async (req, res) => {
+    const streamerBotUrl = process.env.STREAMERBOT_API_URL; // e.g. http://localhost:8080/
+    if (!streamerBotUrl) {
+        return res.status(500).json({ error: 'STREAMERBOT_API_API_URL not set in environment' });
+    }
+    // Streamer.bot actions are typically POST requests, sending a JSON body.
+    // The action is usually part of the body, or the path for specific endpoint actions.
+    // Assuming for now it's a generic endpoint that takes action in body or path.
+    // Adjust URL construction based on actual Streamer.bot HTTP server setup.
+    try {
+        const targetUrl = `${streamerBotUrl}${req.params.action}`; // Example: http://localhost:8080/actionName
+        console.log(`[Proxy Streamer.bot] Forwarding to ${targetUrl}`);
+        const response = await fetch(targetUrl, {
+            method: 'POST', // Streamer.bot actions are typically POST
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(req.body), // Forward the entire request body
+        });
+        const data = await response.json();
+        res.status(response.status).json(data);
+    } catch (err) {
+        console.error("Streamer.bot Proxy Fetch Error:", err);
+        res.status(500).json({ error: 'Failed to fetch from Streamer.bot', details: err.message });
+    }
+});
 
 console.log('[Proxy] Attempting to register /api/image route');
 app.get('/api/image', async (req, res) => {
@@ -614,6 +694,315 @@ app.post('/api/chutes', async (req, res) => {
         res.status(response.status).json(data);
     } catch (err) {
         res.status(500).json({ error: 'Failed to fetch from Chute API', details: err.message });
+    }
+});
+
+// Unsplash proxy routes
+app.post('/api/unsplash/search-photos', async (req, res) => {
+    const { query, options } = req.body;
+    const unsplashConfig = apiConfigs.unsplash;
+    const apiKeyToUse = process.env.UNSPLASH_API_KEY; // Only use server-side key
+
+    if (!apiKeyToUse) {
+        return res.status(500).json({ error: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
+    }
+
+    try {
+        const params = new URLSearchParams();
+        if (options) {
+            if (options.page) params.append('page', options.page);
+            if (options.perPage) params.append('per_page', options.perPage);
+            if (options.orientation) params.append('orientation', options.orientation);
+            if (options.orderBy) params.append('order_by', options.orderBy);
+        }
+
+        const url = `${unsplashConfig.baseUrl}search/photos?${params.toString()}`;
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `${unsplashConfig.apiKey.prefix}${apiKeyToUse}`,
+                'Accept-Version': 'v1',
+            }
+        });
+
+        const data = await response.json();
+        res.status(response.status).json(data);
+    } catch (err) {
+        console.error("Unsplash Proxy Error (search-photos):", err);
+        res.status(500).json({ error: 'Failed to fetch from Unsplash (search-photos)', details: err.message });
+    }
+});
+
+app.post('/api/unsplash/get-random-photo', async (req, res) => {
+    const { options } = req.body;
+    const unsplashConfig = apiConfigs.unsplash;
+    const apiKeyToUse = process.env.UNSPLASH_API_KEY;
+
+    if (!apiKeyToUse) {
+        return res.status(500).json({ error: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
+    }
+
+    try {
+        const params = new URLSearchParams();
+        if (options) {
+            if (options.query) params.append('query', options.query);
+            if (options.count) params.append('count', options.count);
+            if (options.orientation) params.append('orientation', options.orientation);
+            if (options.featured) params.append('featured', options.featured);
+            if (options.username) params.append('username', options.username);
+            if (options.collectionIds) params.append('collection', options.collectionIds.join(','));
+            if (options.topicIds) params.append('topics', options.topicIds.join(','));
+        }
+        const url = `${unsplashConfig.baseUrl}photos/random?${params.toString()}`;
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `${unsplashConfig.apiKey.prefix}${apiKeyToUse}`,
+                'Accept-Version': 'v1',
+            }
+        });
+        const data = await response.json();
+        res.status(response.status).json({ photos: data }); // Unsplash returns an array directly for random photos
+    } catch (err) {
+        console.error("Unsplash Proxy Error (get-random-photo):", err);
+        res.status(500).json({ error: 'Failed to fetch from Unsplash (get-random-photo)', details: err.message });
+    }
+});
+
+app.get('/api/unsplash/get-photo/:id', async (req, res) => {
+    const { id } = req.params;
+    const unsplashConfig = apiConfigs.unsplash;
+    const apiKeyToUse = process.env.UNSPLASH_API_KEY;
+
+    if (!apiKeyToUse) {
+        return res.status(500).json({ error: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
+    }
+
+    try {
+        const url = `${unsplashConfig.baseUrl}photos/${id}`;
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `${unsplashConfig.apiKey.prefix}${apiKeyToUse}`,
+                'Accept-Version': 'v1',
+            }
+        });
+        const data = await response.json();
+        res.status(response.status).json(data);
+    } catch (err) {
+        console.error("Unsplash Proxy Error (get-photo):", err);
+        res.status(500).json({ error: 'Failed to fetch from Unsplash (get-photo)', details: err.message });
+    }
+});
+
+app.post('/api/unsplash/track-download', async (req, res) => {
+    const { downloadLocation } = req.body;
+    const unsplashConfig = apiConfigs.unsplash;
+    const apiKeyToUse = process.env.UNSPLASH_API_KEY;
+
+    if (!apiKeyToUse) {
+        return res.status(500).json({ error: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
+    }
+
+    try {
+        const response = await fetch(downloadLocation, {
+            method: 'GET', // Unsplash track download is a GET request to the downloadLocation URL
+            headers: {
+                'Authorization': `${unsplashConfig.apiKey.prefix}${apiKeyToUse}`,
+                'Accept-Version': 'v1',
+            }
+        });
+        // We don't need to return the response body, just confirm success
+        res.status(response.status).send();
+    } catch (err) {
+        console.error("Unsplash Proxy Error (track-download):", err);
+        res.status(500).json({ error: 'Failed to track download from Unsplash', details: err.message });
+    }
+});
+
+app.post('/api/unsplash/list-photos', async (req, res) => {
+    const { options } = req.body;
+    const unsplashConfig = apiConfigs.unsplash;
+    const apiKeyToUse = process.env.UNSPLASH_API_KEY;
+
+    if (!apiKeyToUse) {
+        return res.status(500).json({ error: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
+    }
+
+    try {
+        const params = new URLSearchParams();
+        if (options) {
+            if (options.page) params.append('page', options.page);
+            if (options.perPage) params.append('per_page', options.perPage);
+            if (options.orderBy) params.append('order_by', options.orderBy);
+        }
+        const url = `${unsplashConfig.baseUrl}photos?${params.toString()}`; // Trending photos use the /photos endpoint
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `${unsplashConfig.apiKey.prefix}${apiKeyToUse}`,
+                'Accept-Version': 'v1',
+            }
+        });
+        const data = await response.json();
+        res.status(response.status).json({ results: data }); // Unsplash returns an array directly for list photos
+    } catch (err) {
+        console.error("Unsplash Proxy Error (list-photos):", err);
+        res.status(500).json({ error: 'Failed to fetch from Unsplash (list-photos)', details: err.message });
+    }
+});
+
+app.post('/api/unsplash/list-collections', async (req, res) => {
+    const { options } = req.body;
+    const unsplashConfig = apiConfigs.unsplash;
+    const apiKeyToUse = process.env.UNSPLASH_API_KEY;
+
+    if (!apiKeyToUse) {
+        return res.status(500).json({ error: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
+    }
+
+    try {
+        const params = new URLSearchParams();
+        if (options) {
+            if (options.page) params.append('page', options.page);
+            if (options.perPage) params.append('per_page', options.perPage);
+        }
+        const url = `${unsplashConfig.baseUrl}collections?${params.toString()}`;
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `${unsplashConfig.apiKey.prefix}${apiKeyToUse}`,
+                'Accept-Version': 'v1',
+            }
+        });
+        const data = await response.json();
+        res.status(response.status).json({ results: data });
+    } catch (err) {
+        console.error("Unsplash Proxy Error (list-collections):", err);
+        res.status(500).json({ error: 'Failed to fetch from Unsplash (list-collections)', details: err.message });
+    }
+});
+
+app.post('/api/unsplash/get-collection-photos/:id', async (req, res) => {
+    const { id } = req.params;
+    const { options } = req.body;
+    const unsplashConfig = apiConfigs.unsplash;
+    const apiKeyToUse = process.env.UNSPLASH_API_KEY;
+
+    if (!apiKeyToUse) {
+        return res.status(500).json({ error: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
+    }
+
+    try {
+        const params = new URLSearchParams();
+        if (options) {
+            if (options.page) params.append('page', options.page);
+            if (options.perPage) params.append('per_page', options.perPage);
+            if (options.orientation) params.append('orientation', options.orientation);
+        }
+        const url = `${unsplashConfig.baseUrl}collections/${id}/photos?${params.toString()}`;
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `${unsplashConfig.apiKey.prefix}${apiKeyToUse}`,
+                'Accept-Version': 'v1',
+            }
+        });
+        const data = await response.json();
+        res.status(response.status).json({ results: data });
+    } catch (err) {
+        console.error("Unsplash Proxy Error (get-collection-photos):", err);
+        res.status(500).json({ error: 'Failed to fetch from Unsplash (get-collection-photos)', details: err.message });
+    }
+});
+
+app.post('/api/unsplash/list-topics', async (req, res) => {
+    const { options } = req.body;
+    const unsplashConfig = apiConfigs.unsplash;
+    const apiKeyToUse = process.env.UNSPLASH_API_KEY;
+
+    if (!apiKeyToUse) {
+        return res.status(500).json({ error: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
+    }
+
+    try {
+        const params = new URLSearchParams();
+        if (options) {
+            if (options.page) params.append('page', options.page);
+            if (options.perPage) params.append('per_page', options.perPage);
+            if (options.orderBy) params.append('order_by', options.orderBy);
+        }
+        const url = `${unsplashConfig.baseUrl}topics?${params.toString()}`;
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `${unsplashConfig.apiKey.prefix}${apiKeyToUse}`,
+                'Accept-Version': 'v1',
+            }
+        });
+        const data = await response.json();
+        res.status(response.status).json({ results: data });
+    } catch (err) {
+        console.error("Unsplash Proxy Error (list-topics):", err);
+        res.status(500).json({ error: 'Failed to fetch from Unsplash (list-topics)', details: err.message });
+    }
+});
+
+app.post('/api/unsplash/get-topic-photos/:id', async (req, res) => {
+    const { id } = req.params;
+    const { options } = req.body;
+    const unsplashConfig = apiConfigs.unsplash;
+    const apiKeyToUse = process.env.UNSPLASH_API_KEY;
+
+    if (!apiKeyToUse) {
+        return res.status(500).json({ error: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
+    }
+
+    try {
+        const params = new URLSearchParams();
+        if (options) {
+            if (options.page) params.append('page', options.page);
+            if (options.perPage) params.append('per_page', options.perPage);
+            if (options.orientation) params.append('orientation', options.orientation);
+        }
+        const url = `${unsplashConfig.baseUrl}topics/${id}/photos?${params.toString()}`;
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `${unsplashConfig.apiKey.prefix}${apiKeyToUse}`,
+                'Accept-Version': 'v1',
+            }
+        });
+        const data = await response.json();
+        res.status(response.status).json({ results: data });
+    } catch (err) {
+        console.error("Unsplash Proxy Error (get-topic-photos):", err);
+        res.status(500).json({ error: 'Failed to fetch from Unsplash (get-topic-photos)', details: err.message });
+    }
+});
+
+app.post('/api/unsplash/get-user-photos/:username', async (req, res) => {
+    const { username } = req.params;
+    const { options } = req.body;
+    const unsplashConfig = apiConfigs.unsplash;
+    const apiKeyToUse = process.env.UNSPLASH_API_KEY;
+
+    if (!apiKeyToUse) {
+        return res.status(500).json({ error: 'Unsplash API key not set in server environment (UNSPLASH_API_KEY).' });
+    }
+
+    try {
+        const params = new URLSearchParams();
+        if (options) {
+            if (options.page) params.append('page', options.page);
+            if (options.perPage) params.append('per_page', options.perPage);
+            if (options.orderBy) params.append('order_by', options.orderBy);
+            if (options.orientation) params.append('orientation', options.orientation);
+        }
+        const url = `${unsplashConfig.baseUrl}users/${username}/photos?${params.toString()}`;
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `${unsplashConfig.apiKey.prefix}${apiKeyToUse}`,
+                'Accept-Version': 'v1',
+            }
+        });
+        const data = await response.json();
+        res.status(response.status).json({ results: data });
+    } catch (err) {
+        console.error("Unsplash Proxy Error (get-user-photos):", err);
+        res.status(500).json({ error: 'Failed to fetch from Unsplash (get-user-photos)', details: err.message });
     }
 });
 

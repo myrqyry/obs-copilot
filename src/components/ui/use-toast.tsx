@@ -126,6 +126,7 @@ export function useToast() {
         variant,
       },
     ])
+    console.log(`[useToast] Toast added: id=${id}, title=${title}. Current toasts in this hook:`, toasts);
   }
 
   return {

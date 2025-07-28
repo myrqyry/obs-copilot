@@ -3,8 +3,7 @@ import React, { useState, useEffect } from 'react';
 import AudioOutputSelector from './AudioOutputSelector';
 import { OBS_EVENT_LIST } from '../constants/obsEvents';
 import { useAutomationStore } from '../store/automationStore';
-import { useObsStore } from '../store/obsStore';
-import { useConnectionStore } from '../store/connectionStore';
+import { useConnectionManagerStore } from '../store/connectionManagerStore';
 import { useChatStore } from '../store/chatStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { Button } from './ui/Button';
@@ -20,22 +19,20 @@ import { TextInput } from './common/TextInput';
 import useApiKeyStore, { ApiService, ApiServiceName } from '../store/apiKeyStore';
 
 // Defines the services shown in the UI for API key input
-const PANEL_API_KEY_SERVICES: { id: ApiServiceName; label: string }[] = [
-    { id: ApiService.GEMINI, label: 'Gemini' },
-    { id: ApiService.CHUTES, label: 'Chutes' },
-    { id: ApiService.GIPHY, label: 'Giphy' },
-    // { id: ApiService.TENOR, label: 'Tenor' }, // Assuming Tenor might not be in ApiService yet
-    // { id: ApiService.WALLHAVEN, label: 'Wallhaven' }, // Assuming Wallhaven might not be in ApiService
-    { id: ApiService.IMGUR, label: 'Imgur' },
-    { id: ApiService.PEXELS, label: 'Pexels' },
-    { id: ApiService.PIXABAY, label: 'Pixabay' },
-    { id: ApiService.ICONFINDER, label: 'Iconfinder' },
-    { id: ApiService.DEVIANTART, label: 'DeviantArt' },
-    { id: ApiService.IMGFLIP, label: 'Imgflip' },
-    { id: ApiService.TENOR, label: 'Tenor' },
-    { id: ApiService.WALLHAVEN, label: 'Wallhaven' },
-    { id: ApiService.OPENEMOJI, label: 'OpenEmoji (Generic)' },
-    { id: ApiService.UNSPLASH, label: 'Unsplash' },
+const PANEL_API_KEY_SERVICES: { id: ApiServiceName; label: string; optional?: boolean }[] = [
+    { id: ApiService.GEMINI, label: 'Gemini', optional: false },
+    { id: ApiService.CHUTES, label: 'Chutes', optional: false },
+    { id: ApiService.GIPHY, label: 'Giphy', optional: true },
+    { id: ApiService.IMGUR, label: 'Imgur', optional: true },
+    { id: ApiService.PEXELS, label: 'Pexels', optional: true },
+    { id: ApiService.PIXABAY, label: 'Pixabay', optional: true },
+    { id: ApiService.ICONFINDER, label: 'Iconfinder', optional: true },
+    { id: ApiService.DEVIANTART, label: 'DeviantArt', optional: true },
+    { id: ApiService.IMGFLIP, label: 'Imgflip', optional: true },
+    { id: ApiService.TENOR, label: 'Tenor', optional: true },
+    { id: ApiService.WALLHAVEN, label: 'Wallhaven', optional: true },
+    { id: ApiService.OPENEMOJI, label: 'OpenEmoji (Generic)', optional: true },
+    { id: ApiService.UNSPLASH, label: 'Unsplash', optional: true },
 ];
 
 
@@ -43,14 +40,16 @@ const OBS_SUBSCRIPTIONS_KEY = 'obsEventSubscriptions';
 
 const AdvancedPanel: React.FC = () => {
     // API Key Store
-    const { overrides, setApiKey, clearApiKey, getAllKeys } = useApiKeyStore();
+    const { overrides, setApiKey, clearApiKey, getAllOverrides } = useApiKeyStore();
     // Local state for input fields, to avoid updating Zustand on every keystroke
     const [localApiKeyInputs, setLocalApiKeyInputs] = useState<Partial<Record<ApiServiceName, string>>>({});
+    // Local state for API key input visibility (true = show text, false = hide with password type)
+    const [showApiKey, setShowApiKey] = useState<Partial<Record<ApiServiceName, boolean>>>({});
 
     // Initialize local inputs when component mounts or overrides change
     useEffect(() => {
-        setLocalApiKeyInputs(getAllKeys());
-    }, [overrides]);
+        setLocalApiKeyInputs(getAllOverrides());
+    }, [overrides, getAllOverrides]);
 
 
     // Automation Rules State
@@ -59,10 +58,9 @@ const AdvancedPanel: React.FC = () => {
         deleteAutomationRule,
         toggleAutomationRule,
     } = useAutomationStore((state) => state.actions);
-    const { obsLogFiles, actions: obsActions } = useObsStore();
+    const { obsLogFiles, actions: obsActions, obsServiceInstance, streamerBotServiceInstance } = useConnectionManagerStore();
     const { getLogFiles, uploadLog } = obsActions;
-    const { obsServiceInstance: obsServiceInstanceFromConnection, streamerBotServiceInstance } = useConnectionStore();
-
+    
     const [openAutomation, setOpenAutomation] = useState(false);
     const [openAudio, setOpenAudio] = useState(false);
     const [showRuleBuilder, setShowRuleBuilder] = useState(false);
@@ -145,7 +143,7 @@ const AdvancedPanel: React.FC = () => {
             automationService.initialize(
                 automationRules,
                 streamerBotServiceInstance,
-                obsActions.handleObsAction, // Use the action from obsStore
+                handleObsAction
                 addMessage
             );
         }
@@ -554,6 +552,7 @@ const AdvancedPanel: React.FC = () => {
                                             <AddToContextButton
                                                 contextText={`OBS Log File: ${logFile.fileName || `Log ${index + 1}`}${logFile.fileSize ? ` (${(logFile.fileSize / 1024).toFixed(1)} KB)` : ''}${logFile.creationTime ? ` - Created: ${new Date(logFile.creationTime).toLocaleString()}` : ''}`}
                                                 title="Add log file info to chat context"
+                                                onAddToContext={addToUserDefinedContext}
                                             />
                                         </div>
                                     ))}
@@ -584,18 +583,30 @@ const AdvancedPanel: React.FC = () => {
                             Enter your own API keys for supported services. These are stored only in your browser and used instead of the default keys.
                         </p>
                         <div className="space-y-3">
-                            {PANEL_API_KEY_SERVICES.map(({ id, label }) => (
+                            {PANEL_API_KEY_SERVICES.map(({ id, label, optional }) => (
                                 <div key={id} className="flex flex-col gap-1">
-                                    <label className="text-sm font-medium text-primary">{label} API Key</label>
+                                    <label className="text-sm font-medium text-primary">
+                                        {label} API Key
+                                        {!optional && <span className="text-red-500 ml-1">*</span>}
+                                    </label>
                                     <div className="flex gap-2 items-center">
                                         <input
                                             className="w-full border rounded p-2 bg-background"
-                                            type="password" // Keep as password to obscure key by default
+                                            type={showApiKey[id] ? 'text' : 'password'}
                                             value={localApiKeyInputs[id] || ''}
                                             onChange={e => handleApiKeyInputChange(id, e.target.value)}
                                             placeholder={`Enter your ${label} API key`}
-                                            autoComplete="new-password" // Standard practice for password fields
+                                            autoComplete="new-password"
                                         />
+                                        <Button
+                                            onClick={() => setShowApiKey(prev => ({ ...prev, [id]: !prev[id] }))}
+                                            variant="ghost"
+                                            size="sm"
+                                            className="px-2"
+                                            type="button"
+                                        >
+                                            {showApiKey[id] ? '🙈' : '👁️'}
+                                        </Button>
                                         <Button
                                             onClick={() => handleApiKeySave(id)}
                                             size="sm"
@@ -624,6 +635,16 @@ const AdvancedPanel: React.FC = () => {
                                                 📋
                                             </button>
                                         </div>
+                                    )}
+                                    {!optional && (
+                                        <p className="text-xs text-red-400 mt-1">
+                                            This API key is required for core functionality.
+                                        </p>
+                                    )}
+                                    {optional && (
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            This API key is optional and enhances specific features.
+                                        </p>
                                     )}
                                 </div>
                             ))}

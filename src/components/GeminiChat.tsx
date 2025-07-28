@@ -2,8 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { useGeminiChat } from '../hooks/useGeminiChat';
 import { MessageList } from './chat/MessageList';
 import { ChatInput } from './chat/ChatInput';
-import { useConnectionStore } from '../store/connectionStore';
-import { useObsStore } from '../store/obsStore';
+import { useConnectionManagerStore } from '../store/connectionManagerStore';
 import { useChatStore } from '../store/chatStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { CatppuccinAccentColorName, AppTab, ChatMessage } from '../types';
@@ -39,8 +38,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
     onSetGeminiInitializationError,
     onStreamerBotAction,
 }) => {
-    const { isConnected } = useConnectionStore();
-    const { sources, currentProgramScene, actions: obsActions } = useObsStore();
+    const { isConnected, sources, currentProgramScene, actions: obsActions } = useConnectionManagerStore();
     const { actions: chatActions } = useChatStore();
     const { extraDarkMode, flipSides, theme } = useSettingsStore();
 

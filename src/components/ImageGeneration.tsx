@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
+import { catppuccinAccentColorsHexMap } from '../types';
 import { GiphyResult } from '../types/giphy';
-import { useConnectionStore } from '../store/connectionStore';
+import { useConnectionManagerStore } from '../store/connectionManagerStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { useToast } from './ui/use-toast';
 import { ObsClient } from '../services/ObsClient';
@@ -31,7 +32,7 @@ const ImageGeneration: React.FC = () => {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [modalOpen, setModalOpen] = useState(false);
 
-    const { obsServiceInstance, currentProgramScene, isConnected } = useConnectionStore();
+    const { obsServiceInstance, currentProgramScene, isConnected } = useConnectionManagerStore();
     const { toast } = useToast();
 
     const accentColorName = useSettingsStore(state => state.theme.accent);

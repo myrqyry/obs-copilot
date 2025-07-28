@@ -1,5 +1,4 @@
 import axios from 'axios';
-import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
 
 export class GeminiService {
   private proxyEndpoint: string;
@@ -9,11 +8,10 @@ export class GeminiService {
   }
 
   private getHeaders = () => {
-    const headers: Record<string, string> = {};
-    const apiKey = useApiKeyStore.getState().getApiKeyOverride(ApiService.GEMINI);
-    if (apiKey) {
-      headers['X-Api-Key'] = apiKey;
-    }
+    // API keys are now handled by the proxy, no need to send from client
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
     return headers;
   }
 

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
-import { useConnectionStore } from '../store/connectionStore';
+import { useConnectionManagerStore } from '../store/connectionManagerStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { useToast } from './ui/use-toast';
 import { generateSourceName } from '../utils/obsSourceHelpers';
@@ -16,7 +16,6 @@ import { TextInput } from './common/TextInput';
 import { getProxiedImageUrl } from '../utils/imageProxy';
 import { unsplashService, UnsplashPhoto } from '../services/unsplashService';
 import { catppuccinAccentColorsHexMap } from '../types';
-import { useObsStore } from '../store/obsStore';
 
 const BACKGROUND_APIS = [
     { value: 'wallhaven', label: 'Wallhaven', domain: 'wallhaven.cc', icon: '🖼️' },
@@ -37,22 +36,31 @@ type ModalAction = {
 const getEffectiveApiKey = (serviceName: typeof ApiService): string | undefined => {
     const override = useApiKeyStore.getState().getApiKey(serviceName);
     if (override) return override;
-
-    const viteKeys: Partial<Record<typeof ApiService, string | undefined>> = {
-      [ApiService.UNSPLASH]: import.meta.env.VITE_UNSPLASH_API_KEY,
-      [ApiService.PEXELS]: import.meta.env.VITE_PEXELS_API_KEY,
-      [ApiService.PIXABAY]: import.meta.env.VITE_PIXABAY_API_KEY,
-      [ApiService.DEVIANTART]: import.meta.env.VITE_DEVIANTART_API_KEY,
+    
+    const viteKeys: Record<keyof typeof ApiService, string | undefined> = {
+      GEMINI: import.meta.env.VITE_GEMINI_API_KEY,
+      PEXELS: import.meta.env.VITE_PEXELS_API_KEY,
+      PIXABAY: import.meta.env.VITE_PIXABAY_API_KEY,
+      DEVIANTART: import.meta.env.VITE_DEVIANTART_API_KEY,
+      IMGFLIP: import.meta.env.VITE_IMGFLIP_API_KEY,
+      IMGUR: import.meta.env.VITE_IMGUR_API_KEY,
+      ICONFINDER: import.meta.env.VITE_ICONFINDER_API_KEY,
+      GIPHY: import.meta.env.VITE_GIPHY_API_KEY,
+      CHUTES: import.meta.env.VITE_CHUTES_API_KEY,
+      TENOR: import.meta.env.VITE_TENOR_API_KEY,
+      WALLHAVEN: import.meta.env.VITE_WALLHAVEN_API_KEY,
+      OPENEMOJI: import.meta.env.VITE_OPENEMOJI_API_KEY,
+      UNSPLASH: import.meta.env.VITE_UNSPLASH_API_KEY,
     };
     return viteKeys[serviceName];
-  };
-
-  const getUnsplashApiKey = () => getEffectiveApiKey(ApiService.UNSPLASH);
-  const getPexelsApiKey = () => getEffectiveApiKey(ApiService.PEXELS);
-  const getPixabayApiKey = () => getEffectiveApiKey(ApiService.PIXABAY);
-  const getDeviantArtApiKey = () => getEffectiveApiKey(ApiService.DEVIANTART);
-
-const BackgroundSearch: React.FC = () => {
+      };
+      
+      const getUnsplashApiKey = () => getEffectiveApiKey(ApiService.UNSPLASH);
+      const getPexelsApiKey = () => getEffectiveApiKey(ApiService.PEXELS);
+      const getPixabayApiKey = () => getEffectiveApiKey(ApiService.PIXABAY);
+      const getDeviantArtApiKey = () => getEffectiveApiKey(ApiService.DEVIANTART);
+      
+      const BackgroundSearch: React.FC = () => {
     const [backgroundApi, setBackgroundApi] = useState('wallhaven');
     const [backgroundQuery, setBackgroundQuery] = useState('');
     const [backgroundResults, setBackgroundResults] = useState<any[]>([]);
@@ -62,8 +70,7 @@ const BackgroundSearch: React.FC = () => {
     const [searchError, setSearchError] = useState<string | null>(null);
     const [modalContent, setModalContent] = useState<{ type: 'background', data: any } | null>(null);
 
-    const { obsServiceInstance, isConnected } = useConnectionStore();
-    const { currentProgramScene } = useObsStore();
+    const { obsServiceInstance, isConnected, currentProgramScene } = useConnectionManagerStore();
     const { toast, error } = useToast();
     const accentColorName = useSettingsStore(state => state.theme.accent);
     const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';

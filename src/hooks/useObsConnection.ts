@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import OBSWebSocket from 'obs-websocket-js';
-import { useConnectionStore } from '../store/connectionStore';
-import { useObsStore } from '../store/obsStore';
+import { useConnectionManagerStore } from '../store/connectionManagerStore';
 import { ObsClientImpl } from '../services/ObsClient';
 import { OBSScene, OBSSource } from '../types';
 
@@ -10,8 +9,7 @@ export const useObsConnection = (
     setActiveTab: (tab: any) => void,
     setErrorMessage: (message: string | null) => void,
 ) => {
-    const { setConnecting, setConnected, setDisconnected, setObsServiceInstance } = useConnectionStore(state => state.actions);
-    const { updateOBSData } = useObsStore(state => state.actions);
+    const { setConnecting, setConnected, setDisconnected, setObsServiceInstance, updateOBSData } = useConnectionManagerStore(state => state.actions);
 
     const fetchData = useCallback(async (service: ObsClientImpl) => {
         try {
