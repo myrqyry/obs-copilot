@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import { useStreamerBotConnection } from './hooks/useStreamerBotConnection';
+import { useTheme } from './hooks/useTheme';
 import { Header } from './components/layout/Header';
 import { catppuccinAccentColorsHexMap, catppuccinSecondaryAccentColorsHexMap } from './types';
 import { TabNavigation } from './components/layout/TabNavigation';
@@ -27,6 +28,7 @@ import { DEFAULT_OBS_WEBSOCKET_URL } from './constants';
 import { ObsClientImpl } from './services/ObsClient';
 
 const App: React.FC = () => {
+    useTheme();
     const [activeTab, setActiveTab] = useState<AppTab>(AppTab.GEMINI);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [geminiChatInput, setGeminiChatInput] = useState<string>('');

@@ -51,6 +51,7 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "tailwind-merge": "^2.6.0",
+    "tm-themes": "^1.10.7",
     "zod": "^4.0.11",
     "zustand": "^5.0.5"
   },

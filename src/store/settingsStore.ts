@@ -16,6 +16,7 @@ export interface SettingsState {
   chatBackgroundBlendMode: string;
   chatBubbleBlendMode: string;
   theme: {
+    name: string;
     accent: CatppuccinAccentColorName;
     secondaryAccent: CatppuccinSecondaryAccentColorName;
     userChatBubble: CatppuccinChatBubbleColorName;
@@ -34,6 +35,7 @@ export interface SettingsState {
       type: 'accent' | 'secondaryAccent' | 'userChatBubble' | 'modelChatBubble',
       color: any,
     ) => void;
+    setThemeName: (name: string) => void;
   };
 }
 
@@ -47,6 +49,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   chatBackgroundBlendMode: 'normal',
   chatBubbleBlendMode: 'normal',
   theme: {
+    name: 'catppuccin-mocha',
     accent: 'mauve',
     secondaryAccent: 'flamingo',
     userChatBubble: 'blue',
@@ -90,6 +93,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     },
     setThemeColor: (type, color) => {
       const newTheme = { ...get().theme, [type]: color };
+      set({ theme: newTheme });
+      saveUserSettings({ theme: newTheme });
+    },
+    setThemeName: (name) => {
+      const newTheme = { ...get().theme, name };
       set({ theme: newTheme });
       saveUserSettings({ theme: newTheme });
     },

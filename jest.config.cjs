@@ -32,6 +32,7 @@ module.exports = {
         'node-fetch': '<rootDir>/__tests__/mocks/node-fetch.js', // Mock node-fetch
         '^src/constants$': '<rootDir>/__tests__/mocks/constants.js', // Mock src/constants.ts
         '\\?raw$': '<rootDir>/__tests__/mocks/rawFile.js', // Mock raw file imports
+        'tm-themes': '<rootDir>/__tests__/mocks/tm-themes.js',
       },
       // Removed globals as it's handled by jest.setup.env.js
     },

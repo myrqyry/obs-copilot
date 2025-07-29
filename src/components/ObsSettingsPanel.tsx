@@ -1,4 +1,5 @@
 import { ColorChooser } from './common/ColorChooser';
+import { ThemeChooser } from './common/ThemeChooser';
 import Tooltip from './ui/Tooltip';
 import React, { useState } from 'react';
 import { Modal } from './common/Modal';
@@ -77,6 +78,7 @@ const storeActions = useSettingsStore(state => state.actions);
         emoji="🎨"
         accentColor={accentColor}
       >
+        <ThemeChooser />
         <ColorChooser
           label="🎨 Primary Accent Color"
           onChange={(color) => storeActions.setThemeColor('accent', color)}
