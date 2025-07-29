@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { logger } from '../utils/logger';
+import { aiMiddleware } from './aiMiddleware';
 
-export class GeminiService {
+class GeminiService {
   private proxyEndpoint: string;
 
   constructor() {
@@ -62,3 +63,5 @@ export class GeminiService {
     }
   }
 }
+
+export const geminiService = aiMiddleware(new GeminiService());
