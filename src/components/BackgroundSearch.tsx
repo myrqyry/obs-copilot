@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
+import useApiKeyStore, { ApiService, ApiServiceName } from '../store/apiKeyStore';
 import { useConnectionManagerStore } from '../store/connectionManagerStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { useToast } from './ui/use-toast';
@@ -33,34 +33,34 @@ type ModalAction = {
     icon?: React.ReactNode;
 };
 
-const getEffectiveApiKey = (serviceName: typeof ApiService): string | undefined => {
-    const override = useApiKeyStore.getState().getApiKey(serviceName);
+const getEffectiveApiKey = (serviceName: ApiServiceName): string | undefined => {
+    const override = useApiKeyStore.getState().getApiKeyOverride(serviceName);
     if (override) return override;
-    
-    const viteKeys: Record<keyof typeof ApiService, string | undefined> = {
-      GEMINI: import.meta.env.VITE_GEMINI_API_KEY,
-      PEXELS: import.meta.env.VITE_PEXELS_API_KEY,
-      PIXABAY: import.meta.env.VITE_PIXABAY_API_KEY,
-      DEVIANTART: import.meta.env.VITE_DEVIANTART_API_KEY,
-      IMGFLIP: import.meta.env.VITE_IMGFLIP_API_KEY,
-      IMGUR: import.meta.env.VITE_IMGUR_API_KEY,
-      ICONFINDER: import.meta.env.VITE_ICONFINDER_API_KEY,
-      GIPHY: import.meta.env.VITE_GIPHY_API_KEY,
-      CHUTES: import.meta.env.VITE_CHUTES_API_KEY,
-      TENOR: import.meta.env.VITE_TENOR_API_KEY,
-      WALLHAVEN: import.meta.env.VITE_WALLHAVEN_API_KEY,
-      OPENEMOJI: import.meta.env.VITE_OPENEMOJI_API_KEY,
-      UNSPLASH: import.meta.env.VITE_UNSPLASH_API_KEY,
-    };
-    return viteKeys[serviceName];
-      };
-      
-      const getUnsplashApiKey = () => getEffectiveApiKey(ApiService.UNSPLASH);
-      const getPexelsApiKey = () => getEffectiveApiKey(ApiService.PEXELS);
-      const getPixabayApiKey = () => getEffectiveApiKey(ApiService.PIXABAY);
-      const getDeviantArtApiKey = () => getEffectiveApiKey(ApiService.DEVIANTART);
-      
-      const BackgroundSearch: React.FC = () => {
+
+    switch (serviceName) {
+        case ApiService.GEMINI: return import.meta.env.VITE_GEMINI_API_KEY;
+        case ApiService.PEXELS: return import.meta.env.VITE_PEXELS_API_KEY;
+        case ApiService.PIXABAY: return import.meta.env.VITE_PIXABAY_API_KEY;
+        case ApiService.DEVIANTART: return import.meta.env.VITE_DEVIANTART_API_KEY;
+        case ApiService.IMGFLIP: return import.meta.env.VITE_IMGFLIP_API_KEY;
+        case ApiService.IMGUR: return import.meta.env.VITE_IMGUR_API_KEY;
+        case ApiService.ICONFINDER: return import.meta.env.VITE_ICONFINDER_API_KEY;
+        case ApiService.GIPHY: return import.meta.env.VITE_GIPHY_API_KEY;
+        case ApiService.CHUTES: return import.meta.env.VITE_CHUTES_API_KEY;
+        case ApiService.TENOR: return import.meta.env.VITE_TENOR_API_KEY;
+        case ApiService.WALLHAVEN: return import.meta.env.VITE_WALLHAVEN_API_KEY;
+        case ApiService.OPENEMOJI: return import.meta.env.VITE_OPENEMOJI_API_KEY;
+        case ApiService.UNSPLASH: return import.meta.env.VITE_UNSPLASH_API_KEY;
+        default: return undefined;
+    }
+};
+
+const getUnsplashApiKey = () => getEffectiveApiKey(ApiService.UNSPLASH);
+const getPexelsApiKey = () => getEffectiveApiKey(ApiService.PEXELS);
+const getPixabayApiKey = () => getEffectiveApiKey(ApiService.PIXABAY);
+const getDeviantArtApiKey = () => getEffectiveApiKey(ApiService.DEVIANTART);
+
+const BackgroundSearch: React.FC = () => {
     const [backgroundApi, setBackgroundApi] = useState('wallhaven');
     const [backgroundQuery, setBackgroundQuery] = useState('');
     const [backgroundResults, setBackgroundResults] = useState<any[]>([]);
@@ -71,7 +71,7 @@ const getEffectiveApiKey = (serviceName: typeof ApiService): string | undefined 
     const [modalContent, setModalContent] = useState<{ type: 'background', data: any } | null>(null);
 
     const { obsServiceInstance, isConnected, currentProgramScene } = useConnectionManagerStore();
-    const { toast, error } = useToast();
+    const { toast } = useToast(); // Removed 'error' from destructuring
     const accentColorName = useSettingsStore(state => state.theme.accent);
     const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
 
@@ -79,14 +79,22 @@ const getEffectiveApiKey = (serviceName: typeof ApiService): string | undefined 
 
     const handleAddAsBrowserSource = async (url: string, sourceName: string) => {
         if (!obsServiceInstance || !isConnected || !currentProgramScene) {
-            error('OBS not connected.');
+            toast({
+                title: 'OBS Not Connected',
+                description: 'Please connect to OBS to add sources.',
+                variant: 'destructive',
+            });
             return;
         }
         try {
             await obsServiceInstance.addBrowserSource(currentProgramScene, url, generateSourceName(sourceName));
             toast({ title: 'Success', description: `Added ${sourceName} to OBS.` });
         } catch (err: any) {
-            error(`Failed to add source: ${err.message}`);
+            toast({
+                title: 'Failed to add source',
+                description: err.message,
+                variant: 'destructive',
+            });
         }
     };
 
@@ -122,14 +130,19 @@ const getEffectiveApiKey = (serviceName: typeof ApiService): string | undefined 
                 const res = await fetch(requestUrl);
                 if (!res.ok) {
                     const errorText = await res.text();
-                    throw new Error(`Wallhaven API error: ${res.status} ${res.statusText}`);
+                    throw new Error(`Wallhaven API error: ${res.status} ${res.statusText}. ${errorText}`);
                 }
                 const data = await res.json();
                 setBackgroundResults(data.data.slice(0, 48));
             } else if (backgroundApi === 'unsplash') {
                 const unsplashKey = getUnsplashApiKey();
                 if (!unsplashKey) {
-                    throw new Error('Unsplash API key required');
+                    toast({
+                        title: 'Unsplash API Key Missing',
+                        description: 'Please provide an Unsplash API key to use this service.',
+                        variant: 'destructive',
+                    });
+                    return;
                 }
                 const result = await unsplashService.searchPhotos(backgroundQuery, {
                     perPage: 30,
@@ -150,7 +163,12 @@ const getEffectiveApiKey = (serviceName: typeof ApiService): string | undefined 
             } else if (backgroundApi === 'pexels') {
                 const pexelsKey = getPexelsApiKey();
                 if (!pexelsKey) {
-                    throw new Error('Pexels API key required');
+                    toast({
+                        title: 'Pexels API Key Missing',
+                        description: 'Please provide a Pexels API key to use this service.',
+                        variant: 'destructive',
+                    });
+                    return;
                 }
                 const params = new URLSearchParams({
                     query: backgroundQuery,
@@ -161,7 +179,7 @@ const getEffectiveApiKey = (serviceName: typeof ApiService): string | undefined 
                 const res = await fetch(requestUrl, { headers: { 'X-Api-Key': pexelsKey } });
                 if (!res.ok) {
                     const errorText = await res.text();
-                    throw new Error(`Pexels API error: ${res.status} ${res.statusText}`);
+                    throw new Error(`Pexels API error: ${res.status} ${res.statusText}. ${errorText}`);
                 }
                 const data = await res.json();
                 setBackgroundResults(data.photos?.map((item: any) => ({
@@ -175,7 +193,12 @@ const getEffectiveApiKey = (serviceName: typeof ApiService): string | undefined 
             } else if (backgroundApi === 'pixabay') {
                 const pixabayKey = getPixabayApiKey();
                 if (!pixabayKey) {
-                    throw new Error('Pixabay API key required');
+                    toast({
+                        title: 'Pixabay API Key Missing',
+                        description: 'Please provide a Pixabay API key to use this service.',
+                        variant: 'destructive',
+                    });
+                    return;
                 }
                 const params = new URLSearchParams({
                     q: backgroundQuery,
@@ -187,7 +210,7 @@ const getEffectiveApiKey = (serviceName: typeof ApiService): string | undefined 
                 const res = await fetch(requestUrl, { headers: { 'X-Api-Key': pixabayKey } });
                 if (!res.ok) {
                     const errorText = await res.text();
-                    throw new Error(`Pixabay API error: ${res.status} ${res.statusText}`);
+                    throw new Error(`Pixabay API error: ${res.status} ${res.statusText}. ${errorText}`);
                 }
                 const data = await res.json();
                 setBackgroundResults(data.hits?.map((item: any) => ({
@@ -201,7 +224,12 @@ const getEffectiveApiKey = (serviceName: typeof ApiService): string | undefined 
             } else if (backgroundApi === 'deviantart') {
                 const deviantArtKey = getDeviantArtApiKey();
                 if (!deviantArtKey) {
-                    throw new Error('DeviantArt API key required');
+                    toast({
+                        title: 'DeviantArt API Key Missing',
+                        description: 'Please provide a DeviantArt API key to use this service.',
+                        variant: 'destructive',
+                    });
+                    return;
                 }
                 const params = new URLSearchParams({
                     q: backgroundQuery,
@@ -212,7 +240,7 @@ const getEffectiveApiKey = (serviceName: typeof ApiService): string | undefined 
                 const res = await fetch(requestUrl, { headers: { 'X-Api-Key': deviantArtKey } });
                 if (!res.ok) {
                     const errorText = await res.text();
-                    throw new Error(`DeviantArt API error: ${res.status} ${res.statusText}`);
+                    throw new Error(`DeviantArt API error: ${res.status} ${res.statusText}. ${errorText}`);
                 }
                 const data = await res.json();
                 setBackgroundResults(data.results?.map((item: any) => ({
@@ -228,7 +256,7 @@ const getEffectiveApiKey = (serviceName: typeof ApiService): string | undefined 
                 const res = await fetch(requestUrl);
                 if (!res.ok) {
                     const errorText = await res.text();
-                    throw new Error(`ArtStation API error: ${res.status} ${res.statusText}`);
+                    throw new Error(`ArtStation API error: ${res.status} ${res.statusText}. ${errorText}`);
                 }
                 const data = await res.json();
                 if (data.error && data.message) {
@@ -246,10 +274,14 @@ const getEffectiveApiKey = (serviceName: typeof ApiService): string | undefined 
         } catch (err: any) {
             console.error('Backgrounds fetch error:', err);
             const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-            error(`Error fetching backgrounds: ${errorMessage}`);
+            toast({
+                title: 'Error fetching backgrounds',
+                description: errorMessage,
+                variant: 'destructive',
+            });
         }
         setBackgroundLoading(false);
-    }, [backgroundApi, backgroundQuery, obsServiceInstance, currentProgramScene, isConnected, toast, error]);
+    }, [backgroundApi, backgroundQuery, obsServiceInstance, currentProgramScene, isConnected, toast]);
 
     const getPaginatedItems = (items: any[], page: number) => {
         const start = page * ITEMS_PER_PAGE;

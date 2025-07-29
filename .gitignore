@@ -79,6 +79,7 @@ desktop.ini
 
 # IDE specific files
 .idea/
+.kilocode
 .vscode/
 *.sublime-*
 

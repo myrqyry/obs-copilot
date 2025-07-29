@@ -364,13 +364,16 @@ async function fetchAndServeFavicon(req, res, next) {
 console.log('[Proxy] Attempting to register /api/favicon route');
 app.get('/api/favicon', fetchAndServeFavicon);
 
-// --- Unified Path-Based Proxy Endpoint ---
-const pathBasedApiRoutes = Object.keys(apiConfigs).map(key => `/api/${key}`);
+const pathBasedApiRoutes = Object.keys(apiConfigs).map(key => {
+    console.log(`[Proxy] Registering path-based API route: /api/${key}`);
+    return `/api/${key}`;
+});
 
 console.log('[Proxy] Attempting to register path-based API routes:', pathBasedApiRoutes);
 app.get('/api/:apiType', async (req, res, next) => {
     const apiType = req.params.apiType;
     const apiConfig = apiConfigs[apiType];
+    console.log(`[Proxy] Handling request for /api/${apiType}`);
 
     if (!apiConfig) {
         return next({ status: 400, message: `Unknown API endpoint: ${req.path}` });
@@ -436,7 +439,7 @@ app.get('/api/:apiType', async (req, res, next) => {
 
 // Allow CORS preflight for all API routes
 const allApiRoutesForOptions = [
-    // '/api/:apiType', // Handles all from apiConfigs - Temporarily removed for debugging
+    '/api/:apiType', // Handles all from apiConfigs
     '/api/favicon',
     '/api/iconfinder/svg',
     '/api/gemini/generate-content',
@@ -456,12 +459,13 @@ const allApiRoutesForOptions = [
     '/api/unsplash/get-topic-photos/:id',
     '/api/unsplash/get-user-photos/:username',
 ];
-app.options(allApiRoutesForOptions, (req, res) => {
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-    res.set('Access-Control-Allow-Headers', 'Content-Type,Authorization');
-    res.sendStatus(200);
-});
+// Temporarily disable app.options for allApiRoutesForOptions to debug TypeError
+// app.options(allApiRoutesForOptions, (req, res) => {
+//     res.set('Access-Control-Allow-Origin', '*');
+//     res.set('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+//     res.set('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+//     res.sendStatus(200);
+// });
 
 
 console.log('[Proxy] Attempting to register /api/gemini/generate-content route');

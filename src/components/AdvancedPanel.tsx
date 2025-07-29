@@ -140,19 +140,19 @@ const AdvancedPanel: React.FC = () => {
 
     // Initialize automation service when services are available
     useEffect(() => {
-        if (obsServiceInstanceFromConnection || streamerBotServiceInstance) {
+        if (obsServiceInstance || streamerBotServiceInstance) {
             automationService.initialize(
                 automationRules,
                 streamerBotServiceInstance,
-                handleObsAction
+                obsActions.handleObsAction,
                 addMessage
             );
         }
-    }, [obsServiceInstanceFromConnection, streamerBotServiceInstance, automationRules, obsActions.handleObsAction, addMessage]);
+    }, [obsServiceInstance, streamerBotServiceInstance, automationRules, obsActions.handleObsAction, addMessage]);
 
     // Wire up event subscriptions when obsServiceInstance or obsEventSubscriptions change
     useEffect(() => {
-        if (!obsServiceInstanceFromConnection) return;
+        if (!obsServiceInstance) return;
         // Build handlers for all checked events
         const handlers: Record<string, (...args: any[]) => void> = {};
         obsEventSubscriptions.forEach(eventName => {
@@ -167,8 +167,8 @@ const AdvancedPanel: React.FC = () => {
                 automationService.processEvent(eventName, event);
             };
         });
-        obsServiceInstanceFromConnection.subscribeToEvents(handlers);
-    }, [obsServiceInstanceFromConnection, obsEventSubscriptions, addMessage]);
+        obsServiceInstance.subscribeToEvents(handlers);
+    }, [obsServiceInstance, obsEventSubscriptions, addMessage]);
 
     // Automation rule handlers
     const handleCreateRule = (eventName?: string) => {

@@ -46,7 +46,7 @@ const SvgSearch: React.FC = () => {
     const [modalContent, setModalContent] = useState<{ type: 'svg', data: any } | null>(null);
 
     const { obsServiceInstance, isConnected, currentProgramScene } = useConnectionManagerStore();
-    const { toast, error } = useToast();
+    const { toast } = useToast();
     const accentColorName = useSettingsStore(state => state.theme.accent);
     const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
 
@@ -54,14 +54,22 @@ const SvgSearch: React.FC = () => {
 
     const handleAddSvgAsBrowserSource = async (svg: string, sourceName: string) => {
         if (!obsServiceInstance || !isConnected || !currentProgramScene) {
-            error('OBS not connected.');
+            toast({
+                title: 'OBS Not Connected',
+                description: 'Please connect to OBS to add sources.',
+                variant: 'destructive',
+            });
             return;
         }
         try {
             await obsServiceInstance.addSvgAsBrowserSource(currentProgramScene, svg, generateSourceName(sourceName));
             toast({ title: 'Success', description: `Added ${sourceName} to OBS.` });
         } catch (err: any) {
-            error(`Failed to add source: ${err.message}`);
+            toast({
+                title: 'Failed to add source',
+                description: err.message,
+                variant: 'destructive',
+            });
         }
     };
 
@@ -101,8 +109,8 @@ const SvgSearch: React.FC = () => {
 
                 const res = await fetch(requestUrl, { headers });
                 if (!res.ok) {
-                     const errorData = await res.json().catch(() => ({ details: `Failed to parse error from ${svgApi} proxy` }));
-                    throw new Error(errorData.details || `${svgApi} API error: ${res.status}`);
+                     const errorText = await res.text();
+                        throw new Error(`${svgApi} API error: ${res.status} ${res.statusText}. ${errorText}`);
                 }
                 const data = await res.json();
                 const icons = (data.icons || []).map((icon: any) => {
@@ -139,10 +147,14 @@ const SvgSearch: React.FC = () => {
         } catch (err: any) {
             console.error('SVG fetch error:', err);
             const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-            error(`Error fetching SVGs: ${errorMessage}`);
+            toast({
+                title: 'Error fetching SVGs',
+                description: errorMessage,
+                variant: 'destructive',
+            });
         }
         setSvgLoading(false);
-    }, [svgApi, svgQuery, obsServiceInstance, isConnected, currentProgramScene, toast, error]);
+    }, [svgApi, svgQuery, obsServiceInstance, isConnected, currentProgramScene, toast]);
 
     const getPaginatedItems = (items: any[], page: number) => {
         const start = page * ITEMS_PER_PAGE;
