@@ -6,13 +6,18 @@ let server;
 let app;
 
 beforeAll((done) => {
-    app = require('../proxy.mjs').default;
-    server = http.createServer(app);
-    server.listen(3002, done);
+
+    const proxyApp = require('../proxy.mjs').default;
+    app = proxyApp;
+    server = app.listen(3002, done);
 });
 
 afterAll((done) => {
-    server.close(done);
+    if (server) {
+        server.close(done);
+    } else {
+        done();
+    }
 });
 
 console.log('Running proxy.integration.test.js');

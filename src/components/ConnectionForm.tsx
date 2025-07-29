@@ -14,6 +14,8 @@ import { useConnectionManagerStore } from '../store/connectionManagerStore';
 import useApiKeyStore from '../store/apiKeyStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { catppuccinAccentColorsHexMap } from '../types';
+import { z, ZodError } from 'zod';
+import { obsConnectionSchema, streamerBotConnectionSchema, geminiApiKeySchema } from '../lib/validations';
 
 interface ConnectionFormProps {
   onConnect: (address: string, password?: string) => void;
@@ -80,6 +82,12 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
     Boolean(storedGeminiApiKey)
   );
 
+  const [obsAddressError, setObsAddressError] = useState<string | undefined>(undefined);
+  const [obsPasswordError, setObsPasswordError] = useState<string | undefined>(undefined);
+  const [streamerBotAddressError, setStreamerBotAddressError] = useState<string | undefined>(undefined);
+  const [streamerBotPortError, setStreamerBotPortError] = useState<string | undefined>(undefined);
+  const [geminiApiKeyError, setGeminiApiKeyError] = useState<string | undefined>(undefined);
+
   const [obsExpanded, setObsExpanded] = useState<boolean>(true);
   const [geminiExpanded, setGeminiExpanded] = useState<boolean>(true);
   const [streamerBotExpanded, setStreamerBotExpanded] = useState<boolean>(false);
@@ -109,7 +117,30 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setHasAttemptedConnect(true);
-    if (!isConnected) {
+
+    let obsValidationSuccess = true;
+    try {
+      obsConnectionSchema.parse({
+        obsWebSocketUrl: address,
+        obsPassword: showPasswordField ? password : undefined,
+      });
+      setObsAddressError(undefined);
+      setObsPasswordError(undefined);
+    } catch (err) {
+      if (err instanceof ZodError) {
+        obsValidationSuccess = false;
+        err.issues.forEach((validationError) => {
+          if (validationError.path[0] === 'obsWebSocketUrl') {
+            setObsAddressError(validationError.message);
+          }
+          if (validationError.path[0] === 'obsPassword') {
+            setObsPasswordError(validationError.message);
+          }
+        });
+      }
+    }
+
+    if (!isConnected && obsValidationSuccess) {
       if (isStorageAvailable()) {
         saveConnectionSettings({
           obsWebSocketUrl: address,
@@ -124,6 +155,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newAddress = e.target.value;
     setAddress(newAddress);
+    setObsAddressError(undefined); // Clear error on change
     if (isStorageAvailable()) {
       saveConnectionSettings({ obsWebSocketUrl: newAddress });
     }
@@ -132,6 +164,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newPassword = e.target.value;
     setPassword(newPassword);
+    setObsPasswordError(undefined); // Clear error on change
   };
 
   const handleAutoConnectChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -239,8 +272,8 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
                   onChange={handleAddressChange}
                   disabled={isConnected || isConnecting}
                   placeholder="ws://localhost:4455"
-                  // accentColorName={storeAccentColorName} // Removed accentColorName
                   size="sm"
+                  error={obsAddressError}
                 />
               </div>
               <div className="flex flex-col xs:flex-row xs:items-center space-y-2 xs:space-y-0 xs:space-x-2 lg:col-span-2">
@@ -282,9 +315,9 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
                   onChange={handlePasswordChange}
                   disabled={isConnected || isConnecting}
                   placeholder="Enter OBS WebSocket password"
-                  // accentColorName={storeAccentColorName} // Removed accentColorName
                   size="sm"
                   autoComplete="current-password"
+                  error={obsPasswordError}
                 />
               </div>
             )}
@@ -342,12 +375,68 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
           </div>
           <div className="space-y-2 sm:space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <TextInput label="Address" id="streamerbot-address" type="text" value={streamerBotAddress || 'localhost'} onChange={(e) => setStreamerBotAddress(e.target.value || 'localhost')} className="text-sm" size="sm" />
-              <TextInput label="Port" id="streamerbot-port" type="text" value={streamerBotPort || '8080'} onChange={(e) => setStreamerBotPort(e.target.value || '8080')} className="text-sm" size="sm" />
+              <TextInput
+                label="Address"
+                id="streamerbot-address"
+                type="text"
+                value={streamerBotAddress || 'localhost'}
+                onChange={(e) => {
+                  setStreamerBotAddress(e.target.value || 'localhost');
+                  setStreamerBotAddressError(undefined);
+                }}
+                className="text-sm"
+                size="sm"
+                error={streamerBotAddressError}
+              />
+              <TextInput
+                label="Port"
+                id="streamerbot-port"
+                type="text"
+                value={streamerBotPort || '8080'}
+                onChange={(e) => {
+                  setStreamerBotPort(e.target.value || '8080');
+                  setStreamerBotPortError(undefined);
+                }}
+                className="text-sm"
+                size="sm"
+                error={streamerBotPortError}
+              />
             </div>
             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
               {!isStreamerBotConnected ? (
-                <Button onClick={onStreamerBotConnect} disabled={!(streamerBotAddress || 'localhost').trim() || !(streamerBotPort || '8080').trim() || isStreamerBotConnecting} isLoading={isStreamerBotConnecting} size="sm" className="flex-1">
+                <Button
+                  onClick={() => {
+                    let streamerBotValidationSuccess = true;
+                    try {
+                      streamerBotConnectionSchema.parse({
+                        streamerBotAddress: streamerBotAddress || 'localhost',
+                        streamerBotPort: streamerBotPort || '8080',
+                      });
+                      setStreamerBotAddressError(undefined);
+                      setStreamerBotPortError(undefined);
+                    } catch (err) {
+                      if (err instanceof ZodError) {
+                        streamerBotValidationSuccess = false;
+                        err.issues.forEach((validationError) => {
+                          if (validationError.path[0] === 'streamerBotAddress') {
+                            setStreamerBotAddressError(validationError.message);
+                          }
+                          if (validationError.path[0] === 'streamerBotPort') {
+                            setStreamerBotPortError(validationError.message);
+                          }
+                        });
+                      }
+                    }
+
+                    if (streamerBotValidationSuccess && onStreamerBotConnect) {
+                      onStreamerBotConnect();
+                    }
+                  }}
+                  disabled={isStreamerBotConnecting || !!streamerBotAddressError || !!streamerBotPortError}
+                  isLoading={isStreamerBotConnecting}
+                  size="sm"
+                  className="flex-1"
+                >
                   {isStreamerBotConnecting ? 'Connecting...' : 'Connect'}
                 </Button>
               ) : (
@@ -422,12 +511,93 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
             <form onSubmit={(e) => { e.preventDefault(); }}>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 items-end">
                 <div className="md:col-span-2 lg:col-span-2">
-                  <TextInput label={`API Key ${envGeminiApiKey ? '(Override Environment)' : '(Required)'}`} id="gemini-api-key" name="gemini-api-key" type="password" value={localGeminiKey} onChange={handleLocalGeminiKeyChange} placeholder={envGeminiApiKey ? "Leave empty to use environment variable" : "Enter your Gemini API Key"} size="sm" />
+                  <TextInput
+                    label={`API Key ${envGeminiApiKey ? '(Override Environment)' : '(Required)'}`}
+                    id="gemini-api-key"
+                    name="gemini-api-key"
+                    type="password"
+                    value={localGeminiKey}
+                    onChange={(e) => {
+                      handleLocalGeminiKeyChange(e);
+                      setGeminiApiKeyError(undefined);
+                    }}
+                    placeholder={envGeminiApiKey ? "Leave empty to use environment variable" : "Enter your Gemini API Key"}
+                    size="sm"
+                    error={geminiApiKeyError}
+                  />
                 </div>
                 <div className="flex gap-1 sm:gap-2">
-                  <Button type="button" variant="secondary" size="sm" onClick={async () => { if (navigator.clipboard) { try { const text = await navigator.clipboard.readText(); setLocalGeminiKey(text); onGeminiApiKeyChange(text); } catch (err) { console.error("Failed to read clipboard:", err); }}}} className="flex-1">📋 Paste</Button>
-                  {localGeminiKey && (<Button type="button" variant="secondary" size="sm" onClick={() => { setLocalGeminiKey(''); onGeminiApiKeyChange(''); }} className="flex-1">🗑️ Clear</Button>)}
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={async () => {
+                      if (navigator.clipboard) {
+                        try {
+                          const text = await navigator.clipboard.readText();
+                          setLocalGeminiKey(text);
+                          onGeminiApiKeyChange(text);
+                          setGeminiApiKeyError(undefined);
+                        } catch (err) {
+                          console.error("Failed to read clipboard:", err);
+                        }
+                      }
+                    }}
+                    className="flex-1"
+                  >
+                    📋 Paste
+                  </Button>
+                  {localGeminiKey && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setLocalGeminiKey('');
+                        onGeminiApiKeyChange('');
+                        setGeminiApiKeyError(undefined);
+                      }}
+                      className="flex-1"
+                    >
+                      🗑️ Clear
+                    </Button>
+                  )}
                 </div>
+              </div>
+              <div className="flex justify-start pt-1">
+                <Button
+                  type="button"
+                  variant="default"
+                  size="sm"
+                  onClick={() => {
+                    if (showApiKeyOverride) {
+                      let geminiValidationSuccess = true;
+                      try {
+                        geminiApiKeySchema.parse({
+                          geminiApiKey: localGeminiKey,
+                        });
+                        setGeminiApiKeyError(undefined);
+                      } catch (err) {
+                        if (err instanceof ZodError) {
+                          geminiValidationSuccess = false;
+                          err.issues.forEach((validationError) => {
+                            if (validationError.path[0] === 'geminiApiKey') {
+                              setGeminiApiKeyError(validationError.message);
+                            }
+                          });
+                        }
+                      }
+                      if (geminiValidationSuccess) {
+                        onGeminiApiKeyChange(localGeminiKey);
+                      }
+                    } else {
+                      onGeminiApiKeyChange(localGeminiKey);
+                    }
+                  }}
+                  disabled={showApiKeyOverride && (localGeminiKey.trim() === '' || !!geminiApiKeyError)}
+                >
+                  Save API Key
+                </Button>
               </div>
             </form>
           )}

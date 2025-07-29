@@ -1000,9 +1000,9 @@ app.post('/api/unsplash/get-user-photos/:username', async (req, res, next) => {
     }
 });
 
-console.log('[Proxy] Attempting to register /api/* fallback route');
-app.all('/api/*', (req, res) => {
-    res.status(404).json({ error: 'API endpoint not found.' });
+app.use('/api', (req, res) => {
+    // If we reach here, it means no specific API route handled the request.
+    res.status(404).json({ error: `API endpoint not found: ${req.originalUrl}` });
 });
 
 // Centralized Error Handler
@@ -1028,6 +1028,6 @@ app.use((err, req, res, next) => {
 
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`Proxy server running on port ${PORT}`));
+// app.listen(PORT, () => console.log(`Proxy server running on port ${PORT}`)); // Removed for testing purposes
 
 export default app;

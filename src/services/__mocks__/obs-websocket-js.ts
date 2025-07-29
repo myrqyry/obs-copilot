@@ -1,11 +1,25 @@
-const obsWebSocketMock = {
-    default: jest.fn().mockImplementation(() => ({
-        connect: jest.fn().mockResolvedValue(undefined),
-        disconnect: jest.fn().mockResolvedValue(undefined),
-        call: jest.fn().mockResolvedValue(undefined),
-        on: jest.fn(),
-        off: jest.fn(),
-    })),
-};
+const mockConnect = jest.fn();
+const mockDisconnect = jest.fn();
+const mockCall = jest.fn();
+const mockOn = jest.fn();
 
-export = obsWebSocketMock;
+const OBSWebSocket = jest.fn().mockImplementation(() => {
+  return {
+    connect: mockConnect,
+    disconnect: mockDisconnect,
+    call: mockCall,
+    on: mockOn,
+    // Add other methods that might be called on the OBSWebSocket instance
+  };
+});
+
+// Mock the default export
+export default OBSWebSocket;
+
+// Also export named mocks if they are imported directly (though not the case in ObsClient.ts)
+export {
+  mockConnect,
+  mockDisconnect,
+  mockCall,
+  mockOn,
+};

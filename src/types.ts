@@ -56,7 +56,7 @@ export interface ChatMessage {
   text: string;
   timestamp: Date;
   sources?: GroundingChunk[];
-  type?: "source-prompt" | "choice-prompt";
+  type?: 'source-prompt' | 'choice-prompt';
   sourcePrompt?: string;
   showSuggestions?: boolean;
   choices?: string[];
@@ -72,13 +72,13 @@ export interface GroundingChunk {
 }
 
 export enum AppTab {
-  CONNECTIONS = "Connections",
-  OBS_STUDIO = "OBS Studio",
-  SETTINGS = "Settings",
-  GEMINI = "Gemini",
-  STREAMING_ASSETS = "Streaming Assets",
-  CREATE = "Create",
-  ADVANCED = "Advanced"
+  CONNECTIONS = 'Connections',
+  OBS_STUDIO = 'OBS Studio',
+  SETTINGS = 'Settings',
+  GEMINI = 'Gemini',
+  STREAMING_ASSETS = 'Streaming Assets',
+  CREATE = 'Create',
+  ADVANCED = 'Advanced',
 }
 
 import { catppuccinMochaColors } from './constants';
@@ -86,7 +86,19 @@ import { catppuccinMochaColors } from './constants';
 export type CatppuccinColorName = keyof typeof catppuccinMochaColors;
 
 export type CatppuccinAccentColorName =
-  | 'sky' | 'mauve' | 'pink' | 'green' | 'teal' | 'peach' | 'yellow' | 'red' | 'flamingo' | 'rosewater' | 'sapphire' | 'blue' | 'lavender';
+  | 'sky'
+  | 'mauve'
+  | 'pink'
+  | 'green'
+  | 'teal'
+  | 'peach'
+  | 'yellow'
+  | 'red'
+  | 'flamingo'
+  | 'rosewater'
+  | 'sapphire'
+  | 'blue'
+  | 'lavender';
 
 export const catppuccinAccentColorsHexMap: Record<CatppuccinAccentColorName, string> = {
   sky: catppuccinMochaColors.sky,
@@ -106,10 +118,14 @@ export const catppuccinAccentColorsHexMap: Record<CatppuccinAccentColorName, str
 
 // For secondary accent, we can reuse the same set of colors
 export type CatppuccinSecondaryAccentColorName = CatppuccinAccentColorName;
-export const catppuccinSecondaryAccentColorsHexMap: Record<CatppuccinSecondaryAccentColorName, string> = catppuccinAccentColorsHexMap;
+export const catppuccinSecondaryAccentColorsHexMap: Record<
+  CatppuccinSecondaryAccentColorName,
+  string
+> = catppuccinAccentColorsHexMap;
 
 // For chat bubbles, we can also reuse the same accent colors
 export type CatppuccinChatBubbleColorName = CatppuccinAccentColorName;
-export const catppuccinChatBubbleColorsHexMap: Record<CatppuccinChatBubbleColorName, string> = catppuccinAccentColorsHexMap;
+export const catppuccinChatBubbleColorsHexMap: Record<CatppuccinChatBubbleColorName, string> =
+  catppuccinAccentColorsHexMap;
 
 export { catppuccinMochaColors };

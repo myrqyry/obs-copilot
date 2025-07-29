@@ -1,18 +1,23 @@
 const request = require('supertest');
 const fetch = require('node-fetch');
-jest.mock('node-fetch');
+
 
 describe('Proxy Unit Tests', () => {
     let app;
     let server;
+
     beforeAll((done) => {
-        const module = require('../proxy.mjs');
-        app = module.default;
+        const proxyApp = require('../proxy.mjs').default;
+        app = proxyApp;
         server = app.listen(3003, done);
     });
 
     afterAll((done) => {
-        server.close(done);
+        if (server) {
+            server.close(done);
+        } else {
+            done();
+        }
     });
 
 

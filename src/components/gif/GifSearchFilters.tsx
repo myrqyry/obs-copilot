@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '../ui/Button';
 import { FaviconDropdown } from '../common/FaviconDropdown';
 import { TextInput } from '../common/TextInput';
+import { z, ZodError } from 'zod';
+import { gifSearchSchema } from '../../lib/validations';
 
 const GIF_APIS = [
     { value: 'giphy', label: 'Giphy', domain: 'giphy.com', icon: '🎬' },
@@ -40,15 +42,34 @@ export const GifSearchFilters: React.FC<GifSearchFiltersProps> = ({
     showFilters,
     setShowFilters,
 }) => {
+    const [error, setError] = useState<string | undefined>(undefined);
+
+    const handleValidatedSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            gifSearchSchema.parse({ gifQuery });
+            setError(undefined);
+            handleGifSearch(e);
+        } catch (err) {
+            if (err instanceof ZodError) {
+                setError(err.issues[0].message);
+            }
+        }
+    };
+
     return (
-        <form onSubmit={handleGifSearch} className="space-y-1">
+        <form onSubmit={handleValidatedSearch} className="space-y-1">
             <div className="flex items-center gap-1">
                 <TextInput
                     type="text"
                     value={gifQuery}
-                    onChange={(e) => setGifQuery(e.target.value)}
+                    onChange={(e) => {
+                        setGifQuery(e.target.value);
+                        if (error) setError(undefined);
+                    }}
                     placeholder="Search for GIFs..."
                     className="flex-grow"
+                    error={error}
                 />
                 <FaviconDropdown
                     options={GIF_APIS}
@@ -60,6 +81,7 @@ export const GifSearchFilters: React.FC<GifSearchFiltersProps> = ({
                     {gifLoading ? 'Searching...' : 'Search'}
                 </Button>
             </div>
+            {error && <p className="text-destructive text-xs mt-1">{error}</p>}
             <div className="flex flex-wrap items-center gap-2 text-xs">
                 <button
                     type="button"

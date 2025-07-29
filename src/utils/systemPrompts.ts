@@ -1,38 +1,43 @@
 // Utility functions for building system prompts for different services
 
 export interface ObsData {
-    scenes: any[];
-    currentProgramScene?: string;
-    sources: any[];
-    streamStatus?: any;
-    recordStatus?: any;
-    videoSettings?: any;
+  scenes: any[];
+  currentProgramScene?: string;
+  sources: any[];
+  streamStatus?: any;
+  recordStatus?: any;
+  videoSettings?: any;
 }
 
 export function buildObsSystemMessage(obsData: ObsData, hotkeys?: any[]): string {
-    const sceneNames = obsData.scenes.map((s: any) => s.sceneName).join(', ');
-    const sourceNames = obsData.sources.map((s: any) => s.sourceName).join(', ');
-    const currentScene = obsData.currentProgramScene || 'None';
+  const sceneNames = obsData.scenes.map((s: any) => s.sceneName).join(', ');
+  const sourceNames = obsData.sources.map((s: any) => s.sourceName).join(', ');
+  const currentScene = obsData.currentProgramScene || 'None';
 
-    // Fix stream and record status to check outputActive property
-    const streamStatus = obsData.streamStatus?.outputActive
-        ? `Active (${Math.floor((obsData.streamStatus.outputDuration || 0) / 60)}:${((obsData.streamStatus.outputDuration || 0) % 60).toString().padStart(2, '0')})`
-        : 'Inactive';
+  // Fix stream and record status to check outputActive property
+  const streamStatus = obsData.streamStatus?.outputActive
+    ? `Active (${Math.floor((obsData.streamStatus.outputDuration || 0) / 60)}:${((obsData.streamStatus.outputDuration || 0) % 60).toString().padStart(2, '0')})`
+    : 'Inactive';
 
-    const recordStatus = obsData.recordStatus?.outputActive
-        ? `Recording (${Math.floor((obsData.recordStatus.outputDuration || 0) / 60)}:${((obsData.recordStatus.outputDuration || 0) % 60).toString().padStart(2, '0')})`
-        : 'Not Recording';
+  const recordStatus = obsData.recordStatus?.outputActive
+    ? `Recording (${Math.floor((obsData.recordStatus.outputDuration || 0) / 60)}:${((obsData.recordStatus.outputDuration || 0) % 60).toString().padStart(2, '0')})`
+    : 'Not Recording';
 
-    const videoRes = obsData.videoSettings ? `${obsData.videoSettings.baseWidth}x${obsData.videoSettings.baseHeight}` : 'Unknown';
+  const videoRes = obsData.videoSettings
+    ? `${obsData.videoSettings.baseWidth}x${obsData.videoSettings.baseHeight}`
+    : 'Unknown';
 
-    // Build hotkeys information
-    let hotkeyInfo = '';
-    if (hotkeys && hotkeys.length > 0) {
-        const hotkeyNames = hotkeys.map((h: any) => h.hotkeyName || h.name).filter(Boolean).slice(0, 20); // Limit to first 20
-        hotkeyInfo = `\n- Available Hotkeys: ${hotkeyNames.join(', ')}${hotkeys.length > 20 ? ` (and ${hotkeys.length - 20} more)` : ''}`;
-    }
+  // Build hotkeys information
+  let hotkeyInfo = '';
+  if (hotkeys && hotkeys.length > 0) {
+    const hotkeyNames = hotkeys
+      .map((h: any) => h.hotkeyName || h.name)
+      .filter(Boolean)
+      .slice(0, 20); // Limit to first 20
+    hotkeyInfo = `\n- Available Hotkeys: ${hotkeyNames.join(', ')}${hotkeys.length > 20 ? ` (and ${hotkeys.length - 20} more)` : ''}`;
+  }
 
-    return `
+  return `
 **OBS Context:**
 - Current Scene: ${currentScene}
 - Available Scenes: ${sceneNames}
@@ -60,9 +65,9 @@ For hotkeys, you can use triggerHotkeyByName with the exact hotkey name from the
 }
 
 export function buildStreamerBotSystemMessage(): string {
-    // In the future, we can dynamically fetch and cache actions from Streamer.bot here
-    // For now, we'll provide a static guide.
-    return `
+  // In the future, we can dynamically fetch and cache actions from Streamer.bot here
+  // For now, we'll provide a static guide.
+  return `
 **Streamer.bot Context:**
 - You can control Streamer.bot to perform complex stream automation.
 - To do this, respond with a JSON object containing a "streamerBotAction" field.
@@ -84,7 +89,7 @@ When a user asks for a Streamer.bot action, use this format.
 }
 
 export function buildMarkdownStylingSystemMessage(): string {
-    return `
+  return `
 **Enhanced Markdown Styling Capabilities:**
 
 You have access to powerful GSAP-animated text effects! Use these special syntax patterns to make your responses visually engaging:

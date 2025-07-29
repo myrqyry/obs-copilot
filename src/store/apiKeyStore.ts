@@ -21,7 +21,7 @@ export const ApiService = {
   // Add other services as needed
 } as const;
 
-export type ApiServiceName = typeof ApiService[keyof typeof ApiService];
+export type ApiServiceName = (typeof ApiService)[keyof typeof ApiService];
 
 interface ApiKeyState {
   // The 'overrides' now only store user-provided overrides, not sensitive keys.
@@ -65,13 +65,13 @@ const useApiKeyStore = create<ApiKeyState>()(
       getAllOverrides: () => {
         const state = get();
         return { ...state.overrides };
-      }
+      },
     }),
     {
       name: 'api-key-overrides-storage', // Name of the item in localStorage
       storage: createJSONStorage(() => localStorage), // Use localStorage for persistence
-    }
-  )
+    },
+  ),
 );
 
 export default useApiKeyStore;

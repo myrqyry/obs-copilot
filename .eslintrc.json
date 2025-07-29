@@ -9,7 +9,8 @@
         "eslint:recommended",
         "plugin:@typescript-eslint/recommended",
         "plugin:react/recommended",
-        "plugin:react-hooks/recommended"
+        "plugin:react-hooks/recommended",
+        "prettier"
     ],
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
@@ -22,9 +23,11 @@
     "plugins": [
         "react",
         "@typescript-eslint",
-        "react-hooks"
+        "react-hooks",
+        "prettier"
     ],
     "rules": {
+        "prettier/prettier": "error",
         "react/react-in-jsx-scope": "off",
         "react/prop-types": "off",
         "@typescript-eslint/no-unused-vars": [
@@ -34,7 +37,11 @@
             }
         ],
         "no-unused-vars": "off",
-        "no-console": "warn"
+        "no-console": "off",
+        "@typescript-eslint/no-explicit-any": "off",
+        "no-case-declarations": "off",
+        "no-useless-escape": "off",
+        "@typescript-eslint/no-var-requires": "off"
     },
     "settings": {
         "react": {

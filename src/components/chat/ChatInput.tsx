@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '../ui/Button';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { GlobeAltIcon, CameraIcon } from '@heroicons/react/24/solid';
 import Tooltip from '../ui/Tooltip';
+import { z, ZodError } from 'zod';
+import { chatInputSchema } from '../../lib/validations';
 
 interface ChatInputProps {
     chatInputValue: string;
@@ -33,6 +35,20 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     accentColorName,
     chatInputRef,
 }) => {
+    const [error, setError] = useState<string | undefined>(undefined);
+
+    const handleValidatedSend = () => {
+        try {
+            chatInputSchema.parse({ chatInputValue });
+            setError(undefined);
+            handleSend();
+        } catch (err) {
+            if (err instanceof ZodError) {
+                setError(err.issues[0].message);
+            }
+        }
+    };
+
     return (
         <div className="p-3 border-t border-border bg-background rounded-b-lg">
             <div className="flex items-center space-x-2 relative">
@@ -43,13 +59,16 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                             id="gemini-input"
                             type="text"
                             value={chatInputValue}
-                            onChange={(e) => onChatInputChange(e.target.value)}
+                            onChange={(e) => {
+                                onChatInputChange(e.target.value);
+                                if (error) setError(undefined);
+                            }}
                             onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !isLoading && isGeminiClientInitialized && chatInputValue.trim()) {
-                                    handleSend();
+                                if (e.key === 'Enter' && !isLoading && isGeminiClientInitialized) {
+                                    handleValidatedSend();
                                 }
                             }}
-                            className="w-full pl-14 pr-3 py-2 rounded-xl bg-[rgba(34,37,51,0.92)] border border-[rgba(80,80,120,0.25)] text-[var(--text-color)] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-all duration-200 shadow-lg backdrop-blur-md disabled:opacity-60 disabled:cursor-not-allowed"
+                            className={`w-full pl-14 pr-3 py-2 rounded-xl bg-[rgba(34,37,51,0.92)] border ${error ? 'border-destructive' : 'border-[rgba(80,80,120,0.25)]'} text-[var(--text-color)] placeholder:text-gray-400 focus:outline-none focus:ring-2 ${error ? 'focus:ring-destructive' : 'focus:ring-accent'} focus:border-accent transition-all duration-200 shadow-lg backdrop-blur-md disabled:opacity-60 disabled:cursor-not-allowed`}
                             placeholder={isLoading ? 'Waiting for Gemini...' : 'Type your message...'}
                             disabled={isLoading || !isGeminiClientInitialized}
                             autoComplete="off"
@@ -59,8 +78,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                             type="button"
                             variant="default"
                             size="sm"
-                            onClick={handleSend}
-                            disabled={isLoading || !chatInputValue.trim()}
+                            onClick={handleValidatedSend}
+                            disabled={isLoading || !isGeminiClientInitialized}
                             className="ml-2 flex items-center justify-center"
                         >
                             {isLoading ? (
@@ -105,6 +124,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                         </button>
                     </Tooltip>
                 </div>
+                {error && <p className="text-destructive text-xs mt-1 ml-14">{error}</p>}
             </div>
         </div>
     );

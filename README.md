@@ -141,8 +141,7 @@ This guide helps you get OBS Copilot running quickly to explore its core feature
 
 - Node.js 18+ and npm 9+
 - OBS Studio 29+ with WebSocket server enabled
-- Google Cloud API key with Gemini Pro access
-- (Optional) Streamer.bot for advanced automation
+- All required API keys and configuration values (see `.env.example` for a list)
 
 ### Installation
 
@@ -157,11 +156,11 @@ This guide helps you get OBS Copilot running quickly to explore its core feature
    npm install
    ```
 
-3. Copy the example environment file and update with your API keys:
+3. Set up environment variables:
    ```bash
    cp .env.example .env.local
    ```
-   Then edit `.env.local` and add your API keys.
+   Then, open `.env.local` and fill in the required values. **Do not commit `.env.local` to version control.**
 
 ### Project Maintenance
 
@@ -185,13 +184,31 @@ npm outdated
 npm update
 ```
 
-#### Environment Files
+#### Environment Variables
 
-- `.env.example`: Template with all required environment variables
-- `.env.local`: Local development overrides (not tracked by git)
-- `.env`: Production environment variables (not tracked by git)
+This project uses environment variables for sensitive information and configuration.
 
-Never commit sensitive information in `.env` or `.env.local` files.
+- `.env.local`: Used for local development. This file should contain your actual API keys and specific local configurations. It is ignored by Git and should **never** be committed.
+- `.env.example`: A template file that lists all required environment variables with placeholder values. This file **should** be committed to provide a guide for other developers and deployment environments. All variables accessible in client-side code must be prefixed with `VITE_`.
+
+**Required Variables in `.env.local`:**
+
+*   `VITE_OBS_WEBSOCKET_URL`: The WebSocket URL for OBS Studio (e.g., `ws://localhost:4455`).
+*   `VITE_GEMINI_API_KEY`: Your Google Gemini API key.
+*   `VITE_UNSPLASH_ACCESS_KEY`: Your Unsplash API access key.
+*   `VITE_API_URL`: The base URL for any backend API (if applicable).
+*   `VITE_STREAMERBOT_WEBSOCKET_URL`: The WebSocket URL for Streamer.bot (e.g., `ws://localhost:6747`).
+
+Example `.env.local` content:
+```
+VITE_OBS_WEBSOCKET_URL="ws://localhost:4455"
+VITE_GEMINI_API_KEY="your_gemini_api_key_here"
+VITE_UNSPLASH_ACCESS_KEY="your_unsplash_access_key_here"
+VITE_API_URL="https://your-api.com"
+VITE_STREAMERBOT_WEBSOCKET_URL="ws://localhost:6747"
+```
+
+Never commit sensitive information in `.env.local` files.
 
 ---
 

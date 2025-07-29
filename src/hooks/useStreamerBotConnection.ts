@@ -2,51 +2,117 @@ import { useState, useCallback } from 'react';
 import { StreamerBotService } from '../services/streamerBotService';
 import { useChatStore } from '../store/chatStore';
 import { useAutomationStore } from '../store/automationStore';
+import { useToast } from '@/components/ui/use-toast';
 
 export const useStreamerBotConnection = (streamerBotService: StreamerBotService) => {
-    const [isStreamerBotConnected, setIsStreamerBotConnected] = useState<boolean>(false);
-    const [isStreamerBotConnecting, setIsStreamerBotConnecting] = useState<boolean>(false);
-    const { addMessage } = useChatStore(state => state.actions);
-    const { setStreamerBotServiceInstance } = useAutomationStore(state => state.actions);
+  const [isStreamerBotConnected, setIsStreamerBotConnected] = useState<boolean>(false);
+  const [isStreamerBotConnecting, setIsStreamerBotConnecting] = useState<boolean>(false);
+  const { addMessage } = useChatStore((state) => state.actions);
+  const { setStreamerBotServiceInstance } = useAutomationStore((state) => state.actions);
 
-    const handleStreamerBotConnect = useCallback(async (address: string, port: string) => {
-        if (!address.trim() || !port.trim()) {
-            addMessage({ role: 'system', text: '⚠️ Please provide both Streamer.bot address and port.' });
-            return;
-        }
+  const { toast } = useToast();
 
-        if (isStreamerBotConnected || streamerBotService.isConnected()) {
-            addMessage({ role: 'system', text: '🤖 Already connected to Streamer.bot.' });
-            return;
-        }
+  /**
+   * Handles the connection process to Streamer.bot WebSocket.
+   * @param address The Streamer.bot WebSocket address.
+   * @param port The Streamer.bot WebSocket port.
+   */
+  const handleStreamerBotConnect = useCallback(
+    async (address: string, port: string) => {
+      if (!address.trim() || !port.trim()) {
+        addMessage({
+          role: 'system',
+          text: '⚠️ Please provide both Streamer.bot address and port.',
+        });
+        toast({
+          title: 'Streamer.bot Connection',
+          description: 'Please provide both Streamer.bot address and port.',
+          variant: 'destructive',
+        });
+        return;
+      }
 
-        setIsStreamerBotConnecting(true);
-        try {
-            await streamerBotService.connect(address, parseInt(port, 10));
-            setIsStreamerBotConnected(true);
-            setStreamerBotServiceInstance(streamerBotService);
-            addMessage({ role: 'system', text: '✅ Streamer.bot connection successful!' });
-        } catch (error: any) {
-            addMessage({ role: 'system', text: `⚠️ Streamer.bot connection failed: ${error.message}.` });
-            setIsStreamerBotConnected(false);
-        } finally {
-            setIsStreamerBotConnecting(false);
-        }
-    }, [isStreamerBotConnected, streamerBotService, addMessage, setStreamerBotServiceInstance]);
+      if (isStreamerBotConnected || streamerBotService.isConnected()) {
+        addMessage({ role: 'system', text: '🤖 Already connected to Streamer.bot.' });
+        toast({
+          title: 'Streamer.bot Connection',
+          description: 'Already connected to Streamer.bot.',
+          variant: 'default',
+        });
+        return;
+      }
 
-    const handleStreamerBotDisconnect = useCallback(() => {
-        if (isStreamerBotConnected) {
-            streamerBotService.disconnect();
-            setIsStreamerBotConnected(false);
-            setStreamerBotServiceInstance(null);
-            addMessage({ role: 'system', text: '🤖 Streamer.bot disconnected.' });
-        }
-    }, [isStreamerBotConnected, streamerBotService, addMessage, setStreamerBotServiceInstance]);
+      setIsStreamerBotConnecting(true);
+      try {
+        await streamerBotService.connect(address, parseInt(port, 10));
+        setIsStreamerBotConnected(true);
+        setStreamerBotServiceInstance(streamerBotService);
+        addMessage({ role: 'system', text: '✅ Streamer.bot connection successful!' });
+        toast({
+          title: 'Streamer.bot Connection',
+          description: 'Streamer.bot connection successful!',
+          variant: 'default',
+        });
+      } catch (error: any) {
+        const errorMessage = error.message || 'Unknown error occurred.';
+        console.error('Streamer.bot connection failed:', error);
+        addMessage({ role: 'system', text: `⚠️ Streamer.bot connection failed: ${errorMessage}.` });
+        setIsStreamerBotConnected(false);
+        toast({
+          title: 'Streamer.bot Connection Failed',
+          description: `Streamer.bot connection failed: ${errorMessage}`,
+          variant: 'destructive',
+        });
+      } finally {
+        setIsStreamerBotConnecting(false);
+      }
+    },
+    [isStreamerBotConnected, streamerBotService, addMessage, setStreamerBotServiceInstance, toast],
+  );
 
-    return {
-        isStreamerBotConnected,
-        isStreamerBotConnecting,
-        handleStreamerBotConnect,
-        handleStreamerBotDisconnect,
-    };
+  /**
+   * Handles the disconnection process from Streamer.bot WebSocket.
+   */
+  const handleStreamerBotDisconnect = useCallback(() => {
+    try {
+      if (isStreamerBotConnected) {
+        streamerBotService.disconnect();
+        setIsStreamerBotConnected(false);
+        setStreamerBotServiceInstance(null);
+        addMessage({ role: 'system', text: '🤖 Streamer.bot disconnected.' });
+        toast({
+          title: 'Streamer.bot Disconnected',
+          description: 'Streamer.bot disconnected.',
+          variant: 'default',
+        });
+      }
+    } catch (error: any) {
+      const errorMessage = error.message || 'Unknown error occurred.';
+      console.error('Error disconnecting from Streamer.bot:', error);
+      toast({
+        title: 'Streamer.bot Disconnection Error',
+        description: `Error disconnecting from Streamer.bot: ${errorMessage}`,
+        variant: 'destructive',
+      });
+    }
+  }, [
+    isStreamerBotConnected,
+    streamerBotService,
+    addMessage,
+    setStreamerBotServiceInstance,
+    toast,
+  ]);
+
+  return {
+    isStreamerBotConnected,
+    isStreamerBotConnecting,
+    handleStreamerBotConnect,
+    handleStreamerBotDisconnect,
+  };
 };
+
+// This hook primarily provides the connection/disconnection handlers for Streamer.bot,
+// and the component using this hook (e.g., ConnectionPanel.tsx) is responsible
+// for invoking these handlers and managing the connection lifecycle.
+// Therefore, no direct cleanup is needed within this hook's useEffects as it only provides callbacks.
+// The `streamerBotService` instance handles its own internal cleanup through its `disconnect` method.

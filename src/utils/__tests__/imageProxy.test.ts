@@ -71,11 +71,15 @@ describe('Image Proxy Utilities', () => {
     });
 
     test('Test Case (Known External Domain - Wallhaven): Returns true for Wallhaven', () => {
-      expect(currentShouldProxyImage('https://w.wallhaven.cc/full/zy/wallhaven-zygeko.jpg')).toBe(true);
+      expect(currentShouldProxyImage('https://w.wallhaven.cc/full/zy/wallhaven-zygeko.jpg')).toBe(
+        true,
+      );
     });
 
     test('Test Case (Known External Domain - Pexels): Returns true for Pexels', () => {
-      expect(currentShouldProxyImage('https://images.pexels.com/photos/12345/pexels-photo-12345.jpeg')).toBe(true);
+      expect(
+        currentShouldProxyImage('https://images.pexels.com/photos/12345/pexels-photo-12345.jpeg'),
+      ).toBe(true);
     });
 
     test('Test Case III.6 (Other External Domain): Returns false for other external domains not in list', () => {

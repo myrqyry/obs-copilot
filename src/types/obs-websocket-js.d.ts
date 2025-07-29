@@ -139,29 +139,41 @@ declare module 'obs-websocket-js' {
     call(requestType: 'GetCurrentProgramScene'): Promise<Scene>;
     call(
       requestType: 'GetSceneItemList',
-      requestData: { sceneName: string }
+      requestData: { sceneName: string },
     ): Promise<{ sceneItems: SceneItem[] }>;
     call(requestType: 'GetStreamStatus'): Promise<StreamStatus>;
     call(requestType: 'GetRecordStatus'): Promise<RecordStatus>;
     call(requestType: 'GetVideoSettings'): Promise<VideoSettings>;
-    call(requestType: 'GetInputSettings', requestData: { inputName: string }): Promise<{ inputSettings: InputSettings, inputKind: string }>;
-    call(requestType: 'GetSourceFilterList', requestData: { sourceName: string }): Promise<{ filters: Filter[] }>;
-    call(requestType: 'GetSourceFilter', requestData: { sourceName: string, filterName: string }): Promise<Filter>;
-    call(requestType: 'GetSceneItemTransform', requestData: { sceneName: string, sceneItemId: number }): Promise<{ sceneItemTransform: SceneItemTransform }>;
+    call(
+      requestType: 'GetInputSettings',
+      requestData: { inputName: string },
+    ): Promise<{ inputSettings: InputSettings; inputKind: string }>;
+    call(
+      requestType: 'GetSourceFilterList',
+      requestData: { sourceName: string },
+    ): Promise<{ filters: Filter[] }>;
+    call(
+      requestType: 'GetSourceFilter',
+      requestData: { sourceName: string; filterName: string },
+    ): Promise<Filter>;
+    call(
+      requestType: 'GetSceneItemTransform',
+      requestData: { sceneName: string; sceneItemId: number },
+    ): Promise<{ sceneItemTransform: SceneItemTransform }>;
     call(requestType: 'GetInputVolume', requestData: { inputName: string }): Promise<InputVolume>;
     call(requestType: 'GetVirtualCamStatus'): Promise<VirtualCamStatus>;
     call(requestType: 'GetStudioModeEnabled'): Promise<StudioModeStatus>;
-    call(requestType: 'GetOutputStatus', requestData: { outputName: string }): Promise<OutputStatus>;
+    call(
+      requestType: 'GetOutputStatus',
+      requestData: { outputName: string },
+    ): Promise<OutputStatus>;
     call(requestType: 'GetProfileList'): Promise<Profile>;
     call(requestType: 'GetReplayBufferStatus'): Promise<ReplayBufferStatus>;
     call(requestType: 'GetHotkeyList'): Promise<{ hotkeys: Hotkey[] }>;
     call(requestType: 'GetStats'): Promise<Stats>;
     call(requestType: 'GetLogFileList'): Promise<{ logFiles: Log[] }>;
     call(requestType: 'GetCurrentSceneCollection'): Promise<SceneCollection>;
-    call(
-      requestType: string,
-      requestData?: Record<string, any>
-    ): Promise<any>;
+    call(requestType: string, requestData?: Record<string, any>): Promise<any>;
     on(event: string, listener: (...args: any[]) => void): void;
   }
 }

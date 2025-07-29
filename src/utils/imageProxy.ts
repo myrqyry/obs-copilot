@@ -1,5 +1,5 @@
 export const getHostname = (): string => {
-    return window.location.hostname;
+  return window.location.hostname;
 };
 
 /**
@@ -8,43 +8,43 @@ export const getHostname = (): string => {
  * @returns The proxied image URL
  */
 export const getProxiedImageUrl = (imageUrl: string): string => {
-    if (!imageUrl) return '';
-    
-    // Check if the image URL should be proxied (external domains that might have CORS issues)
-    const shouldProxy = (url: string): boolean => {
-        try {
-            const urlObj = new URL(url);
-            const externalDomains = [
-                'th.wallhaven.cc',
-                'w.wallhaven.cc',
-                'wallhaven.cc',
-                'images.unsplash.com',
-                'images.pexels.com',
-                'cdn.pixabay.com',
-                'images.deviantart.com',
-                'cdnb.artstation.com',
-                'cdna.artstation.com'
-            ];
-            
-            return externalDomains.some(domain => urlObj.hostname.includes(domain));
-        } catch {
-            // If URL parsing fails, assume it's a relative URL and doesn't need proxying
-            return false;
-        }
-    };
-    
-    if (shouldProxy(imageUrl)) {
-        // If we're in development, use the local proxy
-        const hostname = getHostname();
-        if (hostname === 'localhost' || hostname === '127.0.0.1') {
-            return `/api/image?url=${encodeURIComponent(imageUrl)}`;
-        }
-        
-        // In production, use the Netlify function
-        return `/.netlify/functions/proxy?api=image&url=${encodeURIComponent(imageUrl)}`;
+  if (!imageUrl) return '';
+
+  // Check if the image URL should be proxied (external domains that might have CORS issues)
+  const shouldProxy = (url: string): boolean => {
+    try {
+      const urlObj = new URL(url);
+      const externalDomains = [
+        'th.wallhaven.cc',
+        'w.wallhaven.cc',
+        'wallhaven.cc',
+        'images.unsplash.com',
+        'images.pexels.com',
+        'cdn.pixabay.com',
+        'images.deviantart.com',
+        'cdnb.artstation.com',
+        'cdna.artstation.com',
+      ];
+
+      return externalDomains.some((domain) => urlObj.hostname.includes(domain));
+    } catch {
+      // If URL parsing fails, assume it's a relative URL and doesn't need proxying
+      return false;
     }
-    
-    return imageUrl;
+  };
+
+  if (shouldProxy(imageUrl)) {
+    // If we're in development, use the local proxy
+    const hostname = getHostname();
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return `/api/image?url=${encodeURIComponent(imageUrl)}`;
+    }
+
+    // In production, use the Netlify function
+    return `/.netlify/functions/proxy?api=image&url=${encodeURIComponent(imageUrl)}`;
+  }
+
+  return imageUrl;
 };
 
 /**
@@ -53,25 +53,25 @@ export const getProxiedImageUrl = (imageUrl: string): string => {
  * @returns True if the image should be proxied
  */
 export const shouldProxyImage = (imageUrl: string): boolean => {
-    if (!imageUrl) return false;
-    
-    try {
-        const url = new URL(imageUrl);
-        const externalDomains = [
-            'th.wallhaven.cc',
-            'w.wallhaven.cc',
-            'wallhaven.cc',
-            'images.unsplash.com',
-            'images.pexels.com',
-            'cdn.pixabay.com',
-            'images.deviantart.com',
-            'cdnb.artstation.com',
-            'cdna.artstation.com'
-        ];
-        
-        return externalDomains.some(domain => url.hostname.includes(domain));
-    } catch {
-        // If URL parsing fails, assume it's a relative URL and doesn't need proxying
-        return false;
-    }
-}; 
+  if (!imageUrl) return false;
+
+  try {
+    const url = new URL(imageUrl);
+    const externalDomains = [
+      'th.wallhaven.cc',
+      'w.wallhaven.cc',
+      'wallhaven.cc',
+      'images.unsplash.com',
+      'images.pexels.com',
+      'cdn.pixabay.com',
+      'images.deviantart.com',
+      'cdnb.artstation.com',
+      'cdna.artstation.com',
+    ];
+
+    return externalDomains.some((domain) => url.hostname.includes(domain));
+  } catch {
+    // If URL parsing fails, assume it's a relative URL and doesn't need proxying
+    return false;
+  }
+};
