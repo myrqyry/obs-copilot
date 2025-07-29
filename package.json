@@ -92,7 +92,6 @@
     "ts-jest": "^29.4.0",
     "typescript": "^5.2.2",
     "vite": "^7.0.2",
-    "web-streams-polyfill": "^4.1.0",
-    "whatwg-fetch": "^3.6.20"
+    "web-streams-polyfill": "^4.1.0"
   }
 }

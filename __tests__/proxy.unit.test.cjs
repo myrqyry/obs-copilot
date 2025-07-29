@@ -1,5 +1,7 @@
 const request = require('supertest');
 const fetch = require('node-fetch');
+const { Response } = fetch;
+jest.mock('node-fetch', () => jest.fn());
 
 
 describe('Proxy Unit Tests', () => {
@@ -27,18 +29,18 @@ describe('Proxy Unit Tests', () => {
             const mockImageContentType = 'image/jpeg';
             const targetUrl = 'http://example.com/image.jpg';
 
-            fetch.mockResolvedValue(new Response(mockImageData, {
+            fetch.mockResolvedValue(new Response(Buffer.from(mockImageData), {
                 status: 200,
                 headers: { 'Content-Type': mockImageContentType },
             }));
 
             const response = await request(app).get(`/api/image?url=${encodeURIComponent(targetUrl)}`);
 
+            expect(response.statusCode).toBe(200);
+            expect(response.headers['content-type']).toEqual(expect.stringContaining('image/jpeg'));
+            expect(response.body).toEqual(Buffer.from(mockImageData));
             expect(fetch).toHaveBeenCalledTimes(1);
             expect(fetch).toHaveBeenCalledWith(targetUrl);
-            expect(response.statusCode).toBe(200);
-            expect(response.headers['content-type']).toBe(mockImageContentType);
-            expect(response.body.toString()).toBe(mockImageData);
         });
 
         test('Test Case 2.1 (Image Proxy - Target 404): Should return 500 if target image URL returns 404', async () => {
