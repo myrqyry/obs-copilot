@@ -19,12 +19,11 @@
   "type": "module",
   "main": "src/App.tsx",
   "scripts": {
-    "dev": "concurrently \"node proxy.mjs\" \"vite\"",
+    "dev": "vite",
     "build": "tsc && vite build",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "format": "prettier --write \"{src,apps,libs,test}/**/*.ts\"",
     "preview": "vite preview",
-    "proxy": "node proxy.mjs",
     "test": "jest",
     "clean": "node scripts/cleanup.js",
     "check-deps": "node scripts/check-unused-deps.js"
