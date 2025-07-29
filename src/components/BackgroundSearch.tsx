@@ -16,6 +16,7 @@ import { TextInput } from './common/TextInput';
 import { getProxiedImageUrl } from '../utils/imageProxy';
 import { unsplashService, UnsplashPhoto } from '../services/unsplashService';
 import { catppuccinAccentColorsHexMap } from '../types';
+import { getGeminiApiKey } from '../config';
 
 const BACKGROUND_APIS = [
     { value: 'wallhaven', label: 'Wallhaven', domain: 'wallhaven.cc', icon: '🖼️' },
@@ -38,7 +39,7 @@ const getEffectiveApiKey = (serviceName: ApiServiceName): string | undefined => 
     if (override) return override;
 
     switch (serviceName) {
-        case ApiService.GEMINI: return import.meta.env.VITE_GEMINI_API_KEY;
+        case ApiService.GEMINI: return getGeminiApiKey();
         case ApiService.PEXELS: return import.meta.env.VITE_PEXELS_API_KEY;
         case ApiService.PIXABAY: return import.meta.env.VITE_PIXABAY_API_KEY;
         case ApiService.DEVIANTART: return import.meta.env.VITE_DEVIANTART_API_KEY;

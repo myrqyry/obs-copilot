@@ -31,6 +31,7 @@
   "dependencies": {
     "@expressive-code/plugin-shiki": "^0.35.3",
     "@giphy/js-fetch-api": "^5.7.0",
+    "@google-cloud/text-to-speech": "^6.2.0",
     "@google/generative-ai": "^0.21.0",
     "@heroicons/react": "^2.2.0",
     "@imgly/background-removal": "^1.0.0",

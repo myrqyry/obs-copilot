@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { ChatMessage } from '../types';
 import { saveUserSettings } from '../utils/persistence';
+import { getGeminiApiKey } from '../config';
 
 export interface ChatState {
     geminiMessages: ChatMessage[];
@@ -43,7 +44,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             )
         })),
         setGeminiApiKey: (key) => {
-            const newKey = key || import.meta.env.VITE_GEMINI_API_KEY || '';
+            const newKey = key || getGeminiApiKey() || '';
             set({ geminiApiKey: newKey });
             if (key) {
                 saveUserSettings({ geminiApiKey: key });

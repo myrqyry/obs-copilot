@@ -396,10 +396,10 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
             )}
           </div>
           <div className="p-2 sm:p-3 rounded bg-card border border-border">
-            <div className="flex items-center justify-between mb-1 sm:mb-2">
+              <div className="flex items-center justify-between mb-1 sm:mb-2">
               <div className="flex items-center space-x-1 sm:space-x-2">
                 <span className="text-xs sm:text-sm font-medium text-muted-foreground">Environment:</span>
-                <code className="text-xs sm:text-sm bg-muted px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-foreground">VITE_GEMINI_API_KEY</code>
+                <code className="text-xs sm:text-sm bg-muted px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-foreground">GEMINI_API_KEY</code>
               </div>
               <div className="flex items-center space-x-1 sm:space-x-2">
                 <span className={cn("w-2 h-2 rounded-full", envGeminiApiKey ? 'bg-primary' : 'bg-destructive')} />
@@ -408,7 +408,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
                 </span>
               </div>
             </div>
-            {!envGeminiApiKey && (<p className="text-xs sm:text-sm text-muted-foreground">💡 Create <code className="bg-muted px-1 rounded">.env.local</code> with <code className="bg-muted px-1 rounded">VITE_GEMINI_API_KEY=your_key</code></p>)}
+            {!envGeminiApiKey && (<p className="text-xs sm:text-sm text-muted-foreground">💡 Create <code className="bg-muted px-1 rounded">.env.local</code> with <code className="bg-muted px-1 rounded">GEMINI_API_KEY=your_key</code></p>)}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 items-end">
             <div className="flex items-center space-x-2 md:col-span-2 lg:col-span-3">

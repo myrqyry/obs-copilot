@@ -1,4 +1,5 @@
 import OBSWebSocket from 'obs-websocket-js';
+// The 'Input' type is not available in the same way in v5, using a more generic type for now.
 import {
     Scene,
     SceneItem,
@@ -17,8 +18,7 @@ import {
     Hotkey,
     Stats,
     Log,
-    SceneCollection,
-    Input
+    SceneCollection
 } from 'obs-websocket-js'; // Explicitly import types from the module
 
 export class ObsError extends Error {
@@ -135,7 +135,7 @@ export interface ObsClient {
         sourceName: string
     ): Promise<void>;
     subscribeToEvents(eventHandlers: Partial<Record<string, (...args: any[]) => void>>): void;
-    getInputs(): Promise<{ inputs: Input[] }>;
+    getInputs(): Promise<{ inputs: any[] }>;
 }
 
 export class ObsClientImpl implements ObsClient {
@@ -178,6 +178,24 @@ export class ObsClientImpl implements ObsClient {
         }
     }
 
+    private validateString(value: any, name: string): void {
+        if (typeof value !== 'string' || value.trim() === '') {
+            throw new ObsError(`${name} must be a non-empty string.`);
+        }
+    }
+
+    private validateNumber(value: any, name: string): void {
+        if (typeof value !== 'number') {
+            throw new ObsError(`${name} must be a number.`);
+        }
+    }
+
+    private validateBoolean(value: any, name: string): void {
+        if (typeof value !== 'boolean') {
+            throw new ObsError(`${name} must be a boolean.`);
+        }
+    }
+
     async getSceneList(): Promise<{ scenes: Scene[] }> {
         return this.callObs('GetSceneList');
     }
@@ -187,14 +205,19 @@ export class ObsClientImpl implements ObsClient {
     }
 
     async setCurrentProgramScene(sceneName: string): Promise<void> {
+        this.validateString(sceneName, 'sceneName');
         await this.callObs('SetCurrentProgramScene', { sceneName });
     }
 
     async getSceneItemList(sceneName: string): Promise<{ sceneItems: SceneItem[] }> {
+        this.validateString(sceneName, 'sceneName');
         return this.callObs('GetSceneItemList', { sceneName });
     }
 
     async setSceneItemEnabled(sceneName: string, sceneItemId: number, sceneItemEnabled: boolean): Promise<void> {
+        this.validateString(sceneName, 'sceneName');
+        this.validateNumber(sceneItemId, 'sceneItemId');
+        this.validateBoolean(sceneItemEnabled, 'sceneItemEnabled');
         await this.callObs('SetSceneItemEnabled', { sceneName, sceneItemId, sceneItemEnabled });
     }
 
@@ -205,6 +228,8 @@ export class ObsClientImpl implements ObsClient {
      * @returns A promise that resolves with the ID of the scene item, or null if it's not found.
      */
     async getSceneItemId(sceneName: string, sourceName: string): Promise<number | null> {
+        this.validateString(sceneName, 'sceneName');
+        this.validateString(sourceName, 'sourceName');
         const response = await this.callObs<any>('GetSceneItemList', { sceneName });
         const sceneItem = response.sceneItems.find((item: any) =>
             item.sourceName === sourceName || item.inputName === sourceName
@@ -274,6 +299,11 @@ export class ObsClientImpl implements ObsClient {
         sceneName?: string,
         sceneItemEnabled: boolean = true
     ): Promise<void> {
+        this.validateString(inputName, 'inputName');
+        this.validateString(inputKind, 'inputKind');
+        if (sceneName) {
+            this.validateString(sceneName, 'sceneName');
+        }
         const requestParams: {
             inputName: string;
             inputKind: string;
@@ -294,36 +324,49 @@ export class ObsClientImpl implements ObsClient {
     }
 
     async setInputSettings(inputName: string, inputSettings: InputSettings, overlay: boolean = true): Promise<void> {
+        this.validateString(inputName, 'inputName');
         await this.callObs('SetInputSettings', { inputName, inputSettings, overlay });
     }
 
     async getInputSettings(inputName: string): Promise<{ inputSettings: InputSettings, inputKind: string }> {
+        this.validateString(inputName, 'inputName');
         return this.callObs('GetInputSettings', { inputName });
     }
 
     async getSourceFilterList(sourceName: string): Promise<{ filters: Filter[] }> {
+        this.validateString(sourceName, 'sourceName');
         return this.callObs('GetSourceFilterList', { sourceName });
     }
 
     async getSourceFilter(sourceName: string, filterName: string): Promise<Filter> {
+        this.validateString(sourceName, 'sourceName');
+        this.validateString(filterName, 'filterName');
         return this.callObs('GetSourceFilter', { sourceName, filterName });
     }
 
     // Scene Management
     async createScene(sceneName: string): Promise<void> {
+        this.validateString(sceneName, 'sceneName');
         await this.callObs('CreateScene', { sceneName });
     }
 
     async removeScene(sceneName: string): Promise<void> {
+        this.validateString(sceneName, 'sceneName');
         await this.callObs('RemoveScene', { sceneName });
     }
 
     // Source/Input Management
     async removeInput(inputName: string): Promise<void> {
+        this.validateString(inputName, 'inputName');
         await this.callObs('RemoveInput', { inputName });
     }
 
     async duplicateSceneItem(sceneName: string, sceneItemId: number, destinationSceneName?: string): Promise<void> {
+        this.validateString(sceneName, 'sceneName');
+        this.validateNumber(sceneItemId, 'sceneItemId');
+        if (destinationSceneName) {
+            this.validateString(destinationSceneName, 'destinationSceneName');
+        }
         await this.callObs('DuplicateSceneItem', {
             sceneName,
             sceneItemId,
@@ -333,6 +376,8 @@ export class ObsClientImpl implements ObsClient {
 
     // Scene Item Transform
     async setSceneItemTransform(sceneName: string, sceneItemId: number, sceneItemTransform: SceneItemTransform): Promise<void> {
+        this.validateString(sceneName, 'sceneName');
+        this.validateNumber(sceneItemId, 'sceneItemId');
         await this.callObs('SetSceneItemTransform', {
             sceneName,
             sceneItemId,
@@ -341,11 +386,16 @@ export class ObsClientImpl implements ObsClient {
     }
 
     async getSceneItemTransform(sceneName: string, sceneItemId: number): Promise<{ sceneItemTransform: SceneItemTransform }> {
+        this.validateString(sceneName, 'sceneName');
+        this.validateNumber(sceneItemId, 'sceneItemId');
         return this.callObs('GetSceneItemTransform', { sceneName, sceneItemId });
     }
 
     // Filters
     async createSourceFilter(sourceName: string, filterName: string, filterKind: string, filterSettings?: Record<string, any>): Promise<void> {
+        this.validateString(sourceName, 'sourceName');
+        this.validateString(filterName, 'filterName');
+        this.validateString(filterKind, 'filterKind');
         await this.callObs('CreateSourceFilter', {
             sourceName,
             filterName,
@@ -355,14 +405,21 @@ export class ObsClientImpl implements ObsClient {
     }
 
     async removeSourceFilter(sourceName: string, filterName: string): Promise<void> {
+        this.validateString(sourceName, 'sourceName');
+        this.validateString(filterName, 'filterName');
         await this.callObs('RemoveSourceFilter', { sourceName, filterName });
     }
 
     async setSourceFilterEnabled(sourceName: string, filterName: string, filterEnabled: boolean): Promise<void> {
+        this.validateString(sourceName, 'sourceName');
+        this.validateString(filterName, 'filterName');
+        this.validateBoolean(filterEnabled, 'filterEnabled');
         await this.callObs('SetSourceFilterEnabled', { sourceName, filterName, filterEnabled });
     }
 
     async setSourceFilterSettings(sourceName: string, filterName: string, filterSettings: Record<string, any>, overlay: boolean = true): Promise<void> {
+        this.validateString(sourceName, 'sourceName');
+        this.validateString(filterName, 'filterName');
         await this.callObs('SetSourceFilterSettings', { sourceName, filterName, filterSettings, overlay });
     }
 
@@ -370,25 +427,36 @@ export class ObsClientImpl implements ObsClient {
 
     // Reorder filter
     async setSourceFilterIndex(sourceName: string, filterName: string, filterIndex: number): Promise<void> {
+        this.validateString(sourceName, 'sourceName');
+        this.validateString(filterName, 'filterName');
+        this.validateNumber(filterIndex, 'filterIndex');
         await this.callObs('SetSourceFilterIndex', { sourceName, filterName, filterIndex });
     }
 
     // Rename filter
     async setSourceFilterName(sourceName: string, filterName: string, newFilterName: string): Promise<void> {
+        this.validateString(sourceName, 'sourceName');
+        this.validateString(filterName, 'filterName');
+        this.validateString(newFilterName, 'newFilterName');
         await this.callObs('SetSourceFilterName', { sourceName, filterName, newFilterName });
     }
 
     // Duplicate filter
     async duplicateSourceFilter(sourceName: string, filterName: string, newFilterName: string): Promise<void> {
+        this.validateString(sourceName, 'sourceName');
+        this.validateString(filterName, 'filterName');
+        this.validateString(newFilterName, 'newFilterName');
         await this.callObs('DuplicateSourceFilter', { sourceName, filterName, newFilterName });
     }
 
     // Audio/Volume
     async getInputVolume(inputName: string): Promise<InputVolume> {
+        this.validateString(inputName, 'inputName');
         return this.callObs('GetInputVolume', { inputName });
     }
 
     async setInputVolume(inputName: string, inputVolumeMul?: number, inputVolumeDb?: number): Promise<void> {
+        this.validateString(inputName, 'inputName');
         const params: {
             inputName: string;
             inputVolumeMul?: number;
@@ -400,6 +468,8 @@ export class ObsClientImpl implements ObsClient {
     }
 
     async setInputMute(inputName: string, inputMuted: boolean): Promise<void> {
+        this.validateString(inputName, 'inputName');
+        this.validateBoolean(inputMuted, 'inputMuted');
         await this.callObs('SetInputMute', { inputName, inputMuted });
     }
 
@@ -428,19 +498,23 @@ export class ObsClientImpl implements ObsClient {
 
     // UI Dialog methods
     async openInputFiltersDialog(inputName: string): Promise<void> {
+        this.validateString(inputName, 'inputName');
         await this.callObs('OpenInputFiltersDialog', { inputName });
     }
 
     async openInputPropertiesDialog(inputName: string): Promise<void> {
+        this.validateString(inputName, 'inputName');
         await this.callObs('OpenInputPropertiesDialog', { inputName });
     }
 
     async openInputInteractDialog(inputName: string): Promise<void> {
+        this.validateString(inputName, 'inputName');
         await this.callObs('OpenInputInteractDialog', { inputName });
     }
 
     // Output status
     async getOutputStatus(outputName: string): Promise<OutputStatus> {
+        this.validateString(outputName, 'outputName');
         return this.callObs('GetOutputStatus', { outputName });
     }
 
@@ -454,6 +528,7 @@ export class ObsClientImpl implements ObsClient {
 
     // Screenshot functionality
     async getSourceScreenshot(sourceName: string, imageFormat: 'png' | 'jpg' = 'png', imageWidth?: number, imageHeight?: number, imageCompressionQuality?: number): Promise<string> {
+        this.validateString(sourceName, 'sourceName');
         const params: {
             sourceName: string;
             imageFormat: 'png' | 'jpg';
@@ -501,30 +576,38 @@ export class ObsClientImpl implements ObsClient {
     }
 
     async setStudioModeEnabled(enabled: boolean): Promise<void> {
+        this.validateBoolean(enabled, 'enabled');
         await this.callObs('SetStudioModeEnabled', { studioModeEnabled: enabled });
     }
 
     // Audio Monitoring
     async setInputAudioMonitorType(inputName: string, monitorType: "OBS_MONITORING_TYPE_NONE" | "OBS_MONITORING_TYPE_MONITOR_ONLY" | "OBS_MONITORING_TYPE_MONITOR_AND_OUTPUT"): Promise<void> {
+        this.validateString(inputName, 'inputName');
         await this.callObs('SetInputAudioMonitorType', { inputName, monitorType });
     }
 
     // Scene Item Blend Mode (OBS 29+)
     async setSceneItemBlendMode(sceneName: string, sceneItemId: number, blendMode: string): Promise<void> {
+        this.validateString(sceneName, 'sceneName');
+        this.validateNumber(sceneItemId, 'sceneItemId');
+        this.validateString(blendMode, 'blendMode');
         await this.callObs('SetSceneItemBlendMode', { sceneName, sceneItemId, sceneItemBlendMode: blendMode });
     }
 
     // Browser Source
     async refreshBrowserSource(inputName: string): Promise<void> {
+        this.validateString(inputName, 'inputName');
         await this.callObs('PressInputPropertiesButton', { inputName, propertyName: 'refresh' });
     }
 
     // Hotkeys
     async triggerHotkeyByName(hotkeyName: string): Promise<void> {
+        this.validateString(hotkeyName, 'hotkeyName');
         await this.callObs('TriggerHotkeyByName', { hotkeyName });
     }
 
     async triggerHotkeyByKeySequence(keyId: string, keyModifiers: { shift: boolean, control: boolean, alt: boolean, command: boolean }): Promise<void> {
+        this.validateString(keyId, 'keyId');
         await this.callObs('TriggerHotkeyByKeySequence', { keyId, keyModifiers });
     }
 
@@ -547,15 +630,20 @@ export class ObsClientImpl implements ObsClient {
 
     // Source Filter Settings
     async getSourceFilterSettings(sourceName: string, filterName: string): Promise<Filter> {
+        this.validateString(sourceName, 'sourceName');
+        this.validateString(filterName, 'filterName');
         return this.callObs('GetSourceFilterSettings', { sourceName, filterName });
     }
 
     async getSourceFilterDefaultSettings(filterKind: string): Promise<{ filterSettings: { [key: string]: any } }> {
+        this.validateString(filterKind, 'filterKind');
         return this.callObs('GetSourceFilterDefaultSettings', { filterKind });
     }
 
     // Scene Name
     async setSceneName(sceneName: string, newSceneName: string): Promise<void> {
+        this.validateString(sceneName, 'sceneName');
+        this.validateString(newSceneName, 'newSceneName');
         await this.callObs('SetSceneName', { sceneName, newSceneName });
     }
 
@@ -565,6 +653,7 @@ export class ObsClientImpl implements ObsClient {
     }
 
     async setCurrentProfile(profileName: string): Promise<void> {
+        this.validateString(profileName, 'profileName');
         await this.callObs('SetCurrentProfile', { profileName });
     }
 
@@ -573,6 +662,7 @@ export class ObsClientImpl implements ObsClient {
     }
 
     async setCurrentSceneCollection(sceneCollectionName: string): Promise<void> {
+        this.validateString(sceneCollectionName, 'sceneCollectionName');
         await this.callObs('SetCurrentSceneCollection', { sceneCollectionName });
     }
 
@@ -663,7 +753,7 @@ export class ObsClientImpl implements ObsClient {
         }
     }
 
-    async getInputs(): Promise<{ inputs: Input[] }> {
+    async getInputs(): Promise<{ inputs: any[] }> {
         return this.callObs('GetInputList');
     }
 }

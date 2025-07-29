@@ -2,7 +2,6 @@
 
 interface ImportMetaEnv {
     // Core API Keys
-    readonly VITE_GEMINI_API_KEY: string
     readonly VITE_GIPHY_API_KEY: string
     readonly VITE_TENOR_API_KEY: string
     readonly VITE_ICONFINDER_API_KEY: string
