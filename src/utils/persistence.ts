@@ -30,7 +30,7 @@ export interface UserSettings {
 
 export interface ConnectionSettings {
   obsWebSocketUrl: string;
-  obsPassword?: string; // Optional - might be sensitive
+  // SECURITY: Do not persist OBS passwords. Prompt per session and keep in memory only.
   rememberApiKey: boolean; // User preference for persisting API key
   autoConnect: boolean; // Auto-connect to OBS on app reload
   streamerBotAddress?: string; // Streamer.bot connection address
@@ -84,7 +84,12 @@ export function saveUserSettings(settings: Partial<UserSettings>): void {
  */
 export function loadConnectionSettings(): Partial<ConnectionSettings> {
   const stored = localStorage.getItem(STORAGE_KEYS.CONNECTION_SETTINGS);
-  return safeParseJSON(stored, {});
+  const parsed = safeParseJSON<Partial<ConnectionSettings>>(stored, {});
+  // SECURITY MIGRATION: strip any legacy persisted password if present
+  if ('obsPassword' in (parsed as any)) {
+    delete (parsed as any).obsPassword;
+  }
+  return parsed;
 }
 
 /**
@@ -93,6 +98,10 @@ export function loadConnectionSettings(): Partial<ConnectionSettings> {
 export function saveConnectionSettings(settings: Partial<ConnectionSettings>): void {
   const existing = loadConnectionSettings();
   const merged = { ...existing, ...settings };
+  // SECURITY: ensure no password is persisted even if inadvertently passed
+  if ('obsPassword' in (merged as any)) {
+    delete (merged as any).obsPassword;
+  }
   safeStore(STORAGE_KEYS.CONNECTION_SETTINGS, merged);
 }
 

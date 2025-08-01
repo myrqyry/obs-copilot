@@ -1,4 +1,10 @@
-import { themes } from 'tm-themes';
+/**
+ * NOTE:
+ * Avoid importing 'tm-themes' at build/JIT time because Tailwind (via jiti) will try to
+ * evaluate this module while loading tailwind.config.js, causing a Node "exports" resolution error.
+ * If you need the full theme list at runtime, do a guarded dynamic import from browser code.
+ */
+// import { themes } from 'tm-themes';
 
 export interface Theme {
   name: string;
@@ -10,13 +16,17 @@ export interface Theme {
   accentColor?: string;
 }
 
-export const allThemes: Theme[] = themes.map((theme) => ({
-  name: theme.name,
-  displayName: theme.displayName,
-  type: theme.type,
-  colors: theme.colors,
-  accentColor: theme.colors['editor.selectionBackground'] || '#888888',
-}));
+/**
+ * Runtime themes are intentionally left empty here to prevent Node from resolving 'tm-themes'
+ * during Tailwind config evaluation. In app code, dynamically import and populate as needed:
+ *
+ *   if (typeof window !== 'undefined') {
+ *     import('tm-themes').then(({ themes }) => {
+ *       // use themes in the browser only
+ *     });
+ *   }
+ */
+export const allThemes: Theme[] = [];
 
 export const darkThemes = allThemes.filter((theme) => theme.type === 'dark');
 export const lightThemes = allThemes.filter((theme) => theme.type === 'light');

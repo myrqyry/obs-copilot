@@ -67,13 +67,10 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
   const [address, setAddress] = useState<string>(
     persistedConnectionSettings.obsWebSocketUrl || defaultUrl
   );
-  const [password, setPassword] = useState<string>(
-    persistedConnectionSettings.obsPassword || ''
-  );
+  // SECURITY: Never persist OBS passwords. Initialize empty and keep in memory only.
+  const [password, setPassword] = useState<string>('');
   const [localGeminiKey, setLocalGeminiKey] = useState<string>(geminiApiKey);
-  const [showPasswordField, setShowPasswordField] = useState<boolean>(
-    Boolean(persistedConnectionSettings.obsPassword)
-  );
+  const [showPasswordField, setShowPasswordField] = useState<boolean>(false);
   const [autoConnect, setAutoConnect] = useState<boolean>(
     Boolean(persistedConnectionSettings.autoConnect)
   );
@@ -142,9 +139,9 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
 
     if (!isConnected && obsValidationSuccess) {
       if (isStorageAvailable()) {
+        // Do not persist password
         saveConnectionSettings({
           obsWebSocketUrl: address,
-          obsPassword: password,
           autoConnect: autoConnect
         });
       }

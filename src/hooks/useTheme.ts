@@ -25,9 +25,22 @@ export const useTheme = () => {
 
 export const applyTheme = (theme: Theme) => {
   const root = document.documentElement;
+
+  // Apply CSS variable tokens
   Object.entries(theme.colors).forEach(([key, value]) => {
     root.style.setProperty(cssVar(key), value);
   });
+
+  // Toggle Tailwind dark mode class based on theme metadata or heuristic
+  const isDark =
+    (theme as any).meta?.isDark ??
+    /dark|mocha|night|midnight|obs-dark/i.test((theme as any).name || "");
+
+  if (isDark) {
+    root.classList.add("dark");
+  } else {
+    root.classList.remove("dark");
+  }
 };
 
 const cssVar = (name: string) => `--${name.replace('.', '-')}`;

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useSettingsStore } from '../store/settingsStore';
 import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
 import { useToast } from './ui/use-toast';
-import { GeminiService } from '../services/geminiService';
+import { geminiService } from '../services/geminiService';
 import { CardContent } from './ui/Card';
 import { Button } from './ui/Button';
 import { pcm16ToWavUrl } from '../lib/pcmToWavUrl';
@@ -63,10 +63,9 @@ const SpeechGeneration: React.FC = () => {
         setStoryLoading(true);
         setScript('');
         try {
-            // Always get the latest Gemini API key from Zustand store
-            const currentGeminiApiKey = useApiKeyStore.getState().getApiKey(ApiService.GEMINI);
+            // Always get the latest Gemini API key override from Zustand store (proxy handles actual keys)
+            const currentGeminiApiKey = useApiKeyStore.getState().getApiKeyOverride(ApiService.GEMINI);
             if (!currentGeminiApiKey) throw new Error('Gemini API key is missing.');
-            const geminiService = new GeminiService();
             const prompt = `Hi, please generate a short (like 100 words) transcript that reads like it was clipped from a podcast from the following speakers: ${speakers.map(s => s.name).join(', ')}. Format as Speaker: line.`;
             const response = await geminiService.generateContent(prompt);
             setScript(response.text.trim());
@@ -84,8 +83,8 @@ const SpeechGeneration: React.FC = () => {
         setAudioError(null);
         setGeneratedAudio(null);
         try {
-            // Always get the latest Gemini API key from Zustand store
-            const currentGeminiApiKey = useApiKeyStore.getState().getApiKey(ApiService.GEMINI);
+            // Always get the latest Gemini API key override from Zustand store (proxy handles actual keys)
+            const currentGeminiApiKey = useApiKeyStore.getState().getApiKeyOverride(ApiService.GEMINI);
             if (!currentGeminiApiKey) {
                 setAudioError('Gemini API key is missing. Please set it in the Connections tab.');
                 setAudioLoading(false);
@@ -118,7 +117,6 @@ const SpeechGeneration: React.FC = () => {
             const pcmBuffers: ArrayBuffer[] = [];
             for (const part of parts) {
                 const speaker = speakers.find(s => s.name === part.speaker) || speakers[0];
-                const geminiService = new GeminiService();
                 const response = await geminiService.generateContent(part.text);
                 const data = response.audioData;
                 if (!data) throw new Error(`No audio data for ${part.speaker}`);
