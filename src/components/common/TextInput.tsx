@@ -95,7 +95,7 @@ export const TextInput: React.FC<TextInputProps> = ({
           ...new Event('input', { bubbles: true }),
           target: { value: '' }
         };
-        onChange(event as any);
+        onChange(event as React.ChangeEvent<HTMLInputElement>);
       }
       inputRef.current.value = '';
       onClear?.();

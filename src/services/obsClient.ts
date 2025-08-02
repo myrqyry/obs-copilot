@@ -1,5 +1,4 @@
-import OBSWebSocket_ from 'obs-websocket-js';
-const OBSWebSocket = (OBSWebSocket_ as any).default || OBSWebSocket_; // Handle different import styles
+import OBSWebSocket from 'obs-websocket-js';
 // The 'Input' type is not available in the same way in v5, using a more generic type for now.
 import {
   Scene,
@@ -20,6 +19,7 @@ import {
   Stats,
   Log,
   SceneCollection,
+  Input,
 } from 'obs-websocket-js'; // Explicitly import types from the module
 
 export class ObsError extends Error {
@@ -88,7 +88,7 @@ export interface ObsClient {
     sourceName: string,
     filterName: string,
     filterKind: string,
-    filterSettings?: Record<string, any>,
+    filterSettings?: InputSettings,
   ): Promise<void>;
   removeSourceFilter(sourceName: string, filterName: string): Promise<void>;
   setSourceFilterEnabled(
@@ -99,7 +99,7 @@ export interface ObsClient {
   setSourceFilterSettings(
     sourceName: string,
     filterName: string,
-    filterSettings: Record<string, any>,
+    filterSettings: InputSettings,
     overlay?: boolean,
   ): Promise<void>;
   setSourceFilterIndex(sourceName: string, filterName: string, filterIndex: number): Promise<void>;
@@ -162,7 +162,7 @@ export interface ObsClient {
   getSourceFilterSettings(sourceName: string, filterName: string): Promise<Filter>;
   getSourceFilterDefaultSettings(
     filterKind: string,
-  ): Promise<{ filterSettings: { [key: string]: any } }>;
+  ): Promise<{ filterSettings: InputSettings }>;
   setSceneName(sceneName: string, newSceneName: string): Promise<void>;
   getCurrentProfile(): Promise<Profile>;
   setCurrentProfile(profileName: string): Promise<void>;
@@ -179,11 +179,11 @@ export interface ObsClient {
   addSvgAsBrowserSource(sceneName: string, svgContent: string, sourceName: string): Promise<void>;
   addEmojiAsBrowserSource(sceneName: string, emoji: string, sourceName: string): Promise<void>;
   subscribeToEvents(eventHandlers: Partial<Record<string, (...args: any[]) => void>>): void;
-  getInputs(): Promise<{ inputs: any[] }>;
+  getInputs(): Promise<{ inputs: Input[] }>;
 }
 
 export class ObsClientImpl implements ObsClient {
-  public obs: any;
+  public obs: OBSWebSocket;
 
   constructor() {
     this.obs = new OBSWebSocket();
@@ -201,8 +201,11 @@ export class ObsClientImpl implements ObsClient {
       await this.obs.connect(address, password, {
         eventSubscriptions: 0xffffffff, // Subscribe to all events
       });
-    } catch (error: any) {
-      throw new ObsError(`Failed to connect to OBS: ${error.message}`);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        throw new ObsError(`Failed to connect to OBS: ${error.message}`);
+      }
+      throw new ObsError('Failed to connect to OBS: Unknown error');
     }
   }
 
@@ -214,8 +217,11 @@ export class ObsClientImpl implements ObsClient {
   async disconnect(): Promise<void> {
     try {
       await this.obs.disconnect();
-    } catch (error: any) {
-      throw new ObsError(`Failed to disconnect from OBS: ${error.message}`);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        throw new ObsError(`Failed to disconnect from OBS: ${error.message}`);
+      }
+      throw new ObsError('Failed to disconnect from OBS: Unknown error');
     }
   }
 
@@ -226,27 +232,30 @@ export class ObsClientImpl implements ObsClient {
    * @param params The parameters for the request.
    * @returns A promise that resolves with the response from OBS.
    */
-  private async callObs<T>(method: string, params?: any): Promise<T> {
+  private async callObs<T>(method: string, params?: Record<string, unknown>): Promise<T> {
     try {
       return await this.obs.call(method, params);
-    } catch (error: any) {
-      throw new ObsError(error.message);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        throw new ObsError(error.message);
+      }
+      throw new ObsError('Unknown error');
     }
   }
 
-  private validateString(value: any, name: string): void {
+  private validateString(value: unknown, name: string): void {
     if (typeof value !== 'string' || value.trim() === '') {
       throw new ObsError(`${name} must be a non-empty string.`);
     }
   }
 
-  private validateNumber(value: any, name: string): void {
+  private validateNumber(value: unknown, name: string): void {
     if (typeof value !== 'number') {
       throw new ObsError(`${name} must be a number.`);
     }
   }
 
-  private validateBoolean(value: any, name: string): void {
+  private validateBoolean(value: unknown, name: string): void {
     if (typeof value !== 'boolean') {
       throw new ObsError(`${name} must be a boolean.`);
     }
@@ -320,9 +329,11 @@ export class ObsClientImpl implements ObsClient {
   async getSceneItemId(sceneName: string, sourceName: string): Promise<number | null> {
     this.validateString(sceneName, 'sceneName');
     this.validateString(sourceName, 'sourceName');
-    const response = await this.callObs<any>('GetSceneItemList', { sceneName });
+    const response = await this.callObs<{ sceneItems: SceneItem[] }>('GetSceneItemList', {
+      sceneName,
+    });
     const sceneItem = response.sceneItems.find(
-      (item: any) => item.sourceName === sourceName || item.inputName === sourceName,
+      (item) => item.sourceName === sourceName,
     );
     if (sceneItem) {
       const id = sceneItem.sceneItemId;
@@ -372,8 +383,11 @@ export class ObsClientImpl implements ObsClient {
       } else {
         await this.startStream();
       }
-    } catch (error: any) {
-      throw new ObsError(`Failed to toggle stream: ${error.message}`);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        throw new ObsError(`Failed to toggle stream: ${error.message}`);
+      }
+      throw new ObsError('Failed to toggle stream: Unknown error');
     }
   }
 
@@ -417,8 +431,11 @@ export class ObsClientImpl implements ObsClient {
       } else {
         await this.startRecord();
       }
-    } catch (error: any) {
-      throw new ObsError(`Failed to toggle record: ${error.message}`);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        throw new ObsError(`Failed to toggle record: ${error.message}`);
+      }
+      throw new ObsError('Failed to toggle record: Unknown error');
     }
   }
 
@@ -649,7 +666,7 @@ export class ObsClientImpl implements ObsClient {
     sourceName: string,
     filterName: string,
     filterKind: string,
-    filterSettings?: Record<string, any>,
+    filterSettings?: InputSettings,
   ): Promise<void> {
     this.validateString(sourceName, 'sourceName');
     this.validateString(filterName, 'filterName');
@@ -706,7 +723,7 @@ export class ObsClientImpl implements ObsClient {
   async setSourceFilterSettings(
     sourceName: string,
     filterName: string,
-    filterSettings: Record<string, any>,
+    filterSettings: InputSettings,
     overlay: boolean = true,
   ): Promise<void> {
     this.validateString(sourceName, 'sourceName');
@@ -864,8 +881,11 @@ export class ObsClientImpl implements ObsClient {
       await this.callObs('SetStudioModeEnabled', {
         studioModeEnabled: !studioMode.studioModeEnabled,
       });
-    } catch (error: any) {
-      throw new ObsError(`Failed to toggle Studio Mode: ${error.message}`);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        throw new ObsError(`Failed to toggle Studio Mode: ${error.message}`);
+      }
+      throw new ObsError('Failed to toggle Studio Mode: Unknown error');
     }
   }
 
@@ -931,10 +951,13 @@ export class ObsClientImpl implements ObsClient {
     try {
       // This is a placeholder - you may need to implement this based on your specific requirements
       // It could be from OBS profile info, stream service settings, etc.
-      const profile = await this.callObs<any>('GetProfileList');
+      const profile = await this.callObs('GetProfileList');
       return profile.currentProfileName || null;
-    } catch (error: any) {
-      throw new ObsError(`Failed to get streamer username: ${error.message}`);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        throw new ObsError(`Failed to get streamer username: ${error.message}`);
+      }
+      throw new ObsError('Failed to get streamer username: Unknown error');
     }
   }
 
@@ -971,7 +994,7 @@ export class ObsClientImpl implements ObsClient {
     if (imageHeight) params.imageHeight = imageHeight;
     if (imageCompressionQuality) params.imageCompressionQuality = imageCompressionQuality;
 
-    const response = await this.callObs<any>('GetSourceScreenshot', params);
+    const response = await this.callObs<{ imageData: string }>('GetSourceScreenshot', params);
     return response.imageData;
   }
 
@@ -999,8 +1022,11 @@ export class ObsClientImpl implements ObsClient {
         imageHeight,
         imageCompressionQuality,
       );
-    } catch (error: any) {
-      throw new ObsError(`Failed to get current scene screenshot: ${error.message}`);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        throw new ObsError(`Failed to get current scene screenshot: ${error.message}`);
+      }
+      throw new ObsError('Failed to get current scene screenshot: Unknown error');
     }
   }
 
@@ -1341,8 +1367,11 @@ export class ObsClientImpl implements ObsClient {
     try {
       const dataUri = `data:image/svg+xml;base64,${btoa(svgContent)}`;
       await this.addBrowserSource(sceneName, dataUri, sourceName);
-    } catch (error: any) {
-      throw new ObsError(`Failed to add SVG as browser source: ${error.message}`);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        throw new ObsError(`Failed to add SVG as browser source: ${error.message}`);
+      }
+      throw new ObsError('Failed to add SVG as browser source: Unknown error');
     }
   }
 
@@ -1368,11 +1397,15 @@ export class ObsClientImpl implements ObsClient {
   `;
       const dataUri = `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`;
       await this.addBrowserSource(sceneName, dataUri, sourceName, { width: 250, height: 250 });
-    } catch (error: any) {
-      throw new ObsError(`Failed to add emoji as browser source: ${error.message}`);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        throw new ObsError(`Failed to add emoji as browser source: ${error.message}`);
+      }
+      throw new ObsError('Failed to add emoji as browser source: Unknown error');
     }
   }
 
+  // TODO: Define specific types for event handlers
   subscribeToEvents(eventHandlers: Partial<Record<string, (...args: any[]) => void>>): void {
     for (const [event, handler] of Object.entries(eventHandlers)) {
       if (typeof handler === 'function') {
@@ -1394,7 +1427,7 @@ export class ObsClientImpl implements ObsClient {
    * @returns A Promise that resolves with an object containing an array of inputs.
    * @throws {ObsError} If the API call fails.
    */
-  async getInputs(): Promise<{ inputs: any[] }> {
+  async getInputs(): Promise<{ inputs: Input[] }> {
     return this.callObs('GetInputList');
   }
 }

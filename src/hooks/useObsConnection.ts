@@ -1,14 +1,14 @@
 import { useCallback } from 'react';
-import OBSWebSocket from 'obs-websocket-js';
+import OBSWebSocket, { SceneItem } from 'obs-websocket-js';
 import { useConnectionManagerStore } from '../store/connectionManagerStore';
-import { ObsClientImpl } from '../services/ObsClient';
-import { OBSScene, OBSSource } from '../types';
+import { ObsClientImpl } from '../services/obsClient';
+import { OBSScene, OBSSource, AppTab } from '../types';
 import { useToast } from '@/components/ui/use-toast';
 import { logger } from '../utils/logger';
 
 export const useObsConnection = (
-  setObs: (obs: any) => void,
-  setActiveTab: (tab: any) => void,
+  setObs: (obs: OBSWebSocket | null) => void,
+  setActiveTab: (tab: AppTab) => void,
   setErrorMessage: (message: string | null) => void, // Keep this for direct error setting if needed
 ) => {
   const { setConnecting, setConnected, setDisconnected, setObsServiceInstance, updateOBSData } =
@@ -39,7 +39,7 @@ export const useObsConnection = (
         let sources: OBSSource[] = [];
         if (currentProgramSceneData.sceneName) {
           const sourcesData = await service.getSceneItemList(currentProgramSceneData.sceneName);
-          sources = (sourcesData.sceneItems as unknown as OBSSource[]).map((item: any) => ({
+          sources = (sourcesData.sceneItems as unknown as OBSSource[]).map((item: SceneItem) => ({
             sourceName: String(item.sourceName ?? ''),
             sceneItemId: Number(item.sceneItemId ?? 0),
             sceneItemEnabled: Boolean(item.sceneItemEnabled ?? false),
@@ -64,8 +64,8 @@ export const useObsConnection = (
           description: 'Successfully connected to OBS.',
           variant: 'default',
         });
-      } catch (error: any) {
-        const errorMessage = error.message || 'Failed to fetch OBS data.';
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to fetch OBS data.';
         logger.error('Error fetching OBS data:', error);
         setErrorMessage(errorMessage); // Keep for direct error display if needed
         toast({
@@ -90,12 +90,7 @@ export const useObsConnection = (
   const handleConnect = useCallback(
     async (address: string, password?: string) => {
       setConnecting();
-      let NewOBSWebSocket: any = OBSWebSocket;
-      // This dynamic import handling is kept from original code; could be simplified if OBSWebSocket is consistently imported.
-      if (OBSWebSocket && typeof OBSWebSocket === 'object' && 'default' in OBSWebSocket) {
-        NewOBSWebSocket = (OBSWebSocket as any).default;
-      }
-      const newObs = new NewOBSWebSocket();
+      const newObs = new OBSWebSocket();
 
       try {
         await newObs.connect(address, password, { eventSubscriptions: 0xffffffff });
@@ -104,8 +99,9 @@ export const useObsConnection = (
         newObsService.obs = newObs;
         setObsServiceInstance(newObsService);
         await fetchData(newObsService);
-      } catch (error: any) {
-        const errorMessage = error.message || 'Failed to connect to OBS WebSocket.';
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Failed to connect to OBS WebSocket.';
         logger.error('OBS connection failed:', error);
         setDisconnected(errorMessage);
         setObs(null);
@@ -133,7 +129,7 @@ export const useObsConnection = (
    * @returns A Promise that resolves when disconnection is complete.
    */
   const handleDisconnect = useCallback(
-    async (obs: any): Promise<void> => {
+    async (obs: OBSWebSocket | null): Promise<void> => {
       try {
         if (obs) {
           await obs.disconnect();
@@ -146,8 +142,9 @@ export const useObsConnection = (
             variant: 'default',
           });
         }
-      } catch (error: any) {
-        const errorMessage = error.message || 'Error disconnecting from OBS.';
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Error disconnecting from OBS.';
         logger.error('Error disconnecting from OBS:', error);
         toast({
           title: 'OBS Disconnection Error',

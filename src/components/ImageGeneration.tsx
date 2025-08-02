@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useConnectionManagerStore } from '../store/connectionManagerStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { useToast } from './ui/use-toast';
-import { ObsClient } from '../services/ObsClient';
+import { ObsClient } from '../services/obsClient';
 import { catppuccinAccentColorsHexMap } from '../types';
 import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
 import { generateSourceName } from '../utils/obsSourceHelpers';
@@ -69,8 +69,12 @@ const ImageGeneration: React.FC = () => {
             const data = await response.json();
             setImageUrl(data.imageUrl);
             setModalOpen(true);
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('An unknown error occurred');
+            }
         } finally {
             setLoading(false);
         }
@@ -92,12 +96,14 @@ const ImageGeneration: React.FC = () => {
                 description: 'Added generated image to OBS.',
                 variant: 'default',
             });
-        } catch (error: any) {
-            toast({
-                title: 'Error',
-                description: `Failed to add source: ${error.message}`,
-                variant: 'destructive',
-            });
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                toast({
+                    title: 'Error',
+                    description: `Failed to add source: ${error.message}`,
+                    variant: 'destructive',
+                });
+            }
         }
     };
 
@@ -117,12 +123,14 @@ const ImageGeneration: React.FC = () => {
                 description: 'Added generated image to OBS.',
                 variant: 'default',
             });
-        } catch (error: any) {
-            toast({
-                title: 'Error',
-                description: `Failed to add source: ${error.message}`,
-                variant: 'destructive',
-            });
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                toast({
+                    title: 'Error',
+                    description: `Failed to add source: ${error.message}`,
+                    variant: 'destructive',
+                });
+            }
         }
     };
 

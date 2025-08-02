@@ -1,8 +1,11 @@
 import axios from 'axios';
 import { logger } from '../utils/logger';
 import { aiMiddleware } from './aiMiddleware';
+import { ChatMessage } from '../types';
+import { GeminiGenerateContentResponse } from '../types/gemini';
+import { AIService } from '../types/ai';
 
-class GeminiService {
+class GeminiService implements AIService {
   private proxyEndpoint: string;
 
   constructor() {
@@ -24,7 +27,10 @@ class GeminiService {
    * @returns A promise that resolves to the generated content.
    * @throws Throws an error if the API call fails.
    */
-  async generateContent(prompt: string, history?: any[]): Promise<any> {
+  async generateContent(
+    prompt: string,
+    history?: ChatMessage[],
+  ): Promise<GeminiGenerateContentResponse> {
     try {
       const response = await axios.post(
         `${this.proxyEndpoint}/generate-content`,

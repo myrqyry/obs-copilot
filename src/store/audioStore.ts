@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { logger } from '../utils/logger';
+import { MusicSession, MusicGenerationConfig } from '../types/audio';
 
 export interface AudioState {
-  musicSession: any | null;
+  musicSession: MusicSession | null;
   isMusicPlaying: boolean;
   currentMusicPrompt: string;
   audioContext: AudioContext | null;
@@ -20,7 +21,7 @@ export interface AudioState {
       source: { type: 'tts' | 'music'; prompt?: string; url?: string } | null,
     ) => void;
     initializeAudioContext: () => void;
-    startMusicGeneration: (prompt: string, config: any) => Promise<void>;
+    startMusicGeneration: (prompt: string, config: MusicGenerationConfig) => Promise<void>;
     addAudioChunk: (pcm: ArrayBuffer) => void;
     playFromQueue: () => void;
     pauseMusic: () => void;

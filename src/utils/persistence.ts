@@ -54,7 +54,7 @@ function safeParseJSON<T>(jsonString: string | null, fallback: T): T {
 /**
  * Safely stringify and store data to localStorage
  */
-function safeStore(key: string, data: any): void {
+function safeStore(key: string, data: unknown): void {
   try {
     localStorage.setItem(key, JSON.stringify(data));
   } catch (error) {

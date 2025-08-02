@@ -32,9 +32,7 @@ export const applyTheme = (theme: Theme) => {
   });
 
   // Toggle Tailwind dark mode class based on theme metadata or heuristic
-  const isDark =
-    (theme as any).meta?.isDark ??
-    /dark|mocha|night|midnight|obs-dark/i.test((theme as any).name || "");
+  const isDark = theme.type === 'dark';
 
   if (isDark) {
     root.classList.add("dark");

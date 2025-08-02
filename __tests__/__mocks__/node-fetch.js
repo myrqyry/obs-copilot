@@ -18,3 +18,4 @@ fetch.mockRejectOnce = (error) => {
 };
 
 module.exports = fetch;
+module.exports.Response = Response;

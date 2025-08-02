@@ -5,7 +5,7 @@ export interface GeminiActionResponse {
   responseText?: string;
   streamerBotAction?: {
     type: string;
-    args?: Record<string, any>;
+    args?: Record<string, unknown>;
   };
   sources?: GroundingChunk[];
 }
@@ -285,7 +285,7 @@ export interface GetOutputSettingsAction extends ObsActionBase {
 export interface SetOutputSettingsAction extends ObsActionBase {
   type: 'setOutputSettings';
   outputName: string;
-  outputSettings: Record<string, any>;
+  outputSettings: Record<string, unknown>;
 }
 
 export interface GetSceneTransitionListAction extends ObsActionBase {

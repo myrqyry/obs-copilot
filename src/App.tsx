@@ -25,7 +25,7 @@ import MiniPlayer from './components/common/MiniPlayer';
 import { NotificationManager } from './components/common/NotificationManager';
 import { loadConnectionSettings, saveConnectionSettings, isStorageAvailable } from './utils/persistence';
 import { DEFAULT_OBS_WEBSOCKET_URL } from './constants';
-import { ObsClientImpl } from './services/ObsClient';
+import { ObsClientImpl } from './services/obsClient';
 
 const App: React.FC = () => {
     useTheme();

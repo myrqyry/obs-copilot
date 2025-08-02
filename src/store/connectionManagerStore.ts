@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { OBSScene, OBSSource, OBSStreamStatus, OBSRecordStatus, OBSVideoSettings } from '../types';
-import { ObsClient, ObsClientImpl } from '../services/ObsClient';
+import { ObsClientImpl } from '../services/obsClient';
+import { StreamerBotService } from '../services/streamerBotService';
+import { Stats, Hotkey } from 'obs-websocket-js';
 import { saveUserSettings } from '../utils/persistence';
 import { ObsAction } from '../types/obsActions';
 import { logger } from '../utils/logger';
@@ -13,7 +15,7 @@ export interface ConnectionManagerState {
   connectError: string | null;
   streamerName: string | null;
   obsServiceInstance: ObsClientImpl | null;
-  streamerBotServiceInstance: any | null; // Added StreamerBot service instance
+  streamerBotServiceInstance: StreamerBotService | null; // Added StreamerBot service instance
 
   // From obsStore
   scenes: OBSScene[];
@@ -22,8 +24,8 @@ export interface ConnectionManagerState {
   streamStatus: OBSStreamStatus | null;
   recordStatus: OBSRecordStatus | null;
   videoSettings: OBSVideoSettings | null;
-  obsStats: any | null;
-  obsHotkeys: any[] | null;
+  obsStats: Stats | null;
+  obsHotkeys: Hotkey[] | null;
 
   actions: {
     // Actions from connectionStore

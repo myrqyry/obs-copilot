@@ -15,7 +15,7 @@ export interface AutomationRule {
 
 export interface AutomationTrigger {
   eventName: string; // e.g., "StreamStateChanged"
-  eventData?: Record<string, any>; // e.g., { outputState: "started" }
+  eventData?: Record<string, unknown>; // e.g., { outputState: "started" }
 }
 
 export interface AutomationCondition {
@@ -23,7 +23,7 @@ export interface AutomationCondition {
   type: 'scene' | 'source' | 'stream' | 'custom';
   field: string; // e.g., "currentProgramScene", "inputMuted", "outputActive"
   operator: 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than';
-  value: any;
+  value: unknown;
   description?: string; // Human-readable description
 }
 
@@ -36,7 +36,7 @@ export interface AutomationAction {
 
 export interface StreamerBotActionData {
   actionName: string;
-  args?: Record<string, any>;
+  args?: Record<string, unknown>;
 }
 
 // Helper types for UI building

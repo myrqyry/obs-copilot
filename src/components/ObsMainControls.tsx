@@ -1,7 +1,7 @@
 import Tooltip from './ui/Tooltip';
 import React, { useState, useEffect } from 'react';
 import { CatppuccinAccentColorName, OBSVideoSettings, OBSScene, OBSSource } from '../types';
-import { ObsClient } from '../services/ObsClient';
+import { ObsClient } from '../services/obsClient';
 import { Button } from './ui/Button';
 import { AddToContextButton } from './common/AddToContextButton';
 import { LockToggle } from './common/LockToggle';
@@ -92,15 +92,19 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
     }
   }, [initialVideoSettings]);
 
-  const handleAction = async (action: () => Promise<any>) => {
+  const handleAction = async (action: () => Promise<unknown>) => {
     setIsLoading(true);
     setErrorMessage(null);
     try {
       await action();
       await onRefreshData();
-    } catch (error: any) {
-      console.error("OBS Action Error:", error);
-      setErrorMessage(`Action failed: ${error.message || 'Unknown error'}`);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("OBS Action Error:", error);
+        setErrorMessage(`Action failed: ${error.message}`);
+      } else {
+        setErrorMessage('An unknown error occurred');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -208,9 +212,13 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
     try {
       await obsService.setVideoSettings(editableSettings);
       await onRefreshData();
-    } catch (error: any) {
-      console.error("Failed to save video settings:", error);
-      setErrorMessage(`Failed to save video settings: ${error.message || 'Unknown error'}`);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Failed to save video settings:", error);
+        setErrorMessage(`Failed to save video settings: ${error.message}`);
+      } else {
+        setErrorMessage('An unknown error occurred while saving video settings');
+      }
     } finally {
       setIsVideoSettingsLoading(false);
     }

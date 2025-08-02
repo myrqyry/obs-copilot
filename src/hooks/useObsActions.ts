@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
-import type { ObsClient } from '../services/ObsClient';
+import type { ObsClient } from '../services/obsClient';
 import type { ObsAction } from '../types/obsActions';
-import type { OBSData } from '../types';
+import type { OBSData, OBSScene } from '../types';
 
 interface UseObsActionsProps {
   obsService: ObsClient;
@@ -20,7 +20,9 @@ export const useObsActions = ({
 }: UseObsActionsProps) => {
   const handleObsAction = useCallback(
     async (action: ObsAction) => {
-      let actionAttemptMessage = `**OBS Action: \`${action.type}\`**\n\n⚙️ Attempting: ${action.type}...`;
+      let actionAttemptMessage = `**OBS Action: \`${action.type}\`**
+
+⚙️ Attempting: ${action.type}...`;
       let actionFeedback = '';
       let additionalSystemMessage = '';
 
@@ -29,7 +31,7 @@ export const useObsActions = ({
           case 'createInput':
             const createAction = action;
             let sceneToAddTo = createAction.sceneName;
-            if (sceneToAddTo && !obsData.scenes.find((s: any) => s.sceneName === sceneToAddTo)) {
+            if (sceneToAddTo && !obsData.scenes.find((s: OBSScene) => s.sceneName === sceneToAddTo)) {
               sceneToAddTo = obsData.currentProgramScene || undefined;
             }
             await obsService.createInput(
@@ -39,7 +41,8 @@ export const useObsActions = ({
               sceneToAddTo,
               createAction.sceneItemEnabled,
             );
-            actionFeedback += `\n✅ Successfully created input "${createAction.inputName}" of kind "${createAction.inputKind}".`;
+            actionFeedback += `
+✅ Successfully created input "${createAction.inputName}" of kind "${createAction.inputKind}".`;
             return {
               success: true,
               message: `Successfully created input "${createAction.inputName}" of kind "${createAction.inputKind}".`,
@@ -52,7 +55,8 @@ export const useObsActions = ({
               setSettingsAction.inputSettings,
               setSettingsAction.overlay,
             );
-            actionFeedback = `\n✅ Successfully updated settings for input "${setSettingsAction.inputName}".`;
+            actionFeedback = `
+✅ Successfully updated settings for input "${setSettingsAction.inputName}".`;
             return {
               success: true,
               message: `Successfully updated settings for input "${setSettingsAction.inputName}".`,
@@ -74,7 +78,8 @@ export const useObsActions = ({
                 ? targetAction.sceneItemEnabled
                 : !!targetAction.enabled;
             await obsService.setSceneItemEnabled(targetAction.sceneName, sceneItemId, enabledValue);
-            actionFeedback = `\n✅ Successfully ${enabledValue ? 'enabled' : 'disabled'} "${targetAction.sourceName}" in scene "${targetAction.sceneName}".`;
+            actionFeedback = `
+✅ Successfully ${enabledValue ? 'enabled' : 'disabled'} "${targetAction.sourceName}" in scene "${targetAction.sceneName}".`;
             return {
               success: true,
               message: `Successfully ${enabledValue ? 'enabled' : 'disabled'} "${targetAction.sourceName}" in scene "${targetAction.sceneName}".`,
@@ -83,8 +88,12 @@ export const useObsActions = ({
           case 'getInputSettings':
             const getSettingsAction = action;
             const settingsResponse = await obsService.getInputSettings(getSettingsAction.inputName);
-            actionFeedback = `\n✅ Fetched settings for input "${getSettingsAction.inputName}".`;
-            additionalSystemMessage = `ℹ️ Properties for input "${getSettingsAction.inputName}" (Kind: "${settingsResponse.inputKind}"):\n\`\`\`json\n${JSON.stringify(settingsResponse.inputSettings, null, 2)}\n\`\`\``;
+            actionFeedback = `
+✅ Fetched settings for input "${getSettingsAction.inputName}".`;
+            additionalSystemMessage = `ℹ️ Properties for input "${getSettingsAction.inputName}" (Kind: "${settingsResponse.inputKind}"):
+\`\`\`json
+${JSON.stringify(settingsResponse.inputSettings, null, 2)}
+\`\`\``;
             return {
               success: true,
               message: `Fetched settings for input "${getSettingsAction.inputName}".`,
@@ -99,8 +108,12 @@ export const useObsActions = ({
               enabled: item.sceneItemEnabled,
               kind: item.inputKind || 'N/A',
             }));
-            actionFeedback = `\n✅ Fetched items for scene "${getListAction.sceneName}".`;
-            additionalSystemMessage = `ℹ️ Items in scene "${getListAction.sceneName}":\n\`\`\`json\n${JSON.stringify(itemsFormatted, null, 2)}\n\`\`\``;
+            actionFeedback = `
+✅ Fetched items for scene "${getListAction.sceneName}".`;
+            additionalSystemMessage = `ℹ️ Items in scene "${getListAction.sceneName}":
+\`\`\`json
+${JSON.stringify(itemsFormatted, null, 2)}
+\`\`\``;
             return {
               success: true,
               message: `Fetched items for scene "${getListAction.sceneName}".`,
@@ -109,7 +122,8 @@ export const useObsActions = ({
           case 'setCurrentProgramScene':
             const setSceneAction = action;
             await obsService.setCurrentProgramScene(setSceneAction.sceneName);
-            actionFeedback = `\n✅ Successfully switched to scene "${setSceneAction.sceneName}".`;
+            actionFeedback = `
+✅ Successfully switched to scene "${setSceneAction.sceneName}".`;
             return {
               success: true,
               message: `Successfully switched to scene "${setSceneAction.sceneName}".`,
@@ -118,13 +132,15 @@ export const useObsActions = ({
           case 'setVideoSettings':
             const setVideoAction = action;
             await obsService.setVideoSettings(setVideoAction.videoSettings);
-            actionFeedback = `\n✅ Successfully updated video settings.`;
+            actionFeedback = `
+✅ Successfully updated video settings.`;
             return { success: true, message: `Successfully updated video settings.` };
 
           case 'createScene':
             const createSceneAction = action;
             await obsService.createScene(createSceneAction.sceneName);
-            actionFeedback = `\n✅ Successfully created scene "${createSceneAction.sceneName}".`;
+            actionFeedback = `
+✅ Successfully created scene "${createSceneAction.sceneName}".`;
             return {
               success: true,
               message: `Successfully created scene "${createSceneAction.sceneName}".`,
@@ -133,7 +149,8 @@ export const useObsActions = ({
           case 'removeInput':
             const removeInputAction = action;
             await obsService.removeInput(removeInputAction.inputName);
-            actionFeedback = `\n✅ Successfully removed input "${removeInputAction.inputName}".`;
+            actionFeedback = `
+✅ Successfully removed input "${removeInputAction.inputName}".`;
             return {
               success: true,
               message: `Successfully removed input "${removeInputAction.inputName}".`,
@@ -155,7 +172,8 @@ export const useObsActions = ({
               sceneItemIdTransform,
               transformAction.transform,
             );
-            actionFeedback = `\n✅ Successfully updated transform for "${transformAction.sourceName}" in scene "${transformAction.sceneName}".`;
+            actionFeedback = `
+✅ Successfully updated transform for "${transformAction.sourceName}" in scene "${transformAction.sceneName}".`;
             return {
               success: true,
               message: `Successfully updated transform for "${transformAction.sourceName}" in scene "${transformAction.sceneName}".`,
@@ -169,7 +187,8 @@ export const useObsActions = ({
               filterAction.filterKind,
               filterAction.filterSettings,
             );
-            actionFeedback = `\n✅ Successfully created filter "${filterAction.filterName}" on source "${filterAction.sourceName}".`;
+            actionFeedback = `
+✅ Successfully created filter "${filterAction.filterName}" on source "${filterAction.sourceName}".`;
             return {
               success: true,
               message: `Successfully created filter "${filterAction.filterName}" on source "${filterAction.sourceName}".`,
@@ -182,7 +201,8 @@ export const useObsActions = ({
               volumeAction.inputVolumeMul,
               volumeAction.inputVolumeDb,
             );
-            actionFeedback = `\n✅ Successfully set volume for input "${volumeAction.inputName}".`;
+            actionFeedback = `
+✅ Successfully set volume for input "${volumeAction.inputName}".`;
             return {
               success: true,
               message: `Successfully set volume for input "${volumeAction.inputName}".`,
@@ -191,7 +211,8 @@ export const useObsActions = ({
           case 'setInputMute':
             const muteAction = action;
             await obsService.setInputMute(muteAction.inputName, muteAction.inputMuted);
-            actionFeedback = `\n✅ Successfully ${muteAction.inputMuted ? 'muted' : 'unmuted'} input "${muteAction.inputName}".`;
+            actionFeedback = `
+✅ Successfully ${muteAction.inputMuted ? 'muted' : 'unmuted'} input "${muteAction.inputName}".`;
             return {
               success: true,
               message: `Successfully ${muteAction.inputMuted ? 'muted' : 'unmuted'} input "${muteAction.inputName}".`,
@@ -199,34 +220,40 @@ export const useObsActions = ({
 
           case 'startVirtualCam':
             await obsService.startVirtualCam();
-            actionFeedback = `\n✅ Successfully started virtual camera.`;
+            actionFeedback = `
+✅ Successfully started virtual camera.`;
             return { success: true, message: `Successfully started virtual camera.` };
 
           case 'stopVirtualCam':
             await obsService.stopVirtualCam();
-            actionFeedback = `\n✅ Successfully stopped virtual camera.`;
+            actionFeedback = `
+✅ Successfully stopped virtual camera.`;
             return { success: true, message: `Successfully stopped virtual camera.` };
 
           case 'saveScreenshot':
-            actionFeedback = `\n❌ Screenshot functionality is not available: saveScreenshot is not implemented in OBSWebSocketService.`;
+            actionFeedback = `
+❌ Screenshot functionality is not available: saveScreenshot is not implemented in OBSWebSocketService.`;
             return { success: true, message: `Successfully started replay buffer.` };
 
           case 'startReplayBuffer':
             await obsService.startReplayBuffer();
-            actionFeedback = `\n✅ Successfully started replay buffer.`;
+            actionFeedback = `
+✅ Successfully started replay buffer.`;
             return { success: true, message: `Successfully saved replay buffer.` };
 
           case 'saveReplayBuffer':
             await obsService.saveReplayBuffer();
-            actionFeedback = `\n✅ Successfully saved replay buffer.`;
+            actionFeedback = `
+✅ Successfully saved replay buffer.`;
             return { success: true, message: `Successfully triggered studio mode transition.` };
 
           case 'triggerStudioModeTransition':
             await obsService.triggerStudioModeTransition();
-            actionFeedback = `\n✅ Successfully triggered studio mode transition.`;
+            actionFeedback = `
+✅ Successfully triggered studio mode transition.`;
             return {
               success: true,
-              message: `Audio monitoring for "${monitorAction.inputName}" set to "${monitorAction.monitorType}".`,
+              message: `Audio monitoring for "${(action as any).inputName}" set to "${(action as any).monitorType}".`,
             };
 
           case 'setInputAudioMonitorType':
@@ -235,10 +262,11 @@ export const useObsActions = ({
               monitorAction.inputName,
               monitorAction.monitorType,
             );
-            actionFeedback = `\n✅ Audio monitoring for "${monitorAction.inputName}" set to "${monitorAction.monitorType}".`;
+            actionFeedback = `
+✅ Audio monitoring for "${monitorAction.inputName}" set to "${monitorAction.monitorType}".`;
             return {
               success: true,
-              message: `Blend mode for "${blendAction.sourceName}" set to "${blendAction.blendMode}".`,
+              message: `Blend mode for "${(action as any).sourceName}" set to "${(action as any).blendMode}".`,
             };
 
           case 'setSceneItemBlendMode':
@@ -257,27 +285,32 @@ export const useObsActions = ({
               sceneItemIdBlend,
               blendAction.blendMode,
             );
-            actionFeedback = `\n✅ Blend mode for "${blendAction.sourceName}" set to "${blendAction.blendMode}".`;
+            actionFeedback = `
+✅ Blend mode for "${blendAction.sourceName}" set to "${blendAction.blendMode}".`;
             return { success: true, message: `Refreshed browser source "${action.inputName}".` };
 
           case 'refreshBrowserSource':
             await obsService.refreshBrowserSource(action.inputName);
-            actionFeedback = `\n✅ Refreshed browser source "${action.inputName}".`;
+            actionFeedback = `
+✅ Refreshed browser source "${action.inputName}".`;
             return { success: true, message: `Stream toggled!` };
 
           case 'toggleStream':
             await obsService.toggleStream();
-            actionFeedback = '\n✅ Stream toggled!';
+            actionFeedback = '
+✅ Stream toggled!';
             return { success: true, message: `Record toggled!` };
 
           case 'toggleRecord':
             await obsService.toggleRecord();
-            actionFeedback = '\n✅ Record toggled!';
+            actionFeedback = '
+✅ Record toggled!';
             return { success: true, message: `Studio mode toggled!` };
 
           case 'toggleStudioMode':
             await obsService.toggleStudioMode();
-            actionFeedback = '\n✅ Studio mode toggled!';
+            actionFeedback = '
+✅ Studio mode toggled!';
             return {
               success: true,
               message: `Studio mode ${action.enabled ? 'enabled' : 'disabled'}!`,
@@ -285,12 +318,14 @@ export const useObsActions = ({
 
           case 'setStudioModeEnabled':
             await obsService.setStudioModeEnabled(action.enabled);
-            actionFeedback = `\n✅ Studio mode ${action.enabled ? 'enabled' : 'disabled'}!`;
+            actionFeedback = `
+✅ Studio mode ${action.enabled ? 'enabled' : 'disabled'}!`;
             return { success: true, message: `Hotkey "${action.hotkeyName}" triggered!` };
 
           case 'triggerHotkeyByName':
             await obsService.triggerHotkeyByName(action.hotkeyName);
-            actionFeedback = `\n✅ Hotkey "${action.hotkeyName}" triggered!`;
+            actionFeedback = `
+✅ Hotkey "${action.hotkeyName}" triggered!`;
             return { success: true, message: `Hotkey sequence triggered!` };
 
           case 'triggerHotkeyByKeySequence':
@@ -299,150 +334,192 @@ export const useObsActions = ({
               hotkeyAction.keyId,
               hotkeyAction.keyModifiers,
             );
-            actionFeedback = `\n✅ Hotkey sequence triggered!`;
+            actionFeedback = `
+✅ Hotkey sequence triggered!`;
             return {
               success: true,
-              message: `Output status for "${getOutputStatusAction.outputName}" fetched.`,
+              message: `Output status for "${(action as any).outputName}" fetched.`,
             };
 
           case 'getOutputStatus': {
             const getOutputStatusAction = action;
             const status = await obsService.getOutputStatus(getOutputStatusAction.outputName);
-            actionFeedback = `\n✅ Output status for "${getOutputStatusAction.outputName}" fetched.`;
-            additionalSystemMessage = `\u2139\uFE0F Status for output "${getOutputStatusAction.outputName}":\n\u0060\u0060\u0060json\n${JSON.stringify(status, null, 2)}\n\u0060\u0060\u0060`;
-            return { success: true, message: `Fetched filter list for source "${sourceName}".` };
+            actionFeedback = `
+✅ Output status for "${getOutputStatusAction.outputName}" fetched.`;
+            additionalSystemMessage = `ℹ️ Status for output "${getOutputStatusAction.outputName}":
+\`\`\`json
+${JSON.stringify(status, null, 2)}
+\`\`\``;
+            return { success: true, message: `Fetched filter list for source "${(action as any).sourceName}".` };
           }
           case 'getSourceFilterList': {
             const { sourceName } = action;
             const response = await obsService.getSourceFilterList(sourceName);
-            actionFeedback = `\n✅ Fetched filter list for source "${sourceName}".`;
-            additionalSystemMessage = `\u2139\uFE0F Filters for source "${sourceName}":\n\u0060\u0060\u0060json\n${JSON.stringify(response.filters, null, 2)}\n\u0060\u0060\u0060`;
+            actionFeedback = `
+✅ Fetched filter list for source "${sourceName}".`;
+            additionalSystemMessage = `ℹ️ Filters for source "${sourceName}":
+\`\`\`json
+${JSON.stringify(response.filters, null, 2)}
+\`\`\``;
             return {
               success: true,
-              message: `Fetched filter settings for "${filterName}" on source "${sourceName}".`,
+              message: `Fetched filter settings for "${(action as any).filterName}" on source "${(action as any).sourceName}".`,
             };
           }
           case 'getSourceFilterSettings': {
             const { sourceName, filterName } = action;
             const response = await obsService.getSourceFilterSettings(sourceName, filterName);
-            actionFeedback = `\n✅ Fetched filter settings for "${filterName}" on source "${sourceName}".`;
-            additionalSystemMessage = `\u2139\uFE0F Filter settings for "${filterName}" on source "${sourceName}":\n\u0060\u0060\u0060json\n${JSON.stringify(response, null, 2)}\n\u0060\u0060\u0060`;
+            actionFeedback = `
+✅ Fetched filter settings for "${filterName}" on source "${sourceName}".`;
+            additionalSystemMessage = `ℹ️ Filter settings for "${filterName}" on source "${sourceName}":
+\`\`\`json
+${JSON.stringify(response, null, 2)}
+\`\`\``;
             return {
               success: true,
-              message: `Fetched default settings for filter kind "${filterKind}".`,
+              message: `Fetched default settings for filter kind "${(action as any).filterKind}".`,
             };
           }
           case 'getSourceFilterDefaultSettings': {
             const { filterKind } = action;
             const response = await obsService.getSourceFilterDefaultSettings(filterKind);
-            actionFeedback = `\n✅ Fetched default settings for filter kind "${filterKind}".`;
-            additionalSystemMessage = `\u2139\uFE0F Default settings for filter kind "${filterKind}":\n\u0060\u0060\u0060json\n${JSON.stringify(response.defaultFilterSettings, null, 2)}\n\u0060\u0060\u0060`;
+            actionFeedback = `
+✅ Fetched default settings for filter kind "${filterKind}".`;
+            additionalSystemMessage = `ℹ️ Default settings for filter kind "${filterKind}":
+\`\`\`json
+${JSON.stringify(response.defaultFilterSettings, null, 2)}
+\`\`\``;
             return {
               success: true,
-              message: `Set filter index for "${filterName}" on source "${sourceName}" to ${filterIndex}.`,
+              message: `Set filter index for "${(action as any).filterName}" on source "${(action as any).sourceName}" to ${(action as any).filterIndex}.`,
             };
           }
           case 'setSourceFilterIndex': {
             const { sourceName, filterName, filterIndex } = action;
             await obsService.setSourceFilterIndex(sourceName, filterName, filterIndex);
-            actionFeedback = `\n✅ Set filter index for "${filterName}" on source "${sourceName}" to ${filterIndex}.`;
+            actionFeedback = `
+✅ Set filter index for "${filterName}" on source "${sourceName}" to ${filterIndex}.`;
             return {
               success: true,
-              message: `Renamed filter "${filterName}" to "${newFilterName}" on source "${sourceName}".`,
+              message: `Renamed filter "${(action as any).filterName}" to "${(action as any).newFilterName}" on source "${(action as any).sourceName}".`,
             };
           }
           case 'setSourceFilterName': {
             const { sourceName, filterName, newFilterName } = action;
             await obsService.setSourceFilterName(sourceName, filterName, newFilterName);
-            actionFeedback = `\n✅ Renamed filter "${filterName}" to "${newFilterName}" on source "${sourceName}".`;
+            actionFeedback = `
+✅ Renamed filter "${filterName}" to "${newFilterName}" on source "${sourceName}".`;
             return {
               success: true,
-              message: `Duplicated filter "${filterName}" as "${newFilterName}" on source "${sourceName}".`,
+              message: `Duplicated filter "${(action as any).filterName}" as "${(action as any).newFilterName}" on source "${(action as any).sourceName}".`,
             };
           }
           case 'duplicateSourceFilter': {
             const { sourceName, filterName, newFilterName } = action;
             await obsService.duplicateSourceFilter(sourceName, filterName, newFilterName);
-            actionFeedback = `\n✅ Duplicated filter "${filterName}" as "${newFilterName}" on source "${sourceName}".`;
+            actionFeedback = `
+✅ Duplicated filter "${filterName}" as "${newFilterName}" on source "${sourceName}".`;
             return {
               success: true,
-              message: `Removed filter "${filterName}" from source "${sourceName}".`,
+              message: `Removed filter "${(action as any).filterName}" from source "${(action as any).sourceName}".`,
             };
           }
           case 'removeSourceFilter': {
             const { sourceName, filterName } = action;
             await obsService.removeSourceFilter(sourceName, filterName);
-            actionFeedback = `\n✅ Removed filter "${filterName}" from source "${sourceName}".`;
-            return { success: true, message: `Opened filters dialog for input "${inputName}".` };
+            actionFeedback = `
+✅ Removed filter "${filterName}" from source "${sourceName}".`;
+            return { success: true, message: `Opened filters dialog for input "${(action as any).inputName}".` };
           }
           case 'openInputFiltersDialog': {
             const { inputName } = action;
             await obsService.openInputFiltersDialog(inputName);
-            actionFeedback = `\n✅ Opened filters dialog for input "${inputName}".`;
-            return { success: true, message: `Opened properties dialog for input "${inputName}".` };
+            actionFeedback = `
+✅ Opened filters dialog for input "${inputName}".`;
+            return { success: true, message: `Opened properties dialog for input "${(action as any).inputName}".` };
           }
           case 'openInputPropertiesDialog': {
             const { inputName } = action;
             await obsService.openInputPropertiesDialog(inputName);
-            actionFeedback = `\n✅ Opened properties dialog for input "${inputName}".`;
-            return { success: true, message: `Opened interact dialog for input "${inputName}".` };
+            actionFeedback = `
+✅ Opened properties dialog for input "${inputName}".`;
+            return { success: true, message: `Opened interact dialog for input "${(action as any).inputName}".` };
           }
           case 'openInputInteractDialog': {
             const { inputName } = action;
             await obsService.openInputInteractDialog(inputName);
-            actionFeedback = `\n✅ Opened interact dialog for input "${inputName}".`;
-            return { success: true, message: `Removed scene "${sceneName}".` };
+            actionFeedback = `
+✅ Opened interact dialog for input "${inputName}".`;
+            return { success: true, message: `Removed scene "${(action as any).sceneName}".` };
           }
           case 'removeScene': {
             const { sceneName } = action;
             await obsService.removeScene(sceneName);
-            actionFeedback = `\n✅ Removed scene "${sceneName}".`;
+            actionFeedback = `
+✅ Removed scene "${sceneName}".`;
             return { success: true, message: `Fetched stream status.` };
           }
           case 'getStreamStatus': {
             const status = await obsService.getStreamStatus();
-            actionFeedback = `\n✅ Fetched stream status.`;
-            additionalSystemMessage = `ℹ️ Stream status:\n\`\`\`json\n${JSON.stringify(status, null, 2)}\n\`\`\``;
+            actionFeedback = `
+✅ Fetched stream status.`;
+            additionalSystemMessage = `ℹ️ Stream status:
+\`\`\`json
+${JSON.stringify(status, null, 2)}
+\`\`\``;
             return { success: true, message: `Started streaming.` };
           }
           case 'startStream': {
             await obsService.startStream();
-            actionFeedback = `\n✅ Started streaming.`;
+            actionFeedback = `
+✅ Started streaming.`;
             return { success: true, message: `Stopped streaming.` };
           }
           case 'stopStream': {
             await obsService.stopStream();
-            actionFeedback = `\n✅ Stopped streaming.`;
+            actionFeedback = `
+✅ Stopped streaming.`;
             return { success: true, message: `Fetched record status.` };
           }
           case 'getRecordStatus': {
             const status = await obsService.getRecordStatus();
-            actionFeedback = `\n✅ Fetched record status.`;
-            additionalSystemMessage = `ℹ️ Record status:\n\`\`\`json\n${JSON.stringify(status, null, 2)}\n\`\`\``;
+            actionFeedback = `
+✅ Fetched record status.`;
+            additionalSystemMessage = `ℹ️ Record status:
+\`\`\`json
+${JSON.stringify(status, null, 2)}
+\`\`\``;
             return { success: true, message: `Started recording.` };
           }
           case 'startRecord': {
             await obsService.startRecord();
-            actionFeedback = `\n✅ Started recording.`;
+            actionFeedback = `
+✅ Started recording.`;
             return { success: true, message: `Stopped recording.` };
           }
           case 'stopRecord': {
             await obsService.stopRecord();
-            actionFeedback = `\n✅ Stopped recording.`;
+            actionFeedback = `
+✅ Stopped recording.`;
             return { success: true, message: `Toggled record pause.` };
           }
           case 'toggleRecordPause': {
             await obsService.toggleRecordPause();
-            actionFeedback = `\n✅ Toggled record pause.`;
+            actionFeedback = `
+✅ Toggled record pause.`;
             return { success: true, message: `Fetched video settings.` };
           }
           case 'getVideoSettings': {
             const settings = await obsService.getVideoSettings();
-            actionFeedback = `\n✅ Fetched video settings.`;
-            additionalSystemMessage = `ℹ️ Video settings:\n\`\`\`json\n${JSON.stringify(settings, null, 2)}\n\`\`\``;
+            actionFeedback = `
+✅ Fetched video settings.`;
+            additionalSystemMessage = `ℹ️ Video settings:
+\`\`\`json
+${JSON.stringify(settings, null, 2)}
+\`\`\``;
             return {
               success: true,
-              message: `Fetched transform for "${sourceName}" in scene "${sceneName}".`,
+              message: `Fetched transform for "${(action as any).sourceName}" in scene "${(action as any).sceneName}".`,
             };
           }
           case 'getSceneItemTransform': {
@@ -452,30 +529,39 @@ export const useObsActions = ({
               throw new Error(`Source "${sourceName}" not found in scene "${sceneName}"`);
             }
             const transform = await obsService.getSceneItemTransform(sceneName, sceneItemId);
-            actionFeedback = `\n✅ Fetched transform for "${sourceName}" in scene "${sceneName}".`;
-            additionalSystemMessage = `ℹ️ Transform for "${sourceName}":\n\`\`\`json\n${JSON.stringify(transform, null, 2)}\n\`\`\``;
+            actionFeedback = `
+✅ Fetched transform for "${sourceName}" in scene "${sceneName}".`;
+            additionalSystemMessage = `ℹ️ Transform for "${sourceName}":
+\`\`\`json
+${JSON.stringify(transform, null, 2)}
+\`\`\``;
             return {
               success: true,
-              message: `Fetched filter "${filterName}" on source "${sourceName}".`,
+              message: `Fetched filter "${(action as any).filterName}" on source "${(action as any).sourceName}".`,
             };
           }
           case 'getSourceFilter': {
             const { sourceName, filterName } = action;
             const filter = await obsService.getSourceFilter(sourceName, filterName);
-            actionFeedback = `\n✅ Fetched filter "${filterName}" on source "${sourceName}".`;
-            additionalSystemMessage = `ℹ️ Filter "${filterName}" details:\n\`\`\`json\n${JSON.stringify(filter, null, 2)}\n\`\`\``;
+            actionFeedback = `
+✅ Fetched filter "${filterName}" on source "${sourceName}".`;
+            additionalSystemMessage = `ℹ️ Filter "${filterName}" details:
+\`\`\`json
+${JSON.stringify(filter, null, 2)}
+\`\`\``;
             return {
               success: true,
-              message: `${filterEnabled ? 'Enabled' : 'Disabled'} filter "${filterName}" on source "${sourceName}".`,
+              message: `${(action as any).filterEnabled ? 'Enabled' : 'Disabled'} filter "${(action as any).filterName}" on source "${(action as any).sourceName}".`,
             };
           }
           case 'setSourceFilterEnabled': {
             const { sourceName, filterName, filterEnabled } = action;
             await obsService.setSourceFilterEnabled(sourceName, filterName, filterEnabled);
-            actionFeedback = `\n✅ ${filterEnabled ? 'Enabled' : 'Disabled'} filter "${filterName}" on source "${sourceName}".`;
+            actionFeedback = `
+✅ ${filterEnabled ? 'Enabled' : 'Disabled'} filter "${filterName}" on source "${sourceName}".`;
             return {
               success: true,
-              message: `Updated settings for filter "${filterName}" on source "${sourceName}".`,
+              message: `Updated settings for filter "${(action as any).filterName}" on source "${(action as any).sourceName}".`,
             };
           }
           case 'setSourceFilterSettings': {
@@ -486,29 +572,42 @@ export const useObsActions = ({
               filterSettings,
               overlay,
             );
-            actionFeedback = `\n✅ Updated settings for filter "${filterName}" on source "${sourceName}".`;
-            return { success: true, message: `Fetched volume for input "${inputName}".` };
+            actionFeedback = `
+✅ Updated settings for filter "${filterName}" on source "${sourceName}".`;
+            return { success: true, message: `Fetched volume for input "${(action as any).inputName}".` };
           }
           case 'getInputVolume': {
             const { inputName } = action;
             const volume = await obsService.getInputVolume(inputName);
-            actionFeedback = `\n✅ Fetched volume for input "${inputName}".`;
-            additionalSystemMessage = `ℹ️ Volume for "${inputName}":\n\`\`\`json\n${JSON.stringify(volume, null, 2)}\n\`\`\``;
+            actionFeedback = `
+✅ Fetched volume for input "${inputName}".`;
+            additionalSystemMessage = `ℹ️ Volume for "${inputName}":
+\`\`\`json
+${JSON.stringify(volume, null, 2)}
+\`\`\``;
             return { success: true, message: `Fetched virtual camera status.` };
           }
           case 'getVirtualCamStatus': {
             const status = await obsService.getVirtualCamStatus();
-            actionFeedback = `\n✅ Fetched virtual camera status.`;
-            additionalSystemMessage = `ℹ️ Virtual camera status:\n\`\`\`json\n${JSON.stringify(status, null, 2)}\n\`\`\``;
+            actionFeedback = `
+✅ Fetched virtual camera status.`;
+            additionalSystemMessage = `ℹ️ Virtual camera status:
+\`\`\`json
+${JSON.stringify(status, null, 2)}
+\`\`\``;
             return { success: true, message: `Fetched replay buffer status.` };
           }
           case 'getReplayBufferStatus': {
             const status = await obsService.getReplayBufferStatus();
-            actionFeedback = `\n✅ Fetched replay buffer status.`;
-            additionalSystemMessage = `ℹ️ Replay buffer status:\n\`\`\`json\n${JSON.stringify(status, null, 2)}\n\`\`\``;
+            actionFeedback = `
+✅ Fetched replay buffer status.`;
+            additionalSystemMessage = `ℹ️ Replay buffer status:
+\`\`\`json
+${JSON.stringify(status, null, 2)}
+\`\`\``;
             return {
               success: true,
-              message: `Duplicated "${sourceName}" from scene "${sceneName}" to scene "${targetScene}".`,
+              message: `Duplicated "${(action as any).sourceName}" from scene "${(action as any).sceneName}" to scene "${(action as any).targetScene}".`,
             };
           }
           case 'duplicateSceneItem': {
@@ -519,14 +618,16 @@ export const useObsActions = ({
             }
             await obsService.duplicateSceneItem(sceneName, sceneItemId, destinationSceneName);
             const targetScene = destinationSceneName || sceneName;
-            actionFeedback = `\n✅ Duplicated "${sourceName}" from scene "${sceneName}" to scene "${targetScene}".`;
-            return { success: true, message: `Renamed scene "${sceneName}" to "${newSceneName}".` };
+            actionFeedback = `
+✅ Duplicated "${sourceName}" from scene "${sceneName}" to scene "${targetScene}".`;
+            return { success: true, message: `Renamed scene "${(action as any).sceneName}" to "${(action as any).newSceneName}".` };
           }
           case 'setSceneName': {
             const { sceneName, newSceneName } = action;
             await obsService.setSceneName(sceneName, newSceneName);
-            actionFeedback = `\n✅ Renamed scene "${sceneName}" to "${newSceneName}".`;
-            return { success: true, message: `Captured screenshot of source "${sourceName}".` };
+            actionFeedback = `
+✅ Renamed scene "${sceneName}" to "${newSceneName}".`;
+            return { success: true, message: `Captured screenshot of source "${(action as any).sourceName}".` };
           }
           case 'getSourceScreenshot': {
             const { sourceName, imageFormat, imageWidth, imageHeight, imageCompressionQuality } =
@@ -538,61 +639,84 @@ export const useObsActions = ({
               imageHeight,
               imageCompressionQuality,
             );
-            actionFeedback = `\n✅ Captured screenshot of source "${sourceName}".`;
+            actionFeedback = `
+✅ Captured screenshot of source "${sourceName}".`;
             additionalSystemMessage = `ℹ️ Screenshot captured as ${imageFormat} format. Image data: ${screenshot.imageData.substring(0, 100)}...`;
             return { success: true, message: `Stopped replay buffer.` };
           }
           case 'stopReplayBuffer': {
             await obsService.stopReplayBuffer();
-            actionFeedback = `\n✅ Stopped replay buffer.`;
+            actionFeedback = `
+✅ Stopped replay buffer.`;
             return { success: true, message: `Fetched current profile information.` };
           }
           case 'getCurrentProfile': {
             const profile = await obsService.getCurrentProfile();
-            actionFeedback = `\n✅ Fetched current profile information.`;
-            additionalSystemMessage = `ℹ️ Profile information:\n\`\`\`json\n${JSON.stringify(profile, null, 2)}\n\`\`\``;
-            return { success: true, message: `Switched to profile "${profileName}".` };
+            actionFeedback = `
+✅ Fetched current profile information.`;
+            additionalSystemMessage = `ℹ️ Profile information:
+\`\`\`json
+${JSON.stringify(profile, null, 2)}
+\`\`\``;
+            return { success: true, message: `Switched to profile "${(action as any).profileName}".` };
           }
           case 'setCurrentProfile': {
             const { profileName } = action;
             await obsService.setCurrentProfile(profileName);
-            actionFeedback = `\n✅ Switched to profile "${profileName}".`;
+            actionFeedback = `
+✅ Switched to profile "${profileName}".`;
             return { success: true, message: `Fetched current scene collection information.` };
           }
           case 'getCurrentSceneCollection': {
             const collection = await obsService.getCurrentSceneCollection();
-            actionFeedback = `\n✅ Fetched current scene collection information.`;
-            additionalSystemMessage = `ℹ️ Scene collection information:\n\`\`\`json\n${JSON.stringify(collection, null, 2)}\n\`\`\``;
+            actionFeedback = `
+✅ Fetched current scene collection information.`;
+            additionalSystemMessage = `ℹ️ Scene collection information:
+\`\`\`json
+${JSON.stringify(collection, null, 2)}
+\`\`\``;
             return {
               success: true,
-              message: `Switched to scene collection "${sceneCollectionName}".`,
+              message: `Switched to scene collection "${(action as any).sceneCollectionName}".`,
             };
           }
           case 'setCurrentSceneCollection': {
             const { sceneCollectionName } = action;
             await obsService.setCurrentSceneCollection(sceneCollectionName);
-            actionFeedback = `\n✅ Switched to scene collection "${sceneCollectionName}".`;
+            actionFeedback = `
+✅ Switched to scene collection "${sceneCollectionName}".`;
             break;
           }
           // Add more cases for other actions...
           default:
-            const unknownActionType = (action as any).type;
-            actionFeedback = `\n❌ Unsupported OBS action type: ${unknownActionType}`;
+            const unknownActionType = (action as { type: string }).type;
+            actionFeedback = `
+❌ Unsupported OBS action type: ${unknownActionType}`;
             throw new Error(`Unsupported OBS action type: ${unknownActionType}`);
         }
 
         actionAttemptMessage += `${actionFeedback}`;
         if (additionalSystemMessage) {
-          actionAttemptMessage += `\n\n---\n${additionalSystemMessage}`;
+          actionAttemptMessage += `
+
+---
+${additionalSystemMessage}`;
         }
         onAddMessage({ role: 'system', text: actionAttemptMessage });
         await onRefreshData();
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error(`OBS Action "${action.type}" failed:`, err);
-        const failureFeedback = `\n❗ Failed to execute OBS action "${action.type}": ${(err as Error).message || 'Unknown error'}`;
+        const failureFeedback = `
+❗ Failed to execute OBS action "${action.type}": ${
+          err instanceof Error ? err.message : 'Unknown error'
+        }`;
         actionAttemptMessage += `${failureFeedback}`;
         onAddMessage({ role: 'system', text: actionAttemptMessage });
-        setErrorMessage(`OBS Action "${action.type}" failed: ${(err as Error).message}`);
+        setErrorMessage(
+          `OBS Action "${action.type}" failed: ${
+            err instanceof Error ? err.message : 'Unknown error'
+          }`,
+        );
       }
     },
     [obsService, obsData, onRefreshData, onAddMessage, setErrorMessage],

@@ -9,7 +9,7 @@ describe('Proxy Unit Tests', () => {
     let server;
 
     beforeAll((done) => {
-        const proxyApp = require('../proxy.mjs').default;
+        const proxyApp = require('../src/vite-middleware.ts');
         app = proxyApp;
         server = app.listen(3003, done);
     });

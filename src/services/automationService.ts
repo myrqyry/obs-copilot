@@ -5,10 +5,12 @@ import { throttle } from 'lodash';
 import type { StreamerBotService } from './streamerBotService';
 import { logger } from '../utils/logger';
 
+import { OBSData } from '../types';
+
 export class AutomationService {
   private rules: AutomationRule[] = [];
   private isInitialized = false;
-  private obsData: any = {};
+  private obsData: Partial<OBSData> = {};
   private streamerBotService: StreamerBotService | null = null;
   private handleObsAction:
     | ((action: ObsAction) => Promise<{ success: boolean; message: string; error?: string }>)
@@ -50,7 +52,7 @@ export class AutomationService {
   /**
    * Update current OBS data for condition evaluation
    */
-  updateObsData(obsData: any) {
+  updateObsData(obsData: Partial<OBSData>) {
     this.obsData = obsData;
   }
 
@@ -58,7 +60,7 @@ export class AutomationService {
    * Process an OBS event and execute matching automation rules
    */
   private throttledProcessEvent = throttle(
-    async (eventName: string, eventData: any): Promise<void> => {
+    async (eventName: string, eventData: Record<string, unknown>): Promise<void> => {
       if (!this.isInitialized) {
         logger.warn('AutomationService not initialized, skipping event processing');
         return;
@@ -112,14 +114,17 @@ export class AutomationService {
     500,
   ); // Throttle to process events at most once every 500ms
 
-  async processEvent(eventName: string, eventData: any): Promise<void> {
+  async processEvent(eventName: string, eventData: Record<string, unknown>): Promise<void> {
     await this.throttledProcessEvent(eventName, eventData);
   }
 
   /**
    * Evaluate if trigger data matches the rule's trigger requirements
    */
-  private evaluateTriggerData(rule: AutomationRule, eventData: any): boolean {
+  private evaluateTriggerData(
+    rule: AutomationRule,
+    eventData: Record<string, unknown>,
+  ): boolean {
     if (!rule.trigger.eventData) {
       return true; // No specific trigger data required
     }
@@ -147,15 +152,21 @@ export class AutomationService {
   /**
    * Evaluate all conditions for a rule
    */
-  private evaluateConditions(conditions: AutomationCondition[], eventData: any): boolean {
+  private evaluateConditions(
+    conditions: AutomationCondition[],
+    eventData: Record<string, unknown>,
+  ): boolean {
     return conditions.every((condition) => this.evaluateCondition(condition, eventData));
   }
 
   /**
    * Evaluate a single condition
    */
-  private evaluateCondition(condition: AutomationCondition, eventData: any): boolean {
-    let actualValue: any;
+  private evaluateCondition(
+    condition: AutomationCondition,
+    eventData: Record<string, unknown>,
+  ): boolean {
+    let actualValue: unknown;
 
     // Get the actual value based on condition type and field
     switch (condition.type) {
@@ -183,7 +194,7 @@ export class AutomationService {
   /**
    * Get scene-related values
    */
-  private getSceneValue(field: string): any {
+  private getSceneValue(field: string): string | null | undefined {
     switch (field) {
       case 'currentProgramScene':
         return this.obsData.currentProgramScene;
@@ -197,15 +208,18 @@ export class AutomationService {
   /**
    * Get source-related values
    */
-  private getSourceValue(field: string, eventData: any): any {
+  private getSourceValue(
+    field: string,
+    eventData: Record<string, unknown>,
+  ): string | boolean | null {
     switch (field) {
       case 'inputMuted':
         // For source conditions, we often need to check against the event data
-        return eventData.inputMuted;
+        return eventData.inputMuted as boolean;
       case 'inputActive':
-        return eventData.inputActive;
+        return eventData.inputActive as boolean;
       case 'inputName':
-        return eventData.inputName;
+        return eventData.inputName as string;
       default:
         return null;
     }
@@ -214,7 +228,7 @@ export class AutomationService {
   /**
    * Get stream-related values
    */
-  private getStreamValue(field: string): any {
+  private getStreamValue(field: string): boolean | null {
     switch (field) {
       case 'streamActive':
         return this.obsData.streamStatus?.outputActive || false;
@@ -228,7 +242,7 @@ export class AutomationService {
   /**
    * Apply comparison operator
    */
-  private applyOperator(actualValue: any, operator: string, expectedValue: any): boolean {
+  private applyOperator(actualValue: unknown, operator: string, expectedValue: unknown): boolean {
     switch (operator) {
       case 'equals':
         return actualValue === expectedValue;
@@ -280,7 +294,7 @@ export class AutomationService {
   /**
    * Execute a single action
    */
-  private async executeAction(action: any, ruleName: string): Promise<void> {
+  private async executeAction(action: AutomationAction, ruleName: string): Promise<void> {
     let attempt = 0;
     while (attempt < this.maxRetries) {
       try {
@@ -362,7 +376,7 @@ export class AutomationService {
    */
   async testRule(
     rule: AutomationRule,
-    mockEventData: any,
+    mockEventData: Record<string, unknown>,
   ): Promise<{ wouldTrigger: boolean; reason: string }> {
     try {
       if (!rule.enabled) {

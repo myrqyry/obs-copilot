@@ -5,7 +5,7 @@ import { logger } from './logger';
  * @param wait The number of milliseconds to delay
  * @param immediate Whether to execute on the leading edge
  */
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: unknown[]) => unknown>(
   func: T,
   wait: number,
   immediate = false,
@@ -32,7 +32,7 @@ export function debounce<T extends (...args: any[]) => any>(
  * @param func The function to throttle
  * @param limit The number of milliseconds to throttle by
  */
-export function throttle<T extends (...args: any[]) => any>(
+export function throttle<T extends (...args: unknown[]) => unknown>(
   func: T,
   limit: number,
 ): (...args: Parameters<T>) => void {
@@ -52,7 +52,7 @@ export function throttle<T extends (...args: any[]) => any>(
  * @param name The name of the operation being monitored
  * @param fn The function to execute and monitor
  */
-export function withPerformanceMonitoring<T extends (...args: any[]) => any>(
+export function withPerformanceMonitoring<T extends (...args: unknown[]) => unknown>(
   name: string,
   fn: T,
 ): T {
@@ -76,10 +76,9 @@ export function withPerformanceMonitoring<T extends (...args: any[]) => any>(
  * @param name The name of the operation being monitored
  * @param fn The async function to execute and monitor
  */
-export async function withAsyncPerformanceMonitoring<T extends (...args: any[]) => Promise<any>>(
-  name: string,
-  fn: T,
-): Promise<ReturnType<T>> {
+export async function withAsyncPerformanceMonitoring<
+  T extends (...args: unknown[]) => Promise<unknown>,
+>(name: string, fn: T): Promise<ReturnType<T>> {
   const start = performance.now();
   const result = await fn();
   const end = performance.now();

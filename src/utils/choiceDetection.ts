@@ -1,3 +1,4 @@
+import { OBSData, OBSScene, OBSSource } from '../types';
 // Helper functions for detecting and processing choice questions in chat messages
 
 export interface ChoiceDetectionResult {
@@ -8,7 +9,10 @@ export interface ChoiceDetectionResult {
 }
 
 // Helper function to detect general choice questions and OBS-specific choices
-export function detectChoiceQuestion(text: string, obsData?: any): ChoiceDetectionResult {
+export function detectChoiceQuestion(
+  text: string,
+  obsData?: OBSData,
+): ChoiceDetectionResult {
   // First, try OBS-specific choice detection if obsData is available
   if (obsData) {
     const obsChoices = detectObsChoiceQuestion(text, obsData);
@@ -127,7 +131,7 @@ export function extractChoicesFromText(text: string): string[] {
 }
 
 // Helper function to detect OBS-specific choice questions and generate relevant options
-export function detectObsChoiceQuestion(text: string, obsData: any): ChoiceDetectionResult {
+export function detectObsChoiceQuestion(text: string, obsData: OBSData): ChoiceDetectionResult {
   const lowercaseText = text.toLowerCase();
 
   // Only trigger on very specific ambiguous response patterns
@@ -169,7 +173,7 @@ export function detectObsChoiceQuestion(text: string, obsData: any): ChoiceDetec
   ) {
     const scenes =
       obsData.scenes
-        ?.map((scene: any) => scene.sceneName)
+        ?.map((scene: OBSScene) => scene.sceneName)
         .filter((name: string) => name !== obsData.currentProgramScene) || [];
     if (scenes.length > 1) {
       return {
@@ -188,7 +192,7 @@ export function detectObsChoiceQuestion(text: string, obsData: any): ChoiceDetec
     lowercaseText.includes('select source') ||
     lowercaseText.includes('choose source')
   ) {
-    const sources = obsData.sources?.map((source: any) => source.sourceName) || [];
+    const sources = obsData.sources?.map((source: OBSSource) => source.sourceName) || [];
     if (sources.length > 1) {
       return {
         hasChoices: true,
@@ -208,13 +212,13 @@ export function detectObsChoiceQuestion(text: string, obsData: any): ChoiceDetec
     const cameraSources =
       obsData.sources
         ?.filter(
-          (source: any) =>
+          (source: OBSSource) =>
             source.inputKind === 'dshow_input' ||
             source.sourceName.toLowerCase().includes('camera') ||
             source.sourceName.toLowerCase().includes('webcam') ||
             source.sourceName.toLowerCase().includes('cam'),
         )
-        .map((source: any) => source.sourceName) || [];
+        .map((source: OBSSource) => source.sourceName) || [];
 
     if (cameraSources.length > 1) {
       return {
@@ -236,12 +240,12 @@ export function detectObsChoiceQuestion(text: string, obsData: any): ChoiceDetec
     const textSources =
       obsData.sources
         ?.filter(
-          (source: any) =>
+          (source: OBSSource) =>
             source.inputKind === 'text_gdiplus_v2' ||
             source.inputKind === 'text_ft2_source_v2' ||
             source.sourceName.toLowerCase().includes('text'),
         )
-        .map((source: any) => source.sourceName) || [];
+        .map((source: OBSSource) => source.sourceName) || [];
 
     if (textSources.length > 1) {
       return { hasChoices: true, choices: textSources, cleanText: text, choiceType: 'text-source' };
@@ -259,14 +263,14 @@ export function detectObsChoiceQuestion(text: string, obsData: any): ChoiceDetec
     const audioSources =
       obsData.sources
         ?.filter(
-          (source: any) =>
+          (source: OBSSource) =>
             source.inputKind?.includes('audio') ||
             source.inputKind?.includes('wasapi') ||
             source.inputKind?.includes('dshow') ||
             source.sourceName.toLowerCase().includes('audio') ||
             source.sourceName.toLowerCase().includes('mic'),
         )
-        .map((source: any) => source.sourceName) || [];
+        .map((source: OBSSource) => source.sourceName) || [];
 
     if (audioSources.length > 1) {
       return {
@@ -289,14 +293,14 @@ export function detectObsChoiceQuestion(text: string, obsData: any): ChoiceDetec
     const screenSources =
       obsData.sources
         ?.filter(
-          (source: any) =>
+          (source: OBSSource) =>
             source.inputKind === 'monitor_capture' ||
             source.inputKind === 'window_capture' ||
             source.sourceName.toLowerCase().includes('screen') ||
             source.sourceName.toLowerCase().includes('display') ||
             source.sourceName.toLowerCase().includes('monitor'),
         )
-        .map((source: any) => source.sourceName) || [];
+        .map((source: OBSSource) => source.sourceName) || [];
 
     if (screenSources.length > 1) {
       return {

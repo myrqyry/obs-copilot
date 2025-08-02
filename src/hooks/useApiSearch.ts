@@ -53,7 +53,7 @@ export const useApiSearch = <T>(options?: UseApiSearchOptions<T>): UseApiSearchR
         const fetchedResults = await fetcher();
         setResults(fetchedResults);
         options?.onSuccess?.(fetchedResults);
-      } catch (err: any) {
+      } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
         setError(errorMessage);
         logger.error(`Failed to fetch search results: ${errorMessage}`, err);

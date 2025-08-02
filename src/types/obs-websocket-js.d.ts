@@ -102,7 +102,18 @@ declare module 'obs-websocket-js' {
   }
 
   interface Profile {
+    profileName: string;
+  }
+
+  interface ProfileList {
     currentProfileName: string;
+    profiles: string[];
+  }
+
+  interface Input {
+    inputName: string;
+    inputKind: string;
+    unversionedInputKind: string;
   }
 
   interface ReplayBufferStatus {
@@ -167,7 +178,9 @@ declare module 'obs-websocket-js' {
       requestType: 'GetOutputStatus',
       requestData: { outputName: string },
     ): Promise<OutputStatus>;
-    call(requestType: 'GetProfileList'): Promise<Profile>;
+    call(requestType: 'GetProfileList'): Promise<ProfileList>;
+    call(requestType: 'GetCurrentProfile'): Promise<Profile>;
+    call(requestType: 'GetInputList'): Promise<{ inputs: Input[] }>;
     call(requestType: 'GetReplayBufferStatus'): Promise<ReplayBufferStatus>;
     call(requestType: 'GetHotkeyList'): Promise<{ hotkeys: Hotkey[] }>;
     call(requestType: 'GetStats'): Promise<Stats>;

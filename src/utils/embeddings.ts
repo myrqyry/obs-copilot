@@ -1,3 +1,4 @@
+import type { Pipeline } from '@xenova/transformers';
 /**
  * Embeddings adapter supporting:
  *  - LOCAL: @xenova/transformers (all-MiniLM-L6-v2) via embeddings.js-style API
@@ -31,7 +32,7 @@ export async function createEmbedder(provider: EmbeddingsProvider = getProvider(
  * Loads a small, fast sentence embedding model and returns mean pooled, normalized vectors.
  */
 class LocalXenovaEmbedder implements Embedder {
-  private _pipelinePromise: Promise<any> | null = null;
+  private _pipelinePromise: Promise<Pipeline> | null = null;
   private _dim: number | null = null;
 
   private async getPipeline() {

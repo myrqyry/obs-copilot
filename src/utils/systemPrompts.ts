@@ -1,17 +1,26 @@
+import {
+  OBSScene,
+  OBSSource,
+  OBSStreamStatus,
+  OBSRecordStatus,
+  OBSVideoSettings,
+} from '../types';
+import { Hotkey } from 'obs-websocket-js';
+
 // Utility functions for building system prompts for different services
 
 export interface ObsData {
-  scenes: any[];
+  scenes: OBSScene[];
   currentProgramScene?: string;
-  sources: any[];
-  streamStatus?: any;
-  recordStatus?: any;
-  videoSettings?: any;
+  sources: OBSSource[];
+  streamStatus?: OBSStreamStatus;
+  recordStatus?: OBSRecordStatus;
+  videoSettings?: OBSVideoSettings;
 }
 
-export function buildObsSystemMessage(obsData: ObsData, hotkeys?: any[]): string {
-  const sceneNames = obsData.scenes.map((s: any) => s.sceneName).join(', ');
-  const sourceNames = obsData.sources.map((s: any) => s.sourceName).join(', ');
+export function buildObsSystemMessage(obsData: ObsData, hotkeys?: Hotkey[]): string {
+  const sceneNames = obsData.scenes.map((s: OBSScene) => s.sceneName).join(', ');
+  const sourceNames = obsData.sources.map((s: OBSSource) => s.sourceName).join(', ');
   const currentScene = obsData.currentProgramScene || 'None';
 
   // Fix stream and record status to check outputActive property
@@ -31,7 +40,7 @@ export function buildObsSystemMessage(obsData: ObsData, hotkeys?: any[]): string
   let hotkeyInfo = '';
   if (hotkeys && hotkeys.length > 0) {
     const hotkeyNames = hotkeys
-      .map((h: any) => h.hotkeyName || h.name)
+      .map((h: Hotkey) => h.hotkeyName)
       .filter(Boolean)
       .slice(0, 20); // Limit to first 20
     hotkeyInfo = `\n- Available Hotkeys: ${hotkeyNames.join(', ')}${hotkeys.length > 20 ? ` (and ${hotkeys.length - 20} more)` : ''}`;

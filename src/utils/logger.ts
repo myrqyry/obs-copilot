@@ -22,27 +22,27 @@ class Logger {
   /**
    * Logs a debug message.
    * @param {string} message - The message to log.
-   * @param {any[]} optionalParams - Additional parameters to log.
+   * @param {unknown[]} optionalParams - Additional parameters to log.
    */
-  debug(message: string, ...optionalParams: any[]) {
+  debug(message: string, ...optionalParams: unknown[]) {
     this.log(LogLevel.DEBUG, message, ...optionalParams);
   }
 
   /**
    * Logs an informational message.
    * @param {string} message - The message to log.
-   * @param {any[]} optionalParams - Additional parameters to log.
+   * @param {unknown[]} optionalParams - Additional parameters to log.
    */
-  info(message: string, ...optionalParams: any[]) {
+  info(message: string, ...optionalParams: unknown[]) {
     this.log(LogLevel.INFO, message, ...optionalParams);
   }
 
   /**
    * Logs a warning message.
    * @param {string} message - The message to log.
-   * @param {any[]} optionalParams - Additional parameters to log.
+   * @param {unknown[]} optionalParams - Additional parameters to log.
    */
-  warn(message: string, ...optionalParams: any[]) {
+  warn(message: string, ...optionalParams: unknown[]) {
     this.log(LogLevel.WARN, message, ...optionalParams);
   }
 
@@ -50,9 +50,9 @@ class Logger {
    * Logs an error message.
    * If an Error object is provided as the first optional parameter, its stack trace is captured.
    * @param {string} message - The message to log.
-   * @param {Error | any[]} optionalParams - The error object or additional parameters to log.
+   * @param {Error | unknown[]} optionalParams - The error object or additional parameters to log.
    */
-  error(message: string, ...optionalParams: any[]) {
+  error(message: string, ...optionalParams: unknown[]) {
     this.log(LogLevel.ERROR, message, ...optionalParams);
   }
 
@@ -61,9 +61,9 @@ class Logger {
    * @private
    * @param {LogLevel} level - The log level.
    * @param {string} message - The message to log.
-   * @param {any[]} optionalParams - Additional parameters to log.
+   * @param {unknown[]} optionalParams - Additional parameters to log.
    */
-  private log(level: LogLevel, message: string, ...optionalParams: any[]) {
+  private log(level: LogLevel, message: string, ...optionalParams: unknown[]) {
     const timestamp = new Date().toISOString();
     const prefix = `[${timestamp}] [${level.toUpperCase()}]`;
 

@@ -68,9 +68,14 @@ const SpeechGeneration: React.FC = () => {
             if (!currentGeminiApiKey) throw new Error('Gemini API key is missing.');
             const prompt = `Hi, please generate a short (like 100 words) transcript that reads like it was clipped from a podcast from the following speakers: ${speakers.map(s => s.name).join(', ')}. Format as Speaker: line.`;
             const response = await geminiService.generateContent(prompt);
-            setScript(response.text.trim());
-        } catch (err: any) {
-            setScript('// Error generating story: ' + (err.message || 'Unknown error'));
+            const responseText = response.candidates[0]?.content?.parts[0]?.text || '';
+            setScript(responseText.trim());
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setScript('// Error generating story: ' + err.message);
+            } else {
+                setScript('// Error generating story: Unknown error');
+            }
         } finally {
             setStoryLoading(false);
         }
@@ -157,8 +162,12 @@ const SpeechGeneration: React.FC = () => {
 
             setGeneratedAudio(finalUrl);
             setMiniPlayerTTSUrl(finalUrl);
-        } catch (err: any) {
-            setAudioError(err.message || 'Audio generation failed.');
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setAudioError(err.message);
+            } else {
+                setAudioError('Audio generation failed.');
+            }
         } finally {
             setAudioLoading(false);
         }

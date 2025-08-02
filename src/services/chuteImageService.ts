@@ -51,7 +51,10 @@ export async function generateChuteImage({
     } else {
       return { error: 'No image returned from Chute API.' };
     }
-  } catch (err: any) {
-    return { error: err.message || 'Unknown error calling Chute API.' };
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      return { error: err.message };
+    }
+    return { error: 'Unknown error calling Chute API.' };
   }
 }

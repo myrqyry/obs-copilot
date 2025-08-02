@@ -73,7 +73,7 @@ export const useAnimatedTabs = (activeTab: string) => {
   }, [updateIndicator]);
 
   // Tab click handler with animations
-  const handleTabClick = useCallback((tabKey: string, onClick: (tab: any) => void) => {
+  const handleTabClick = useCallback((tabKey: string, onClick: (tab: string) => void) => {
     return (event: React.MouseEvent<HTMLButtonElement>) => {
       const tabElement = event.currentTarget;
 

@@ -1,3 +1,4 @@
+import { ObsClient } from './obsClient';
 export interface TemplateConfig {
   layout: 'overlay' | 'fullscreen' | 'sidebar' | 'corner';
   position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
@@ -179,8 +180,9 @@ export const HtmlTemplateService = {
     const params = encodeURIComponent(JSON.stringify(config));
     return `${baseUrl}?config=${params}`;
   },
+
   async createBrowserSourceWithTemplate(
-    obsService: any,
+    obsService: ObsClient,
     sourceName: string,
     sceneName: string,
     config: Partial<TemplateConfig>,
@@ -201,7 +203,7 @@ export const HtmlTemplateService = {
     );
   },
   async updateBrowserSourceTemplate(
-    obsService: any,
+    obsService: ObsClient,
     sourceName: string,
     config: Partial<TemplateConfig>,
   ): Promise<void> {

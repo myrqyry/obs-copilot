@@ -10,10 +10,15 @@ import { detectChoiceQuestion } from '../utils/choiceDetection';
 import type { GeminiActionResponse } from '../types/obsActions';
 import { logger } from '../utils/logger';
 
+import { OBSScene, OBSSource } from '../types';
+
 export const useGeminiChat = (
   onRefreshData: () => Promise<void>,
   setErrorMessage: (message: string | null) => void,
-  onStreamerBotAction: (action: { type: string; args?: Record<string, any> }) => Promise<void>,
+  onStreamerBotAction: (action: {
+    type: string;
+    args?: Record<string, unknown>;
+  }) => Promise<void>,
 ) => {
   const { isConnected } = useConnectionManagerStore();
   const {
@@ -69,8 +74,8 @@ export const useGeminiChat = (
         videoSettings,
       };
       const buildObsSystemMessage = () => {
-        const sceneNames = obsData.scenes.map((s: any) => s.sceneName).join(', ');
-        const sourceNames = obsData.sources.map((s: any) => s.sourceName).join(', ');
+        const sceneNames = obsData.scenes.map((s: OBSScene) => s.sceneName).join(', ');
+        const sourceNames = obsData.sources.map((s: OBSSource) => s.sourceName).join(', ');
         const currentScene = obsData.currentProgramScene || 'None';
         const streamStatusText = obsData.streamStatus?.outputActive ? `Active` : 'Inactive';
         const recordStatusText = obsData.recordStatus?.outputActive ? `Recording` : 'Not Recording';
@@ -162,8 +167,12 @@ export const useGeminiChat = (
           setErrorMessage(`OBS Action failed: ${obsActionResult.error}`);
         }
       }
-    } catch (error: any) {
-      chatActions.addMessage({ role: 'system', text: `❗ Gemini API Error: ${error.message}` });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        chatActions.addMessage({ role: 'system', text: `❗ Gemini API Error: ${error.message}` });
+      } else {
+        chatActions.addMessage({ role: 'system', text: `❗ Gemini API Error: Unknown error` });
+      }
     } finally {
       setIsLoading(false);
     }

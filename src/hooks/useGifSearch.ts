@@ -2,10 +2,10 @@ import { useState, useCallback } from 'react';
 import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
 import { GiphyResult } from '../types/giphy';
 import { useToast } from '../components/ui/use-toast';
-import { GiphyFetch } from '@giphy/js-fetch-api';
+import { GiphyFetch, Rating } from '@giphy/js-fetch-api';
 
 interface SearchFilters {
-  rating: string;
+  rating: Rating;
   contentFilter: string;
   mediaFilter: string;
   arRange: string;
@@ -22,7 +22,7 @@ export const useGifSearch = () => {
   const [totalResults, setTotalResults] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
-    rating: 'pg-13',
+    rating: 'pg-13' as Rating,
     contentFilter: 'high',
     mediaFilter: 'minimal',
     arRange: 'all',
@@ -52,7 +52,7 @@ export const useGifSearch = () => {
           const gf = new GiphyFetch(apiKey);
           const response = await gf.search(searchQuery, {
             limit: searchFilters.limit,
-            rating: searchFilters.rating as any,
+            rating: searchFilters.rating,
             type: searchFilters.contentType,
           });
           setGifResults(response.data.map((gif) => ({ ...gif, id: String(gif.id) })));
@@ -60,8 +60,9 @@ export const useGifSearch = () => {
         } else if (gifApi === 'tenor') {
           // Tenor API logic would go here
         }
-      } catch (error: any) {
-        setSearchError(error.message);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'An unknown error occurred';
+        setSearchError(message);
         toast({
           title: `GIF Search Error`,
           description: error.message,

@@ -7,7 +7,7 @@ let app;
 
 beforeAll((done) => {
 
-    const proxyApp = require('../proxy.mjs').default;
+    const proxyApp = require('../src/vite-middleware.ts');
     app = proxyApp;
     server = app.listen(3002, done);
 });

@@ -6,9 +6,10 @@ import { useConnectionManagerStore } from '../store/connectionManagerStore';
 import { useChatStore } from '../store/chatStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { CatppuccinAccentColorName, AppTab, ChatMessage } from '../types';
+import { StreamerBotService } from '../services/streamerBotService';
 
 interface GeminiChatProps {
-    streamerBotService: any;
+    streamerBotService: StreamerBotService | null;
     onRefreshData: () => Promise<void>;
     setErrorMessage: (message: string | null) => void;
     chatInputValue: string;
@@ -21,7 +22,10 @@ interface GeminiChatProps {
     onSetIsGeminiClientInitialized: (status: boolean) => void;
     onSetGeminiInitializationError: (error: string | null) => void;
     activeTab: AppTab;
-    onStreamerBotAction: (action: { type: string, args?: Record<string, any> }) => Promise<void>;
+    onStreamerBotAction: (action: {
+    type: string;
+    args?: Record<string, unknown>;
+  }) => Promise<void>;
 }
 
 export const GeminiChat: React.FC<GeminiChatProps> = ({
@@ -76,8 +80,12 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
             } else {
                 onAddMessage({ role: 'system', text: `📸 Screenshot failed: ${screenshot.error}` });
             }
-        } catch (error: any) {
-            onAddMessage({ role: 'system', text: `📸 Screenshot error: ${error.message}` });
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                onAddMessage({ role: 'system', text: `📸 Screenshot error: ${error.message}` });
+            } else {
+                onAddMessage({ role: 'system', text: `📸 Screenshot error: Unknown error` });
+            }
         }
     };
 

@@ -1,4 +1,4 @@
-import { ObsClientImpl } from '../ObsClient';
+import { ObsClientImpl } from '../obsClient';
 import OBSWebSocket from 'obs-websocket-js';
 
 jest.mock('obs-websocket-js', () => {

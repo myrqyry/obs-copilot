@@ -1,4 +1,4 @@
-import { ObsClient } from '../services/ObsClient';
+import { ObsClient } from '../services/obsClient';
 import { logger } from './logger';
 
 export interface AddSourceOptions {

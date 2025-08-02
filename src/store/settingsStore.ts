@@ -33,7 +33,10 @@ export interface SettingsState {
     setChatBubbleBlendMode: (mode: string) => void;
     setThemeColor: (
       type: 'accent' | 'secondaryAccent' | 'userChatBubble' | 'modelChatBubble',
-      color: any,
+      color:
+        | CatppuccinAccentColorName
+        | CatppuccinSecondaryAccentColorName
+        | CatppuccinChatBubbleColorName,
     ) => void;
     setThemeName: (name: string) => void;
   };
