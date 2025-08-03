@@ -78,7 +78,7 @@ const App: React.FC = () => {
         }
     };
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         if (obsServiceInstance && isConnected) {
             try {
                 const scenes = await obsServiceInstance.getSceneList();
@@ -99,7 +99,7 @@ const App: React.FC = () => {
                 console.error("Failed to fetch OBS data:", error);
             }
         }
-    };
+    }, [obsServiceInstance, isConnected, connectionManagerActions]);
 
     const streamerBotService = useRef(new StreamerBotService()).current;
     const { isStreamerBotConnected, isStreamerBotConnecting, handleStreamerBotConnect, handleStreamerBotDisconnect } = useStreamerBotConnection(streamerBotService);
