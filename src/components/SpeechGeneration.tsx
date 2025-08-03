@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useSettingsStore } from '../store/settingsStore';
 import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
 import { useToast } from './ui/use-toast';
@@ -6,6 +6,7 @@ import { geminiService } from '../services/geminiService';
 import { CardContent } from './ui/Card';
 import { Button } from './ui/Button';
 import { pcm16ToWavUrl } from '../lib/pcmToWavUrl';
+import { base64ToArrayBuffer, dataUrlToBlobUrl } from '../lib/utils';
 import { CollapsibleCard } from './common/CollapsibleCard';
 import { catppuccinAccentColorsHexMap } from '../types';
 import Tooltip from './ui/Tooltip';
@@ -41,6 +42,7 @@ const SpeechGeneration: React.FC = () => {
 
     const accentColorName = useSettingsStore(state => state.theme.accent);
     const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
+    const geminiApiKey = useApiKeyStore(state => state.getApiKeyOverride(ApiService.GEMINI));
 
     // Add/remove/edit speakers
     const handleAddSpeaker = () => {
@@ -59,13 +61,11 @@ const SpeechGeneration: React.FC = () => {
     // AI story generation
     const [storyLoading, setStoryLoading] = useState(false);
     const GEMINI_TEXT_MODEL = "gemini-2.5-flash";
-    const handleGenerateStory = async () => {
+    const handleGenerateStory = useCallback(async (apiKey: string | undefined) => {
         setStoryLoading(true);
         setScript('');
         try {
-            // Always get the latest Gemini API key override from Zustand store (proxy handles actual keys)
-            const currentGeminiApiKey = useApiKeyStore.getState().getApiKeyOverride(ApiService.GEMINI);
-            if (!currentGeminiApiKey) throw new Error('Gemini API key is missing.');
+            if (!apiKey) throw new Error('Gemini API key is missing.');
             const prompt = `Hi, please generate a short (like 100 words) transcript that reads like it was clipped from a podcast from the following speakers: ${speakers.map(s => s.name).join(', ')}. Format as Speaker: line.`;
             const response = await geminiService.generateContent(prompt);
             const responseText = response.candidates[0]?.content?.parts[0]?.text || '';
@@ -79,18 +79,16 @@ const SpeechGeneration: React.FC = () => {
         } finally {
             setStoryLoading(false);
         }
-    };
+    }, [speakers]);
 
     // Gemini TTS audio generation
     // Multi-speaker TTS handler
-    const handleGenerateAudio = async () => {
+    const handleGenerateAudio = useCallback(async (apiKey: string | undefined) => {
         setAudioLoading(true);
         setAudioError(null);
         setGeneratedAudio(null);
         try {
-            // Always get the latest Gemini API key override from Zustand store (proxy handles actual keys)
-            const currentGeminiApiKey = useApiKeyStore.getState().getApiKeyOverride(ApiService.GEMINI);
-            if (!currentGeminiApiKey) {
+            if (!apiKey) {
                 setAudioError('Gemini API key is missing. Please set it in the Connections tab.');
                 setAudioLoading(false);
                 return;
@@ -103,20 +101,6 @@ const SpeechGeneration: React.FC = () => {
                 if (match) parts.push({ speaker: match[1], text: match[2] });
             }
             if (!parts.length) throw new Error('No valid speaker lines found. Use format: Speaker: line');
-            // Generate audio for each part, then concatenate
-            // Gemini API returns raw PCM audio (16-bit signed, mono, 24kHz, little-endian)
-            // We must convert base64 PCM to WAV for browser playback
-            // We'll use the pcmToWavUrl utility
-            // Helper to convert base64 to ArrayBuffer
-            function base64ToArrayBuffer(base64: string): ArrayBuffer {
-                const binary_string = atob(base64);
-                const len = binary_string.length;
-                const bytes = new Uint8Array(len);
-                for (let i = 0; i < len; i++) {
-                    bytes[i] = binary_string.charCodeAt(i);
-                }
-                return bytes.buffer;
-            }
 
             // Gather all PCM buffers
             const pcmBuffers: ArrayBuffer[] = [];
@@ -147,17 +131,6 @@ const SpeechGeneration: React.FC = () => {
 
             // Create a single WAV from the combined PCM
             const wavData = pcm16ToWavUrl(combinedPcm, 24000, 1);
-            // Convert base64 data URL to Blob URL for better buffering
-            function dataUrlToBlobUrl(dataUrl: string) {
-                const arr = dataUrl.split(',');
-                const mimeMatch = arr[0].match(/:(.*?);/);
-                const mime = mimeMatch ? mimeMatch[1] : 'audio/wav';
-                const bstr = atob(arr[1]);
-                let n = bstr.length;
-                const u8arr = new Uint8Array(n);
-                while (n--) u8arr[n] = bstr.charCodeAt(n);
-                return URL.createObjectURL(new Blob([u8arr], { type: mime }));
-            }
             const finalUrl = dataUrlToBlobUrl(wavData);
 
             setGeneratedAudio(finalUrl);
@@ -171,7 +144,7 @@ const SpeechGeneration: React.FC = () => {
         } finally {
             setAudioLoading(false);
         }
-    };
+    }, [script, speakers]);
 
     return (
         <CollapsibleCard
@@ -253,8 +226,8 @@ const SpeechGeneration: React.FC = () => {
                         />
                     </label>
                     <div className="flex gap-2 mt-1">
-                        <Button variant="secondary" size="sm" onClick={handleGenerateStory} isLoading={storyLoading} disabled={storyLoading}>AI Generate Story</Button>
-                        <Button variant="default" size="sm" onClick={handleGenerateAudio} isLoading={audioLoading} disabled={audioLoading || !script.trim()}>Generate Audio</Button>
+                        <Button variant="secondary" size="sm" onClick={() => handleGenerateStory(geminiApiKey)} isLoading={storyLoading} disabled={storyLoading}>AI Generate Story</Button>
+                        <Button variant="default" size="sm" onClick={() => handleGenerateAudio(geminiApiKey)} isLoading={audioLoading} disabled={audioLoading || !script.trim()}>Generate Audio</Button>
                     </div>
                 </div>
                 {/* Advanced TTS controls */}

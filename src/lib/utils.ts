@@ -83,3 +83,34 @@ export const shouldProxyImage = (imageUrl: string): boolean => {
     return false;
   }
 };
+
+/**
+ * Converts a base64 string to an ArrayBuffer.
+ * @param base64 The base64 string to convert.
+ * @returns The corresponding ArrayBuffer.
+ */
+export function base64ToArrayBuffer(base64: string): ArrayBuffer {
+  const binary_string = atob(base64);
+  const len = binary_string.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binary_string.charCodeAt(i);
+  }
+  return bytes.buffer;
+}
+
+/**
+ * Converts a data URL to a Blob URL.
+ * @param dataUrl The data URL to convert.
+ * @returns The corresponding Blob URL.
+ */
+export function dataUrlToBlobUrl(dataUrl: string): string {
+  const arr = dataUrl.split(',');
+  const mimeMatch = arr[0].match(/:(.*?);/);
+  const mime = mimeMatch ? mimeMatch[1] : 'audio/wav';
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) u8arr[n] = bstr.charCodeAt(n);
+  return URL.createObjectURL(new Blob([u8arr], { type: mime }));
+}

@@ -13,6 +13,7 @@ import { getProxiedImageUrl } from '../utils/imageProxy';
 import { catppuccinAccentColorsHexMap } from '../types';
 import { useGenericApiSearch } from '../hooks/useGenericApiSearch';
 import { apiConfigs } from '../config/apis';
+import { apiMappers } from '../config/api-mappers';
 
 const BACKGROUND_APIS = Object.keys(apiConfigs).map(key => ({
     value: key,
@@ -85,64 +86,8 @@ const BackgroundSearch: React.FC = () => {
 
     const mappedResults = useMemo(() => {
         if (!backgroundResults) return [];
-        switch (backgroundApi) {
-            case 'wallhaven':
-                return backgroundResults.map((item: any) => ({
-                    id: item.id,
-                    title: item.id,
-                    url: item.path,
-                    thumbnail: item.thumbs?.small || item.thumbs?.original,
-                    source: 'wallhaven',
-                    author: 'Unknown',
-                }));
-            case 'unsplash':
-                 return backgroundResults.map((item: any) => ({
-                    id: item.id,
-                    title: item.description || item.alt_description || '',
-                    url: item.urls.regular,
-                    thumbnail: item.urls.thumb,
-                    source: 'unsplash',
-                    author: item.user?.name || 'Unknown',
-                }));
-            case 'pexels':
-                return backgroundResults.map((item: any) => ({
-                    id: item.id,
-                    title: item.alt || '',
-                    url: item.src.large,
-                    thumbnail: item.src.medium,
-                    source: 'pexels',
-                    author: item.photographer || 'Unknown',
-                }));
-            case 'pixabay':
-                return backgroundResults.map((item: any) => ({
-                    id: item.id,
-                    title: item.tags || '',
-                    url: item.largeImageURL,
-                    thumbnail: item.webformatURL,
-                    source: 'pixabay',
-                    author: item.user || 'Unknown',
-                }));
-            case 'deviantart':
-                return backgroundResults.map((item: any) => ({
-                    id: item.deviationid,
-                    title: item.title || '',
-                    url: item.preview?.src || item.content?.src,
-                    thumbnail: item.thumbs?.[0]?.src,
-                    source: 'deviantart',
-                    author: item.author?.username || 'Unknown',
-                }));
-            case 'artstation':
-                return backgroundResults.map((item: any) => ({
-                    id: item.id,
-                    title: item.title || '',
-                    url: item.cover?.large_image_url || item.cover?.image_url,
-                    thumbnail: item.cover?.thumb_url,
-                    source: 'artstation',
-                    author: item.user?.full_name || 'Unknown',
-                }));
-            default:
-                return [];
-        }
+        const mapper = apiMappers[backgroundApi];
+        return mapper ? backgroundResults.map(mapper) : [];
     }, [backgroundResults, backgroundApi]);
 
 
