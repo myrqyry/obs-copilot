@@ -20,8 +20,8 @@ app.use('/api/', limiter);
 app.use(cors());
 app.use(express.json());
 
-app.use('/api', apiProxy);
 app.use('/api', imageProxy);
+app.use('/api', apiProxy);
 
 app.use('/api', (req, res) => {
     res.status(404).json({ error: `API endpoint not found: ${req.originalUrl}` });

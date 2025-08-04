@@ -6,6 +6,10 @@ module.exports = {
       testEnvironment: 'node',
       testMatch: ['<rootDir>/__tests__/**/*.test.cjs'],
       transform: {
+        '^.+\\.(ts|tsx)$': ['ts-jest', {
+          tsconfig: 'tsconfig.json',
+          isolatedModules: true,
+        }],
         '^.+\\.m?js$': 'babel-jest',
       },
       transformIgnorePatterns: ['/node_modules/(?!node-fetch|data-uri-to-buffer|fetch-blob|formdata-polyfill)'],
