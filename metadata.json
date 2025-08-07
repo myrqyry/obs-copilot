@@ -1,5 +1,5 @@
 {
-  "name": "obs-copilot gemini++",
+  "name": "obs-copilot",
   "description": "A React-based OBS Studio dock to view and modify settings, control scenes/sources, and interact with Gemini AI. Connects via OBS WebSocket and can interact with an OBS MCP server.",
   "requestFramePermissions": [],
   "prompt": ""

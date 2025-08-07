@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import { useStreamerBotConnection } from './hooks/useStreamerBotConnection';
 import { useTheme } from './hooks/useTheme';
@@ -14,12 +14,13 @@ import { LoadingSpinner } from './components/common/LoadingSpinner';
 import { Modal } from './components/common/Modal';
 import StreamingAssetsTab from './components/StreamingAssetsTab';
 import CreateTab from './components/CreateTab';
-import { AppTab, ChatMessage } from './types';
+import { AppTab, ChatMessage, OBSScene, OBSSource } from './types';
 import { StreamerBotService } from './services/streamerBotService';
 import { useConnectionManagerStore } from './store/connectionManagerStore';
 import { useChatStore } from './store/chatStore';
 import { useSettingsStore } from './store/settingsStore';
 import { useStreamerBotActions } from './hooks/useStreamerBotActions';
+import { CatppuccinAccentColorName } from './types/themes';
 import { gsap } from 'gsap';
 import MiniPlayer from './components/common/MiniPlayer';
 import { NotificationManager } from './components/common/NotificationManager';
@@ -51,55 +52,94 @@ const App: React.FC = () => {
         const obsClient = new ObsClientImpl();
         connectionManagerActions.setObsServiceInstance(obsClient);
 
-        try {
-            await obsClient.connect(address, password);
-            const obsData = {
-                scenes: await obsClient.getSceneList(),
-                currentProgramScene: (await obsClient.getCurrentProgramScene()).currentProgramSceneName,
-                sources: await obsClient.getSources(),
-                streamStatus: await obsClient.getStreamStatus(),
-                recordStatus: await obsClient.getRecordStatus(),
-                videoSettings: await obsClient.getVideoSettings(),
-                streamerName: null,
-            };
-            connectionManagerActions.setConnected(obsData);
-            setErrorMessage(null);
-        } catch (err: any) {
-            console.error("Failed to connect to OBS:", err);
-            connectionManagerActions.setDisconnected(err.message);
-            setErrorMessage(`Failed to connect to OBS: ${err.message}`);
-        }
-    };
 
-    const handleDisconnect = async () => {
+        try {
+          await obsClient.connect(address, password);
+          const scenesResponse = await obsClient.getSceneList();
+const currentProgramSceneResponse = await obsClient.getCurrentProgramScene();
+const sourcesResponse = await obsClient.getInputs();
+const streamStatus = await obsClient.getStreamStatus();
+const recordStatus = await obsClient.getRecordStatus();
+const videoSettings = await obsClient.getVideoSettings();
+
+const obsData = {
+  scenes: scenesResponse.scenes.map((scene) => ({
+    sceneName: scene.sceneName,
+    sceneIndex: scene.sceneIndex,
+  })),
+  currentProgramScene: currentProgramSceneResponse.sceneName,
+  sources: sourcesResponse.inputs.map((input) => ({
+    sourceName: input.inputName,
+    typeName: input.inputKind,
+    sceneItemId: 0, // This might need to be fetched separately
+    sceneItemEnabled: true, // This might need to be fetched separately
+  })),
+  streamStatus,
+  recordStatus,
+  videoSettings,
+  streamerName: null,
+};
+connectionManagerActions.setConnected(obsData);
+          setErrorMessage(null);
+        } catch (err: any) {
+          console.error("Failed to connect to OBS:", err);
+          connectionManagerActions.setDisconnected(err.message);
+          setErrorMessage(`Failed to connect to OBS: ${err.message}`);
+        }
+      };
+
+      const handleDisconnect = async () => {
         if (obsServiceInstance) {
             await obsServiceInstance.disconnect();
             connectionManagerActions.setDisconnected();
         }
     };
 
-    const fetchData = useCallback(async () => {
-        if (obsServiceInstance && isConnected) {
-            try {
-                const scenes = await obsServiceInstance.getSceneList();
-                const currentProgramScene = (await obsServiceInstance.getCurrentProgramScene()).currentProgramSceneName;
-                const sources = await obsServiceInstance.getSources();
-                const streamStatus = await obsServiceInstance.getStreamStatus();
-                const recordStatus = await obsServiceInstance.getRecordStatus();
-                const videoSettings = await obsServiceInstance.getVideoSettings();
-                connectionManagerActions.updateOBSData({
-                    scenes: scenes.scenes,
-                    currentProgramScene: currentProgramScene,
-                    sources: sources.inputs,
-                    streamStatus: streamStatus,
-                    recordStatus: recordStatus,
-                    videoSettings: videoSettings,
-                });
-            } catch (error: any) {
-                console.error("Failed to fetch OBS data:", error);
-            }
-        }
-    }, [obsServiceInstance, isConnected, connectionManagerActions]);
+const fetchData = useCallback(async () => {
+  if (obsServiceInstance && isConnected) {
+    try {
+      const scenesResponse = await obsServiceInstance.getSceneList();
+      const scenes: OBSScene[] = scenesResponse.scenes.map((scene) => ({
+        sceneName: scene.sceneName,
+        sceneIndex: scene.sceneIndex,
+      }));
+
+      const currentProgramSceneResponse = await obsServiceInstance.getCurrentProgramScene();
+      const currentProgramScene = currentProgramSceneResponse.sceneName;
+
+      const sourcesResponse = await obsServiceInstance.getInputs();
+      const sources: OBSSource[] = sourcesResponse.inputs.map((input) => ({
+        sourceName: input.inputName,
+        typeName: input.inputKind,
+        sceneItemId: 0, // This might need to be fetched separately
+        sceneItemEnabled: true, // This might need to be fetched separately
+      }));
+
+      const streamStatus = await obsServiceInstance.getStreamStatus();
+      const recordStatus = await obsServiceInstance.getRecordStatus();
+      const videoSettings = await obsServiceInstance.getVideoSettings();
+
+      connectionManagerActions.updateOBSData({
+        scenes,
+        currentProgramScene,
+        sources,
+        streamStatus,
+        recordStatus,
+        videoSettings: {
+          baseWidth: videoSettings.baseWidth,
+          baseHeight: videoSettings.baseHeight,
+          outputWidth: videoSettings.outputWidth,
+          outputHeight: videoSettings.outputHeight,
+          fpsNumerator: videoSettings.fpsNumerator,
+          fpsDenominator: videoSettings.fpsDenominator,
+        },
+        streamerName: null,
+      });
+    } catch (error: any) {
+      console.error("Failed to fetch OBS data:", error);
+    }
+  }
+}, [obsServiceInstance, isConnected, connectionManagerActions]);
 
     const streamerBotService = useRef(new StreamerBotService()).current;
     const { isStreamerBotConnected, isStreamerBotConnecting, handleStreamerBotConnect, handleStreamerBotDisconnect } = useStreamerBotConnection(streamerBotService);
@@ -127,19 +167,22 @@ const App: React.FC = () => {
         }
     }, [connectError]);
 
-    const setupObsListeners = (obsInstance: ObsClientImpl, fetch: () => void) => {
-        const events = [
-            'CurrentProgramSceneChanged',
-            'SceneItemListReindexed',
-            'InputCreated',
-            'InputRemoved',
-        ];
-        const listener = () => fetch();
-        events.forEach(event => obsInstance.on(event, listener));
-        return () => {
-            events.forEach(event => obsInstance.off(event, listener));
-        };
-    };
+const setupObsListeners = (obsInstance: ObsClientImpl, fetch: () => void) => {
+  const events = [
+    'CurrentProgramSceneChanged',
+    'SceneItemListReindexed',
+    'InputCreated',
+    'InputRemoved',
+  ];
+  const eventHandlers: Partial<Record<string, () => void>> = {};
+  events.forEach((event) => {
+    eventHandlers[event] = fetch;
+  });
+  obsInstance.subscribeToEvents(eventHandlers);
+  return () => {
+    obsInstance.unsubscribeFromEvents(eventHandlers);
+  };
+};
 
     useEffect(() => {
         if (isConnected && obsServiceInstance) {
@@ -161,7 +204,20 @@ const App: React.FC = () => {
     const tabComponents: Record<AppTab, React.ReactNode> = {
         [AppTab.CONNECTIONS]: <ConnectionPanel onConnect={handleConnect} onDisconnect={handleDisconnect} isConnected={isConnected} isConnecting={isConnecting} error={connectError} geminiApiKey={geminiApiKey} onGeminiApiKeyChange={chatActions.setGeminiApiKey} isGeminiClientInitialized={isGeminiClientInitialized} geminiInitializationError={geminiInitializationError} accentColorName={theme.accent} streamerBotAddress={streamerBotAddress} setStreamerBotAddress={setStreamerBotAddress} streamerBotPort={streamerBotPort} setStreamerBotPort={setStreamerBotPort} onStreamerBotConnect={() => handleStreamerBotConnect(streamerBotAddress, streamerBotPort)} onStreamerBotDisconnect={handleStreamerBotDisconnect} isStreamerBotConnected={isStreamerBotConnected} isStreamerBotConnecting={isStreamerBotConnecting} defaultUrl={DEFAULT_OBS_WEBSOCKET_URL} />,
         [AppTab.OBS_STUDIO]: <>{!isConnected || !obsServiceInstance ? <p>Please connect to OBS.</p> : <ObsMainControls obsService={obsServiceInstance} onRefreshData={() => fetchData()} setErrorMessage={setErrorMessage} addSystemMessageToChat={handleSendToGeminiContext} accentColorName={theme.accent} />}</>,
-        [AppTab.SETTINGS]: <ObsSettingsPanel selectedAccentColorName={theme.accent} selectedSecondaryAccentColorName={theme.secondaryAccent} selectedUserChatBubbleColorName={theme.userChatBubble} selectedModelChatBubbleColorName={theme.modelChatBubble} flipSides={flipSides} actions={settingsActions} />,
+        [AppTab.SETTINGS]: <ObsSettingsPanel
+          selectedAccentColorName={theme.accent}
+          selectedSecondaryAccentColorName={theme.secondaryAccent}
+          selectedUserChatBubbleColorName={theme.userChatBubble}
+          selectedModelChatBubbleColorName={theme.modelChatBubble}
+          flipSides={flipSides}
+          actions={{
+            setThemeColor: (themeKey, colorName) => settingsActions.setThemeColor(themeKey, colorName as CatppuccinAccentColorName),
+            toggleFlipSides: settingsActions.toggleFlipSides,
+            toggleAutoApplySuggestions: settingsActions.toggleAutoApplySuggestions,
+            toggleExtraDarkMode: settingsActions.toggleExtraDarkMode,
+            setCustomChatBackground: settingsActions.setCustomChatBackground,
+          }}
+        />,
         [AppTab.ADVANCED]: <AdvancedPanel />,
         [AppTab.GEMINI]: <GeminiChat streamerBotService={streamerBotService} onRefreshData={async () => { if (obsServiceInstance) await fetchData(); }} setErrorMessage={setErrorMessage} chatInputValue={geminiChatInput} onChatInputChange={setGeminiChatInput} accentColorName={theme.accent} messages={geminiMessages} onAddMessage={chatActions.addMessage} isGeminiClientInitialized={isGeminiClientInitialized} geminiInitializationError={geminiInitializationError} onSetIsGeminiClientInitialized={chatActions.setGeminiClientInitialized} onSetGeminiInitializationError={chatActions.setGeminiInitializationError} activeTab={activeTab} onStreamerBotAction={handleStreamerBotAction} />,
         [AppTab.STREAMING_ASSETS]: <StreamingAssetsTab />,

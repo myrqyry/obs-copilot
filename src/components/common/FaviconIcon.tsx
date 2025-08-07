@@ -65,7 +65,10 @@ export const FaviconIcon: React.FC<FaviconIconProps> = ({ domain, alt, className
     };
 
     const handleError = () => {
-        console.warn(`Failed to load favicon for ${domain}, using fallback emoji`);
+        // Only log in development to reduce console noise
+        if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+            console.warn(`Failed to load favicon for ${domain}, using fallback emoji`);
+        }
         setError(true);
         setLoaded(false);
         

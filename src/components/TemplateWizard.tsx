@@ -19,7 +19,9 @@ const TemplateWizard: React.FC = () => {
         if (selectedTemplate) {
             const finalConfig = { ...templates[selectedTemplate], ...customConfig };
             const templateUrl = HtmlTemplateService.generateTemplateUrl(finalConfig);
+            if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
             console.log('Generated Template URL:', templateUrl);
+        }
             alert(`Template URL: ${templateUrl}`);
         }
     };

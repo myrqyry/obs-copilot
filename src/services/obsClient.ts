@@ -1430,4 +1430,8 @@ export class ObsClientImpl implements ObsClient {
   async getInputs(): Promise<{ inputs: Input[] }> {
     return this.callObs('GetInputList');
   }
+
+  async getSources(): Promise<{ inputs: Input[] }> {
+    return this.getInputs();
+  }
 }

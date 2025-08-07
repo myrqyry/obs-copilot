@@ -104,34 +104,101 @@ ToastDescription.displayName = ToastPrimitive.Description.displayName;
 
 type ToastActionElement = React.ReactElement<typeof ToastAction>;
 
+// Global toast state to ensure all components share the same toast list
+let globalToasts: Array<{
+  id: string
+  title: string
+  description?: string
+  variant?: 'default' | 'destructive'
+}> = [];
+
+let globalListeners: Array<() => void> = [];
+
+const notifyListeners = () => {
+  globalListeners.forEach(listener => listener());
+};
+
 export function useToast() {
   const [toasts, setToasts] = React.useState<Array<{
     id: string
     title: string
     description?: string
     variant?: 'default' | 'destructive'
-  }>>([])
+  }>>(globalToasts);
+
+  // Subscribe to global toast changes
+  React.useEffect(() => {
+    const listener = () => {
+      setToasts([...globalToasts]);
+    };
+    globalListeners.push(listener);
+    
+    return () => {
+      globalListeners = globalListeners.filter(l => l !== listener);
+    };
+  }, []);
 
   function toast({ title, description, variant = 'default' }: {
     title: string
     description?: string
     variant?: 'default' | 'destructive'
   }) {
-    setToasts((currentToasts) => [
-      ...currentToasts,
-      {
-        id: Math.random().toString(36).substring(2, 9),
-        title,
-        description,
-        variant,
-      },
-    ])
-    console.log(`[useToast] Toast added: id=${id}, title=${title}. Current toasts in this hook:`, toasts);
+    // Check for duplicate toasts to prevent spam using global state
+    // For error toasts, only check title and variant to be more flexible with descriptions
+    const isDuplicate = globalToasts.some(
+      (toast) => {
+        if (variant === 'destructive') {
+          // For error toasts, only check title and variant
+          return toast.title === title && toast.variant === variant;
+        } else {
+          // For other toasts, check all properties
+          return toast.title === title && toast.description === description && toast.variant === variant;
+        }
+      }
+    );
+    
+            if (isDuplicate) {
+          if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+            console.log(`[useToast] Skipping duplicate toast: ${title}`);
+          }
+          return;
+        }
+        
+        const id = Math.random().toString(36).substring(2, 9);
+        if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+          console.log(`[useToast] Adding toast with id: ${id}, title: ${title}`);
+        }
+    
+    const newToast = {
+      id: id,
+      title,
+      description,
+      variant,
+    };
+    
+    globalToasts = [...globalToasts, newToast];
+    notifyListeners();
+    
+    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+      console.log(`[useToast] Toast added: id=${id}, title=${title}. Current toasts in global state:`, globalToasts);
+    }
+    
+    // Auto-remove toast after 5 seconds
+    setTimeout(() => {
+      globalToasts = globalToasts.filter((t) => t.id !== id);
+      notifyListeners();
+    }, 5000);
   }
+
+  const clearToasts = () => {
+    globalToasts = [];
+    notifyListeners();
+  };
 
   return {
     toast,
     toasts,
+    clearToasts,
     error: (title: string, description?: string) => toast({ title, description, variant: 'destructive' }),
   }
 }

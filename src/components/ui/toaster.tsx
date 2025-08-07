@@ -12,7 +12,10 @@ import { useToast } from "./use-toast"
 
 export function Toaster() {
   const { toasts } = useToast()
-  console.log("[Toaster] Received toasts:", toasts);
+  // Only log in development to reduce console noise
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    console.log("[Toaster] Received toasts:", toasts);
+  }
 
   return (
     <ToastProvider>

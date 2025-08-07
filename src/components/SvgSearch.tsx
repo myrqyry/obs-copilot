@@ -133,25 +133,54 @@ const SvgSearch: React.FC = () => {
             } else {
                 const apiUrl = `https://api.iconify.design/search?query=${encodeURIComponent(svgQuery)}&limit=${limit}${svgApi !== 'iconify' ? `&prefix=${svgApi}` : ''}`;
                 const res = await fetch(apiUrl);
+                
+                // Check if response is valid JSON
+                const contentType = res.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('API returned non-JSON response');
+                }
+                
                 const data = await res.json();
                 if (data.icons && data.icons.length > 0) {
                     const iconNames = data.icons.map((icon: any) => typeof icon === 'string' ? icon : icon.name).slice(0, limit);
                     const svgFetches = iconNames.map(async (iconName: string) => {
-                        const fullName = iconName.includes(':') ? iconName : `${svgApi}:${iconName}`;
-                        const svgRes = await fetch(`https://api.iconify.design/${fullName}.svg`);
-                        return svgRes.ok ? { name: fullName, svg: await svgRes.text() } : null;
+                        try {
+                            const fullName = iconName.includes(':') ? iconName : `${svgApi}:${iconName}`;
+                            const svgRes = await fetch(`https://api.iconify.design/${fullName}.svg`);
+                            if (svgRes.ok) {
+                                const svgText = await svgRes.text();
+                                // Validate that we got actual SVG content
+                                if (svgText.trim().startsWith('<svg') || svgText.trim().startsWith('<?xml')) {
+                                    return { name: fullName, svg: svgText };
+                                }
+                            }
+                            return null;
+                        } catch (svgErr) {
+                            console.warn(`Failed to fetch SVG for ${iconName}:`, svgErr);
+                            return null;
+                        }
                     });
                     setSvgResults((await Promise.all(svgFetches)).filter(r => r) as SvgResult[]);
                 }
             }
         } catch (err: any) {
             console.error('SVG fetch error:', err);
-            const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-            toast({
-                title: 'Error fetching SVGs',
-                description: errorMessage,
-                variant: 'destructive',
-            });
+            let errorMessage = 'Unknown error occurred';
+            
+            if (err instanceof Error) {
+                errorMessage = err.message;
+            } else if (err && typeof err === 'object' && 'message' in err) {
+                errorMessage = String(err.message);
+            }
+            
+            // Don't show toast for network errors or API issues that are expected
+            if (!errorMessage.includes('Unexpected token') && !errorMessage.includes('JSON')) {
+                toast({
+                    title: 'Error fetching SVGs',
+                    description: errorMessage,
+                    variant: 'destructive',
+                });
+            }
         }
         setSvgLoading(false);
     }, [svgApi, svgQuery, obsServiceInstance, isConnected, currentProgramScene, toast]);
