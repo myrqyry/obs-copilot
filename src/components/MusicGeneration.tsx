@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAudioStore } from '../store/audioStore';
 import { useSettingsStore } from '../store/settingsStore';
-import { useToast } from './ui/use-toast';
+import { toast } from './ui/toast';
 import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
 import { CardContent } from './ui/Card';
 import { Button } from './ui/Button';
@@ -53,7 +53,6 @@ function getRandomPrompt() {
 
 const MusicGeneration: React.FC = () => {
     const { startMusicGeneration } = useAudioStore(state => state.actions);
-    const { toast } = useToast();
 
     // State for music generation UI only
     const [musicPrompt, setMusicPrompt] = useState('');

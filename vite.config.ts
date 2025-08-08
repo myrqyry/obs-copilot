@@ -49,7 +49,6 @@ export default defineConfig(({ mode }) => {
     optimizeDeps: {
       // Ensure GSAP is properly optimized for development
       include: ['gsap'],
-      force: true
     },
     resolve: {
       alias: {

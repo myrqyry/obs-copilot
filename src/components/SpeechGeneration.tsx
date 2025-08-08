@@ -1,7 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useSettingsStore } from '../store/settingsStore';
 import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
-import { useToast } from './ui/use-toast';
 import { geminiService } from '../services/geminiService';
 import { CardContent } from './ui/Card';
 import { Button } from './ui/Button';

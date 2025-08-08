@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from '@/components/ui/toast';
 import { logger } from '../utils/logger';
 
 interface UseApiSearchOptions<T> {
@@ -34,7 +34,6 @@ export const useApiSearch = <T>(options?: UseApiSearchOptions<T>): UseApiSearchR
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   // const addNotification = useAppStore(state => state.actions.addNotification); // Removed as it causes a module not found error
-  const { toast } = useToast();
 
   /**
    * Executes a search using the provided fetcher function.
@@ -67,7 +66,7 @@ export const useApiSearch = <T>(options?: UseApiSearchOptions<T>): UseApiSearchR
         setLoading(false);
       }
     },
-    [options, toast],
+    [options],
   );
 
   /**

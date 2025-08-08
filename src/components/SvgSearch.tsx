@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
 import { useConnectionManagerStore } from '../store/connectionManagerStore';
 import { useSettingsStore } from '../store/settingsStore';
-import { useToast } from './ui/use-toast';
+import { toast } from './ui/toast';
 import { generateSourceName } from '../utils/obsSourceHelpers';
 import { copyToClipboard } from '../utils/persistence';
 import { Card, CardContent } from './ui/Card';
@@ -46,7 +46,6 @@ const SvgSearch: React.FC = () => {
     const [modalContent, setModalContent] = useState<{ type: 'svg', data: any } | null>(null);
 
     const { obsServiceInstance, isConnected, currentProgramScene } = useConnectionManagerStore();
-    const { toast } = useToast();
     const accentColorName = useSettingsStore(state => state.theme.accent);
     const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
 
@@ -187,7 +186,7 @@ const SvgSearch: React.FC = () => {
             }
         }
         setSvgLoading(false);
-    }, [svgApi, svgQuery, obsServiceInstance, isConnected, currentProgramScene, toast]);
+    }, [svgApi, svgQuery, obsServiceInstance, isConnected, currentProgramScene]);
 
     const getPaginatedItems = (items: any[], page: number) => {
         const start = page * ITEMS_PER_PAGE;

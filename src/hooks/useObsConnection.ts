@@ -13,7 +13,6 @@ export const useObsConnection = (
 ) => {
   const { setConnecting, setConnected, setDisconnected, setObsServiceInstance, updateOBSData } =
     useConnectionManagerStore((state) => state.actions);
-  const { toast } = useToast();
 
   /**
    * Fetches initial OBS data (scenes, sources, status) after a successful connection.
@@ -79,7 +78,7 @@ export const useObsConnection = (
         }
       }
     },
-    [updateOBSData, setDisconnected, setActiveTab, setErrorMessage, toast, setConnected],
+    [updateOBSData, setDisconnected, setActiveTab, setErrorMessage, setConnected],
   );
 
   /**
@@ -112,7 +111,7 @@ export const useObsConnection = (
         });
       }
     },
-    [setConnecting, setConnected, setDisconnected, setObsServiceInstance, fetchData, setObs, toast],
+    [setConnecting, setConnected, setDisconnected, setObsServiceInstance, fetchData, setObs],
   );
 
   // This useEffect handles cleaning up the OBS connection when the component unmounts.
@@ -154,7 +153,7 @@ export const useObsConnection = (
       }
       return Promise.resolve();
     },
-    [setObs, setDisconnected, setObsServiceInstance, toast],
+    [setObs, setDisconnected, setObsServiceInstance],
   );
 
   return { handleConnect, handleDisconnect, fetchData };

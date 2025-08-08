@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
 import { GiphyResult } from '../types/giphy';
-import { useToast } from '../components/ui/use-toast';
+import { toast } from '../components/ui/toast';
 import { GiphyRating } from '../types/giphy';
 
 interface SearchFilters {
@@ -32,7 +32,6 @@ export const useGifSearch = () => {
   });
   const [gifSearched, setGifSearched] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const { toast } = useToast();
 
   const handleGifSearch = useCallback(
     async (e?: React.FormEvent) => {
@@ -87,7 +86,7 @@ export const useGifSearch = () => {
         setGifLoading(false);
       }
     },
-    [gifApi, gifQuery, selectedCategory, searchFilters, toast],
+    [gifApi, gifQuery, selectedCategory, searchFilters],
   );
 
   return {

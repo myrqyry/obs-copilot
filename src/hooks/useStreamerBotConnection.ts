@@ -2,15 +2,13 @@ import { useState, useCallback } from 'react';
 import { StreamerBotService } from '../services/streamerBotService';
 import { useChatStore } from '../store/chatStore';
 import { useAutomationStore } from '../store/automationStore';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from '@/components/ui/toast';
 
 export const useStreamerBotConnection = (streamerBotService: StreamerBotService) => {
   const [isStreamerBotConnected, setIsStreamerBotConnected] = useState<boolean>(false);
   const [isStreamerBotConnecting, setIsStreamerBotConnecting] = useState<boolean>(false);
   const { addMessage } = useChatStore((state) => state.actions);
   const { setStreamerBotServiceInstance } = useAutomationStore((state) => state.actions);
-
-  const { toast } = useToast();
 
   /**
    * Handles the connection process to Streamer.bot WebSocket.
@@ -68,7 +66,7 @@ export const useStreamerBotConnection = (streamerBotService: StreamerBotService)
         setIsStreamerBotConnecting(false);
       }
     },
-    [isStreamerBotConnected, streamerBotService, addMessage, setStreamerBotServiceInstance, toast],
+    [isStreamerBotConnected, streamerBotService, addMessage, setStreamerBotServiceInstance],
   );
 
   /**
@@ -102,7 +100,6 @@ export const useStreamerBotConnection = (streamerBotService: StreamerBotService)
     streamerBotService,
     addMessage,
     setStreamerBotServiceInstance,
-    toast,
   ]);
 
   return {

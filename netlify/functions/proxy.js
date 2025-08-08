@@ -1,6 +1,5 @@
 // netlify/functions/proxy.js
 const serverless = require('serverless-http');
-const serverless = require('serverless-http');
 
 let appPromise; // Declare a variable to hold the promise of the imported app
 

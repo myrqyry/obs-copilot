@@ -46,45 +46,56 @@ const App: React.FC = () => {
 const fetchData = useCallback(async () => {
   if (obsServiceInstance && isConnected) {
     try {
-      const scenesResponse = await obsServiceInstance.getSceneList();
-      const scenes: OBSScene[] = scenesResponse.scenes.map((scene) => ({
-        sceneName: scene.sceneName,
-        sceneIndex: scene.sceneIndex,
-      }));
+        const results = await Promise.allSettled([
+            obsServiceInstance.getSceneList(),
+            obsServiceInstance.getCurrentProgramScene(),
+            obsServiceInstance.getInputs(),
+            obsServiceInstance.getStreamStatus(),
+            obsServiceInstance.getRecordStatus(),
+            obsServiceInstance.getVideoSettings(),
+        ]);
 
-      const currentProgramSceneResponse = await obsServiceInstance.getCurrentProgramScene();
-      const currentProgramScene = currentProgramSceneResponse.sceneName;
+        const [
+            scenesResult,
+            currentProgramSceneResult,
+            sourcesResult,
+            streamStatusResult,
+            recordStatusResult,
+            videoSettingsResult,
+        ] = results;
 
-      const sourcesResponse = await obsServiceInstance.getInputs();
-      const sources: OBSSource[] = sourcesResponse.inputs.map((input) => ({
-        sourceName: input.inputName,
-        typeName: input.inputKind,
-        sceneItemId: 0, // This might need to be fetched separately
-        sceneItemEnabled: true, // This might need to be fetched separately
-      }));
+        const scenes = scenesResult.status === 'fulfilled' ? scenesResult.value.scenes.map((scene) => ({ sceneName: scene.sceneName, sceneIndex: scene.sceneIndex })) : [];
+        const currentProgramScene = currentProgramSceneResult.status === 'fulfilled' ? currentProgramSceneResult.value.sceneName : null;
+        const sources = sourcesResult.status === 'fulfilled' ? sourcesResult.value.inputs.map((input) => ({ sourceName: input.inputName, typeName: input.inputKind, sceneItemId: 0, sceneItemEnabled: true })) : [];
+        const streamStatus = streamStatusResult.status === 'fulfilled' ? streamStatusResult.value : null;
+        const recordStatus = recordStatusResult.status === 'fulfilled' ? recordStatusResult.value : null;
+        const videoSettings = videoSettingsResult.status === 'fulfilled' ? videoSettingsResult.value : null;
 
-      const streamStatus = await obsServiceInstance.getStreamStatus();
-      const recordStatus = await obsServiceInstance.getRecordStatus();
-      const videoSettings = await obsServiceInstance.getVideoSettings();
+        connectionManagerActions.updateOBSData({
+            scenes,
+            currentProgramScene,
+            sources,
+            streamStatus,
+            recordStatus,
+            videoSettings: videoSettings ? {
+                baseWidth: videoSettings.baseWidth,
+                baseHeight: videoSettings.baseHeight,
+                outputWidth: videoSettings.outputWidth,
+                outputHeight: videoSettings.outputHeight,
+                fpsNumerator: videoSettings.fpsNumerator,
+                fpsDenominator: videoSettings.fpsDenominator,
+            } : null,
+            streamerName: null,
+        });
 
-      connectionManagerActions.updateOBSData({
-        scenes,
-        currentProgramScene,
-        sources,
-        streamStatus,
-        recordStatus,
-        videoSettings: {
-          baseWidth: videoSettings.baseWidth,
-          baseHeight: videoSettings.baseHeight,
-          outputWidth: videoSettings.outputWidth,
-          outputHeight: videoSettings.outputHeight,
-          fpsNumerator: videoSettings.fpsNumerator,
-          fpsDenominator: videoSettings.fpsDenominator,
-        },
-        streamerName: null,
-      });
+        results.forEach(result => {
+            if (result.status === 'rejected') {
+                console.error("Failed to fetch some OBS data:", result.reason);
+            }
+        });
+
     } catch (error: any) {
-      console.error("Failed to fetch OBS data:", error);
+      console.error("A critical error occurred during data fetch:", error);
     }
   }
 }, [obsServiceInstance, isConnected, connectionManagerActions]);

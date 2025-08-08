@@ -19,7 +19,18 @@ const MorphingLogos: React.FC<MorphingLogosProps> = ({ accentColor, secondaryAcc
     const colorAnimationRef = useRef<gsap.core.Tween | null>(null);
 
     useLayoutEffect(() => {
-        gsap.registerPlugin(MorphSVGPlugin);
+        if (MorphSVGPlugin) {
+            try {
+                gsap.registerPlugin(MorphSVGPlugin);
+            } catch (error) {
+                console.warn('Could not register GSAP MorphSVGPlugin. Morphing animations will be disabled.');
+                return;
+            }
+        } else {
+            console.warn('GSAP MorphSVGPlugin not found. Morphing animations will be disabled.');
+            return;
+        }
+
         const morphingPath = morphingPathRef.current;
         if (!morphingPath) return;
 

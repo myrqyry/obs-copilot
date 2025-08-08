@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useConnectionManagerStore } from '../store/connectionManagerStore';
 import { useSettingsStore } from '../store/settingsStore';
-import { useToast } from './ui/use-toast';
+import { toast } from './ui/toast';
 import { generateSourceName } from '../utils/obsSourceHelpers';
 import { copyToClipboard } from '../utils/persistence';
 import { Card, CardContent } from './ui/Card';
@@ -35,7 +35,6 @@ const BackgroundSearch: React.FC = () => {
     const [modalContent, setModalContent] = useState<{ type: 'background', data: any } | null>(null);
 
     const { obsServiceInstance, isConnected, currentProgramScene } = useConnectionManagerStore();
-    const { toast } = useToast();
     const accentColorName = useSettingsStore(state => state.theme.accent);
     const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
 

@@ -1,8 +1,8 @@
 // ImageEditor.tsx
 import * as React from "react";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { removeBackground } from "@imgly/background-removal";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toast";
 import { Modal } from "./common/Modal";
 import Tooltip from "./ui/Tooltip";
 
@@ -15,7 +15,18 @@ export const ImageEditor: React.FC = () => {
     const [outputModalOpen, setOutputModalOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const toast = useToast();
+    useEffect(() => {
+        // This effect will run when the component unmounts.
+        // It's a good practice to revoke URLs to avoid memory leaks.
+        return () => {
+            if (inputUrl) {
+                URL.revokeObjectURL(inputUrl);
+            }
+            if (outputUrl) {
+                URL.revokeObjectURL(outputUrl);
+            }
+        };
+    }, [inputUrl, outputUrl]);
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -28,7 +39,7 @@ export const ImageEditor: React.FC = () => {
 
     const handleRemoveBackground = async () => {
         if (!inputBlob) {
-            toast.error("No image file selected.");
+            toast({ variant: "destructive", title: "No image file selected." });
             return;
         }
         setLoading(true);
@@ -39,11 +50,11 @@ export const ImageEditor: React.FC = () => {
                 const url = URL.createObjectURL(result);
                 setOutputUrl(url);
             } else {
-                toast.error("Background removal did not return an image Blob.");
+                toast({ variant: "destructive", title: "Background removal did not return an image Blob." });
             }
         } catch (err) {
             console.error("Background removal failed:", err);
-            toast.error("Background removal failed: " + (err instanceof Error ? err.message : String(err)));
+            toast({ variant: "destructive", title: "Background removal failed", description: err instanceof Error ? err.message : String(err) });
         }
         setLoading(false);
     };
