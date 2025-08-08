@@ -33,68 +33,15 @@ const App: React.FC = () => {
     const [activeTab, setActiveTab] = useState<AppTab>(AppTab.GEMINI);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [geminiChatInput, setGeminiChatInput] = useState<string>('');
-    const {
-        isConnected,
-        isConnecting,
-        connectError,
-        obsServiceInstance,
-        actions: connectionManagerActions
-    } = useConnectionManagerStore();
+    const isConnected = useConnectionManagerStore(state => state.isConnected);
+    const isConnecting = useConnectionManagerStore(state => state.isConnecting);
+    const connectError = useConnectionManagerStore(state => state.connectError);
+    const obsServiceInstance = useConnectionManagerStore(state => state.obsServiceInstance);
+    const connectionManagerActions = useConnectionManagerStore(state => state.actions);
 
     const { actions: chatActions } = useChatStore();
     const { actions: settingsActions } = useSettingsStore();
     const theme = useSettingsStore(state => state.theme);
-
-    const handleConnect = async (address: string, password?: string) => {
-        if (obsServiceInstance) {
-            await connectionManagerActions.setDisconnected();
-        }
-        connectionManagerActions.setConnecting();
-        const obsClient = new ObsClientImpl();
-        connectionManagerActions.setObsServiceInstance(obsClient);
-
-
-        try {
-          await obsClient.connect(address, password);
-          const scenesResponse = await obsClient.getSceneList();
-const currentProgramSceneResponse = await obsClient.getCurrentProgramScene();
-const sourcesResponse = await obsClient.getInputs();
-const streamStatus = await obsClient.getStreamStatus();
-const recordStatus = await obsClient.getRecordStatus();
-const videoSettings = await obsClient.getVideoSettings();
-
-const obsData = {
-  scenes: scenesResponse.scenes.map((scene) => ({
-    sceneName: scene.sceneName,
-    sceneIndex: scene.sceneIndex,
-  })),
-  currentProgramScene: currentProgramSceneResponse.sceneName,
-  sources: sourcesResponse.inputs.map((input) => ({
-    sourceName: input.inputName,
-    typeName: input.inputKind,
-    sceneItemId: 0, // This might need to be fetched separately
-    sceneItemEnabled: true, // This might need to be fetched separately
-  })),
-  streamStatus,
-  recordStatus,
-  videoSettings,
-  streamerName: null,
-};
-connectionManagerActions.setConnected(obsData);
-          setErrorMessage(null);
-        } catch (err: any) {
-          console.error("Failed to connect to OBS:", err);
-          connectionManagerActions.setDisconnected(err.message);
-          setErrorMessage(`Failed to connect to OBS: ${err.message}`);
-        }
-      };
-
-      const handleDisconnect = async () => {
-        if (obsServiceInstance) {
-            await obsServiceInstance.disconnect();
-            connectionManagerActions.setDisconnected();
-        }
-    };
 
 const fetchData = useCallback(async () => {
   if (obsServiceInstance && isConnected) {
@@ -203,7 +150,7 @@ const setupObsListeners = (obsInstance: ObsClientImpl, fetch: () => void) => {
     };
 
     const tabComponents: Record<AppTab, React.ReactNode> = {
-        [AppTab.CONNECTIONS]: <ConnectionPanel onConnect={handleConnect} onDisconnect={handleDisconnect} isConnected={isConnected} isConnecting={isConnecting} error={connectError} streamerBotAddress={streamerBotAddress} setStreamerBotAddress={setStreamerBotAddress} streamerBotPort={streamerBotPort} setStreamerBotPort={setStreamerBotPort} onStreamerBotConnect={() => handleStreamerBotConnect(streamerBotAddress, streamerBotPort)} onStreamerBotDisconnect={handleStreamerBotDisconnect} isStreamerBotConnected={isStreamerBotConnected} isStreamerBotConnecting={isStreamerBotConnecting} defaultUrl={DEFAULT_OBS_WEBSOCKET_URL} />,
+        [AppTab.CONNECTIONS]: <ConnectionPanel isConnected={isConnected} isConnecting={isConnecting} error={connectError} streamerBotAddress={streamerBotAddress} setStreamerBotAddress={setStreamerBotAddress} streamerBotPort={streamerBotPort} setStreamerBotPort={setStreamerBotPort} onStreamerBotConnect={() => handleStreamerBotConnect(streamerBotAddress, streamerBotPort)} onStreamerBotDisconnect={handleStreamerBotDisconnect} isStreamerBotConnected={isStreamerBotConnected} isStreamerBotConnecting={isStreamerBotConnecting} defaultUrl={DEFAULT_OBS_WEBSOCKET_URL} />,
         [AppTab.OBS_STUDIO]: <>{!isConnected || !obsServiceInstance ? <p>Please connect to OBS.</p> : <ObsMainControls obsService={obsServiceInstance} onRefreshData={() => fetchData()} setErrorMessage={setErrorMessage} addSystemMessageToChat={handleSendToGeminiContext} />}</>,
         [AppTab.SETTINGS]: <ObsSettingsPanel
           actions={{

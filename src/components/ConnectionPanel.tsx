@@ -7,12 +7,7 @@ import { cn } from '../lib/utils';
 import { useSettingsStore } from '../store/settingsStore';
 
 interface ConnectionPanelProps {
-    onConnect: (address: string, password?: string) => void;
-    onDisconnect: () => void;
-    isConnected: boolean;
-    isConnecting: boolean;
     defaultUrl: string;
-    error: string | null;
     envGeminiApiKey?: string;
     streamerBotAddress: string;
     setStreamerBotAddress: (value: string) => void;
@@ -25,12 +20,7 @@ interface ConnectionPanelProps {
 }
 
 export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({
-    onConnect,
-    onDisconnect,
-    isConnected,
-    isConnecting,
     defaultUrl,
-    error,
     envGeminiApiKey,
     streamerBotAddress,
     setStreamerBotAddress,
@@ -48,12 +38,7 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({
         <div className="space-y-1 max-w-4xl mx-auto">
             {/* Connection Form */}
             <ConnectionForm
-                onConnect={onConnect}
-                onDisconnect={onDisconnect}
-                isConnected={isConnected}
-                isConnecting={isConnecting}
                 defaultUrl={defaultUrl}
-                error={error}
                 envGeminiApiKey={envGeminiApiKey}
                 streamerBotAddress={streamerBotAddress}
                 setStreamerBotAddress={setStreamerBotAddress}

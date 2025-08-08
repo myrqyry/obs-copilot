@@ -29,9 +29,19 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
     onChatInputChange,
     onStreamerBotAction,
 }) => {
-    const { isConnected, sources, currentProgramScene, actions: obsActions } = useConnectionManagerStore();
-    const { geminiMessages: messages, isGeminiClientInitialized, actions: chatActions } = useChatStore();
-    const { extraDarkMode, flipSides, theme } = useSettingsStore();
+    const isConnected = useConnectionManagerStore(state => state.isConnected);
+    const sources = useConnectionManagerStore(state => state.sources);
+    const currentProgramScene = useConnectionManagerStore(state => state.currentProgramScene);
+    const obsActions = useConnectionManagerStore(state => state.actions);
+
+    const messages = useChatStore(state => state.geminiMessages);
+    const isGeminiClientInitialized = useChatStore(state => state.isGeminiClientInitialized);
+    const chatActions = useChatStore(state => state.actions);
+
+    const extraDarkMode = useSettingsStore(state => state.extraDarkMode);
+    const flipSides = useSettingsStore(state => state.flipSides);
+    const theme = useSettingsStore(state => state.theme);
+
     const onAddMessage = chatActions.addMessage;
     const accentColorName = theme.accent;
 

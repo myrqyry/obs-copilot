@@ -42,6 +42,8 @@ export interface ConnectionManagerState {
     setDisconnected: (error?: string | null) => void;
     setStreamerName: (name: string | null) => void;
     setObsServiceInstance: (instance: ObsClientImpl | null) => void;
+    connect: (address: string, password?: string) => Promise<{ success: boolean; error?: string }>;
+    disconnect: () => Promise<void>;
 
     // Actions from obsStore
     updateOBSData: (data: Partial<Omit<ConnectionManagerState, 'actions'>>) => void; // Omit actions to avoid recursion
@@ -98,6 +100,56 @@ export const useConnectionManagerStore = create<ConnectionManagerState>((set, ge
       saveUserSettings({ streamerName: name || undefined });
     },
     setObsServiceInstance: (instance) => set({ obsServiceInstance: instance }),
+    connect: async (address, password) => {
+      const { obsServiceInstance, actions } = get();
+      if (obsServiceInstance) {
+        await actions.disconnect();
+      }
+      actions.setConnecting();
+      const obsClient = new ObsClientImpl();
+      actions.setObsServiceInstance(obsClient);
+
+      try {
+        await obsClient.connect(address, password);
+        const scenesResponse = await obsClient.getSceneList();
+        const currentProgramSceneResponse = await obsClient.getCurrentProgramScene();
+        const sourcesResponse = await obsClient.getInputs();
+        const streamStatus = await obsClient.getStreamStatus();
+        const recordStatus = await obsClient.getRecordStatus();
+        const videoSettings = await obsClient.getVideoSettings();
+
+        const obsData = {
+          scenes: scenesResponse.scenes.map((scene) => ({
+            sceneName: scene.sceneName,
+            sceneIndex: scene.sceneIndex,
+          })),
+          currentProgramScene: currentProgramSceneResponse.sceneName,
+          sources: sourcesResponse.inputs.map((input) => ({
+            sourceName: input.inputName,
+            typeName: input.inputKind,
+            sceneItemId: 0,
+            sceneItemEnabled: true,
+          })),
+          streamStatus,
+          recordStatus,
+          videoSettings,
+          streamerName: null,
+        };
+        actions.setConnected(obsData);
+        return { success: true };
+      } catch (err: any) {
+        logger.error("Failed to connect to OBS:", err);
+        actions.setDisconnected(err.message);
+        return { success: false, error: `Failed to connect to OBS: ${err.message}` };
+      }
+    },
+    disconnect: async () => {
+      const { obsServiceInstance, actions } = get();
+      if (obsServiceInstance) {
+        await obsServiceInstance.disconnect();
+        actions.setDisconnected();
+      }
+    },
 
     // Actions from obsStore
     updateOBSData: (data) => set(data),

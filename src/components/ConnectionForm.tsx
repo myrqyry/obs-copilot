@@ -19,8 +19,6 @@ import { z, ZodError } from 'zod';
 import { obsConnectionSchema, streamerBotConnectionSchema, geminiApiKeySchema } from '../lib/validations';
 
 interface ConnectionFormProps {
-  onConnect: (address: string, password?: string) => void;
-  onDisconnect: () => void;
   defaultUrl: string;
   envGeminiApiKey?: string;
   streamerBotAddress: string;
@@ -35,8 +33,6 @@ interface ConnectionFormProps {
 }
 
 export const ConnectionForm: React.FC<ConnectionFormProps> = ({
-  onConnect,
-  onDisconnect,
   defaultUrl,
   envGeminiApiKey,
   streamerBotAddress,
@@ -54,7 +50,8 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
   const accentColor = catppuccinAccentColorsHexMap[storeAccentColorName] || '#89b4fa';
 
   // Destructure from the new unified store
-  const { isConnected, isConnecting, connectError: error } = useConnectionManagerStore();
+  const { isConnected, isConnecting, connectError: error, actions } = useConnectionManagerStore();
+  const { connect: onConnect, disconnect: onDisconnect } = actions;
 
   const persistedConnectionSettings = isStorageAvailable() ? loadConnectionSettings() : {};
 
