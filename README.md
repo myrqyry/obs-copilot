@@ -210,6 +210,20 @@ VITE_STREAMERBOT_WEBSOCKET_URL="ws://localhost:6747"
 
 Never commit sensitive information in `.env.local` files.
 
+### A Note on Proprietary Plugins
+
+This project uses `gsap/MorphSVGPlugin`, which is a proprietary plugin from [Club GreenSock](https://greensock.com/club/). It is **not** included in the standard `npm install` and requires a paid membership to download.
+
+If you do not have this plugin, the application will still work, but the morphing logo animations will be disabled and a simpler fallback animation will be used instead. A warning will be logged to the console.
+
+To enable the full animation experience, you will need to:
+1.  Obtain a Club GreenSock membership.
+2.  Download the `gsap-bonus.tgz` file provided with your membership.
+3.  Place the `gsap-bonus.tgz` file in the root of this project.
+4.  Run `npm install` again.
+
+This will install `MorphSVGPlugin` and other bonus plugins, and the application will use them automatically.
+
 ---
 
 ## 🧑‍💻 Usage

@@ -33,7 +33,6 @@ export const useApiSearch = <T>(options?: UseApiSearchOptions<T>): UseApiSearchR
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
-  // const addNotification = useAppStore(state => state.actions.addNotification); // Removed as it causes a module not found error
 
   /**
    * Executes a search using the provided fetcher function.

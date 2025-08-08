@@ -3,22 +3,23 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
 import { gsap } from 'gsap';
-import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin'; // Import the plugin
 
-// Register the plugin with GSAP
-if (MorphSVGPlugin) {
+// Asynchronously import and register the plugin
+(async () => {
   try {
+    const { MorphSVGPlugin } = await import('gsap/MorphSVGPlugin');
     gsap.registerPlugin(MorphSVGPlugin);
   } catch (error) {
-    console.warn('Could not register GSAP MorphSVGPlugin. Morphing animations will be disabled.');
+    console.warn(
+      'GSAP MorphSVGPlugin not found. Morphing animations will be disabled. This is a premium plugin from GreenSock Club.',
+    );
+    // Set a global flag or context to disable morphing components
+    (window as any).gsapMorphPluginMissing = true;
   }
-} else {
-    console.warn('GSAP MorphSVGPlugin not found. Please ensure you have a valid Club GreenSock membership and the plugin is installed correctly. Morphing animations will be disabled.');
-}
 
-
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-);
+  ReactDOM.createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>,
+  );
+})();
