@@ -17,6 +17,8 @@ export interface GiphyUser {
   display_name: string;
 }
 
+export type GiphyRating = 'g' | 'pg' | 'pg-13' | 'r';
+
 export interface GiphyResult {
   type: string;
   id: string;

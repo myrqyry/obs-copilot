@@ -6,6 +6,7 @@ import { getRandomSuggestions } from '../../constants/chatSuggestions';
 import { ChatMessage, CatppuccinAccentColorName, OBSSource, CatppuccinChatBubbleColorName } from '../../types';
 import { useSettingsStore } from '../../store/settingsStore';
 import Tooltip from '../ui/Tooltip';
+import DOMPurify from 'dompurify';
 
 interface ChatMessageItemProps {
     message: ChatMessage;
@@ -283,7 +284,8 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
 
                                         while ((match = codeBlockRegex.exec(message.text)) !== null) {
                                             if (match.index > lastIndex) {
-                                                parts.push(<div key={lastIndex} dangerouslySetInnerHTML={{ __html: message.text.substring(lastIndex, match.index) }} />);
+                                                const sanitizedHtml = DOMPurify.sanitize(message.text.substring(lastIndex, match.index));
+                                                parts.push(<div key={lastIndex} dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />);
                                             }
                                             const lang = match[1]?.toLowerCase() || 'text';
                                             const code = match[2];
@@ -292,7 +294,8 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                                         }
 
                                         if (lastIndex < message.text.length) {
-                                            parts.push(<div key={lastIndex} dangerouslySetInnerHTML={{ __html: message.text.substring(lastIndex) }} />);
+                                            const sanitizedHtml = DOMPurify.sanitize(message.text.substring(lastIndex));
+                                            parts.push(<div key={lastIndex} dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />);
                                         }
 
                                         return parts;

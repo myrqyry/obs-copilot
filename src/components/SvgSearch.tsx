@@ -131,25 +131,29 @@ const SvgSearch: React.FC = () => {
                     svg: `<img src="/api/iconfinder/svg?url=${encodeURIComponent(icon.svg_url)}" alt="${icon.tags && icon.tags.length > 0 ? icon.tags[0] : icon.icon_id}" />`
                 })));
             } else {
-                const apiUrl = `https://api.iconify.design/search?query=${encodeURIComponent(svgQuery)}&limit=${limit}${svgApi !== 'iconify' ? `&prefix=${svgApi}` : ''}`;
-                const res = await fetch(apiUrl);
-                
-                // Check if response is valid JSON
-                const contentType = res.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    throw new Error('API returned non-JSON response');
+                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                const searchApiUrl = isLocal ? '/api/iconify/search' : '/.netlify/functions/proxy/iconify/search';
+
+                const params = new URLSearchParams({
+                    query: svgQuery,
+                    limit: String(limit),
+                });
+                if (svgApi !== 'iconify') {
+                    params.append('prefix', svgApi);
                 }
                 
+                const res = await fetch(`${searchApiUrl}?${params.toString()}`);
+
                 const data = await res.json();
                 if (data.icons && data.icons.length > 0) {
                     const iconNames = data.icons.map((icon: any) => typeof icon === 'string' ? icon : icon.name).slice(0, limit);
                     const svgFetches = iconNames.map(async (iconName: string) => {
                         try {
                             const fullName = iconName.includes(':') ? iconName : `${svgApi}:${iconName}`;
-                            const svgRes = await fetch(`https://api.iconify.design/${fullName}.svg`);
+                            const svgApiUrl = isLocal ? `/api/iconify/svg/${fullName}` : `/.netlify/functions/proxy/iconify/svg/${fullName}`;
+                            const svgRes = await fetch(svgApiUrl);
                             if (svgRes.ok) {
                                 const svgText = await svgRes.text();
-                                // Validate that we got actual SVG content
                                 if (svgText.trim().startsWith('<svg') || svgText.trim().startsWith('<?xml')) {
                                     return { name: fullName, svg: svgText };
                                 }

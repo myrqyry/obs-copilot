@@ -4,6 +4,8 @@ import { CatppuccinAccentColorName } from '../types';
 import { Card, CardContent } from './ui';
 import { cn } from '../lib/utils';
 
+import { useSettingsStore } from '../store/settingsStore';
+
 interface ConnectionPanelProps {
     onConnect: (address: string, password?: string) => void;
     onDisconnect: () => void;
@@ -11,11 +13,7 @@ interface ConnectionPanelProps {
     isConnecting: boolean;
     defaultUrl: string;
     error: string | null;
-    geminiApiKey: string;
     envGeminiApiKey?: string;
-    onGeminiApiKeyChange: (key: string) => void;
-    isGeminiClientInitialized: boolean;
-    geminiInitializationError: string | null;
     streamerBotAddress: string;
     setStreamerBotAddress: (value: string) => void;
     streamerBotPort: string;
@@ -24,7 +22,6 @@ interface ConnectionPanelProps {
     onStreamerBotDisconnect?: () => void;
     isStreamerBotConnected?: boolean;
     isStreamerBotConnecting?: boolean;
-    accentColorName?: CatppuccinAccentColorName;
 }
 
 export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({
@@ -34,9 +31,7 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({
     isConnecting,
     defaultUrl,
     error,
-    geminiApiKey,
     envGeminiApiKey,
-    onGeminiApiKeyChange,
     streamerBotAddress,
     setStreamerBotAddress,
     streamerBotPort,
@@ -45,10 +40,8 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({
     onStreamerBotDisconnect,
     isStreamerBotConnected = false,
     isStreamerBotConnecting = false,
-    isGeminiClientInitialized,
-    geminiInitializationError,
-    accentColorName,
 }) => {
+    const accentColorName = useSettingsStore(state => state.theme.accent);
     const [showTips, setShowTips] = useState(false);
 
     return (
@@ -61,11 +54,7 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({
                 isConnecting={isConnecting}
                 defaultUrl={defaultUrl}
                 error={error}
-                geminiApiKey={geminiApiKey}
                 envGeminiApiKey={envGeminiApiKey}
-                onGeminiApiKeyChange={onGeminiApiKeyChange}
-                isGeminiClientInitialized={isGeminiClientInitialized}
-                geminiInitializationError={geminiInitializationError}
                 streamerBotAddress={streamerBotAddress}
                 setStreamerBotAddress={setStreamerBotAddress}
                 streamerBotPort={streamerBotPort}

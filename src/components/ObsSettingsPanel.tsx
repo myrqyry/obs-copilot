@@ -29,25 +29,24 @@ interface ObsSettingsPanelActions {
 }
 
 interface ObsSettingsPanelProps {
-  selectedAccentColorName: CatppuccinAccentColorName;
-  selectedSecondaryAccentColorName: CatppuccinSecondaryAccentColorName;
-  selectedUserChatBubbleColorName: CatppuccinChatBubbleColorName;
-  selectedModelChatBubbleColorName: CatppuccinChatBubbleColorName;
-  flipSides: boolean;
   actions: ObsSettingsPanelActions;
 }
 
 export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
-  selectedAccentColorName,
-  selectedSecondaryAccentColorName,
-  selectedUserChatBubbleColorName,
-  selectedModelChatBubbleColorName,
-  flipSides,
   actions
 }) => {
+  const {
+    theme: {
+      accent: selectedAccentColorName,
+      secondaryAccent: selectedSecondaryAccentColorName,
+      userChatBubble: selectedUserChatBubbleColorName,
+      modelChatBubble: selectedModelChatBubbleColorName,
+    },
+    flipSides,
+    autoApplySuggestions,
+    extraDarkMode,
+  } = useSettingsStore();
   // Zustand selectors
-const autoApplySuggestions = useSettingsStore(state => state.autoApplySuggestions);
-const extraDarkMode = useSettingsStore(state => state.extraDarkMode);
 const customChatBackground = useSettingsStore(state => state.customChatBackground);
 const bubbleFillOpacity = useSettingsStore(state => state.bubbleFillOpacity);
 const chatBubbleBlendMode = useSettingsStore(state => state.chatBubbleBlendMode);

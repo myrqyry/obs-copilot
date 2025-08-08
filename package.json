@@ -3,6 +3,7 @@
   "overrides": {
     "type-fest": "3.0.0"
   },
+  "_comment": "The 'type-fest' override is in place because while obs-websocket-js@5.0.6 requires ^3.11.0, a newer version of type-fest appears to conflict with another dependency, possibly related to React 19. This override forces an older version to resolve the conflict.",
   "version": "0.0.0",
   "private": true,
   "description": "<div align=\"center\">",
@@ -30,7 +31,6 @@
   },
   "dependencies": {
     "@expressive-code/plugin-shiki": "^0.35.3",
-    "@giphy/js-fetch-api": "^5.7.0",
     "@google-cloud/text-to-speech": "^6.2.0",
     "@google/generative-ai": "^0.21.0",
     "@heroicons/react": "^2.2.0",
@@ -60,6 +60,7 @@
     "@testing-library/jest-dom": "^6.6.4",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
+    "@types/dompurify": "^3.0.5",
     "@types/jest": "^30.0.0",
     "@types/lodash": "^4.17.20",
     "@types/node": "^24.0.1",

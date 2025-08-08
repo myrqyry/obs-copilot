@@ -170,6 +170,40 @@ apiProxy.get('/:apiType', async (req, res, next) => {
     }
 });
 
+apiProxy.get('/iconify/search', async (req, res, next) => {
+    const { query, limit, prefix } = req.query;
+    if (!query) {
+        return next({ status: 400, message: 'Missing query parameter' });
+    }
+
+    try {
+        const apiUrl = `https://api.iconify.design/search?query=${encodeURIComponent(query as string)}&limit=${limit || 48}${prefix ? `&prefix=${prefix}` : ''}`;
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+            throw new Error(`Iconify API error: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json();
+        res.json(data);
+    } catch (err: any) {
+        return next({ status: 500, message: 'Failed to fetch from Iconify search', details: err.message });
+    }
+});
+
+apiProxy.get('/iconify/svg/:iconName', async (req, res, next) => {
+    const { iconName } = req.params;
+    try {
+        const response = await fetch(`https://api.iconify.design/${iconName}.svg`);
+        if (!response.ok) {
+            throw new Error(`Iconify SVG error: ${response.status} ${response.statusText}`);
+        }
+        const svgText = await response.text();
+        res.header('Content-Type', 'image/svg+xml');
+        res.send(svgText);
+    } catch (err: any) {
+        return next({ status: 500, message: 'Failed to fetch SVG from Iconify', details: err.message });
+    }
+});
+
 apiProxy.post('/gemini/generate-content', async (req, res, next) => {
     const clientApiKey = req.headers['x-api-key'] as string;
     const serverApiKey = process.env.GEMINI_API_KEY;

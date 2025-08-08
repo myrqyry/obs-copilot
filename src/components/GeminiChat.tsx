@@ -14,13 +14,6 @@ interface GeminiChatProps {
     setErrorMessage: (message: string | null) => void;
     chatInputValue: string;
     onChatInputChange: (value: string) => void;
-    accentColorName?: CatppuccinAccentColorName;
-    messages: ChatMessage[];
-    onAddMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
-    isGeminiClientInitialized: boolean;
-    geminiInitializationError: string | null;
-    onSetIsGeminiClientInitialized: (status: boolean) => void;
-    onSetGeminiInitializationError: (error: string | null) => void;
     activeTab: AppTab;
     onStreamerBotAction: (action: {
     type: string;
@@ -34,17 +27,13 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
     setErrorMessage,
     chatInputValue,
     onChatInputChange,
-    accentColorName,
-    messages,
-    onAddMessage,
-    isGeminiClientInitialized,
-    onSetIsGeminiClientInitialized,
-    onSetGeminiInitializationError,
     onStreamerBotAction,
 }) => {
     const { isConnected, sources, currentProgramScene, actions: obsActions } = useConnectionManagerStore();
-    const { actions: chatActions } = useChatStore();
+    const { geminiMessages: messages, isGeminiClientInitialized, actions: chatActions } = useChatStore();
     const { extraDarkMode, flipSides, theme } = useSettingsStore();
+    const onAddMessage = chatActions.addMessage;
+    const accentColorName = theme.accent;
 
     const {
         isLoading,

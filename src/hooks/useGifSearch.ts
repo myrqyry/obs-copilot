@@ -2,10 +2,10 @@ import { useState, useCallback } from 'react';
 import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
 import { GiphyResult } from '../types/giphy';
 import { useToast } from '../components/ui/use-toast';
-import { GiphyFetch, Rating } from '@giphy/js-fetch-api';
+import { GiphyRating } from '../types/giphy';
 
 interface SearchFilters {
-  rating: Rating;
+  rating: GiphyRating;
   contentFilter: string;
   mediaFilter: string;
   arRange: string;
@@ -22,7 +22,7 @@ export const useGifSearch = () => {
   const [totalResults, setTotalResults] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
-    rating: 'pg-13' as Rating,
+    rating: 'pg-13',
     contentFilter: 'high',
     mediaFilter: 'minimal',
     arRange: 'all',
@@ -47,16 +47,31 @@ export const useGifSearch = () => {
       try {
         const searchQuery = selectedCategory ? `${gifQuery} ${selectedCategory}` : gifQuery;
         if (gifApi === 'giphy') {
-          const apiKey = useApiKeyStore.getState().getApiKeyOverride(ApiService.GIPHY);
-          if (!apiKey) throw new Error('Giphy API key is missing.');
-          const gf = new GiphyFetch(apiKey);
-          const response = await gf.search(searchQuery, {
-            limit: searchFilters.limit,
-            rating: searchFilters.rating,
-            type: searchFilters.contentType,
-          });
-          setGifResults(response.data.map((gif) => ({ ...gif, id: String(gif.id) })));
-          setTotalResults(response.pagination.total_count);
+            const apiKey = useApiKeyStore.getState().getApiKeyOverride(ApiService.GIPHY);
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const apiUrl = isLocal ? '/api/giphy' : '/.netlify/functions/proxy/giphy';
+
+            const params = new URLSearchParams({
+                q: searchQuery,
+                limit: String(searchFilters.limit),
+                rating: searchFilters.rating,
+                type: searchFilters.contentType,
+            });
+
+            const headers: HeadersInit = {};
+            if (apiKey) {
+                headers['X-Api-Key'] = apiKey;
+            }
+
+            const response = await fetch(`${apiUrl}?${params.toString()}`, { headers });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Giphy API error');
+            }
+            const data = await response.json();
+            setGifResults(data.data.map((gif: any) => ({ ...gif, id: String(gif.id) })));
+            setTotalResults(data.pagination.total_count);
+
         } else if (gifApi === 'tenor') {
           // Tenor API logic would go here
         }

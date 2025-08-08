@@ -13,6 +13,7 @@ import { CollapsibleCard } from './common/CollapsibleCard';
 import { useConnectionManagerStore } from '../store/connectionManagerStore';
 import useApiKeyStore from '../store/apiKeyStore';
 import { useSettingsStore } from '../store/settingsStore';
+import { useChatStore } from '../store/chatStore';
 import { catppuccinAccentColorsHexMap } from '../types';
 import { z, ZodError } from 'zod';
 import { obsConnectionSchema, streamerBotConnectionSchema, geminiApiKeySchema } from '../lib/validations';
@@ -21,11 +22,7 @@ interface ConnectionFormProps {
   onConnect: (address: string, password?: string) => void;
   onDisconnect: () => void;
   defaultUrl: string;
-  geminiApiKey: string;
   envGeminiApiKey?: string;
-  onGeminiApiKeyChange: (key: string) => void;
-  isGeminiClientInitialized: boolean;
-  geminiInitializationError: string | null;
   streamerBotAddress: string;
   setStreamerBotAddress: (value: string) => void;
   streamerBotPort: string;
@@ -41,11 +38,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
   onConnect,
   onDisconnect,
   defaultUrl,
-  geminiApiKey,
   envGeminiApiKey,
-  onGeminiApiKeyChange,
-  isGeminiClientInitialized,
-  geminiInitializationError,
   streamerBotAddress,
   setStreamerBotAddress,
   streamerBotPort,
@@ -56,6 +49,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
   isStreamerBotConnecting = false,
   // accentColorName, // This prop is not used, storeAccentColorName is used instead
 }) => {
+  const { geminiApiKey, isGeminiClientInitialized, geminiInitializationError, actions: { setGeminiApiKey: onGeminiApiKeyChange } } = useChatStore();
   const storeAccentColorName = useSettingsStore(state => state.theme.accent);
   const accentColor = catppuccinAccentColorsHexMap[storeAccentColorName] || '#89b4fa';
 

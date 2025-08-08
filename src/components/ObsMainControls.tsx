@@ -9,6 +9,7 @@ import { TextInput } from './common/TextInput';
 import { LoadingSpinner } from './common/LoadingSpinner';
 import { useConnectionManagerStore } from '../store/connectionManagerStore';
 import { useLockStore } from '../store/lockStore';
+import { useSettingsStore } from '../store/settingsStore';
 import { COMMON_RESOLUTIONS, COMMON_FPS } from '../constants';
 import { CollapsibleCard } from './common/CollapsibleCard';
 import { catppuccinAccentColorsHexMap } from '../types';
@@ -18,7 +19,6 @@ interface ObsMainControlsProps {
   onRefreshData: () => Promise<void>;
   setErrorMessage: (message: string | null) => void;
   addSystemMessageToChat: (contextText: string) => void;
-  accentColorName?: CatppuccinAccentColorName;
 }
 
 export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
@@ -26,8 +26,8 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
   onRefreshData,
   setErrorMessage,
   addSystemMessageToChat,
-  accentColorName
 }) => {
+  const accentColorName = useSettingsStore(state => state.theme.accent);
   // Collapsible state for each section
   const [openStream, setOpenStream] = useState(true);
   const [openScenes, setOpenScenes] = useState(true);
