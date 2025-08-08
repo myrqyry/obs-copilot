@@ -49,7 +49,6 @@ const fetchData = useCallback(async () => {
         const results = await Promise.allSettled([
             obsServiceInstance.getSceneList(),
             obsServiceInstance.getCurrentProgramScene(),
-            obsServiceInstance.getInputs(),
             obsServiceInstance.getStreamStatus(),
             obsServiceInstance.getRecordStatus(),
             obsServiceInstance.getVideoSettings(),
@@ -58,7 +57,6 @@ const fetchData = useCallback(async () => {
         const [
             scenesResult,
             currentProgramSceneResult,
-            sourcesResult,
             streamStatusResult,
             recordStatusResult,
             videoSettingsResult,
@@ -66,7 +64,20 @@ const fetchData = useCallback(async () => {
 
         const scenes = scenesResult.status === 'fulfilled' ? scenesResult.value.scenes.map((scene) => ({ sceneName: scene.sceneName, sceneIndex: scene.sceneIndex })) : [];
         const currentProgramScene = currentProgramSceneResult.status === 'fulfilled' ? currentProgramSceneResult.value.sceneName : null;
-        const sources = sourcesResult.status === 'fulfilled' ? sourcesResult.value.inputs.map((input) => ({ sourceName: input.inputName, typeName: input.inputKind, sceneItemId: 0, sceneItemEnabled: true })) : [];
+
+        let sources: OBSSource[] = [];
+        if (currentProgramScene) {
+            const sceneItemsResult = await obsServiceInstance.getSceneItemList(currentProgramScene);
+            if (sceneItemsResult) {
+                sources = sceneItemsResult.sceneItems.map((item) => ({
+                    sourceName: item.sourceName,
+                    typeName: item.inputKind || 'N/A',
+                    sceneItemId: item.sceneItemId,
+                    sceneItemEnabled: item.sceneItemEnabled,
+                }));
+            }
+        }
+
         const streamStatus = streamStatusResult.status === 'fulfilled' ? streamStatusResult.value : null;
         const recordStatus = recordStatusResult.status === 'fulfilled' ? recordStatusResult.value : null;
         const videoSettings = videoSettingsResult.status === 'fulfilled' ? videoSettingsResult.value : null;

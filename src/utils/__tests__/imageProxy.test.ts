@@ -1,3 +1,7 @@
+/**
+ * @jest-environment jsdom
+ */
+
 // Functions to be tested will be required dynamically in tests
 
 const OriginalURL = URL;

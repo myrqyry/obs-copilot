@@ -1,6 +1,5 @@
 import React, { useLayoutEffect, useRef, useEffect } from 'react';
 import { gsap } from 'gsap';
-import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
 
 interface MorphingLogosProps {
     accentColor: string;
@@ -19,20 +18,15 @@ const MorphingLogos: React.FC<MorphingLogosProps> = ({ accentColor, secondaryAcc
     const colorAnimationRef = useRef<gsap.core.Tween | null>(null);
 
     useLayoutEffect(() => {
-        if (MorphSVGPlugin) {
-            try {
-                gsap.registerPlugin(MorphSVGPlugin);
-            } catch (error) {
-                console.warn('Could not register GSAP MorphSVGPlugin. Morphing animations will be disabled.');
-                return;
-            }
-        } else {
-            console.warn('GSAP MorphSVGPlugin not found. Morphing animations will be disabled.');
-            return;
-        }
-
         const morphingPath = morphingPathRef.current;
         if (!morphingPath) return;
+
+        // Check for the global flag set in main.tsx
+        if ((window as any).gsapMorphPluginMissing) {
+            // Implement a fallback animation that doesn't use MorphSVG
+            gsap.to(morphingPath, { rotation: 360, duration: 12, repeat: -1, ease: 'none', transformOrigin: "24 24" });
+            return;
+        }
 
         gsap.set(morphingPath, { attr: { d: paths.gemini } });
 
