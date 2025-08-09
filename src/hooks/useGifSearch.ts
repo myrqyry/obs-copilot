@@ -3,6 +3,7 @@ import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
 import { GiphyResult } from '../types/giphy';
 import { toast } from '../components/ui/toast';
 import { GiphyRating } from '../types/giphy';
+import { getSimpleApiEndpoint } from '../utils/api';
 
 interface SearchFilters {
   rating: GiphyRating;
@@ -47,8 +48,7 @@ export const useGifSearch = () => {
         const searchQuery = selectedCategory ? `${gifQuery} ${selectedCategory}` : gifQuery;
         if (gifApi === 'giphy') {
             const apiKey = useApiKeyStore.getState().getApiKeyOverride(ApiService.GIPHY);
-            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-            const apiUrl = isLocal ? '/api/giphy' : '/.netlify/functions/proxy/giphy';
+            const apiUrl = getSimpleApiEndpoint('giphy');
 
             const params = new URLSearchParams({
                 q: searchQuery,
@@ -79,7 +79,7 @@ export const useGifSearch = () => {
         setSearchError(message);
         toast({
           title: `GIF Search Error`,
-          description: error.message,
+          description: message,
           variant: 'destructive',
         });
       } finally {

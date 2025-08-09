@@ -287,9 +287,6 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                                                 const sanitizedHtml = DOMPurify.sanitize(message.text.substring(lastIndex, match.index));
                                                 parts.push(<div key={lastIndex} dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />);
                                             }
-                                            const lang = match[1]?.toLowerCase() || 'text';
-                                            const code = match[2];
-                                            parts.push(<div key={match.index} />); {/* Removed ExpressiveCodeRenderer */}
                                             lastIndex = codeBlockRegex.lastIndex;
                                         }
 

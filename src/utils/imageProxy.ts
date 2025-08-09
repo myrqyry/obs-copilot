@@ -1,3 +1,5 @@
+import { getApiEndpoint } from './api';
+
 export const getHostname = (): string => {
   return window.location.hostname;
 };
@@ -34,14 +36,8 @@ export const getProxiedImageUrl = (imageUrl: string): string => {
   };
 
   if (shouldProxy(imageUrl)) {
-    // If we're in development, use the local proxy
-    const hostname = getHostname();
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return `/api/image?url=${encodeURIComponent(imageUrl)}`;
-    }
-
-    // In production, use the Netlify function
-    return `/.netlify/functions/proxy?api=image&url=${encodeURIComponent(imageUrl)}`;
+    const params = new URLSearchParams({ url: imageUrl });
+    return getApiEndpoint('image', undefined, params);
   }
 
   return imageUrl;

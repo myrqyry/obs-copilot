@@ -1,5 +1,5 @@
 // src/services/automationService.ts
-import type { AutomationRule, AutomationCondition } from '../types/automation';
+import type { AutomationRule, AutomationCondition, AutomationAction, StreamerBotActionData } from '../types/automation';
 import type { ObsAction } from '../types/obsActions';
 import { throttle } from 'lodash';
 import type { StreamerBotService } from './streamerBotService';
@@ -199,7 +199,9 @@ export class AutomationService {
       case 'currentProgramScene':
         return this.obsData.currentProgramScene;
       case 'currentPreviewScene':
-        return this.obsData.currentPreviewScene;
+        // OBSData doesn't have currentPreviewScene, return null for now
+        // This would need to be added to OBSData type if preview scene tracking is needed
+        return null;
       default:
         return null;
     }
@@ -301,12 +303,14 @@ export class AutomationService {
         attempt++;
         logger.info(`Executing action (attempt ${attempt}/${this.maxRetries}):`, action);
  
-         if (action.type === 'obs') {
+        if (action.type === 'obs') {
           if (!this.handleObsAction) {
             throw new Error('OBS action handler not available');
           }
 
-          const result = await this.handleObsAction(action.data);
+          // Type guard: when action.type is 'obs', action.data is ObsAction
+          const obsActionData = action.data as ObsAction;
+          const result = await this.handleObsAction(obsActionData);
 
           this.addMessage?.({
             role: 'system',
@@ -321,11 +325,13 @@ export class AutomationService {
             throw new Error('Streamer.bot service not available');
           }
 
-          await this.streamerBotService.doAction(action.data.actionName, action.data.args || {});
+          // Type guard: when action.type is 'streamerbot', action.data is StreamerBotActionData
+          const streamerBotData = action.data as StreamerBotActionData;
+          await this.streamerBotService.doAction(streamerBotData.actionName, streamerBotData.args || {});
 
           this.addMessage?.({
             role: 'system',
-            text: `🤖 **Streamer.bot Action (Rule: ${ruleName})**\n\n✅ Executed action "${action.data.actionName}"`,
+            text: `🤖 **Streamer.bot Action (Rule: ${ruleName})**\n\n✅ Executed action "${streamerBotData.actionName}"`,
           });
         } else {
           throw new Error(`Unknown action type: ${action.type}`);
@@ -336,7 +342,7 @@ export class AutomationService {
       } catch (error) {
         logger.error(`Error executing action (attempt ${attempt}/${this.maxRetries}):`, error);
  
-         if (attempt >= this.maxRetries) {
+        if (attempt >= this.maxRetries) {
           this.addMessage?.({
             role: 'system',
             text: `❌ **Action Failed**\n\nRule "${ruleName}" action failed after ${this.maxRetries} attempts: ${(error as Error).message}`,
@@ -356,9 +362,6 @@ export class AutomationService {
 
     return obsAvailable && streamerBotAvailable;
   }
-  // This block was duplicated and misplaced. Removing it to fix errors.
-  // Removed duplicate and misplaced block.
-  // Removed duplicate and misplaced block.
 
   /**
    * Get automation statistics

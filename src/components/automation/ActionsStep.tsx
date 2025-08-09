@@ -2,8 +2,35 @@ import React from 'react';
 import { Button } from '../ui/Button';
 import { TextInput } from '../common/TextInput';
 import { AutomationAction } from '../../types/automation';
-import { ObsAction } from '../../types/obsActions';
+import { ObsAction, SetCurrentProgramSceneAction } from '../../types/obsActions';
 import { useConnectionManagerStore } from '../../store/connectionManagerStore';
+
+// Type guards for safe ObsAction type checking
+function isObsAction(data: unknown): data is ObsAction {
+    return (
+        typeof data === 'object' &&
+        data !== null &&
+        'type' in data &&
+        typeof (data as any).type === 'string'
+    );
+}
+
+function isSetCurrentProgramSceneAction(action: ObsAction): action is SetCurrentProgramSceneAction {
+    return action.type === 'setCurrentProgramScene';
+}
+
+function hasSceneName(action: ObsAction): action is ObsAction & { sceneName: string } {
+    return 'sceneName' in action && typeof (action as any).sceneName === 'string';
+}
+
+function hasActionName(data: unknown): data is { actionName: string } {
+    return (
+        typeof data === 'object' &&
+        data !== null &&
+        'actionName' in data &&
+        typeof (data as any).actionName === 'string'
+    );
+}
 
 interface ActionsStepProps {
     actions: AutomationAction[];
@@ -69,7 +96,7 @@ export const ActionsStep: React.FC<ActionsStepProps> = ({
                             {action.type === 'obs' ? (
                                 <div className="space-y-2">
                                     <select
-                                        value={(action.data as ObsAction).type}
+                                        value={isObsAction(action.data) ? action.data.type : ''}
                                         onChange={(e) => updateAction(action.id, {
                                             data: { type: e.target.value } as ObsAction
                                         })}
@@ -80,9 +107,9 @@ export const ActionsStep: React.FC<ActionsStepProps> = ({
                                         <option value="setSceneItemEnabled">Enable/Disable Source</option>
                                     </select>
 
-                                    {(action.data as ObsAction).type === 'setCurrentProgramScene' && (
+                                    {isObsAction(action.data) && isSetCurrentProgramSceneAction(action.data) && (
                                         <select
-                                            value={(action.data as any).sceneName || ''}
+                                            value={hasSceneName(action.data) ? action.data.sceneName : ''}
                                             onChange={(e) => updateAction(action.id, {
                                                 data: { type: 'setCurrentProgramScene', sceneName: e.target.value }
                                             })}
@@ -100,7 +127,7 @@ export const ActionsStep: React.FC<ActionsStepProps> = ({
                             ) : (
                                 <div className="space-y-2">
                                     <select
-                                        value={(action.data as any).actionName || ''}
+                                        value={hasActionName(action.data) ? action.data.actionName : ''}
                                         onChange={(e) => updateAction(action.id, {
                                             data: { actionName: e.target.value, args: {} }
                                         })}

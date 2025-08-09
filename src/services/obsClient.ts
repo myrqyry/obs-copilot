@@ -372,23 +372,12 @@ export class ObsClientImpl implements ObsClient {
 
   /**
    * Toggles the stream status (starts if stopped, stops if started).
+   * Uses direct OBS WebSocket ToggleStream command for better performance.
    * @returns A Promise that resolves when the stream state is toggled.
    * @throws {ObsError} If the API call fails.
    */
   async toggleStream(): Promise<void> {
-    try {
-      const status = await this.getStreamStatus();
-      if (status.outputActive) {
-        await this.stopStream();
-      } else {
-        await this.startStream();
-      }
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        throw new ObsError(`Failed to toggle stream: ${error.message}`);
-      }
-      throw new ObsError('Failed to toggle stream: Unknown error');
-    }
+    await this.callObs('ToggleStream');
   }
 
   /**
@@ -420,23 +409,12 @@ export class ObsClientImpl implements ObsClient {
 
   /**
    * Toggles the record status (starts if stopped, stops if started).
+   * Uses direct OBS WebSocket ToggleRecord command for better performance.
    * @returns A Promise that resolves when the record state is toggled.
    * @throws {ObsError} If the API call fails.
    */
   async toggleRecord(): Promise<void> {
-    try {
-      const status = await this.getRecordStatus();
-      if (status.outputActive) {
-        await this.stopRecord();
-      } else {
-        await this.startRecord();
-      }
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        throw new ObsError(`Failed to toggle record: ${error.message}`);
-      }
-      throw new ObsError('Failed to toggle record: Unknown error');
-    }
+    await this.callObs('ToggleRecord');
   }
 
   /**
@@ -871,22 +849,13 @@ export class ObsClientImpl implements ObsClient {
   }
 
   /**
-   * Toggles Studio Mode.
+   * Toggles Studio Mode using direct OBS WebSocket command.
+   * Uses direct OBS WebSocket ToggleStudioMode command for better performance.
    * @returns A Promise that resolves when Studio Mode is toggled.
    * @throws {ObsError} If the API call fails.
    */
   async toggleStudioMode(): Promise<void> {
-    try {
-      const studioMode = await this.getStudioModeEnabled();
-      await this.callObs('SetStudioModeEnabled', {
-        studioModeEnabled: !studioMode.studioModeEnabled,
-      });
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        throw new ObsError(`Failed to toggle Studio Mode: ${error.message}`);
-      }
-      throw new ObsError('Failed to toggle Studio Mode: Unknown error');
-    }
+    await this.callObs('ToggleStudioMode');
   }
 
   /**

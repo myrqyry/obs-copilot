@@ -14,6 +14,7 @@ import { FaviconDropdown } from './common/FaviconDropdown';
 import { CollapsibleCard } from './common/CollapsibleCard';
 import { TextInput } from './common/TextInput';
 import { catppuccinAccentColorsHexMap } from '../types';
+import { getSimpleApiEndpoint, buildApiUrl } from '../utils/api';
 
 const SVG_APIS = [
     { value: 'iconfinder', label: 'Iconfinder', domain: 'iconfinder.com', icon: '🎨' },
@@ -93,13 +94,10 @@ const SvgSearch: React.FC = () => {
             const limit = 48;
             if (svgApi === 'iconfinder') {
                 const iconfinderKeyOverride = useApiKeyStore.getState().getApiKeyOverride(ApiService.ICONFINDER);
-                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-                const apiUrlPath = isLocal ? '/api/iconfinder' : '/.netlify/functions/proxy?api=iconfinder';
-                const params = new URLSearchParams({
+                const requestUrl = buildApiUrl('iconfinder', undefined, {
                     query: svgQuery,
-                    count: String(limit),
+                    count: limit,
                 });
-                const requestUrl = isLocal ? `/api/iconfinder?${params.toString()}` : `/.netlify/functions/proxy/api/iconfinder?${params.toString()}`;
 
                 const headers: HeadersInit = {};
                 if (iconfinderKeyOverride) {
@@ -127,11 +125,10 @@ const SvgSearch: React.FC = () => {
                 }).filter((icon: any) => icon.is_premium === false && icon.svg_url);
                 setSvgResults(icons.slice(0, limit).map((icon: any) => ({
                     name: icon.tags && icon.tags.length > 0 ? icon.tags[0] : icon.icon_id,
-                    svg: `<img src="/api/iconfinder/svg?url=${encodeURIComponent(icon.svg_url)}" alt="${icon.tags && icon.tags.length > 0 ? icon.tags[0] : icon.icon_id}" />`
+                    svg: `<img src="${getSimpleApiEndpoint('iconfinder', 'svg')}?url=${encodeURIComponent(icon.svg_url)}" alt="${icon.tags && icon.tags.length > 0 ? icon.tags[0] : icon.icon_id}" />`
                 })));
             } else {
-                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-                const searchApiUrl = isLocal ? '/api/iconify/search' : '/.netlify/functions/proxy/iconify/search';
+                const searchApiUrl = getSimpleApiEndpoint('iconify', 'search');
 
                 const params = new URLSearchParams({
                     query: svgQuery,
@@ -149,7 +146,7 @@ const SvgSearch: React.FC = () => {
                     const svgFetches = iconNames.map(async (iconName: string) => {
                         try {
                             const fullName = iconName.includes(':') ? iconName : `${svgApi}:${iconName}`;
-                            const svgApiUrl = isLocal ? `/api/iconify/svg/${fullName}` : `/.netlify/functions/proxy/iconify/svg/${fullName}`;
+                            const svgApiUrl = getSimpleApiEndpoint('iconify', `svg/${fullName}`);
                             const svgRes = await fetch(svgApiUrl);
                             if (svgRes.ok) {
                                 const svgText = await svgRes.text();
