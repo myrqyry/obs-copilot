@@ -26,6 +26,7 @@ export const getProxiedImageUrl = (imageUrl: string): string => {
         'images.deviantart.com',
         'cdnb.artstation.com',
         'cdna.artstation.com',
+        'google.com',
       ];
 
       return externalDomains.some((domain) => urlObj.hostname.includes(domain));
@@ -63,6 +64,7 @@ export const shouldProxyImage = (imageUrl: string): boolean => {
       'images.deviantart.com',
       'cdnb.artstation.com',
       'cdna.artstation.com',
+      'google.com',
     ];
 
     return externalDomains.some((domain) => url.hostname.includes(domain));
@@ -70,4 +72,15 @@ export const shouldProxyImage = (imageUrl: string): boolean => {
     // If URL parsing fails, assume it's a relative URL and doesn't need proxying
     return false;
   }
+};
+
+/**
+ * Returns the proxied URL for a favicon.
+ * @param domain The domain to get the favicon for.
+ * @param size The size of the favicon.
+ * @returns The proxied favicon URL.
+ */
+export const getProxiedFaviconUrl = (domain: string, size = 16): string => {
+  const googleUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=${size}`;
+  return getProxiedImageUrl(googleUrl);
 };

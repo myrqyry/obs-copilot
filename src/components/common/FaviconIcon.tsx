@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSettingsStore } from '../../store/settingsStore';
+import { getProxiedFaviconUrl } from '../../utils/imageProxy';
 import Tooltip from '../ui/Tooltip';
 
 interface FaviconIconProps {
@@ -35,27 +35,32 @@ export const FaviconIcon: React.FC<FaviconIconProps> = ({ domain, alt, className
     const [retryCount, setRetryCount] = useState(0);
 
     useEffect(() => {
+        console.log(`[FaviconIcon] useEffect for ${domain}, retry: ${retryCount}`);
         if (!domain) return;
 
         // Try to get from cache first
         const cached = localStorage.getItem(`favicon_${domain}`);
         if (cached && !cached.includes('error')) {
+            console.log(`[FaviconIcon] Cache hit for ${domain}`);
             setSrc(cached);
             return;
         }
 
         // Check if we've already failed too many times
         if (retryCount >= 2) {
+            console.log(`[FaviconIcon] Max retries reached for ${domain}`);
             setError(true);
             return;
         }
 
         // Use our favicon proxy to avoid CORS issues
-        const proxyUrl = `/api/favicon?domain=${encodeURIComponent(domain)}&sz=${size}`;
+        const proxyUrl = getProxiedFaviconUrl(domain, size);
+        console.log(`[FaviconIcon] Setting src for ${domain} to ${proxyUrl}`);
         setSrc(proxyUrl);
     }, [domain, size, retryCount]);
 
     const handleLoad = () => {
+        console.log(`[FaviconIcon] handleLoad for ${domain}`);
         setLoaded(true);
         setError(false);
         // Cache successful loads
@@ -65,22 +70,15 @@ export const FaviconIcon: React.FC<FaviconIconProps> = ({ domain, alt, className
     };
 
     const handleError = () => {
-        // Only log in development to reduce console noise
-        if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-            console.warn(`Failed to load favicon for ${domain}, using fallback emoji`);
-        }
+        console.log(`[FaviconIcon] handleError for ${domain}`);
         setError(true);
         setLoaded(false);
         
         // Cache error to prevent repeated requests
         localStorage.setItem(`favicon_${domain}`, 'error');
         
-        // Retry with different URL if we haven't tried enough times
-        if (retryCount < 2) {
-            setTimeout(() => {
-                setRetryCount(prev => prev + 1);
-            }, 1000); // Wait 1 second before retry
-        }
+        // Simplified retry logic
+        setRetryCount(prev => prev + 1);
     };
 
     if (!domain) return null;

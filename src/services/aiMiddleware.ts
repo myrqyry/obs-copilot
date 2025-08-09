@@ -8,13 +8,15 @@ export const aiMiddleware = (service: AIService): AIService => {
         ...service,
         generateContent: async (prompt: string, retries = 3) => {
             try {
-                return await service.generateContent(prompt);
+                // Pass retries down to the original service call
+                return await service.generateContent(prompt, retries);
             } catch (error) {
                 console.error('AI Service Error:', error);
                 if (retries > 0) {
                     console.log(`Retrying... ${retries} attempts left.`);
                     await new Promise(res => setTimeout(res, 1000));
-                    return await service.generateContent(prompt, [], retries - 1);
+                    // Correctly call the middleware-wrapped function for retry
+                    return await aiMiddleware(service).generateContent(prompt, retries - 1);
                 }
                 // This is a fallback, but it doesn't match the expected return type.
                 // For now, we will return a mock response that fits the type.
