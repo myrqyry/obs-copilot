@@ -1,33 +1,23 @@
-import Tooltip from './ui/Tooltip';
+import Tooltip from '../../components/ui/Tooltip';
 import React, { useState, useEffect } from 'react';
-import { CatppuccinAccentColorName, OBSVideoSettings, OBSScene, OBSSource } from '../types';
-import { ObsClient } from '../services/obsClient';
-import { Button } from './ui/Button';
-import { AddToContextButton } from './common/AddToContextButton';
-import { LockToggle } from './common/LockToggle';
-import { TextInput } from './common/TextInput';
-import { LoadingSpinner } from './common/LoadingSpinner';
-import { useConnectionManagerStore } from '../store/connectionManagerStore';
-import { useLockStore } from '../store/lockStore';
-import { useSettingsStore } from '../store/settingsStore';
-import { COMMON_RESOLUTIONS, COMMON_FPS } from '../constants';
-import { CollapsibleCard } from './common/CollapsibleCard';
-import { catppuccinAccentColorsHexMap } from '../types';
+import { CatppuccinAccentColorName, OBSVideoSettings, OBSScene, OBSSource } from '../../types';
+import { Button } from '../../components/ui/Button';
+import { AddToContextButton } from '../../components/common/AddToContextButton';
+import { LockToggle } from '../../components/common/LockToggle';
+import { TextInput } from '../../components/common/TextInput';
+import { LoadingSpinner } from '../../components/common/LoadingSpinner';
+import useConnectionsStore from '../../store/connectionsStore';
+import { useLockStore } from '../../store/lockStore';
+import { useSettingsStore } from '../../store/settingsStore';
+import { useChatStore } from '../../store/chatStore';
+import { COMMON_RESOLUTIONS, COMMON_FPS } from '../../constants';
+import { CollapsibleCard } from '../../components/common/CollapsibleCard';
+import { catppuccinAccentColorsHexMap } from '../../types';
 
-interface ObsMainControlsProps {
-  obsService: ObsClient;
-  onRefreshData: () => Promise<void>;
-  setErrorMessage: (message: string | null) => void;
-  addSystemMessageToChat: (contextText: string) => void;
-}
-
-export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
-  obsService,
-  onRefreshData,
-  setErrorMessage,
-  addSystemMessageToChat,
-}) => {
-  const accentColorName = useSettingsStore(state => state.theme.accent);
+export const ObsMainControls: React.FC = () => {
+  const { obsServiceInstance: obsService, onRefreshData } = useConnectionsStore();
+  const { actions: { addSystemMessageToChat, setGlobalErrorMessage: setErrorMessage } } = useChatStore();
+  const accentColorName = useSettingsStore((state: { theme: { accent: CatppuccinAccentColorName } }) => state.theme.accent);
   // Collapsible state for each section
   const [openStream, setOpenStream] = useState(true);
   const [openScenes, setOpenScenes] = useState(true);
@@ -43,7 +33,7 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
     recordStatus,
     videoSettings: initialVideoSettings,
     obsStats,
-  } = useConnectionManagerStore();
+  } = useConnectionsStore();
   const [isLoading, setIsLoading] = React.useState(false);
 
   // Video settings state
@@ -65,7 +55,7 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
     if (initialVideoSettings) {
       // Check for matching base resolution
       const baseResMatch = COMMON_RESOLUTIONS.find(
-        res => res.width === initialVideoSettings.baseWidth && res.height === initialVideoSettings.baseHeight
+        (res: { width: number; height: number; label: string }) => res.width === initialVideoSettings.baseWidth && res.height === initialVideoSettings.baseHeight
       );
       setSelectedBaseResolution(baseResMatch ? baseResMatch.label : 'Custom');
       if (!baseResMatch) {
@@ -74,7 +64,7 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
 
       // Check for matching output resolution
       const outputResMatch = COMMON_RESOLUTIONS.find(
-        res => res.width === initialVideoSettings.outputWidth && res.height === initialVideoSettings.outputHeight
+        (res: { width: number; height: number; label: string }) => res.width === initialVideoSettings.outputWidth && res.height === initialVideoSettings.outputHeight
       );
       setSelectedOutputResolution(outputResMatch ? outputResMatch.label : 'Custom');
       if (!outputResMatch) {
@@ -83,7 +73,7 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
 
       // Check for matching FPS
       const fpsMatch = COMMON_FPS.find(
-        fps => fps.numerator === initialVideoSettings.fpsNumerator && fps.denominator === initialVideoSettings.fpsDenominator
+        (fps: { numerator: number; denominator: number; label: string }) => fps.numerator === initialVideoSettings.fpsNumerator && fps.denominator === initialVideoSettings.fpsDenominator
       );
       setSelectedFPS(fpsMatch ? fpsMatch.label : 'Custom');
       if (!fpsMatch) {
@@ -96,11 +86,14 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
     setIsLoading(true);
     setErrorMessage(null);
     try {
+      if (!obsService) {
+        throw new Error('OBS Service is not connected.');
+      }
       await action();
       await onRefreshData();
     } catch (error: unknown) {
       if (error instanceof Error) {
-        console.error("OBS Action Error:", error);
+        console.error('OBS Action Error:', error);
         setErrorMessage(`Action failed: ${error.message}`);
       } else {
         setErrorMessage('An unknown error occurred');
@@ -116,7 +109,7 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
     setSelectedBaseResolution(selectedLabel);
 
     if (selectedLabel !== 'Custom' && editableSettings) {
-      const resolution = COMMON_RESOLUTIONS.find(res => res.label === selectedLabel);
+      const resolution = COMMON_RESOLUTIONS.find((res: { label: string; width: number; height: number }) => res.label === selectedLabel);
       if (resolution) {
         setEditableSettings({
           ...editableSettings,
@@ -132,7 +125,7 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
     setSelectedOutputResolution(selectedLabel);
 
     if (selectedLabel !== 'Custom' && editableSettings) {
-      const resolution = COMMON_RESOLUTIONS.find(res => res.label === selectedLabel);
+      const resolution = COMMON_RESOLUTIONS.find((res: { label: string; width: number; height: number }) => res.label === selectedLabel);
       if (resolution) {
         setEditableSettings({
           ...editableSettings,
@@ -148,7 +141,7 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
     setSelectedFPS(selectedLabel);
 
     if (selectedLabel !== 'Custom' && editableSettings) {
-      const fps = COMMON_FPS.find(fps => fps.label === selectedLabel);
+      const fps = COMMON_FPS.find((fps: { label: string; numerator: number; denominator: number }) => fps.label === selectedLabel);
       if (fps) {
         setEditableSettings({
           ...editableSettings,
@@ -206,7 +199,7 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
   };
 
   const handleSaveVideoSettings = async () => {
-    if (!editableSettings) return;
+    if (!editableSettings || !obsService) return;
     setIsVideoSettingsLoading(true);
     setErrorMessage(null);
     try {
@@ -214,7 +207,7 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
       await onRefreshData();
     } catch (error: unknown) {
       if (error instanceof Error) {
-        console.error("Failed to save video settings:", error);
+        console.error('Failed to save video settings:', error);
         setErrorMessage(`Failed to save video settings: ${error.message}`);
       } else {
         setErrorMessage('An unknown error occurred while saving video settings');
@@ -396,7 +389,7 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
                 onChange={handleBaseResolutionChange}
                 disabled={isLocked(VIDEO_SETTINGS_LOCK)}
               >
-                {COMMON_RESOLUTIONS.map(res => (
+                {COMMON_RESOLUTIONS.map((res: any) => (
                   <option key={res.label} value={res.label}>{res.label}</option>
                 ))}
                 <option value="Custom">Custom</option>
@@ -404,7 +397,7 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
               {selectedBaseResolution === 'Custom' && (
                 <TextInput
                   value={customBaseResolution}
-                  onChange={e => handleCustomResolutionChange(e.target.value, 'base')}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleCustomResolutionChange(e.target.value, 'base')}
                   disabled={isLocked(VIDEO_SETTINGS_LOCK)}
                   placeholder="e.g. 1920x1080"
                   className="input input-sm text-xs w-full"
@@ -424,7 +417,7 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
                 onChange={handleOutputResolutionChange}
                 disabled={isLocked(VIDEO_SETTINGS_LOCK)}
               >
-                {COMMON_RESOLUTIONS.map(res => (
+                {COMMON_RESOLUTIONS.map((res: any) => (
                   <option key={res.label} value={res.label}>{res.label}</option>
                 ))}
                 <option value="Custom">Custom</option>
@@ -432,7 +425,7 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
               {selectedOutputResolution === 'Custom' && (
                 <TextInput
                   value={customOutputResolution}
-                  onChange={e => handleCustomResolutionChange(e.target.value, 'output')}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleCustomResolutionChange(e.target.value, 'output')}
                   disabled={isLocked(VIDEO_SETTINGS_LOCK)}
                   placeholder="e.g. 1280x720"
                   className="input input-sm text-xs w-full"
@@ -452,7 +445,7 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
                 onChange={handleFPSChange}
                 disabled={isLocked(VIDEO_SETTINGS_LOCK)}
             >
-              {COMMON_FPS.map(fps => (
+              {COMMON_FPS.map((fps: any) => (
                 <option key={fps.label} value={fps.label}>{fps.label}</option>
               ))}
               <option value="Custom">Custom</option>
@@ -460,7 +453,7 @@ export const ObsMainControls: React.FC<ObsMainControlsProps> = ({
             {selectedFPS === 'Custom' && (
               <TextInput
                 value={customFPS}
-                onChange={e => handleCustomFPSChange(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleCustomFPSChange(e.target.value)}
                 disabled={isLocked(VIDEO_SETTINGS_LOCK)}
                 placeholder="e.g. 30/1"
                 className="input input-sm text-xs w-full"

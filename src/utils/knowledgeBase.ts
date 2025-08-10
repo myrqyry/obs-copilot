@@ -32,7 +32,7 @@ export type KBSearchResult = {
 
 let kbIndex: IndexJson | null = null;
 let vectors: Float32Array | null = null;
-let chunkTexts: string[] | null = null; // lazily populated from the source .txt slices if needed
+const chunkTexts: string[] | null = null; // lazily populated from the source .txt slices if needed
 
 const INDEX_URL = '/src/knowledge/streamerbot/index.json';
 const VECTORS_URL = '/src/knowledge/streamerbot/vectors.bin';
@@ -85,7 +85,7 @@ export async function searchStreamerbot(query: string, k = 5): Promise<KBSearchR
   const dim = kbIndex.dim;
   const totalChunks = Math.floor(vectors.length / dim);
 
-  let top: { id: number; score: number }[] = [];
+  const top: { id: number; score: number }[] = [];
   for (let i = 0; i < totalChunks; i++) {
     const start = i * dim;
     const chunkVec = vectors.subarray(start, start + dim);

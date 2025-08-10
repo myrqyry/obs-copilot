@@ -1,22 +1,22 @@
-import Tooltip from './ui/Tooltip';
+import Tooltip from '@/components/ui/Tooltip';
 import React, { useState, useEffect } from 'react';
-import AudioOutputSelector from './AudioOutputSelector';
-import { OBS_EVENT_LIST } from '../constants/obsEvents';
-import { useAutomationStore } from '../store/automationStore';
-import { useConnectionManagerStore } from '../store/connectionManagerStore';
-import { useChatStore } from '../store/chatStore';
-import { useSettingsStore } from '../store/settingsStore';
-import { Button } from './ui/Button';
-import { Card, CardContent } from './ui/Card';
-import { cn } from '../lib/utils';
-import { AddToContextButton } from './common/AddToContextButton';
-import AutomationRuleBuilder from './AutomationRuleBuilder';
-import { automationService } from '../services/automationService';
-import type { AutomationRule } from '../types/automation';
-import { CollapsibleCard } from './common/CollapsibleCard';
-import { catppuccinAccentColorsHexMap } from '../types';
-import { TextInput } from './common/TextInput';
-import useApiKeyStore, { ApiService, ApiServiceName } from '../store/apiKeyStore';
+import AudioOutputSelector from '@/components/ui/AudioOutputSelector';
+import { OBS_EVENT_LIST } from '@/constants/obsEvents';
+import { useAutomationStore } from '@/store/automationStore';
+import { useConnectionManagerStore } from '@/store/connectionManagerStore';
+import { useChatStore } from '@/store/chatStore';
+import { useSettingsStore } from '@/store/settingsStore';
+import { Button } from '@/components/ui/Button';
+import { Card, CardContent } from '@/components/ui/Card';
+import { cn } from '@/lib/utils';
+import { AddToContextButton } from '@/components/common/AddToContextButton';
+import AutomationRuleBuilder from '@/features/automation/AutomationRuleBuilder';
+import { automationService } from '@/services/automationService';
+import type { AutomationRule } from '@/types/automation';
+import { CollapsibleCard } from '@/components/common/CollapsibleCard';
+import { catppuccinAccentColorsHexMap } from '@/types';
+import { TextInput } from '@/components/common/TextInput';
+import useApiKeyStore, { ApiService, ApiServiceName } from '@/store/apiKeyStore';
 
 // Defines the services shown in the UI for API key input
 const PANEL_API_KEY_SERVICES: { id: ApiServiceName; label: string; optional?: boolean }[] = [
@@ -58,7 +58,7 @@ const AdvancedPanel: React.FC = () => {
         deleteAutomationRule,
         toggleAutomationRule,
     } = useAutomationStore((state) => state.actions);
-    const { actions: obsActions, obsServiceInstance, streamerBotServiceInstance } = useConnectionManagerStore();
+    const { actions: obsActions, obsServiceInstance, streamerBotServiceInstance } = useConnectionsStore();
     const { uploadLog } = obsActions;
     const [obsLogFiles, setObsLogFiles] = useState<any[] | null>(null);
     
@@ -131,7 +131,7 @@ const AdvancedPanel: React.FC = () => {
     // Reset settings logic (matches ObsSettingsPanel)
     const handleResetAllSettings = () => {
         if (window.confirm('Are you sure you want to reset all settings to defaults? This will clear your saved connection details, theme preferences, and other settings.')) {
-            import('../utils/persistence').then(({ clearAllSettings }) => {
+            import('@/utils/persistence').then(({ clearAllSettings }) => {
                 clearAllSettings();
                 window.location.reload();
             });

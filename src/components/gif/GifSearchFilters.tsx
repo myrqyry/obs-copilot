@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Button } from '../ui/Button';
-import { FaviconDropdown } from '../common/FaviconDropdown';
-import { TextInput } from '../common/TextInput';
+import { Button } from '@/components/ui/Button';
+import { FaviconDropdown } from '@/components/common/FaviconDropdown';
+import { TextInput } from '@/components/common/TextInput';
 import { z, ZodError } from 'zod';
-import { gifSearchSchema } from '../../lib/validations';
+import { gifSearchSchema } from '@/lib/validations';
 
 const GIF_APIS = [
     { value: 'giphy', label: 'Giphy', domain: 'giphy.com', icon: '🎬' },

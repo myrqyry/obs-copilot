@@ -47,30 +47,29 @@ export const useGifSearch = () => {
       try {
         const searchQuery = selectedCategory ? `${gifQuery} ${selectedCategory}` : gifQuery;
         if (gifApi === 'giphy') {
-            const apiKey = useApiKeyStore.getState().getApiKeyOverride(ApiService.GIPHY);
-            const apiUrl = getSimpleApiEndpoint('giphy');
+          const apiKey = useApiKeyStore.getState().getApiKeyOverride(ApiService.GIPHY);
+          const apiUrl = getSimpleApiEndpoint('giphy');
 
-            const params = new URLSearchParams({
-                q: searchQuery,
-                limit: String(searchFilters.limit),
-                rating: searchFilters.rating,
-                type: searchFilters.contentType,
-            });
+          const params = new URLSearchParams({
+            q: searchQuery,
+            limit: String(searchFilters.limit),
+            rating: searchFilters.rating,
+            type: searchFilters.contentType,
+          });
 
-            const headers: HeadersInit = {};
-            if (apiKey) {
-                headers['X-Api-Key'] = apiKey;
-            }
+          const headers: HeadersInit = {};
+          if (apiKey) {
+            headers['X-Api-Key'] = apiKey;
+          }
 
-            const response = await fetch(`${apiUrl}?${params.toString()}`, { headers });
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Giphy API error');
-            }
-            const data = await response.json();
-            setGifResults(data.data.map((gif: any) => ({ ...gif, id: String(gif.id) })));
-            setTotalResults(data.pagination.total_count);
-
+          const response = await fetch(`${apiUrl}?${params.toString()}`, { headers });
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Giphy API error');
+          }
+          const data = await response.json();
+          setGifResults(data.data.map((gif: any) => ({ ...gif, id: String(gif.id) })));
+          setTotalResults(data.pagination.total_count);
         } else if (gifApi === 'tenor') {
           // Tenor API logic would go here
         }

@@ -1,7 +1,7 @@
 import React from 'react';
-import { AnimatedTitleLogos } from '../common/AnimatedTitleLogos';
-import { useSettingsStore } from '../../store/settingsStore';
-import { catppuccinAccentColorsHexMap, catppuccinSecondaryAccentColorsHexMap } from '../../types';
+import { AnimatedTitleLogos } from '@/components/common/AnimatedTitleLogos';
+import { useSettingsStore } from '@/store/settingsStore';
+import { catppuccinAccentColorsHexMap, catppuccinSecondaryAccentColorsHexMap } from '@/types';
 
 interface HeaderProps {
     headerRef: React.RefObject<HTMLDivElement>;

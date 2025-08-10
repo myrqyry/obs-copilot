@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { GoogleGenAI } from '@google/genai';
-import { useConnectionManagerStore } from '../store/connectionManagerStore';
+import useConnectionsStore from '../store/connectionsStore';
 import { useChatStore } from '../store/chatStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { useLockStore } from '../store/lockStore';
@@ -15,12 +15,9 @@ import { OBSScene, OBSSource } from '../types';
 export const useGeminiChat = (
   onRefreshData: () => Promise<void>,
   setErrorMessage: (message: string | null) => void,
-  onStreamerBotAction: (action: {
-    type: string;
-    args?: Record<string, unknown>;
-  }) => Promise<void>,
+  onStreamerBotAction: (action: { type: string; args?: Record<string, unknown> }) => Promise<void>,
 ) => {
-  const { isConnected } = useConnectionManagerStore();
+  const { isConnected } = useConnectionsStore();
   const {
     scenes,
     currentProgramScene,
@@ -29,7 +26,7 @@ export const useGeminiChat = (
     recordStatus,
     videoSettings,
     actions: obsActions,
-  } = useConnectionManagerStore();
+  } = useConnectionsStore();
   const { userDefinedContext, actions: chatActions } = useChatStore();
   const { autoApplySuggestions } = useSettingsStore();
   const { isLocked } = useLockStore();

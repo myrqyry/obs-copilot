@@ -6,7 +6,10 @@ import { z } from 'zod';
 export const obsConnectionSchema = z.object({
   obsWebSocketUrl: z
     .string()
-    .regex(/^wss?:\/\/\S+$/, 'Invalid URL format. Must be a valid WebSocket URL (e.g., ws://localhost:4455 or wss://...).'),
+    .regex(
+      /^wss?:\/\/\S+$/,
+      'Invalid URL format. Must be a valid WebSocket URL (e.g., ws://localhost:4455 or wss://...).',
+    ),
   obsPassword: z.string().optional(),
 });
 

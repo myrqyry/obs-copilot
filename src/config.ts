@@ -10,9 +10,7 @@ const config = {
 export const getGeminiApiKey = (): string => {
   const apiKey = import.meta.env[GEMINI_API_KEY_ENV_VAR] || '';
   if (!apiKey) {
-    logger.warn(
-      `Warning: ${GEMINI_API_KEY_ENV_VAR} is not set. Gemini features will be disabled.`,
-    );
+    logger.warn(`Warning: ${GEMINI_API_KEY_ENV_VAR} is not set. Gemini features will be disabled.`);
   }
   return apiKey;
 };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { getProxiedFaviconUrl } from '../../utils/imageProxy';
-import Tooltip from '../ui/Tooltip';
+import { getProxiedFaviconUrl } from '@/utils/imageProxy';
+import Tooltip from '@/components/ui/Tooltip';
 
 interface FaviconIconProps {
     domain: string;

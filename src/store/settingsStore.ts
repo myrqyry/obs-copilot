@@ -4,7 +4,7 @@ import {
   CatppuccinSecondaryAccentColorName,
   CatppuccinChatBubbleColorName,
 } from '../types';
-import { saveUserSettings } from '../utils/persistence';
+import { saveUserSettings, saveConnectionSettings } from '../utils/persistence';
 
 export interface SettingsState {
   flipSides: boolean;
@@ -15,6 +15,8 @@ export interface SettingsState {
   backgroundOpacity: number;
   chatBackgroundBlendMode: string;
   chatBubbleBlendMode: string;
+  obsWebSocketUrl: string;
+  obsWebSocketPassword?: string;
   theme: {
     name: string;
     accent: CatppuccinAccentColorName;
@@ -31,6 +33,8 @@ export interface SettingsState {
     setBackgroundOpacity: (opacity: number) => void;
     setChatBackgroundBlendMode: (mode: string) => void;
     setChatBubbleBlendMode: (mode: string) => void;
+    setObsWebSocketUrl: (url: string) => void;
+    setObsWebSocketPassword: (password: string) => void;
     setThemeColor: (
       type: 'accent' | 'secondaryAccent' | 'userChatBubble' | 'modelChatBubble',
       color:
@@ -51,6 +55,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   backgroundOpacity: 0.7,
   chatBackgroundBlendMode: 'normal',
   chatBubbleBlendMode: 'normal',
+  obsWebSocketUrl: 'ws://localhost:4455',
+  obsWebSocketPassword: '',
   theme: {
     name: 'catppuccin-mocha',
     accent: 'mauve',
@@ -93,6 +99,13 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     setChatBubbleBlendMode: (mode) => {
       set({ chatBubbleBlendMode: mode });
       saveUserSettings({ chatBubbleBlendMode: mode });
+    },
+    setObsWebSocketUrl: (url) => {
+      set({ obsWebSocketUrl: url });
+      saveConnectionSettings({ obsWebSocketUrl: url });
+    },
+    setObsWebSocketPassword: (password) => {
+      set({ obsWebSocketPassword: password });
     },
     setThemeColor: (type, color) => {
       const newTheme = { ...get().theme, [type]: color };

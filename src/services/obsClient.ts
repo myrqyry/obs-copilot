@@ -1,6 +1,5 @@
 import OBSWebSocket from 'obs-websocket-js';
-// The 'Input' type is not available in the same way in v5, using a more generic type for now.
-import {
+import type {
   Scene,
   SceneItem,
   StreamStatus,
@@ -51,7 +50,7 @@ export interface ObsClient {
   stopRecord(): Promise<void>;
   toggleRecord(): Promise<void>;
   getVideoSettings(): Promise<VideoSettings>;
-  setVideoSettings(settings: VideoSettings): Promise<void>;
+  setVideoSettings(settings: Partial<VideoSettings>): Promise<void>;
   createInput(
     inputName: string,
     inputKind: string,
@@ -160,9 +159,7 @@ export interface ObsClient {
   getLogFileList(): Promise<{ logFiles: Log[] }>;
   uploadLog(): Promise<void>;
   getSourceFilterSettings(sourceName: string, filterName: string): Promise<Filter>;
-  getSourceFilterDefaultSettings(
-    filterKind: string,
-  ): Promise<{ filterSettings: InputSettings }>;
+  getSourceFilterDefaultSettings(filterKind: string): Promise<{ filterSettings: InputSettings }>;
   setSceneName(sceneName: string, newSceneName: string): Promise<void>;
   getCurrentProfile(): Promise<Profile>;
   setCurrentProfile(profileName: string): Promise<void>;
@@ -180,13 +177,24 @@ export interface ObsClient {
   addEmojiAsBrowserSource(sceneName: string, emoji: string, sourceName: string): Promise<void>;
   subscribeToEvents(eventHandlers: Partial<Record<string, (...args: any[]) => void>>): void;
   getInputs(): Promise<{ inputs: Input[] }>;
+  on(event: string, listener: (...args: any[]) => void): void;
+  off(event: string, listener: (...args: any[]) => void): void;
+  isConnected(): boolean;
 }
 
 export class ObsClientImpl implements ObsClient {
-  public obs: OBSWebSocket;
+  private static instance: ObsClientImpl;
+  public obs: any; // Temporarily set to any due to typing issues with obs-websocket-js
 
-  constructor() {
-    this.obs = new OBSWebSocket();
+  private constructor() {
+    this.obs = new (OBSWebSocket as any)(); // Temporary workaround for constructor typing
+  }
+
+  public static getInstance(): ObsClientImpl {
+    if (!ObsClientImpl.instance) {
+      ObsClientImpl.instance = new ObsClientImpl();
+    }
+    return ObsClientImpl.instance;
   }
 
   /**
@@ -332,9 +340,7 @@ export class ObsClientImpl implements ObsClient {
     const response = await this.callObs<{ sceneItems: SceneItem[] }>('GetSceneItemList', {
       sceneName,
     });
-    const sceneItem = response.sceneItems.find(
-      (item) => item.sourceName === sourceName,
-    );
+    const sceneItem = response.sceneItems.find((item) => item.sourceName === sourceName);
     if (sceneItem) {
       const id = sceneItem.sceneItemId;
       if (typeof id === 'number') return id;
@@ -432,8 +438,8 @@ export class ObsClientImpl implements ObsClient {
    * @returns A Promise that resolves when the settings are applied.
    * @throws {ObsError} If the API call fails.
    */
-  async setVideoSettings(settings: VideoSettings): Promise<void> {
-    await this.callObs('SetVideoSettings', settings);
+  async setVideoSettings(settings: Partial<VideoSettings>): Promise<void> {
+    await this.callObs('SetVideoSettings', settings as any);
   }
 
   /**
@@ -715,7 +721,6 @@ export class ObsClientImpl implements ObsClient {
   }
 
   // Advanced Filter Modification
-
   /**
    * Sets the index of a source filter for reordering.
    * @param sourceName The name of the source.
@@ -920,7 +925,7 @@ export class ObsClientImpl implements ObsClient {
     try {
       // This is a placeholder - you may need to implement this based on your specific requirements
       // It could be from OBS profile info, stream service settings, etc.
-      const profile = await this.callObs('GetProfileList');
+      const profile = await this.callObs<{ currentProfileName: string }>('GetProfileList');
       return profile.currentProfileName || null;
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -1372,6 +1377,18 @@ export class ObsClientImpl implements ObsClient {
       }
       throw new ObsError('Failed to add emoji as browser source: Unknown error');
     }
+  }
+
+  on(event: string, listener: (...args: any[]) => void): void {
+    this.obs.on(event, listener);
+  }
+
+  off(event: string, listener: (...args: any[]) => void): void {
+    this.obs.off(event, listener);
+  }
+
+  isConnected(): boolean {
+    return this.obs.identified;
   }
 
   // TODO: Define specific types for event handlers

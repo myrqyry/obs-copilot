@@ -1,6 +1,6 @@
 import React from 'react';
-import { GiphyResult } from '../../types/giphy';
-import { LoadingSpinner } from '../common/LoadingSpinner';
+import { GiphyResult } from '@/types/giphy';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
 interface GifGridProps {
     gifResults: GiphyResult[];
@@ -48,12 +48,14 @@ export const GifGrid: React.FC<GifGridProps> = ({
                     className="cursor-pointer"
                     onClick={() => onGifClick(gif)}
                 >
-                    <img
-                        src={gif.images.fixed_height_small.url}
-                        alt={gif.title}
-                        className="w-full h-auto"
-                        loading="lazy"
-                    />
+                    {gif.images.fixed_height_small?.url && (
+                        <img
+                            src={gif.images.fixed_height_small.url}
+                            alt={gif.title}
+                            className="w-full h-auto"
+                            loading="lazy"
+                        />
+                    )}
                 </div>
             ))}
         </div>

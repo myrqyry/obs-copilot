@@ -9,13 +9,13 @@ import { iconfinder } from './iconfinder';
 import { giphy } from './giphy';
 
 export const apiConfigs = {
-    wallhaven,
-    pexels,
-    pixabay,
-    deviantart,
-    imgflip,
-    imgur,
-    artstation,
-    iconfinder,
-    giphy,
+  wallhaven,
+  pexels,
+  pixabay,
+  deviantart,
+  imgflip,
+  imgur,
+  artstation,
+  iconfinder,
+  giphy,
 };

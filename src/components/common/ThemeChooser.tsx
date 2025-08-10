@@ -1,6 +1,6 @@
 import React from 'react';
-import { useTheme } from '../../hooks/useTheme';
-import { darkThemes, lightThemes } from '../../types/themes';
+import { useTheme } from '@/hooks/useTheme';
+import { darkThemes, lightThemes } from '@/types/themes';
 
 export const ThemeChooser: React.FC = () => {
   const { theme, setTheme } = useTheme();

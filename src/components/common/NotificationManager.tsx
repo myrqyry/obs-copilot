@@ -1,4 +1,4 @@
-import { Toaster } from '../ui/toaster';
+import { Toaster } from '@/components/ui/toaster';
 
 export function NotificationManager() {
   return <Toaster />;

@@ -19,11 +19,19 @@ interface Broadcaster {
 }
 
 export class StreamerBotService {
+  private static instance: StreamerBotService;
   public client: StreamerbotClient | null = null;
   private isConnecting: boolean = false;
   private connectionPromise: Promise<void> | null = null;
 
-  constructor() {}
+  private constructor() {}
+
+  public static getInstance(): StreamerBotService {
+    if (!StreamerBotService.instance) {
+      StreamerBotService.instance = new StreamerBotService();
+    }
+    return StreamerBotService.instance;
+  }
 
   async connect(address: string, port: number, maxRetries: number = 2): Promise<void> {
     // If already connected, return immediately
@@ -97,8 +105,8 @@ export class StreamerBotService {
   private async _performConnection(address: string, port: number): Promise<void> {
     try {
       logger.info(`Attempting to connect to Streamer.bot at ${address}:${port}`);
- 
-       // Clean up any existing client
+
+      // Clean up any existing client
       if (this.client) {
         try {
           this.client.disconnect();
@@ -124,7 +132,7 @@ export class StreamerBotService {
 
       // Race between connection and timeout
       await Promise.race([this.client.connect(), timeoutPromise]);
- 
+
       logger.info('Successfully connected to Streamer.bot');
     } catch (error) {
       logger.error('Streamer.bot connection failed:', error);
@@ -193,10 +201,16 @@ Troubleshooting tips:
     return this.isConnecting;
   }
 
-  /**
-   * Subscribes to all events from Streamer.bot and registers a callback
-   * @param callback The function to call when any event is received
-   */
+  on(event: string, callback: (...args: any[]) => void) {
+    if (!this.client) return;
+    this.client.on(event as any, callback);
+  }
+
+  off(event: string, callback?: (...args: any[]) => void) {
+    if (!this.client) return;
+    (this.client as any).off(event, callback);
+  }
+
   onEvent(callback: (event: Record<string, unknown>) => void): void {
     if (!this.client) throw new Error('Streamer.bot client is not initialized.');
 
@@ -232,8 +246,6 @@ Troubleshooting tips:
 
   /**
    * Triggers an action in Streamer.bot by its ID or name
-   * @param actionIdentifier The ID or name of the action to trigger
-   * @param args Optional arguments for the action
    */
   async doAction(actionIdentifier: string, args: Record<string, unknown> = {}): Promise<void> {
     if (!this.client) throw new Error('Streamer.bot client is not initialized.');
@@ -268,7 +280,7 @@ Troubleshooting tips:
       }
       case 'DoAction': {
         if (!action.args?.action) throw new Error('DoAction requires an action identifier.');
-        return this.client.doAction(action.args.action, action.args.args);
+        return this.client.doAction(action.args.action as any, action.args.args as any);
       }
       case 'CreateAction': {
         // For now, CreateAction is not directly supported by the client
@@ -302,6 +314,7 @@ Troubleshooting tips:
       }
       case 'TwitchCreatePoll': {
         // This would need to be handled by a pre-existing action in Streamer.bot
+        // that handles Twitch chat messages
         if (!action.args?.title || !action.args?.choices)
           throw new Error('TwitchCreatePoll requires title and choices.');
 

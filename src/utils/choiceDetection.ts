@@ -9,10 +9,7 @@ export interface ChoiceDetectionResult {
 }
 
 // Helper function to detect general choice questions and OBS-specific choices
-export function detectChoiceQuestion(
-  text: string,
-  obsData?: OBSData,
-): ChoiceDetectionResult {
+export function detectChoiceQuestion(text: string, obsData?: OBSData): ChoiceDetectionResult {
   // First, try OBS-specific choice detection if obsData is available
   if (obsData) {
     const obsChoices = detectObsChoiceQuestion(text, obsData);

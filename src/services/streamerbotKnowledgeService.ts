@@ -17,6 +17,8 @@ export async function getTopSnippets(query: string, k = 5) {
 export async function getContextBlock(query: string, k = 5) {
   const results = await getTopSnippets(query, k);
   // Reduce payload a bit: keep top 3 by default inside block
-  const top = results.slice(0, Math.min(3, results.length)).map(r => ({ id: r.id, text: r.text }));
+  const top = results
+    .slice(0, Math.min(3, results.length))
+    .map((r) => ({ id: r.id, text: r.text }));
   return assembleContext(top);
 }

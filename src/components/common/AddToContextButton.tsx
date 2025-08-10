@@ -1,6 +1,6 @@
 import React from 'react';
 import { PlusCircleIcon } from '@heroicons/react/24/solid';
-import { cn } from '../../lib/utils';
+import { cn } from '@/lib/utils';
 
 interface AddToContextButtonProps {
   contextText: string;

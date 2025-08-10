@@ -1,116 +1,111 @@
-import { type ClassValue, clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { type ClassValue, clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+// Register GSAP plugins
+gsap.registerPlugin(ScrollTrigger);
 
 /**
- * Utility to check if user prefers reduced motion
- * Used by GSAP components to respect accessibility preferences
+ * Checks if the user prefers reduced motion.
+ * @returns True if reduced motion is preferred, false otherwise.
  */
 export function prefersReducedMotion(): boolean {
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (typeof window === 'undefined') {
+    return false; // Assume no reduced motion preference in non-browser environments
+  }
+  const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  return mediaQuery.matches;
 }
 
 /**
- * Safe GSAP animation that respects user preferences
- * Returns whether animation was actually started
+ * Safely performs a GSAP 'to' animation, handling potential errors and reduced motion preferences.
+ * @param target The GSAP target (element, selector, etc.).
+ * @param vars The GSAP animation variables.
+ * @returns True if the animation was attempted, false otherwise.
  */
 export function safeGsapTo(target: any, vars: any): boolean {
   if (prefersReducedMotion()) {
-    // Apply final state immediately without animation
-    if (vars.scale !== undefined) target.style.transform = `scale(${vars.scale})`;
-    if (vars.y !== undefined) target.style.transform += ` translateY(${vars.y}px)`;
-    if (vars.opacity !== undefined) target.style.opacity = vars.opacity;
     return false;
   }
-
-  gsap.to(target, vars);
-  return true;
-}
-
-/**
- * Safe GSAP set that respects user preferences
- */
-export function safeGsapSet(target: any, vars: any): void {
-  gsap.set(target, vars);
-}
-
-/**
- * Proxies an image URL through our Netlify function to avoid CORS issues
- * @param imageUrl The original image URL
- * @returns The proxied image URL
- */
-export const getProxiedImageUrl = (imageUrl: string): string => {
-  if (!imageUrl) return '';
-
-  // If we're in development, use the local proxy
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return `/api/image?url=${encodeURIComponent(imageUrl)}`;
-  }
-
-  // In production, use the Netlify function
-  return `/.netlify/functions/proxy?api=image&url=${encodeURIComponent(imageUrl)}`;
-};
-
-/**
- * Checks if an image URL should be proxied (external domains that might have CORS issues)
- * @param imageUrl The image URL to check
- * @returns True if the image should be proxied
- */
-export const shouldProxyImage = (imageUrl: string): boolean => {
-  if (!imageUrl) return false;
 
   try {
-    const url = new URL(imageUrl);
-    const externalDomains = [
-      'th.wallhaven.cc',
-      'w.wallhaven.cc',
-      'wallhaven.cc',
-      'images.unsplash.com',
-      'images.pexels.com',
-      'cdn.pixabay.com',
-      'images.deviantart.com',
-      'cdnb.artstation.com',
-      'cdna.artstation.com',
-    ];
-
-    return externalDomains.some((domain) => url.hostname.includes(domain));
-  } catch {
-    // If URL parsing fails, assume it's a relative URL and doesn't need proxying
+    gsap.to(target, vars);
+    return true;
+  } catch (error) {
+    console.error('GSAP safeGsapTo error:', error);
     return false;
   }
-};
-
-/**
- * Converts a base64 string to an ArrayBuffer.
- * @param base64 The base64 string to convert.
- * @returns The corresponding ArrayBuffer.
- */
-export function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  const binary_string = atob(base64);
-  const len = binary_string.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binary_string.charCodeAt(i);
-  }
-  return bytes.buffer;
 }
 
 /**
- * Converts a data URL to a Blob URL.
- * @param dataUrl The data URL to convert.
- * @returns The corresponding Blob URL.
+ * Safely performs a GSAP 'set' animation, handling potential errors and reduced motion preferences.
+ * @param target The GSAP target (element, selector, etc.).
+ * @param vars The GSAP animation variables.
  */
-export function dataUrlToBlobUrl(dataUrl: string): string {
-  const arr = dataUrl.split(',');
-  const mimeMatch = arr[0].match(/:(.*?);/);
-  const mime = mimeMatch ? mimeMatch[1] : 'audio/wav';
-  const bstr = atob(arr[1]);
-  let n = bstr.length;
-  const u8arr = new Uint8Array(n);
-  while (n--) u8arr[n] = bstr.charCodeAt(n);
-  return URL.createObjectURL(new Blob([u8arr], { type: mime }));
+export function safeGsapSet(target: any, vars: any): void {
+  if (prefersReducedMotion()) {
+    return;
+  }
+
+  try {
+    gsap.set(target, vars);
+  } catch (error) {
+    console.error('GSAP safeGsapSet error:', error);
+  }
+}
+
+/**
+ * Checks if a value is a valid number.
+ * @param value The value to check.
+ * @returns True if the value is a valid number, false otherwise.
+ */
+export function isValidNumber(value: unknown): value is number {
+  return typeof value === 'number' && !isNaN(value);
+}
+
+/**
+ * Checks if a value is a valid string.
+ * @param value The value to check.
+ * @returns True if the value is a valid string, false otherwise.
+ */
+export function isValidString(value: unknown): value is string {
+  return typeof value === 'string';
+}
+
+/**
+ * Checks if a value is a valid boolean.
+ * @param value The value to check.
+ * @returns True if the value is a valid boolean, false otherwise.
+ */
+export function isValidBoolean(value: unknown): value is boolean {
+  return typeof value === 'boolean';
+}
+
+/**
+ * Checks if a value is a valid object.
+ * @param value The value to check.
+ * @returns True if the value is a valid object, false otherwise.
+ */
+export function isValidObject(value: unknown): value is Record<string, any> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Checks if a value is a valid array.
+ * @param value The value to check.
+ * @returns True if the value is a valid array, false otherwise.
+ */
+export function isValidArray(value: unknown): value is any[] {
+  return Array.isArray(value);
+}
+
+/**
+ * Combines Tailwind CSS classes using `tailwind-merge` and `clsx`.
+ * This utility helps in efficiently merging Tailwind classes, resolving conflicts automatically.
+ * @param inputs An array of class values to combine.
+ * @returns A merged string of Tailwind classes.
+ */
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
 }

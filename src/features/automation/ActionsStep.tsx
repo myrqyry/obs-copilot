@@ -1,9 +1,9 @@
 import React from 'react';
-import { Button } from '../ui/Button';
-import { TextInput } from '../common/TextInput';
+import { Button } from '../../components/ui/Button';
+import { TextInput } from '../../components/common/TextInput';
 import { AutomationAction } from '../../types/automation';
 import { ObsAction, SetCurrentProgramSceneAction } from '../../types/obsActions';
-import { useConnectionManagerStore } from '../../store/connectionManagerStore';
+import useConnectionsStore from '@/store/connectionsStore';
 
 // Type guards for safe ObsAction type checking
 function isObsAction(data: unknown): data is ObsAction {
@@ -45,7 +45,7 @@ export const ActionsStep: React.FC<ActionsStepProps> = ({
     updateAction,
     removeAction,
 }) => {
-    const { scenes, streamerBotServiceInstance } = useConnectionManagerStore();
+    const { scenes, streamerBotServiceInstance } = useConnectionsStore();
     const [streamerBotActions, setStreamerBotActions] = React.useState<any[]>([]);
 
     React.useEffect(() => {

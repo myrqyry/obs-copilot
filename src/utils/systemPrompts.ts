@@ -1,10 +1,4 @@
-import {
-  OBSScene,
-  OBSSource,
-  OBSStreamStatus,
-  OBSRecordStatus,
-  OBSVideoSettings,
-} from '../types';
+import { OBSScene, OBSSource, OBSStreamStatus, OBSRecordStatus, OBSVideoSettings } from '../types';
 import { Hotkey } from 'obs-websocket-js';
 
 // Utility functions for building system prompts for different services

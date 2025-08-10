@@ -1,5 +1,10 @@
 // src/services/automationService.ts
-import type { AutomationRule, AutomationCondition, AutomationAction, StreamerBotActionData } from '../types/automation';
+import type {
+  AutomationRule,
+  AutomationCondition,
+  AutomationAction,
+  StreamerBotActionData,
+} from '../types/automation';
 import type { ObsAction } from '../types/obsActions';
 import { throttle } from 'lodash';
 import type { StreamerBotService } from './streamerBotService';
@@ -82,10 +87,10 @@ export class AutomationService {
       if (matchingRules.length === 0) {
         return;
       }
- 
+
       logger.info(`Processing event ${eventName} with ${matchingRules.length} matching rules`);
- 
-       // Process each matching rule
+
+      // Process each matching rule
       for (const rule of matchingRules) {
         try {
           // Check if trigger data matches (if specified)
@@ -121,10 +126,7 @@ export class AutomationService {
   /**
    * Evaluate if trigger data matches the rule's trigger requirements
    */
-  private evaluateTriggerData(
-    rule: AutomationRule,
-    eventData: Record<string, unknown>,
-  ): boolean {
+  private evaluateTriggerData(rule: AutomationRule, eventData: Record<string, unknown>): boolean {
     if (!rule.trigger.eventData) {
       return true; // No specific trigger data required
     }
@@ -267,8 +269,8 @@ export class AutomationService {
    */
   private async executeRule(rule: AutomationRule): Promise<void> {
     logger.info(`Executing rule: ${rule.name}`);
- 
-     // Update rule statistics
+
+    // Update rule statistics
     rule.lastTriggered = new Date();
     rule.triggerCount = (rule.triggerCount || 0) + 1;
 
@@ -302,7 +304,7 @@ export class AutomationService {
       try {
         attempt++;
         logger.info(`Executing action (attempt ${attempt}/${this.maxRetries}):`, action);
- 
+
         if (action.type === 'obs') {
           if (!this.handleObsAction) {
             throw new Error('OBS action handler not available');
@@ -327,7 +329,10 @@ export class AutomationService {
 
           // Type guard: when action.type is 'streamerbot', action.data is StreamerBotActionData
           const streamerBotData = action.data as StreamerBotActionData;
-          await this.streamerBotService.doAction(streamerBotData.actionName, streamerBotData.args || {});
+          await this.streamerBotService.doAction(
+            streamerBotData.actionName,
+            streamerBotData.args || {},
+          );
 
           this.addMessage?.({
             role: 'system',
@@ -341,7 +346,7 @@ export class AutomationService {
         return;
       } catch (error) {
         logger.error(`Error executing action (attempt ${attempt}/${this.maxRetries}):`, error);
- 
+
         if (attempt >= this.maxRetries) {
           this.addMessage?.({
             role: 'system',

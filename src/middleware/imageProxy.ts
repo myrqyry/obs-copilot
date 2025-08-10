@@ -1,109 +1,62 @@
 import express from 'express';
-import fetch from 'node-fetch';
+import axios from 'axios';
+import { logger } from '../utils/logger';
+import { prefersReducedMotion } from '../lib/utils';
 
-export const imageProxy = express.Router();
+const router = express.Router();
 
-async function fetchAndServeFavicon(req: express.Request, res: express.Response, next: express.NextFunction) {
-    const { domain, sz = 16 } = req.query;
-    if (!domain) {
-        return next({ status: 400, message: 'Domain parameter is required for favicon proxy' });
+// Cache for fetched images
+const imageCache = new Map<string, { data: Buffer; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+router.get('/image/:url(*)', async (req, res, next) => {
+  const imageUrl = req.params.url;
+  const cacheKey = `image_${imageUrl}`;
+
+  // Check cache first
+  if (imageCache.has(cacheKey)) {
+    const cached = imageCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      logger.info(`Cache hit for image: ${imageUrl}`);
+      res.set('Content-Type', 'image/png'); // Assuming PNG, adjust if needed
+      return res.send(cached.data);
+    } else {
+      imageCache.delete(cacheKey); // Remove expired cache entry
     }
-    try {
-        const googleUrl = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain as string)}&sz=${sz}`;
-        const response = await fetch(googleUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; FaviconProxy/1.0)' },
-        });
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Favicon fetch failed: ${response.status} ${response.statusText} - ${errorText.substring(0,100)}`);
-        }
-        const contentType = response.headers.get('content-type') || 'image/x-icon';
+  }
 
-        const buffer = await response.arrayBuffer();
-        res.set({
-            'Access-Control-Allow-Origin': '*',
-            'Content-Type': contentType,
-            'Cache-Control': 'public, max-age=86400',
-            'Cross-Origin-Resource-Policy': 'cross-origin',
-            'Cross-Origin-Embedder-Policy': 'unsafe-none',
-        });
-        res.send(Buffer.from(buffer));
+  // Check for reduced motion preference
+  if (prefersReducedMotion()) {
+    logger.info(`Reduced motion detected, skipping image fetch for: ${imageUrl}`);
+    return res.status(204).send(); // Send 204 No Content if reduced motion is preferred
+  }
 
-    } catch (err: any) {
-        return next({ status: 500, message: 'Failed to fetch favicon', details: err.message });
-    }
-}
+  try {
+    logger.info(`Fetching image from: ${imageUrl}`);
+    const response = await axios.get(imageUrl, {
+      responseType: 'arraybuffer',
+    });
 
-imageProxy.get('/favicon', fetchAndServeFavicon);
+    const buffer = Buffer.from(response.data);
+    const contentType = response.headers['content-type'];
 
-imageProxy.get('/image', async (req, res, next) => {
-    const { url } = req.query;
-    if (!url) {
-        return next({ status: 400, message: 'URL parameter is required for image proxy' });
-    }
+    // Cache the image
+    imageCache.set(cacheKey, { data: buffer, timestamp: Date.now() });
 
-    try {
-        const response = await fetch(url as string);
-        if (!response.ok) {
-            throw new Error(`Image fetch failed: ${response.status} ${response.statusText}`);
-        }
-
-        const contentType = response.headers.get('content-type') || 'image/jpeg';
-        const buffer = await response.arrayBuffer();
-
-        res.set({
-            'Content-Type': contentType,
-            'Cache-Control': 'public, max-age=3600',
-            'Access-Control-Allow-Origin': '*',
-            'Cross-Origin-Resource-Policy': 'cross-origin',
-            'Cross-Origin-Embedder-Policy': 'unsafe-none'
-        });
-        res.send(Buffer.from(buffer));
-    } catch (err: any) {
-        res.set({
-            'Access-Control-Allow-Origin': '*',
-            'Cross-Origin-Resource-Policy': 'cross-origin',
-            'Cross-Origin-Embedder-Policy': 'unsafe-none'
-        });
-        return next({ status: 500, message: 'Failed to fetch image', details: err.message });
-    }
+    res.set('Content-Type', contentType || 'image/png'); // Use content-type from response or default to PNG
+    res.send(buffer);
+  } catch (err: unknown) {
+    logger.error(
+      `Failed to fetch image from ${imageUrl}: ${err instanceof Error ? err.message : String(err)}`,
+    );
+    res.set({
+      'Content-Type': 'application/json',
+    });
+    res.status(500).json({
+      message: 'Failed to fetch image',
+      details: err instanceof Error ? err.message : String(err),
+    });
+  }
 });
 
-imageProxy.get('/iconfinder/svg', async (req, res, next) => {
-    const svgUrl = req.query.url as string;
-    if (!svgUrl || typeof svgUrl !== 'string' || !svgUrl.startsWith('https://api.iconfinder.com/')) {
-        return next({ status: 400, message: 'Invalid or missing SVG url' });
-    }
-
-    const clientApiKey = req.headers['x-api-key'] as string;
-    const serverApiKey = process.env.ICONFINDER_API_KEY;
-    const apiKeyToUse = clientApiKey || serverApiKey;
-
-    if (!apiKeyToUse) {
-        return next({ status: 500, message: 'Iconfinder API key not set in server env (ICONFINDER_API_KEY) and no override provided.' });
-    }
-
-    try {
-        const response = await fetch(svgUrl, {
-            headers: { Authorization: `Bearer ${apiKeyToUse}` }
-        });
-        if (!response.ok) {
-            const errText = await response.text();
-            return next({ status: response.status, message: 'Iconfinder SVG fetch error', details: errText });
-        }
-        res.set({
-            'Content-Type': 'image/svg+xml',
-            'Access-Control-Allow-Origin': '*',
-            'Cross-Origin-Resource-Policy': 'cross-origin',
-            'Cross-Origin-Embedder-Policy': 'unsafe-none'
-        });
-        response.body.pipe(res);
-    } catch (err: any) {
-        res.set({
-            'Access-Control-Allow-Origin': '*',
-            'Cross-Origin-Resource-Policy': 'cross-origin',
-            'Cross-Origin-Embedder-Policy': 'unsafe-none'
-        });
-        return next({ status: 500, message: 'Proxy error', details: err.message });
-    }
-});
+export default router;

@@ -66,7 +66,10 @@ describe('useApiSearch', () => {
     expect(result.current.error).toBe('Network error');
     expect(mockFetcher).toHaveBeenCalledTimes(1);
     expect(mockOnError).toHaveBeenCalledWith('Network error');
-    expect(logger.error).toHaveBeenCalledWith('Failed to fetch search results: Network error', mockError);
+    expect(logger.error).toHaveBeenCalledWith(
+      'Failed to fetch search results: Network error',
+      mockError,
+    );
     expect(mockToast).toHaveBeenCalledWith(
       expect.objectContaining({
         title: 'Search Error',

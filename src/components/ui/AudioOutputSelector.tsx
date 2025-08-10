@@ -1,9 +1,9 @@
 
 
 import React, { useEffect, useRef, useState } from 'react';
-import { useAudioStore } from '../store/audioStore';
-import { Button } from './ui/Button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/Card';
+import { useAudioStore } from '@/store/audioStore';
+import { Button } from '@/components/ui/Button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 
 const AudioOutputSelector: React.FC = () => {
     // For demo: use an <audio> element to play a test sound and switch output

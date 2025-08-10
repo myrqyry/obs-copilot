@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, HTMLMotionProps } from 'framer-motion';
-import { cn } from '../../lib/utils';
-import { LoadingSpinner } from '../common/LoadingSpinner';
+import { cn } from '@/lib/utils';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
 interface ButtonProps extends HTMLMotionProps<'button'> {
     variant?: 'default' | 'secondary' | 'destructive' | 'outline' | 'ghost' | 'link';

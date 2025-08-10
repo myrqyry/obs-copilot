@@ -7,8 +7,8 @@ declare global {
         __activeTooltipHide?: (() => void) | null;
     }
 }
-import { useSettingsStore } from '../../store/settingsStore';
-import { catppuccinAccentColorsHexMap, catppuccinMochaColors } from '../../types';
+import { useSettingsStore } from '@/store/settingsStore';
+import { catppuccinAccentColorsHexMap, catppuccinMochaColors } from '@/types';
 
 interface TooltipProps {
     content: React.ReactNode;

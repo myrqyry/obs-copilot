@@ -1,6 +1,6 @@
 import React from 'react';
-import MorphingLogos from '../MorphingLogos';
-import { cn } from '../../lib/utils';
+import MorphingLogos from '@/components/ui/MorphingLogos';
+import { cn } from '@/lib/utils';
 
 interface AnimatedTitleLogosProps {
   accentColor: string;

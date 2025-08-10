@@ -24,22 +24,22 @@ app.use('/api', imageProxy);
 app.use('/api', apiProxy);
 
 app.use('/api', (req, res) => {
-    res.status(404).json({ error: `API endpoint not found: ${req.originalUrl}` });
+  res.status(404).json({ error: `API endpoint not found: ${req.originalUrl}` });
 });
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    const status = err.status || 500;
-    const message = err.message || 'Something went wrong on the server.';
-    const details = err.details || (process.env.NODE_ENV === 'development' ? err.stack : undefined);
+  const status = err.status || 500;
+  const message = err.message || 'Something went wrong on the server.';
+  const details = err.details || (process.env.NODE_ENV === 'development' ? err.stack : undefined);
 
-    if (res.headersSent) {
-        return next(err);
-    }
+  if (res.headersSent) {
+    return next(err);
+  }
 
-    res.status(status).json({
-        error: message,
-        ...(details && { details })
-    });
+  res.status(status).json({
+    error: message,
+    ...(details && { details }),
+  });
 });
 
 export default app;

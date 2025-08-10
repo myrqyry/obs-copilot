@@ -1,7 +1,7 @@
 import React from 'react';
-import { Modal } from '../common/Modal';
-import { Button } from '../ui/Button';
-import { GiphyResult } from '../../types/giphy';
+import { Modal } from '@/components/ui/Modal';
+import { Button } from '@/components/ui/Button';
+import { GiphyResult } from '@/types/giphy';
 
 interface GifDetailsModalProps {
     modalContent: { type: 'gif' | 'sticker', data: GiphyResult } | null;

@@ -17,9 +17,4 @@ const OBSWebSocket = jest.fn().mockImplementation(() => {
 export default OBSWebSocket;
 
 // Also export named mocks if they are imported directly (though not the case in ObsClient.ts)
-export {
-  mockConnect,
-  mockDisconnect,
-  mockCall,
-  mockOn,
-};
+export { mockConnect, mockDisconnect, mockCall, mockOn };

@@ -35,9 +35,9 @@ export const applyTheme = (theme: Theme) => {
   const isDark = theme.type === 'dark';
 
   if (isDark) {
-    root.classList.add("dark");
+    root.classList.add('dark');
   } else {
-    root.classList.remove("dark");
+    root.classList.remove('dark');
   }
 };
 

@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { useSettingsStore } from '../store/settingsStore';
-import { catppuccinAccentColorsHexMap } from '../types';
-import { Card, CardContent } from './ui/Card';
-import HtmlTemplateBuilder from './HtmlTemplateBuilder';
-import { CollapsibleCard } from './common/CollapsibleCard';
-import GifSearch from './GifSearch';
-import SvgSearch from './SvgSearch';
-import EmojiSearch from './EmojiSearch';
-import BackgroundSearch from './BackgroundSearch';
+import { useSettingsStore } from '@/store/settingsStore';
+import { catppuccinAccentColorsHexMap } from '@/types';
+import { Card, CardContent } from '@/components/ui/Card';
+import HtmlTemplateBuilder from '@/features/templates/HtmlTemplateBuilder';
+import { CollapsibleCard } from '@/components/common/CollapsibleCard';
+import GifSearch from '@/features/asset-search/GifSearch';
+import SvgSearch from '@/features/asset-search/SvgSearch';
+import EmojiSearch from '@/features/asset-search/EmojiSearch';
+import BackgroundSearch from '@/features/asset-search/BackgroundSearch';
 
 const StreamingAssetsTab = React.memo(() => {
     const accentColorName = useSettingsStore(state => state.theme.accent);

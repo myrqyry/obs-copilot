@@ -41,11 +41,7 @@ export const useStreamerBotActions = ({
 ---
 ℹ️ Response:
 \`\`\`json
-${JSON.stringify(
-            response,
-            null,
-            2,
-          )}
+${JSON.stringify(response, null, 2)}
 \`\`\``;
         }
 
@@ -53,9 +49,7 @@ ${JSON.stringify(
       } catch (err: unknown) {
         console.error(`Streamer.bot Action "${action.type}" failed:`, err);
         const failureFeedback = `
-❗ Failed to execute Streamer.bot action "${
-          action.type
-        }": ${
+❗ Failed to execute Streamer.bot action "${action.type}": ${
           err instanceof Error ? err.message : 'Unknown error'
         }`;
         actionAttemptMessage += `${failureFeedback}`;

@@ -21,7 +21,7 @@ describe('Logger', () => {
     expect(console.debug).toHaveBeenCalledWith(
       expect.stringContaining('[DEBUG]'),
       'Debug message',
-      { key: 'value' }
+      { key: 'value' },
     );
   });
 
@@ -30,16 +30,13 @@ describe('Logger', () => {
     expect(console.info).toHaveBeenCalledWith(
       expect.stringContaining('[INFO]'),
       'Info message',
-      123
+      123,
     );
   });
 
   it('should log warn messages', () => {
     logger.warn('Warning message');
-    expect(console.warn).toHaveBeenCalledWith(
-      expect.stringContaining('[WARN]'),
-      'Warning message'
-    );
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('[WARN]'), 'Warning message');
   });
 
   it('should log error messages and capture error details', () => {
@@ -48,12 +45,12 @@ describe('Logger', () => {
     expect(console.error).toHaveBeenCalledWith(
       expect.stringContaining('[ERROR]'),
       'Error occurred',
-      testError
+      testError,
     );
     expect(console.error).toHaveBeenCalledWith(
       'Error details:',
       testError.message,
-      testError.stack
+      testError.stack,
     );
   });
 
@@ -62,8 +59,12 @@ describe('Logger', () => {
     expect(console.error).toHaveBeenCalledWith(
       expect.stringContaining('[ERROR]'),
       'Another error',
-      'just a string'
+      'just a string',
     );
-    expect(console.error).not.toHaveBeenCalledWith('Error details:', expect.any(String), expect.any(String));
+    expect(console.error).not.toHaveBeenCalledWith(
+      'Error details:',
+      expect.any(String),
+      expect.any(String),
+    );
   });
 });

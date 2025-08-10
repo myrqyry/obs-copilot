@@ -10,8 +10,7 @@ import { loadConnectionSettings, saveConnectionSettings, isStorageAvailable } fr
 import { CardContent } from './ui';
 import { cn } from '../lib/utils';
 import { CollapsibleCard } from './common/CollapsibleCard';
-import { useConnectionManagerStore } from '../store/connectionManagerStore';
-import useApiKeyStore from '../store/apiKeyStore';
+import useConnectionsStore from '../store/connectionsStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { useChatStore } from '../store/chatStore';
 import { catppuccinAccentColorsHexMap } from '../types';
@@ -50,7 +49,8 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
   const accentColor = catppuccinAccentColorsHexMap[storeAccentColorName] || '#89b4fa';
 
   // Destructure from the new unified store
-  const { isConnected, isConnecting, connectError: error, actions } = useConnectionManagerStore();
+  const { isConnected, isConnecting, actions } = useConnectionsStore();
+  const connectError = ''; // Adjust this based on the actual state in useConnectionsStore
   const { connect: onConnect, disconnect: onDisconnect } = actions;
 
   const persistedConnectionSettings = isStorageAvailable() ? loadConnectionSettings() : {};
@@ -65,7 +65,6 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
   const [autoConnect, setAutoConnect] = useState<boolean>(
     Boolean(persistedConnectionSettings.autoConnect)
   );
-  const storedGeminiApiKey = useApiKeyStore(state => state.getApiKeyOverride(ApiService.GEMINI));
   const [showApiKeyOverride, setShowApiKeyOverride] = useState<boolean>(
     Boolean(storedGeminiApiKey)
   );

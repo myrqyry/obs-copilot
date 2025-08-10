@@ -38,7 +38,7 @@
         ],
         "no-unused-vars": "off",
         "no-console": "off",
-        "@typescript-eslint/no-explicit-any": "off",
+        "@typescript-eslint/no-explicit-any": "error",
         "no-case-declarations": "off",
         "no-useless-escape": "off",
         "@typescript-eslint/no-var-requires": "off"

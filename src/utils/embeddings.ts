@@ -20,7 +20,9 @@ export function getProvider(): EmbeddingsProvider {
   return 'LOCAL';
 }
 
-export async function createEmbedder(provider: EmbeddingsProvider = getProvider()): Promise<Embedder> {
+export async function createEmbedder(
+  provider: EmbeddingsProvider = getProvider(),
+): Promise<Embedder> {
   if (provider === 'GEMINI') {
     return new GeminiEmbedder();
   }
@@ -72,9 +74,10 @@ class GeminiEmbedder implements Embedder {
   private _dim: number | null = null;
 
   private getApiKey(): string {
-    const k = (import.meta as any).env?.VITE_GOOGLE_API_KEY
-      || process.env.GOOGLE_API_KEY
-      || process.env.GEMINI_API_KEY;
+    const k =
+      (import.meta as any).env?.VITE_GOOGLE_API_KEY ||
+      process.env.GOOGLE_API_KEY ||
+      process.env.GEMINI_API_KEY;
     if (!k) {
       throw new Error('Gemini embedder requires GOOGLE_API_KEY or GEMINI_API_KEY.');
     }
@@ -83,7 +86,9 @@ class GeminiEmbedder implements Embedder {
 
   async embed(texts: string[]): Promise<Float32Array[]> {
     const apiKey = this.getApiKey();
-    const url = 'https://generativelanguage.googleapis.com/v1/models/text-embedding-004:embedContent?key=' + encodeURIComponent(apiKey);
+    const url =
+      'https://generativelanguage.googleapis.com/v1/models/text-embedding-004:embedContent?key=' +
+      encodeURIComponent(apiKey);
     const outputs: Float32Array[] = [];
     const BATCH = 32;
     for (let i = 0; i < texts.length; i += BATCH) {
@@ -128,9 +133,12 @@ class GeminiEmbedder implements Embedder {
 
 // Simple cosine similarity utilities (shared)
 export function cosineSim(a: Float32Array, b: Float32Array): number {
-  let dot = 0, na = 0, nb = 0;
+  let dot = 0,
+    na = 0,
+    nb = 0;
   for (let i = 0; i < a.length; i++) {
-    const x = a[i], y = b[i];
+    const x = a[i],
+      y = b[i];
     dot += x * y;
     na += x * x;
     nb += y * y;

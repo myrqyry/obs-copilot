@@ -19,6 +19,7 @@ export interface ChatState {
     removeFromUserDefinedContext: (context: string) => void;
     clearUserDefinedContext: () => void;
     addSystemMessageToChat: (contextText: string) => void;
+    setGlobalErrorMessage: (message: string | null) => void;
   };
 }
 
@@ -72,5 +73,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
     addSystemMessageToChat: (contextText) => {
       get().actions.addMessage({ role: 'system', text: contextText });
     },
+    setGlobalErrorMessage: (message) => set({ geminiInitializationError: message }),
   },
 }));

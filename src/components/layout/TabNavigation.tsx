@@ -1,7 +1,7 @@
 import React from 'react';
-import { AppTab } from '../../types';
-import { useConnectionManagerStore } from '../../store/connectionManagerStore';
-import { useChatStore } from '../../store/chatStore';
+import { AppTab } from '@/types';
+import useConnectionsStore from '@/store/connectionsStore';
+import { useChatStore } from '@/store/chatStore';
 
 interface TabNavigationProps {
     activeTab: AppTab;
@@ -20,7 +20,7 @@ const tabEmojis: Record<AppTab, string> = {
 };
 
 export const TabNavigation: React.FC<TabNavigationProps> = ({ activeTab, setActiveTab, tabOrder }) => {
-    const { isConnected, isConnecting } = useConnectionManagerStore();
+    const { isConnected, isConnecting } = useConnectionsStore();
     const { isGeminiClientInitialized } = useChatStore();
 
     return (

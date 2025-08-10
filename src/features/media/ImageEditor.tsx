@@ -3,8 +3,8 @@ import * as React from "react";
 import { useRef, useState, useEffect } from "react";
 import { removeBackground } from "@imgly/background-removal";
 import { toast } from "@/components/ui/toast";
-import { Modal } from "./common/Modal";
-import Tooltip from "./ui/Tooltip";
+import { Modal } from "@/components/ui/Modal";
+import Tooltip from "@/components/ui/Tooltip";
 
 export const ImageEditor: React.FC = () => {
     const [inputUrl, setInputUrl] = useState<string | null>(null);

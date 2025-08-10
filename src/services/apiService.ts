@@ -67,7 +67,6 @@ class ApiService {
       }
 
       return results || [];
-
     } catch (error: any) {
       logger.error(`Error fetching data from ${this.apiConfig.label}:`, error);
       const errorData: ApiServiceError = {

@@ -4,56 +4,27 @@ import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
-  // Load env file based on mode (development, production)
-  // and the current working directory.
-  // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
-  const env = loadEnv(mode, (process as any).cwd(), '');
+  const env = loadEnv(mode, path.resolve(__dirname, '../'), '');
 
   return {
     plugins: [react()],
-    server: {
-      port: 5173, // Use Vite's default port for consistency
-      // proxy: {
-      //   // All API requests should go to the local proxy server
-      //   '/api': {
-      //     target: 'http://localhost:3001', // This should match the port your proxy.cjs runs on
-      //     changeOrigin: true,
-      //     secure: false, // Set to true if your proxy server uses HTTPS, but for local dev 'false' is common
-      //     // No rewrite needed if proxy.cjs expects paths like /api/gemini, /api/wallhaven etc.
-      //     // Rewrite /api/proxy to /api to handle deprecated favicon calls
-      //     rewrite: (path) => path.replace(/^\/api\/proxy/, '/api'),
-      //   },
-      // },
-      headers: {
-        'Cross-Origin-Opener-Policy': 'same-origin',
-        'Cross-Origin-Embedder-Policy': 'require-corp'
-      },
-      // Add a server hook to ensure the proxy is ready before Vite attempts to connect
-      async configureServer(server) {
-        const { default: proxy } = await import('./src/vite-middleware');
-        server.middlewares.use(proxy);
-      },
-    },
-    build: {
-      outDir: 'dist', // Optional: specify output directory
-      rollupOptions: {
-        // Optimize GSAP for production builds
-        external: [],
-        output: {
-          manualChunks: {
-            gsap: ['gsap'],
-          }
-        }
-      }
-    },
-    optimizeDeps: {
-      // Ensure GSAP is properly optimized for development
-      include: ['gsap'],
-    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
-      }
-    }
+      },
+    },
+    server: {
+      proxy: {
+        '/api': {
+          target: env.VITE_API_URL || 'http://localhost:3000',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api/, ''),
+        },
+        '/obs': {
+          target: env.VITE_OBS_WEBSOCKET_URL || 'ws://localhost:4455',
+          ws: true,
+        },
+      },
+    },
   };
 });

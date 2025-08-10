@@ -18,10 +18,14 @@ export const isLocalEnvironment = (): boolean => {
  * @param params Optional URL parameters to append
  * @returns The complete API endpoint URL
  */
-export const getApiEndpoint = (service: string, subPath?: string, params?: URLSearchParams): string => {
+export const getApiEndpoint = (
+  service: string,
+  subPath?: string,
+  params?: URLSearchParams,
+): string => {
   const isLocal = isLocalEnvironment();
   const normalizedService = service.startsWith('/') ? service.substring(1) : service;
-  
+
   if (isLocal) {
     // Local development: use Vite proxy
     let url = `/api/${normalizedService}`;
@@ -35,7 +39,7 @@ export const getApiEndpoint = (service: string, subPath?: string, params?: URLSe
   } else {
     // Production: use Netlify functions
     let url: string;
-    
+
     // Handle different Netlify function URL patterns based on the service
     switch (normalizedService) {
       case 'image':
@@ -46,7 +50,7 @@ export const getApiEndpoint = (service: string, subPath?: string, params?: URLSe
           url += `&${params.toString()}`;
         }
         break;
-      
+
       case 'iconfinder':
         // Some services use query parameter format
         url = '/.netlify/functions/proxy?api=iconfinder';
@@ -57,7 +61,7 @@ export const getApiEndpoint = (service: string, subPath?: string, params?: URLSe
           url += `&${params.toString()}`;
         }
         break;
-      
+
       default:
         // Most services use path-based routing
         url = `/.netlify/functions/proxy/${normalizedService}`;
@@ -69,7 +73,7 @@ export const getApiEndpoint = (service: string, subPath?: string, params?: URLSe
         }
         break;
     }
-    
+
     return url;
   }
 };
@@ -92,18 +96,18 @@ export const getSimpleApiEndpoint = (service: string, subPath?: string): string 
  * @returns Complete URL with parameters
  */
 export const buildApiUrl = (
-  service: string, 
-  subPath?: string, 
-  searchParams?: Record<string, string | number | boolean>
+  service: string,
+  subPath?: string,
+  searchParams?: Record<string, string | number | boolean>,
 ): string => {
   const params = searchParams ? new URLSearchParams() : undefined;
-  
+
   if (params && searchParams) {
     Object.entries(searchParams).forEach(([key, value]) => {
       params.append(key, String(value));
     });
   }
-  
+
   return getApiEndpoint(service, subPath, params);
 };
 
