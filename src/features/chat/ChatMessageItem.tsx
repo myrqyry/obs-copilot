@@ -1,10 +1,17 @@
 import React, { useState, useRef, useLayoutEffect, useMemo } from 'react';
-import { catppuccinChatBubbleColorsHexMap, catppuccinMochaColors, catppuccinSecondaryAccentColorsHexMap } from '../../types';
+import {
+    catppuccinChatBubbleColorsHexMap,
+    catppuccinMochaColors,
+    catppuccinSecondaryAccentColorsHexMap,
+    ChatMessage,
+    CatppuccinAccentColorName,
+    OBSSource,
+    CatppuccinChatBubbleColorName
+} from '@/types';
 import { ChevronDownIcon, ChevronUpIcon, ClipboardDocumentIcon, ArrowPathIcon, ChatBubbleLeftEllipsisIcon } from '@heroicons/react/24/solid';
 import { gsap } from 'gsap';
-import { getRandomSuggestions } from '../../constants/chatSuggestions';
-import { ChatMessage, CatppuccinAccentColorName, OBSSource, CatppuccinChatBubbleColorName } from '../../types';
-import { useSettingsStore } from '../../store/settingsStore';
+import { getRandomSuggestions } from '@/constants/chatSuggestions';
+import { useSettingsStore } from '@/store/settingsStore';
 import Tooltip from '@/components/ui/Tooltip';
 import DOMPurify from 'dompurify';
 

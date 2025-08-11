@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
-import { StreamerBotService } from '../services/streamerBotService';
-import { useChatStore } from '../store/chatStore';
-import { useAutomationStore } from '../store/automationStore';
+import { StreamerBotService } from '@/services/streamerBotService';
+import { useChatStore } from '@/store/chatStore';
+import { useAutomationStore } from '@/store/automationStore';
 import { toast } from '@/components/ui/toast';
 
 export const useStreamerBotConnection = (streamerBotService: StreamerBotService) => {

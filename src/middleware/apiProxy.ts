@@ -1,9 +1,9 @@
 import express, { Request } from 'express';
 import axios from 'axios';
-import { logger } from '../utils/logger';
-import * as apiConfigs from '../config/apis'; // Corrected import
-import { loadConnectionSettings, isStorageAvailable } from '../utils/persistence';
-import { DEFAULT_OBS_WEBSOCKET_URL } from '../constants'; // Corrected import
+import { logger } from '@/utils/logger';
+import * as apiConfigs from '@/config/apis'; // Corrected import
+import { loadConnectionSettings, isStorageAvailable } from '@/utils/persistence';
+import { DEFAULT_OBS_WEBSOCKET_URL } from '@/constants'; // Corrected import
 
 const router = express.Router();
 

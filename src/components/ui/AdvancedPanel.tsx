@@ -39,7 +39,10 @@ const OBS_SUBSCRIPTIONS_KEY = 'obsEventSubscriptions';
 
 const AdvancedPanel: React.FC = () => {
     // API Key Store
-    const { overrides, setApiKey, clearApiKey, getAllOverrides } = useApiKeyStore();
+    const overrides = useApiKeyStore((state) => state.overrides);
+    const setApiKey = useApiKeyStore((state) => state.setApiKey);
+    const clearApiKey = useApiKeyStore((state) => state.clearApiKey);
+    const getAllOverrides = useApiKeyStore((state) => state.getAllOverrides);
     // Local state for input fields, to avoid updating Zustand on every keystroke
     const [localApiKeyInputs, setLocalApiKeyInputs] = useState<Partial<Record<ApiServiceName, string>>>({});
     // Local state for API key input visibility (true = show text, false = hide with password type)
@@ -93,7 +96,8 @@ const AdvancedPanel: React.FC = () => {
                 : [...prev, eventName]
         );
     };
-    const { userDefinedContext, actions: chatActions } = useChatStore();
+    const userDefinedContext = useChatStore((state) => state.userDefinedContext);
+    const chatActions = useChatStore((state) => state.actions);
     const { addToUserDefinedContext, removeFromUserDefinedContext, clearUserDefinedContext } = chatActions;
     const [userInput, setUserInput] = useState('');
     const [openMemory, setOpenMemory] = useState(true);
@@ -236,7 +240,7 @@ const AdvancedPanel: React.FC = () => {
                             <input
                                 className="w-full border rounded p-2 bg-background"
                                 value={userInput}
-                                onChange={(e) => setUserInput(e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserInput(e.target.value)}
                                 placeholder="Enter stream/community details"
                             />
                             <Button

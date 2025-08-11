@@ -1,18 +1,16 @@
-import Tooltip from '../../components/ui/Tooltip';
 import React, { useState, useEffect } from 'react';
-import { CatppuccinAccentColorName, OBSVideoSettings, OBSScene, OBSSource } from '../../types';
-import { Button } from '../../components/ui/Button';
-import { AddToContextButton } from '../../components/common/AddToContextButton';
-import { LockToggle } from '../../components/common/LockToggle';
-import { TextInput } from '../../components/common/TextInput';
-import { LoadingSpinner } from '../../components/common/LoadingSpinner';
-import useConnectionsStore from '../../store/connectionsStore';
-import { useLockStore } from '../../store/lockStore';
-import { useSettingsStore } from '../../store/settingsStore';
-import { useChatStore } from '../../store/chatStore';
-import { COMMON_RESOLUTIONS, COMMON_FPS } from '../../constants';
-import { CollapsibleCard } from '../../components/common/CollapsibleCard';
-import { catppuccinAccentColorsHexMap } from '../../types';
+import { CatppuccinAccentColorName, OBSVideoSettings, OBSScene, OBSSource, catppuccinAccentColorsHexMap } from '@/types';
+import { Button } from '@/components/ui/Button';
+import { AddToContextButton } from '@/components/common/AddToContextButton';
+import { LockToggle } from '@/components/common/LockToggle';
+import { TextInput } from '@/components/common/TextInput';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import useConnectionsStore from '@/store/connectionsStore';
+import { useLockStore } from '@/store/lockStore';
+import { useSettingsStore } from '@/store/settingsStore';
+import { useChatStore } from '@/store/chatStore';
+import { COMMON_RESOLUTIONS, COMMON_FPS } from '@/constants';
+import { CollapsibleCard } from '@/components/common/CollapsibleCard';
 
 export const ObsMainControls: React.FC = () => {
   const { obsServiceInstance: obsService, onRefreshData } = useConnectionsStore();
@@ -242,7 +240,7 @@ export const ObsMainControls: React.FC = () => {
   };
 
   // Locks
-  const { isLocked, setLock } = useLockStore();
+  const { isLocked } = useLockStore();
   const STREAM_RECORD_LOCK = 'streamRecord';
   const VIDEO_SETTINGS_LOCK = 'videoSettings';
 

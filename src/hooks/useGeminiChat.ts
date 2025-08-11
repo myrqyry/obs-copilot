@@ -1,40 +1,54 @@
-import { useState, useCallback, useRef } from 'react';
-import { GoogleGenAI } from '@google/genai';
-import useConnectionsStore from '../store/connectionsStore';
-import { useChatStore } from '../store/chatStore';
-import { useSettingsStore } from '../store/settingsStore';
-import { useLockStore } from '../store/lockStore';
-import { GEMINI_MODEL_NAME, INITIAL_SYSTEM_PROMPT } from '../constants';
-import { buildMarkdownStylingSystemMessage } from '../utils/systemPrompts';
-import { detectChoiceQuestion } from '../utils/choiceDetection';
-import type { GeminiActionResponse } from '../types/obsActions';
-import { logger } from '../utils/logger';
-
-import { OBSScene, OBSSource } from '../types';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import useConnectionsStore from '@/store/connectionsStore';
+import { useChatStore } from '@/store/chatStore';
+import { useSettingsStore } from '@/store/settingsStore';
+import { useLockStore } from '@/store/lockStore';
+import { GEMINI_MODEL_NAME, INITIAL_SYSTEM_PROMPT } from '@/constants';
+import { buildMarkdownStylingSystemMessage } from '@/utils/systemPrompts';
+import { detectChoiceQuestion } from '@/utils/choiceDetection';
+import type { GeminiActionResponse } from '@/types/obsActions';
+import { logger } from '@/utils/logger';
+import { OBSScene, OBSSource } from '@/types';
+import { useObsActions } from './useObsActions';
 
 export const useGeminiChat = (
   onRefreshData: () => Promise<void>,
   setErrorMessage: (message: string | null) => void,
   onStreamerBotAction: (action: { type: string; args?: Record<string, unknown> }) => Promise<void>,
 ) => {
-  const { isConnected } = useConnectionsStore();
-  const {
-    scenes,
-    currentProgramScene,
-    sources,
-    streamStatus,
-    recordStatus,
-    videoSettings,
-    actions: obsActions,
-  } = useConnectionsStore();
-  const { userDefinedContext, actions: chatActions } = useChatStore();
-  const { autoApplySuggestions } = useSettingsStore();
+  const isConnected = useConnectionsStore((state) => state.isConnected);
+  const scenes = useConnectionsStore((state) => state.scenes);
+  const currentProgramScene = useConnectionsStore((state) => state.currentProgramScene);
+  const sources = useConnectionsStore((state) => state.sources);
+  const streamStatus = useConnectionsStore((state) => state.streamStatus);
+  const recordStatus = useConnectionsStore((state) => state.recordStatus);
+  const videoSettings = useConnectionsStore((state) => state.videoSettings);
+  const { handleObsAction } = useObsActions();
+
+  const geminiApiKey = useChatStore((state) => state.geminiApiKey);
+  const userDefinedContext = useChatStore((state) => state.userDefinedContext);
+  const chatActions = useChatStore((state) => state.actions);
+  const autoApplySuggestions = useSettingsStore((state) => state.autoApplySuggestions);
   const { isLocked } = useLockStore();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [useGoogleSearch, setUseGoogleSearch] = useState<boolean>(false);
   const [contextMessages, setContextMessages] = useState<string[]>([]);
-  const ai = useRef<GoogleGenAI | null>(null);
+  const ai = useRef<GoogleGenerativeAI | null>(null);
+
+  useEffect(() => {
+    if (geminiApiKey) {
+      try {
+        const genAI = new GoogleGenerativeAI(geminiApiKey);
+        ai.current = genAI;
+        chatActions.setGeminiClientInitialized(true);
+      } catch (error) {
+        console.error("Failed to initialize Gemini AI", error);
+        chatActions.setGeminiInitializationError('Failed to initialize Gemini AI client.');
+      }
+    }
+  }, [geminiApiKey, chatActions]);
 
   const handleAddToContext = useCallback((text: string) => {
     setContextMessages((prev) => [...prev, text].slice(-5));
@@ -104,17 +118,11 @@ export const useGeminiChat = (
         contextPrompt += `\nContext from previous messages:\n${contextMessages.join('\n')}\n`;
       }
 
-      const response = await ai.current.models.generateContent({
-        model: GEMINI_MODEL_NAME,
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: `${systemPrompt}${contextPrompt}\n\n${userMessageText}` }],
-          },
-        ],
-      });
+      const model = ai.current.getGenerativeModel({ model: GEMINI_MODEL_NAME });
+      const result = await model.generateContent(`${systemPrompt}${contextPrompt}\n\n${userMessageText}`);
+      const response = await result.response;
+      const modelResponseText = response.text();
 
-      const modelResponseText = response.text || 'No response received';
       let displayText = modelResponseText;
       let obsActionResult: { success: boolean; message: string; error?: string } | null = null;
 
@@ -123,7 +131,7 @@ export const useGeminiChat = (
         if (jsonMatch && jsonMatch[1]) {
           const parsed: GeminiActionResponse = JSON.parse(jsonMatch[1]);
           if (parsed.obsAction && isConnected) {
-            obsActionResult = await obsActions.handleObsAction(parsed.obsAction);
+            obsActionResult = await handleObsAction(parsed.obsAction);
             await onRefreshData();
           }
           if (parsed.streamerBotAction) {

@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
-import { useGifSearch } from '../hooks/useGifSearch';
-import { GifGrid } from './gif/GifGrid';
-import { GifSearchFilters } from './gif/GifSearchFilters';
-import { GifDetailsModal } from './gif/GifDetailsModal';
-import { GiphyResult } from '../types/giphy';
-import { useConnectionManagerStore } from '../store/connectionManagerStore';
-import { useChatStore } from '../store/chatStore';
-import { generateSourceName } from '../utils/obsSourceHelpers';
-import { copyToClipboard } from '../utils/persistence';
-import { CollapsibleCard } from './common/CollapsibleCard';
-import { CardContent } from './ui/Card';
+import { useGifSearch } from '@/hooks/useGifSearch';
+import { GifGrid } from '@/components/gif/GifGrid';
+import { GifSearchFilters } from '@/components/gif/GifSearchFilters';
+import { GifDetailsModal } from '@/components/gif/GifDetailsModal';
+import { GiphyResult } from '@/types/giphy';
+import { useConnectionManagerStore } from '@/store/connectionManagerStore';
+import { useChatStore } from '@/store/chatStore';
+import { generateSourceName } from '@/utils/obsSourceHelpers';
+import { copyToClipboard } from '@/utils/persistence';
+import { CollapsibleCard } from '@/components/common/CollapsibleCard';
+import { CardContent } from '@/components/ui/Card';
 
 const GifSearch: React.FC = () => {
     const {
@@ -60,9 +60,9 @@ const GifSearch: React.FC = () => {
         switch (type) {
             case 'gif':
                 return [
-                    { label: 'Add as Browser Source', onClick: () => handleAddAsBrowserSource(data.images.original.url, data.title || 'gif'), variant: 'primary' },
-                    { label: 'Add as Media Source', onClick: () => handleAddAsMediaSource(data.images.original.url, data.title || 'gif'), variant: 'secondary' },
-                    { label: 'Copy URL', onClick: () => { copyToClipboard(data.images.original.url); addMessage({ role: 'system', text: 'Copied GIF URL!' }); } },
+                    { label: 'Add as Browser Source', onClick: () => handleAddAsBrowserSource(data.images.original.url || '', data.title || 'gif'), variant: 'primary' },
+                    { label: 'Add as Media Source', onClick: () => handleAddAsMediaSource(data.images.original.url || '', data.title || 'gif'), variant: 'secondary' },
+                    { label: 'Copy URL', onClick: () => { copyToClipboard(data.images.original.url || ''); addMessage({ role: 'system', text: 'Copied GIF URL!' }); } },
                 ];
             default:
                 return [];

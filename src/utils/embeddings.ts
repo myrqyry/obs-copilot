@@ -9,13 +9,25 @@ import type { Pipeline } from '@xenova/transformers';
  */
 export type EmbeddingsProvider = 'LOCAL' | 'GEMINI';
 
+type TransformersJs = {
+  pipeline: (task: string, model: string) => Promise<Pipeline>;
+};
+
+interface GeminiEmbeddingResponse {
+  responses: {
+    embedding?: {
+      values: number[];
+    };
+  }[];
+}
+
 export interface Embedder {
   embed(texts: string[]): Promise<Float32Array[]>;
   dim(): Promise<number>;
 }
 
 export function getProvider(): EmbeddingsProvider {
-  const p = (import.meta as any).env?.VITE_EMBEDDINGS_PROVIDER || process.env.EMBEDDINGS_PROVIDER;
+  const p = (import.meta as { env: Record<string, string> }).env?.VITE_EMBEDDINGS_PROVIDER || process.env.EMBEDDINGS_PROVIDER;
   if (p && typeof p === 'string' && p.toUpperCase() === 'GEMINI') return 'GEMINI';
   return 'LOCAL';
 }
@@ -39,8 +51,7 @@ class LocalXenovaEmbedder implements Embedder {
 
   private async getPipeline() {
     if (!this._pipelinePromise) {
-      // @ts-ignore
-      const { pipeline } = await import('@xenova/transformers');
+      const { pipeline } = (await import('@xenova/transformers')) as TransformersJs;
       this._pipelinePromise = pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
     }
     return this._pipelinePromise;
@@ -75,7 +86,7 @@ class GeminiEmbedder implements Embedder {
 
   private getApiKey(): string {
     const k =
-      (import.meta as any).env?.VITE_GOOGLE_API_KEY ||
+      (import.meta as { env: Record<string, string> }).env?.VITE_GOOGLE_API_KEY ||
       process.env.GOOGLE_API_KEY ||
       process.env.GEMINI_API_KEY;
     if (!k) {
@@ -108,7 +119,7 @@ class GeminiEmbedder implements Embedder {
         const t = await res.text();
         throw new Error(`Gemini embeddings error: ${res.status} ${t}`);
       }
-      const json = await res.json();
+      const json: GeminiEmbeddingResponse = await res.json();
       if (!json.responses) {
         throw new Error('Unexpected Gemini embeddings response shape.');
       }

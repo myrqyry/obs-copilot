@@ -1,8 +1,7 @@
 import React from 'react';
-import { Button } from '../../components/ui/Button';
-import { TextInput } from '../../components/common/TextInput';
-import { AutomationAction } from '../../types/automation';
-import { ObsAction, SetCurrentProgramSceneAction } from '../../types/obsActions';
+import { Button } from '@/components/ui/Button';
+import { AutomationAction } from '@/types/automation';
+import { ObsAction, SetCurrentProgramSceneAction } from '@/types/obsActions';
 import useConnectionsStore from '@/store/connectionsStore';
 
 // Type guards for safe ObsAction type checking

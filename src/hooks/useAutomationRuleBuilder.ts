@@ -4,9 +4,9 @@ import type {
   AutomationTrigger,
   AutomationCondition,
   AutomationAction,
-} from '../types/automation';
-import { useAutomationStore } from '../store/automationStore';
-import type { ObsAction } from '../types/obsActions';
+} from '@/types/automation';
+import { useAutomationStore } from '@/store/automationStore';
+import type { ObsAction } from '@/types/obsActions';
 
 export const useAutomationRuleBuilder = (
   isOpen: boolean,

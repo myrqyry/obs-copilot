@@ -1,21 +1,19 @@
-import Tooltip from './ui/Tooltip';
-import { ApiService } from '../store/apiKeyStore';
+import Tooltip from '@/components/ui/Tooltip';
 import React, { useState, useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
-import { Button } from './ui/Button';
-import { TextInput } from './common/TextInput';
-import { FaviconIcon } from './common/FaviconIcon';
-import { CatppuccinAccentColorName } from '../types';
-import { loadConnectionSettings, saveConnectionSettings, isStorageAvailable } from '../utils/persistence';
-import { CardContent } from './ui';
-import { cn } from '../lib/utils';
-import { CollapsibleCard } from './common/CollapsibleCard';
-import useConnectionsStore from '../store/connectionsStore';
-import { useSettingsStore } from '../store/settingsStore';
-import { useChatStore } from '../store/chatStore';
-import { catppuccinAccentColorsHexMap } from '../types';
-import { z, ZodError } from 'zod';
-import { obsConnectionSchema, streamerBotConnectionSchema, geminiApiKeySchema } from '../lib/validations';
+import { Button } from '@/components/ui/Button';
+import { TextInput } from '@/components/common/TextInput';
+import { FaviconIcon } from '@/components/common/FaviconIcon';
+import { CatppuccinAccentColorName, catppuccinAccentColorsHexMap } from '@/types';
+import { loadConnectionSettings, saveConnectionSettings, isStorageAvailable } from '@/utils/persistence';
+import { CardContent } from '@/components/ui';
+import { cn } from '@/lib/utils';
+import { CollapsibleCard } from '@/components/common/CollapsibleCard';
+import useConnectionsStore from '@/store/connectionsStore';
+import { useSettingsStore } from '@/store/settingsStore';
+import { useChatStore } from '@/store/chatStore';
+import { ZodError } from 'zod';
+import { obsConnectionSchema, streamerBotConnectionSchema, geminiApiKeySchema } from '@/lib/validations';
 
 interface ConnectionFormProps {
   defaultUrl: string;
@@ -49,10 +47,11 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
   const accentColor = catppuccinAccentColorsHexMap[storeAccentColorName] || '#89b4fa';
 
   // Destructure from the new unified store
-  const { isConnected, isConnecting, actions } = useConnectionsStore();
-  const connectError = ''; // Adjust this based on the actual state in useConnectionsStore
-  const { connect: onConnect, disconnect: onDisconnect } = actions;
-
+  const isConnected = useConnectionsStore((state) => state.isConnected);
+  const isConnecting = useConnectionsStore((state) => state.isConnecting);
+  const error = useConnectionsStore((state) => state.error);
+  const onConnect = useConnectionsStore((state) => state.connect);
+  const onDisconnect = useConnectionsStore((state) => state.disconnect);
   const persistedConnectionSettings = isStorageAvailable() ? loadConnectionSettings() : {};
 
   const [address, setAddress] = useState<string>(
@@ -66,7 +65,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
     Boolean(persistedConnectionSettings.autoConnect)
   );
   const [showApiKeyOverride, setShowApiKeyOverride] = useState<boolean>(
-    Boolean(storedGeminiApiKey)
+    Boolean(geminiApiKey)
   );
 
   const [obsAddressError, setObsAddressError] = useState<string | undefined>(undefined);

@@ -1,9 +1,18 @@
 import React from 'react';
-import { AutomationRule } from '../../types/automation';
-import { ObsAction } from '../../types/obsActions';
+import { AutomationRule } from '@/types/automation';
+import { ObsAction } from '@/types/obsActions';
 
 interface ReviewStepProps {
     rule: AutomationRule;
+}
+
+function hasActionName(data: unknown): data is { actionName: string } {
+    return (
+        typeof data === 'object' &&
+        data !== null &&
+        'actionName' in data &&
+        typeof (data as any).actionName === 'string'
+    );
 }
 
 export const ReviewStep: React.FC<ReviewStepProps> = ({ rule }) => {
@@ -53,7 +62,9 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ rule }) => {
                                 {action.type === 'obs' ? 'OBS' : 'Streamer.bot'}: {
                                     action.type === 'obs'
                                         ? (action.data as ObsAction).type
-                                        : (action.data as any).actionName
+                                        : hasActionName(action.data)
+                                            ? action.data.actionName
+                                            : 'Unknown Action'
                                 }
                             </li>
                         ))}

@@ -1,20 +1,19 @@
 import React, { useEffect, useRef } from 'react';
-import { useGeminiChat } from '../hooks/useGeminiChat';
-import { MessageList } from './chat/MessageList';
-import { ChatInput } from './chat/ChatInput';
-import { useConnectionManagerStore } from '../store/connectionManagerStore';
-import { useChatStore } from '../store/chatStore';
-import { useSettingsStore } from '../store/settingsStore';
-import { CatppuccinAccentColorName, AppTab, ChatMessage } from '../types';
-import { StreamerBotService } from '../services/streamerBotService';
+import { useGeminiChat } from '@/hooks/useGeminiChat';
+import { MessageList } from './MessageList';
+import { ChatInput } from './ChatInput';
+import { useConnectionManagerStore } from '@/store/connectionManagerStore';
+import { ConnectionState } from '@/store/connectionsStore';
+import { useChatStore, ChatState } from '@/store/chatStore';
+import { useSettingsStore, SettingsState } from '@/store/settingsStore';
+import { StreamerBotService } from '@/services/streamerBotService';
+import { useObsActions } from '@/hooks/useObsActions';
 
 interface GeminiChatProps {
-    streamerBotService: StreamerBotService | null;
     onRefreshData: () => Promise<void>;
     setErrorMessage: (message: string | null) => void;
     chatInputValue: string;
     onChatInputChange: (value: string) => void;
-    activeTab: AppTab;
     onStreamerBotAction: (action: {
     type: string;
     args?: Record<string, unknown>;
@@ -22,25 +21,24 @@ interface GeminiChatProps {
 }
 
 export const GeminiChat: React.FC<GeminiChatProps> = ({
-    streamerBotService,
     onRefreshData,
     setErrorMessage,
     chatInputValue,
     onChatInputChange,
     onStreamerBotAction,
 }) => {
-    const isConnected = useConnectionManagerStore(state => state.isConnected);
-    const sources = useConnectionManagerStore(state => state.sources);
-    const currentProgramScene = useConnectionManagerStore(state => state.currentProgramScene);
-    const obsActions = useConnectionManagerStore(state => state.actions);
+    const isConnected = useConnectionManagerStore((state: ConnectionState) => state.isConnected);
+    const sources = useConnectionManagerStore((state: ConnectionState) => state.sources);
+    const currentProgramScene = useConnectionManagerStore((state: ConnectionState) => state.currentProgramScene);
+    const { handleObsAction } = useObsActions();
 
-    const messages = useChatStore(state => state.geminiMessages);
-    const isGeminiClientInitialized = useChatStore(state => state.isGeminiClientInitialized);
-    const chatActions = useChatStore(state => state.actions);
+    const messages = useChatStore((state: ChatState) => state.geminiMessages);
+    const isGeminiClientInitialized = useChatStore((state: ChatState) => state.isGeminiClientInitialized);
+    const chatActions = useChatStore((state: ChatState) => state.actions);
 
-    const extraDarkMode = useSettingsStore(state => state.extraDarkMode);
-    const flipSides = useSettingsStore(state => state.flipSides);
-    const theme = useSettingsStore(state => state.theme);
+    const extraDarkMode = useSettingsStore((state: SettingsState) => state.extraDarkMode);
+    const flipSides = useSettingsStore((state: SettingsState) => state.flipSides);
+    const theme = useSettingsStore((state: SettingsState) => state.theme);
 
     const onAddMessage = chatActions.addMessage;
     const accentColorName = theme.accent;
@@ -54,9 +52,8 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
         ai,
     } = useGeminiChat(onRefreshData, setErrorMessage, onStreamerBotAction);
 
-    const chatInputRef = useRef<HTMLInputElement>(null);
+    const chatInputRef: React.RefObject<HTMLInputElement> = useRef(null);
 
-    const takingScreenshotRef = useRef(false);
     useEffect(() => {
         if (isGeminiClientInitialized && ai.current) {
             // AI is already initialized by the hook
@@ -69,16 +66,16 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
             return;
         }
         try {
-            const screenshot = await obsActions.handleObsAction({
+            const screenshot = await handleObsAction({
                 type: 'getSourceScreenshot',
                 sourceName: currentProgramScene,
                 imageFormat: 'png'
             });
-            if (screenshot.success) {
+            if (screenshot && screenshot.success) {
                 onAddMessage({ role: 'system', text: screenshot.message });
                 handleAddToContext(`Screenshot of current scene \"${currentProgramScene}\" has been captured and is available for analysis.`);
             } else {
-                onAddMessage({ role: 'system', text: `📸 Screenshot failed: ${screenshot.error}` });
+                onAddMessage({ role: 'system', text: `📸 Screenshot failed: ${screenshot ? screenshot.error : 'Unknown error'}` });
             }
         } catch (error: unknown) {
             if (error instanceof Error) {

@@ -1,13 +1,13 @@
-import Tooltip from './ui/Tooltip';
+import Tooltip from '@/components/ui/Tooltip';
 import React, { useState, useEffect } from 'react';
-import { Button } from './ui/Button';
-import { TextInput } from './common/TextInput';
-import { Modal } from './common/Modal';
-import { useConnectionManagerStore } from '../store/connectionManagerStore';
-import { useSettingsStore } from '../store/settingsStore';
-import { HtmlTemplateService, TemplateConfig } from '../services/htmlTemplateService';
-import { catppuccinAccentColorsHexMap, CatppuccinAccentColorName } from '../types';
-import ExternalHtmlRenderer from './ExternalHtmlRenderer';
+import { Button } from '@/components/ui/Button';
+import { TextInput } from '@/components/common/TextInput';
+import { Modal } from '@/components/common/Modal';
+import { useConnectionManagerStore } from '@/store/connectionManagerStore';
+import { useSettingsStore } from '@/store/settingsStore';
+import { HtmlTemplateService, TemplateConfig } from '@/services/htmlTemplateService';
+import { catppuccinAccentColorsHexMap, CatppuccinAccentColorName } from '@/types';
+import ExternalHtmlRenderer from '@/components/ui/ExternalHtmlRenderer';
 
 interface HtmlTemplateBuilderProps {
     accentColorName: CatppuccinAccentColorName;

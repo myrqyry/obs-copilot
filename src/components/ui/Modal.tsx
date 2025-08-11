@@ -15,7 +15,6 @@ interface ModalProps {
   children: React.ReactNode;
   onClose: () => void;
   isOpen?: boolean;
-  accentColorName?: CatppuccinAccentColorName;
   actions?: ModalAction[];
   size?: 'sm' | 'md' | 'lg' | 'xl';
   blendMode?: React.CSSProperties['mixBlendMode'];
@@ -26,7 +25,6 @@ export const Modal: React.FC<ModalProps> = ({
   children,
   onClose,
   isOpen = true,
-  accentColorName,
   actions,
   size = 'md',
   blendMode

@@ -1,8 +1,7 @@
 import React from 'react';
-import { TextInput } from '../common/TextInput';
-import { OBS_EVENT_LIST } from '../../constants/obsEvents';
-import { EVENT_DATA_CONFIGS } from '../../types/automation';
-import { AutomationTrigger } from '../../types/automation';
+import { TextInput } from '@/components/common/TextInput';
+import { OBS_EVENT_LIST } from '@/constants/obsEvents';
+import { EVENT_DATA_CONFIGS, AutomationTrigger } from '@/types/automation';
 
 interface TriggerStepProps {
     ruleName: string;
@@ -29,7 +28,7 @@ export const TriggerStep: React.FC<TriggerStepProps> = ({
                 </label>
                 <TextInput
                     value={ruleName}
-                    onChange={(e) => setRuleName(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRuleName(e.target.value)}
                     placeholder="Enter a descriptive name for this rule"
                     className="w-full"
                 />
@@ -41,7 +40,7 @@ export const TriggerStep: React.FC<TriggerStepProps> = ({
                 </label>
                 <select
                     value={trigger.eventName}
-                    onChange={(e) => setTrigger({ ...trigger, eventName: e.target.value, eventData: {} })}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setTrigger({ ...trigger, eventName: e.target.value, eventData: {} })}
                     className="w-full border rounded p-2 bg-background text-foreground"
                 >
                     <option value="">Select an event...</option>
@@ -70,8 +69,8 @@ export const TriggerStep: React.FC<TriggerStepProps> = ({
                             </label>
                             {field.type === 'select' ? (
                                 <select
-                                    value={trigger.eventData?.[field.name] || ''}
-                                    onChange={(e) => setTrigger({
+                                    value={String(trigger.eventData?.[field.name] || '')}
+                                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setTrigger({
                                         ...trigger,
                                         eventData: { ...trigger.eventData, [field.name]: e.target.value }
                                     })}
@@ -84,8 +83,8 @@ export const TriggerStep: React.FC<TriggerStepProps> = ({
                                 </select>
                             ) : (
                                 <TextInput
-                                    value={trigger.eventData?.[field.name] || ''}
-                                    onChange={(e) => setTrigger({
+                                    value={String(trigger.eventData?.[field.name] || '')}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTrigger({
                                         ...trigger,
                                         eventData: { ...trigger.eventData, [field.name]: e.target.value }
                                     })}
@@ -103,7 +102,7 @@ export const TriggerStep: React.FC<TriggerStepProps> = ({
                     type="checkbox"
                     id="enabled"
                     checked={enabled}
-                    onChange={(e) => setEnabled(e.target.checked)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEnabled(e.target.checked)}
                     className="accent-accent"
                 />
                 <label htmlFor="enabled" className="text-sm text-foreground">

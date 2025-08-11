@@ -1,10 +1,9 @@
-import { ColorChooser } from '../../components/common/ColorChooser';
-import { ThemeChooser } from '../../components/common/ThemeChooser';
-import Tooltip from '../../components/ui/Tooltip';
+import { ColorChooser } from '@/components/common/ColorChooser';
+import { ThemeChooser } from '@/components/common/ThemeChooser';
 import React, { useState } from 'react';
-import { Modal } from '../../components/ui/Modal';
-import { CogIcon } from '../../components/common/CogIcon';
-import { TextInput } from '../../components/common/TextInput';
+import { Modal } from '@/components/ui/Modal';
+import { CogIcon } from '@/components/common/CogIcon';
+import { TextInput } from '@/components/common/TextInput';
 import {
   CatppuccinAccentColorName,
   catppuccinAccentColorsHexMap,
@@ -12,12 +11,11 @@ import {
   catppuccinSecondaryAccentColorsHexMap,
   CatppuccinChatBubbleColorName,
   catppuccinChatBubbleColorsHexMap
-} from '../../types';
-import { ChatBubblePreview } from '../../components/common/ChatBubblePreview';
-import { useSettingsStore, SettingsState } from '../../store/settingsStore';
-import { CollapsibleSection } from '../../components/common/CollapsibleSection';
-import { Button } from '../../components/ui/Button';
-import { cn } from '../../lib/utils';
+} from '@/types';
+import { ChatBubblePreview } from '@/components/common/ChatBubblePreview';
+import { useSettingsStore, SettingsState } from '@/store/settingsStore';
+import { CollapsibleSection } from '@/components/common/CollapsibleSection';
+import { cn } from '@/lib/utils';
 
 interface ObsSettingsPanelActions {
   setThemeColor: (
@@ -39,12 +37,8 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
   actions
 }) => {
   const selectedAccentColorName = useSettingsStore((state: SettingsState) => state.theme.accent);
-  const selectedSecondaryAccentColorName = useSettingsStore((state: SettingsState) => state.theme.secondaryAccent);
   const selectedUserChatBubbleColorName = useSettingsStore((state: SettingsState) => state.theme.userChatBubble);
   const selectedModelChatBubbleColorName = useSettingsStore((state: SettingsState) => state.theme.modelChatBubble);
-  const flipSides = useSettingsStore((state: SettingsState) => state.flipSides);
-  const autoApplySuggestions = useSettingsStore((state: SettingsState) => state.autoApplySuggestions);
-  const extraDarkMode = useSettingsStore((state: SettingsState) => state.extraDarkMode);
   // Zustand selectors
 const customChatBackground = useSettingsStore((state: SettingsState) => state.customChatBackground);
 const bubbleFillOpacity = useSettingsStore((state: SettingsState) => state.bubbleFillOpacity);
@@ -52,8 +46,6 @@ const chatBubbleBlendMode = useSettingsStore((state: SettingsState) => state.cha
 const backgroundOpacity = useSettingsStore((state: SettingsState) => state.backgroundOpacity);
 const chatBackgroundBlendMode = useSettingsStore((state: SettingsState) => state.chatBackgroundBlendMode);
 const storeActions = useSettingsStore((state: SettingsState) => state.actions);
-
-  const [showResetModal, setShowResetModal] = useState(false);
 
   // Collapsible state for each section
   const [openTheme, setOpenTheme] = useState(true);

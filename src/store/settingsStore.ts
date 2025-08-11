@@ -3,8 +3,8 @@ import {
   CatppuccinAccentColorName,
   CatppuccinSecondaryAccentColorName,
   CatppuccinChatBubbleColorName,
-} from '../types';
-import { saveUserSettings, saveConnectionSettings } from '../utils/persistence';
+} from '@/types';
+import { saveUserSettings, saveConnectionSettings } from '@/utils/persistence';
 
 export interface SettingsState {
   flipSides: boolean;

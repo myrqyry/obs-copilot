@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import { ConnectionForm } from './ConnectionForm';
-import { CatppuccinAccentColorName } from '../types';
-import { Card, CardContent } from './ui';
-import { cn } from '../lib/utils';
-
-import { useSettingsStore } from '../store/settingsStore';
+import { Card, CardContent } from '@/components/ui';
+import { cn } from '@/lib/utils';
+import { useSettingsStore } from '@/store/settingsStore';
 
 interface ConnectionPanelProps {
     defaultUrl: string;

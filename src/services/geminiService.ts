@@ -1,9 +1,9 @@
 import axios from 'axios';
-import { logger } from '../utils/logger';
+import { logger } from '@/utils/logger';
 import { aiMiddleware } from './aiMiddleware';
-import { ChatMessage } from '../types';
-import { GeminiGenerateContentResponse } from '../types/gemini';
-import { AIService } from '../types/ai';
+import { ChatMessage } from '@/types';
+import { GeminiGenerateContentResponse } from '@/types/gemini';
+import { AIService } from '@/types/ai';
 
 class GeminiService implements AIService {
   private proxyEndpoint: string;
@@ -23,26 +23,29 @@ class GeminiService implements AIService {
   /**
    * Generates content using the Gemini API.
    * @param prompt The prompt to send to the Gemini API.
-   * @param history Optional conversation history.
+   * @param retries Optional number of retries.
    * @returns A promise that resolves to the generated content.
    * @throws Throws an error if the API call fails.
    */
   async generateContent(
     prompt: string,
-    history?: ChatMessage[],
+    retries = 3,
   ): Promise<GeminiGenerateContentResponse> {
     try {
       const response = await axios.post(
         `${this.proxyEndpoint}/generate-content`,
         {
           prompt,
-          history,
         },
         { headers: this.getHeaders() },
       );
       return response.data;
     } catch (error) {
       logger.error('Error generating content from Gemini:', error);
+      if (retries > 0) {
+        logger.info(`Retrying... (${retries - 1} left)`);
+        return this.generateContent(prompt, retries - 1);
+      }
       throw error; // Re-throw to allow calling components to handle
     }
   }

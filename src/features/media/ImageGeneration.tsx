@@ -1,20 +1,16 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { useConnectionManagerStore } from '../store/connectionManagerStore';
-import { useSettingsStore } from '../store/settingsStore';
-import { toast } from './ui/toast';
-import { ObsClient } from '../services/obsClient';
-import { catppuccinAccentColorsHexMap } from '../types';
-import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
-import { generateSourceName } from '../utils/obsSourceHelpers';
-import { copyToClipboard } from '../utils/persistence';
-import { Card, CardContent } from './ui/Card';
-import { Modal } from './common/Modal';
-import { Button } from './ui/Button';
-import { FaviconIcon } from './common/FaviconIcon';
-import Tooltip from './ui/Tooltip';
-import { FaviconDropdown } from './common/FaviconDropdown';
-import { CollapsibleCard } from './common/CollapsibleCard';
-import { TextInput } from './common/TextInput';
+import React, { useState } from 'react';
+import { useConnectionManagerStore } from '@/store/connectionManagerStore';
+import { useSettingsStore } from '@/store/settingsStore';
+import { toast } from '@/components/ui/toast';
+import { ObsClient } from '@/services/obsClient';
+import { catppuccinAccentColorsHexMap } from '@/types';
+import { generateSourceName } from '@/utils/obsSourceHelpers';
+import { copyToClipboard } from '@/utils/persistence';
+import { CardContent } from '@/components/ui/Card';
+import { Modal } from '@/components/ui/Modal';
+import { Button } from '@/components/ui/Button';
+import { CollapsibleCard } from '@/components/common/CollapsibleCard';
+import { TextInput } from '@/components/common/TextInput';
 
 const ImageGeneration: React.FC = () => {
     const [prompt, setPrompt] = useState('');

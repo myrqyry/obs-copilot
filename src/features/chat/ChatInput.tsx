@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Button } from '../ui/Button';
-import { LoadingSpinner } from '../common/LoadingSpinner';
+import { Button } from '@/components/ui/Button';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { GlobeAltIcon, CameraIcon } from '@heroicons/react/24/solid';
-import Tooltip from '../ui/Tooltip';
-import { z, ZodError } from 'zod';
-import { chatInputSchema } from '../../lib/validations';
+import Tooltip from '@/components/ui/Tooltip';
+import { ZodError } from 'zod';
+import { chatInputSchema } from '@/lib/validations';
 
 interface ChatInputProps {
     chatInputValue: string;
@@ -17,7 +17,6 @@ interface ChatInputProps {
     isConnected: boolean;
     currentProgramScene: string | null;
     onScreenshot: () => void;
-    accentColorName?: string;
     chatInputRef: React.RefObject<HTMLInputElement>;
 }
 
@@ -32,7 +31,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     isConnected,
     currentProgramScene,
     onScreenshot,
-    accentColorName,
     chatInputRef,
 }) => {
     const [error, setError] = useState<string | undefined>(undefined);

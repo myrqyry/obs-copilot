@@ -1,13 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { StreamerBotService } from '../services/streamerBotService';
-import { ObsClientImpl } from '../services/obsClient';
-import { useChatStore } from '../store/chatStore';
-import { useAutomationStore } from '../store/automationStore';
-import useConnectionsStore from '../store/connectionsStore';
-import { useSettingsStore } from '../store/settingsStore';
-import { toast } from '../components/ui/toast';
-import { loadConnectionSettings, saveConnectionSettings, isStorageAvailable } from '../utils/persistence';
-import { DEFAULT_OBS_WEBSOCKET_URL } from '../constants';
+import { StreamerBotService } from '@/services/streamerBotService';
+import { ObsClientImpl } from '@/services/obsClient';
+import { useChatStore } from '@/store/chatStore';
+import { useAutomationStore } from '@/store/automationStore';
+import useConnectionsStore from '@/store/connectionsStore';
+import { useSettingsStore } from '@/store/settingsStore';
+import { toast } from '@/components/ui/toast';
+import { loadConnectionSettings, saveConnectionSettings, isStorageAvailable } from '@/utils/persistence';
+import { DEFAULT_OBS_WEBSOCKET_URL } from '@/constants';
 
 interface ConnectionContextType {
   streamerBotService: StreamerBotService;

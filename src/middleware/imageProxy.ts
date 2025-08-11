@@ -1,7 +1,7 @@
 import express from 'express';
 import axios from 'axios';
-import { logger } from '../utils/logger';
-import { prefersReducedMotion } from '../lib/utils';
+import { logger } from '@/utils/logger';
+import { prefersReducedMotion } from '@/lib/utils';
 
 const router = express.Router();
 

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { unsplashService, UnsplashPhoto } from '../services/unsplashService';
+import React, { useState } from 'react';
+import { unsplashService, UnsplashPhoto } from '@/services/unsplashService';
 
 interface UnsplashPhotoSearchProps {
   onPhotoSelect?: (photo: UnsplashPhoto) => void;

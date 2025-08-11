@@ -109,3 +109,26 @@ export function isValidArray(value: unknown): value is any[] {
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
+
+export function base64ToArrayBuffer(base64: string): ArrayBuffer {
+    const binary_string = window.atob(base64);
+    const len = binary_string.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binary_string.charCodeAt(i);
+    }
+    return bytes.buffer;
+}
+
+export function dataUrlToBlobUrl(dataUrl: string): string {
+    const [header, base64] = dataUrl.split(',');
+    const mime = header.match(/:(.*?);/)?.[1];
+    const bstr = atob(base64);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while(n--){
+        u8arr[n] = bstr.charCodeAt(n);
+    }
+    const blob = new Blob([u8arr], {type: mime});
+    return URL.createObjectURL(blob);
+}

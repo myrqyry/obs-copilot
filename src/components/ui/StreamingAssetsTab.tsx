@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useSettingsStore } from '@/store/settingsStore';
 import { catppuccinAccentColorsHexMap } from '@/types';
-import { Card, CardContent } from '@/components/ui/Card';
+import { CardContent } from '@/components/ui/Card';
 import HtmlTemplateBuilder from '@/features/templates/HtmlTemplateBuilder';
 import { CollapsibleCard } from '@/components/common/CollapsibleCard';
 import GifSearch from '@/features/asset-search/GifSearch';

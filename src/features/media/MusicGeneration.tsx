@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
-import { useAudioStore } from '../store/audioStore';
-import { useSettingsStore } from '../store/settingsStore';
-import { toast } from './ui/toast';
-import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
-import { CardContent } from './ui/Card';
-import { Button } from './ui/Button';
-import { TextInput } from './common/TextInput';
-import Tooltip from './ui/Tooltip';
-import InlineMusicControls from './InlineMusicControls';
-import { CollapsibleCard } from './common/CollapsibleCard';
-import { catppuccinAccentColorsHexMap } from '../types';
+import { useAudioStore } from '@/store/audioStore';
+import { useSettingsStore } from '@/store/settingsStore';
+import { toast } from '@/components/ui/toast';
+import useApiKeyStore, { ApiService } from '@/store/apiKeyStore';
+import { CardContent } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { TextInput } from '@/components/common/TextInput';
+import Tooltip from '@/components/ui/Tooltip';
+import InlineMusicControls from '@/components/ui/InlineMusicControls';
+import { CollapsibleCard } from '@/components/common/CollapsibleCard';
+import { catppuccinAccentColorsHexMap } from '@/types';
 
 // Lyria RealTime music generation options
 const LYRIA_SCALES = [

@@ -1,19 +1,16 @@
 import React, { useState, useCallback } from 'react';
-import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
-import { useConnectionManagerStore } from '../store/connectionManagerStore';
-import { useSettingsStore } from '../store/settingsStore';
-import { toast } from './ui/toast';
-import { generateSourceName } from '../utils/obsSourceHelpers';
-import { copyToClipboard } from '../utils/persistence';
-import { Card, CardContent } from './ui/Card';
-import { Modal } from './common/Modal';
-import { Button } from './ui/Button';
-import { FaviconIcon } from './common/FaviconIcon';
-import Tooltip from './ui/Tooltip';
-import { FaviconDropdown } from './common/FaviconDropdown';
-import { CollapsibleCard } from './common/CollapsibleCard';
-import { TextInput } from './common/TextInput';
-import { catppuccinAccentColorsHexMap } from '../types';
+import useApiKeyStore, { ApiService } from '@/store/apiKeyStore';
+import { useConnectionManagerStore } from '@/store/connectionManagerStore';
+import { useSettingsStore } from '@/store/settingsStore';
+import { toast } from '@/components/ui/toast';
+import { generateSourceName } from '@/utils/obsSourceHelpers';
+import { copyToClipboard } from '@/utils/persistence';
+import { CardContent } from '@/components/ui/Card';
+import { Modal } from '@/components/ui/Modal';
+import { Button } from '@/components/ui/Button';
+import { FaviconDropdown } from '@/components/common/FaviconDropdown';
+import { CollapsibleCard } from '@/components/common/CollapsibleCard';
+import { catppuccinAccentColorsHexMap } from '@/types';
 
 const EMOJI_APIS = [
     { value: 'emoji-api', label: 'Emoji API', domain: 'emoji-api.com', icon: '😀' },
@@ -77,7 +74,7 @@ const EmojiSearch: React.FC = () => {
         return '❓';
     };
 
-    const getModalActions = (type: 'emoji', data: any): ModalAction[] => {
+    const getModalActions = (data: any): ModalAction[] => {
         const emojiChar = getEmojiChar(data);
         return [
             { label: 'Add as Browser Source', onClick: () => handleAddEmojiAsBrowserSource(
@@ -201,7 +198,7 @@ const EmojiSearch: React.FC = () => {
                     isOpen={!!modalContent}
                     onClose={() => setModalContent(null)}
                     title="Emoji Preview"
-                    actions={getModalActions(modalContent.type, modalContent.data)}
+                    actions={getModalActions(modalContent.data)}
                 >
                     <div className="p-4 bg-slate-800 rounded-md flex justify-center items-center aspect-square max-w-xs mx-auto"><div className="text-[12rem] leading-none">{getEmojiChar(modalContent.data)}</div></div>
                 </Modal>

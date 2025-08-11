@@ -1,9 +1,8 @@
 import { useState, useCallback } from 'react';
-import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
-import { GiphyResult } from '../types/giphy';
-import { toast } from '../components/ui/toast';
-import { GiphyRating } from '../types/giphy';
-import { getSimpleApiEndpoint } from '../utils/api';
+import useApiKeyStore, { ApiService } from '@/store/apiKeyStore';
+import { GiphyResult, GiphyRating } from '@/types/giphy';
+import { toast } from '@/components/ui/toast';
+import { getSimpleApiEndpoint } from '@/utils/api';
 
 interface SearchFilters {
   rating: GiphyRating;

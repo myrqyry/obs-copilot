@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useAudioStore } from '../../store/audioStore';
+import { useAudioStore } from '@/store/audioStore';
 import gsap from 'gsap';
 import AudioReactiveNote from './AudioReactiveNote';
 

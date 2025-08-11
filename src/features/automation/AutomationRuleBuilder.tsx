@@ -1,13 +1,13 @@
 import React from 'react';
-import { Modal } from './common/Modal';
-import { Button } from './ui/Button';
-import { useAutomationRuleBuilder } from '../hooks/useAutomationRuleBuilder';
-import { TriggerStep } from './automation/TriggerStep';
-import { ConditionsStep } from './automation/ConditionsStep';
-import { ActionsStep } from './automation/ActionsStep';
-import { ReviewStep } from './automation/ReviewStep';
-import { AutomationRule } from '../types/automation';
-import { cn } from '../lib/utils';
+import { Modal } from '@/components/ui/Modal';
+import { Button } from '@/components/ui/Button';
+import { useAutomationRuleBuilder } from '@/hooks/useAutomationRuleBuilder';
+import { TriggerStep } from './TriggerStep';
+import { ConditionsStep } from './ConditionsStep';
+import { ActionsStep } from './ActionsStep';
+import { ReviewStep } from './ReviewStep';
+import { AutomationRule } from '@/types/automation';
+import { cn } from '@/lib/utils';
 
 interface AutomationRuleBuilderProps {
     isOpen: boolean;
@@ -41,11 +41,6 @@ export const AutomationRuleBuilder: React.FC<AutomationRuleBuilderProps> = ({
         setCurrentStep,
         handleSave,
     } = useAutomationRuleBuilder(isOpen, initialEventName, editingRule);
-
-    const onSave = () => {
-        handleSave();
-        onClose();
-    };
 
     const renderStepIndicator = () => (
         <div className="flex items-center space-x-2 mb-6">

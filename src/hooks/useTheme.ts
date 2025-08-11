@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { useSettingsStore } from '../store/settingsStore';
-import { getTheme, Theme } from '../types/themes';
+import { useSettingsStore } from '@/store/settingsStore';
+import { getTheme, Theme } from '@/types/themes';
 
 export const useTheme = () => {
   const { theme, actions } = useSettingsStore();

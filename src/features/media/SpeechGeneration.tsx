@@ -1,14 +1,14 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { useSettingsStore } from '../store/settingsStore';
-import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
-import { geminiService } from '../services/geminiService';
-import { CardContent } from './ui/Card';
-import { Button } from './ui/Button';
-import { pcm16ToWavUrl } from '../lib/pcmToWavUrl';
-import { base64ToArrayBuffer, dataUrlToBlobUrl } from '../lib/utils';
-import { CollapsibleCard } from './common/CollapsibleCard';
-import { catppuccinAccentColorsHexMap } from '../types';
-import Tooltip from './ui/Tooltip';
+import { useSettingsStore } from '@/store/settingsStore';
+import useApiKeyStore, { ApiService } from '@/store/apiKeyStore';
+import { geminiService } from '@/services/geminiService';
+import { CardContent } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { pcm16ToWavUrl } from '@/lib/pcmToWavUrl';
+import { base64ToArrayBuffer, dataUrlToBlobUrl } from '@/lib/utils';
+import { CollapsibleCard } from '@/components/common/CollapsibleCard';
+import { catppuccinAccentColorsHexMap } from '@/types';
+import Tooltip from '@/components/ui/Tooltip';
 import { gsap } from 'gsap';
 
 // List of supported Gemini TTS voices

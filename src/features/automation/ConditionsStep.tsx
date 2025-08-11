@@ -1,8 +1,7 @@
 import React from 'react';
-import { Button } from '../ui/Button';
-import { TextInput } from '../common/TextInput';
-import { AutomationCondition } from '../../types/automation';
-import { CONDITION_FIELD_OPTIONS } from '../../types/automation';
+import { Button } from '@/components/ui/Button';
+import { TextInput } from '@/components/common/TextInput';
+import { AutomationCondition, CONDITION_FIELD_OPTIONS } from '@/types/automation';
 
 interface ConditionsStepProps {
     conditions: AutomationCondition[];
@@ -54,9 +53,9 @@ export const ConditionsStep: React.FC<ConditionsStepProps> = ({
                             <div className="grid grid-cols-4 gap-2">
                                 <select
                                     value={condition.type}
-                                    onChange={(e) => updateCondition(condition.id, {
+                                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateCondition(condition.id, {
                                         type: e.target.value as any,
-                                        field: CONDITION_FIELD_OPTIONS[e.target.value]?.[0]?.field || ''
+                                        field: CONDITION_FIELD_OPTIONS[e.target.value as keyof typeof CONDITION_FIELD_OPTIONS]?.[0]?.field || ''
                                     })}
                                     className="border rounded p-1 bg-background text-foreground text-sm"
                                 >
@@ -68,7 +67,7 @@ export const ConditionsStep: React.FC<ConditionsStepProps> = ({
 
                                 <select
                                     value={condition.field}
-                                    onChange={(e) => updateCondition(condition.id, { field: e.target.value })}
+                                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateCondition(condition.id, { field: e.target.value })}
                                     className="border rounded p-1 bg-background text-foreground text-sm"
                                 >
                                     {CONDITION_FIELD_OPTIONS[condition.type]?.map(option => (
@@ -80,7 +79,7 @@ export const ConditionsStep: React.FC<ConditionsStepProps> = ({
 
                                 <select
                                     value={condition.operator}
-                                    onChange={(e) => updateCondition(condition.id, { operator: e.target.value as any })}
+                                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateCondition(condition.id, { operator: e.target.value as any })}
                                     className="border rounded p-1 bg-background text-foreground text-sm"
                                 >
                                     <option value="equals">Equals</option>
@@ -92,7 +91,7 @@ export const ConditionsStep: React.FC<ConditionsStepProps> = ({
 
                                 <TextInput
                                     value={condition.value}
-                                    onChange={(e) => updateCondition(condition.id, { value: e.target.value })}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateCondition(condition.id, { value: e.target.value })}
                                     placeholder="Value"
                                     className="text-sm"
                                 />

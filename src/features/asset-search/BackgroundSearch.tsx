@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import useConnectionsStore from '@/store/connectionsStore';
-import { useSettingsStore } from '@/store/settingsStore';
+import { useSettingsStore, SettingsState } from '@/store/settingsStore';
 import { toast } from '@/components/ui/toast';
 import { generateSourceName } from '@/utils/obsSourceHelpers';
 import { copyToClipboard } from '@/utils/persistence';
 import { CardContent } from '@/components/ui/Card';
-import { Modal } from '@/components/common/Modal';
+import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { FaviconDropdown } from '@/components/common/FaviconDropdown';
 import { CollapsibleCard } from '@/components/common/CollapsibleCard';
@@ -14,7 +14,6 @@ import { catppuccinAccentColorsHexMap } from '@/types';
 import { useGenericApiSearch } from '@/hooks/useGenericApiSearch';
 import { apiConfigs } from '@/config/apis';
 import { apiMappers } from '@/config/api-mappers';
-+
 import { safeHostname } from '@/utils/utils';
 
 const BACKGROUND_APIS = Object.keys(apiConfigs).map(key => ({
@@ -38,8 +37,10 @@ const BackgroundSearch: React.FC = () => {
     const [backgroundQuery, setBackgroundQuery] = useState('');
     const [modalContent, setModalContent] = useState<{ type: 'background', data: any } | null>(null);
 
-    const { obsServiceInstance, isConnected, currentProgramScene } = useConnectionsStore();
-    const accentColorName = useSettingsStore((state: any) => state.theme.accent);
+    const obsServiceInstance = useConnectionsStore((state) => state.obsServiceInstance);
+    const isConnected = useConnectionsStore((state) => state.isConnected);
+    const currentProgramScene = useConnectionsStore((state) => state.currentProgramScene);
+    const accentColorName = useSettingsStore((state: SettingsState) => state.theme.accent);
     const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
 
     useEffect(() => {
@@ -49,7 +50,6 @@ const BackgroundSearch: React.FC = () => {
     const {
         results: backgroundResults,
         loading: backgroundLoading,
-        searched: backgroundSearched,
         page: backgroundPage,
         setPage: setBackgroundPage,
         search,
@@ -130,7 +130,7 @@ const BackgroundSearch: React.FC = () => {
                         <input
                             type="text"
                             value={backgroundQuery}
-                            onChange={(e) => setBackgroundQuery(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBackgroundQuery(e.target.value)}
                             placeholder="Search for backgrounds..."
                             className="flex-grow rounded-md border border-border bg-background px-1 py-1.5 text-xs focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors placeholder:text-muted-foreground"
                         />

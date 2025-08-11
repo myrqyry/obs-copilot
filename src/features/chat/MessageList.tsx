@@ -1,8 +1,8 @@
 import React, { useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ChatMessageItem } from './ChatMessageItem';
-import { LoadingSpinner } from '../common/LoadingSpinner';
-import { ChatMessage, CatppuccinAccentColorName } from '../../types';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { ChatMessage, CatppuccinAccentColorName } from '@/types';
 
 interface MessageListProps {
     messages: ChatMessage[];
