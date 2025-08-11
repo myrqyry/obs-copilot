@@ -35,8 +35,9 @@ const ConnectionContext = createContext<ConnectionContextType | undefined>(undef
 export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { addMessage } = useChatStore((state) => state.actions);
   const { setStreamerBotServiceInstance } = useAutomationStore((state) => state.actions);
-  const { setConnected: setStreamerBotConnected, setApiKey: setStreamerBotApiKey } = useConnectionsStore();
-  const { setConnected: setObsConnected, setApiKey: setObsApiKey } = useConnectionsStore();
+  // Only grab the setters we actually use to avoid unused-var TS errors
+  const { setConnected: setStreamerBotConnected } = useConnectionsStore();
+  const { setConnected: setObsConnected } = useConnectionsStore();
   const { obsWebSocketUrl, obsWebSocketPassword, actions } = useSettingsStore();
   const { setObsWebSocketUrl, setObsWebSocketPassword } = actions;
 

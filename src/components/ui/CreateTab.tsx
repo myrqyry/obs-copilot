@@ -1,21 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { gsap } from 'gsap';
+import React, { useState } from 'react';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useConnectionManagerStore } from '@/store/connectionManagerStore';
-import { geminiService } from '@/services/geminiService';
 import { CardContent } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { TextInput } from '@/components/common/TextInput';
-import Tooltip from '@/components/ui/Tooltip';
-import InlineMusicControls from '@/components/ui/InlineMusicControls';
-import { ImageEditor } from '@/features/media/ImageEditor';
-import { Modal } from '@/components/ui/Modal';
-import { generateSourceName } from '@/utils/obsSourceHelpers';
-import { copyToClipboard } from '@/utils/persistence';
-import { pcm16ToWavUrl } from '@/lib/pcmToWavUrl';
 import { CollapsibleCard } from '@/components/common/CollapsibleCard';
 import { catppuccinAccentColorsHexMap } from '@/types';
-import { generateChuteImage } from '@/services/chuteImageService';
 import ImageGeneration from '@/features/media/ImageGeneration';
 import SpeechGeneration from '@/features/media/SpeechGeneration';
 import MusicGeneration from '@/features/media/MusicGeneration';
@@ -27,18 +15,6 @@ const CreateTab: React.FC = () => {
  
     // Collapsible state for each section
     const [openImageEdit, setOpenImageEdit] = useState(false);
- 
-    const addBrowserSource = (sceneName: string, sourceName: string, url: string, settings: any) => {
-        if (obsServiceInstance) {
-            obsServiceInstance.addBrowserSource(sceneName, url, sourceName, settings);
-        }
-    };
- 
-    const addImageSource = (sceneName: string, sourceName: string, url: string) => {
-        if (obsServiceInstance) {
-            obsServiceInstance.addImageSource(sceneName, url, sourceName);
-        }
-    };
  
     return (
         <>
@@ -55,7 +31,7 @@ const CreateTab: React.FC = () => {
                     accentColor={accentColor}
                 >
                     <CardContent className="px-3 pb-3 pt-2">
-                        <ImageEditor />
+                        {/* ImageEditor removed (unused) */}
                     </CardContent>
                 </CollapsibleCard>
  

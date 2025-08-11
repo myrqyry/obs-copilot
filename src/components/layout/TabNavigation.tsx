@@ -20,20 +20,20 @@ const tabEmojis: Record<AppTab, string> = {
 };
 
 export const TabNavigation: React.FC<TabNavigationProps> = ({ activeTab, setActiveTab, tabOrder }) => {
-    const { isConnected, isConnecting } = useConnectionsStore();
+    const { isConnected } = useConnectionsStore();
     const { isGeminiClientInitialized } = useChatStore();
 
     return (
         <div role="tablist" aria-label="Main application tabs" className="py-2 px-4 border-b border-border text-sm font-semibold emoji-text bg-background rounded-t-lg font-sans text-primary shadow-md">
             <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2 min-w-0">
-                {tabOrder.map((tab, index) => {
+                {tabOrder.map((tab) => {
                     const isActive = activeTab === tab;
                     let iconColor = 'text-muted-foreground';
                     const isConnectionsTab = tab === AppTab.CONNECTIONS;
                     if (isConnectionsTab) {
-                        if (isConnecting) {
-                            iconColor = 'text-yellow-500';
-                        } else if (isConnected && isGeminiClientInitialized) {
+                        // Connection status coloring: prefer green when fully initialized,
+                        // blue when connected but not fully initialized, destructive when disconnected.
+                        if (isConnected && isGeminiClientInitialized) {
                             iconColor = 'text-green-500';
                         } else if (isConnected) {
                             iconColor = 'text-blue-500';

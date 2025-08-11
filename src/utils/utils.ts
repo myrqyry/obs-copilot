@@ -1,4 +1,5 @@
 import { logger } from './logger';
+
 /**
  * Debounce function to limit the rate at which a function can fire
  * @param func The function to debounce
@@ -89,5 +90,23 @@ export async function withAsyncPerformanceMonitoring<
     logger.warn(`[Performance] ${name} took ${duration.toFixed(2)}ms`);
   }
 
-  return result;
+  return result as ReturnType<T>;
+}
+
+/**
+ * Safely extracts the hostname from a URL-like string
+ * @param urlLike The URL-like string to parse
+ * @returns The hostname if successfully parsed, otherwise an empty string
+ */
+export function safeHostname(urlLike: string): string {
+  try {
+    return new URL(urlLike).hostname;
+  } catch (error) {
+    try {
+      return new URL(`https://${urlLike}`).hostname;
+    } catch (error) {
+      logger.warn(`Invalid URL: ${urlLike}`);
+      return '';
+    }
+  }
 }

@@ -38,17 +38,13 @@ interface ObsSettingsPanelProps {
 export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
   actions
 }) => {
-  const {
-    theme: {
-      accent: selectedAccentColorName,
-      secondaryAccent: selectedSecondaryAccentColorName,
-      userChatBubble: selectedUserChatBubbleColorName,
-      modelChatBubble: selectedModelChatBubbleColorName,
-    },
-    flipSides,
-    autoApplySuggestions,
-    extraDarkMode,
-  } = useSettingsStore();
+  const selectedAccentColorName = useSettingsStore((state: SettingsState) => state.theme.accent);
+  const selectedSecondaryAccentColorName = useSettingsStore((state: SettingsState) => state.theme.secondaryAccent);
+  const selectedUserChatBubbleColorName = useSettingsStore((state: SettingsState) => state.theme.userChatBubble);
+  const selectedModelChatBubbleColorName = useSettingsStore((state: SettingsState) => state.theme.modelChatBubble);
+  const flipSides = useSettingsStore((state: SettingsState) => state.flipSides);
+  const autoApplySuggestions = useSettingsStore((state: SettingsState) => state.autoApplySuggestions);
+  const extraDarkMode = useSettingsStore((state: SettingsState) => state.extraDarkMode);
   // Zustand selectors
 const customChatBackground = useSettingsStore((state: SettingsState) => state.customChatBackground);
 const bubbleFillOpacity = useSettingsStore((state: SettingsState) => state.bubbleFillOpacity);
@@ -130,8 +126,9 @@ const storeActions = useSettingsStore((state: SettingsState) => state.actions);
                   className="ml-1 p-1 rounded hover:bg-accent/20 transition-colors"
                   aria-label="Open chat bubble fill settings"
                   onClick={() => setShowBubbleSettingsModal(true)}
+                  style={{ color: accentColor }}
                 >
-                  <CogIcon className={cn("w-5 h-5", `text-[${accentColor}]`)} />
+                  <CogIcon className={cn("w-5 h-5")} />
                 </button>
               </div>
             </div>
@@ -325,8 +322,9 @@ const storeActions = useSettingsStore((state: SettingsState) => state.actions);
                 className="ml-1 p-1 rounded hover:bg-accent/20 transition-colors"
                 aria-label="Open chat background settings"
                 onClick={() => setShowBgSettingsModal(true)}
+                style={{ color: accentColor }}
               >
-                  <CogIcon className={cn("w-5 h-5", `text-[${accentColor}]`)} />
+                  <CogIcon className={cn("w-5 h-5")} />
               </button>
             </div>
             {/* Chat Background Settings Modal */}

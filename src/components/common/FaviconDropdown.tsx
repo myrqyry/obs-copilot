@@ -124,7 +124,7 @@ export function FaviconDropdown({ options, value, onChange, className = '', plac
                         // More complex item navigation (ArrowUp, ArrowDown, Home, End, Enter, Space) would go here
                     }}
                 >
-                    {options.map((option, index) => (
+                    {options.map((option) => (
                         <button
                             key={option.value}
                             type="button"

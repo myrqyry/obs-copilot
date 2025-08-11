@@ -56,6 +56,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
 
     const chatInputRef = useRef<HTMLInputElement>(null);
 
+    const takingScreenshotRef = useRef(false);
     useEffect(() => {
         if (isGeminiClientInitialized && ai.current) {
             // AI is already initialized by the hook

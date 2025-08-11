@@ -1,24 +1,31 @@
-import React from 'react';
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
-
+import { prefersReducedMotion } from '../../lib/utils';
+ 
 interface MusicVisualizerProps {
     onClick?: () => void;
 }
-
+ 
 const MusicVisualizer: React.FC<MusicVisualizerProps> = ({ onClick }) => {
     // Default to Catppuccin Mauve and Teal for the gradient
     const gradientBackground = 'linear-gradient(45deg, hsl(var(--primary)), hsl(var(--accent)))';
     const pulseColor = 'hsl(var(--primary-foreground))';
-
+ 
     const innerCircleRef = useRef<HTMLDivElement>(null);
-
+ 
     useEffect(() => {
+        if (prefersReducedMotion()) return;
         if (innerCircleRef.current) {
-            gsap.to(innerCircleRef.current, { scale: 1.1, duration: 2, repeat: -1, yoyo: true });
+            gsap.to(innerCircleRef.current, { scale: 1.1, duration: 2, repeat: -1, yoyo: true, ease: 'sine.inOut' });
         }
+ 
+        return () => {
+            if (innerCircleRef.current) {
+                gsap.killTweensOf(innerCircleRef.current);
+            }
+        };
     }, []);
-
+ 
     return (
         <div style={{
             width: '40px',
@@ -45,5 +52,5 @@ const MusicVisualizer: React.FC<MusicVisualizerProps> = ({ onClick }) => {
         </div>
     );
 };
-
+ 
 export default MusicVisualizer;

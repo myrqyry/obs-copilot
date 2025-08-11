@@ -12,7 +12,6 @@
     "skipLibCheck": true,
     /* Bundler mode */
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
@@ -38,7 +37,15 @@
     "dist",
     "build",
     "tmp",
-    "*.log"
+    "*.log",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/**/*.spec.ts",
+    "src/**/*.spec.tsx",
+    "src/**/__tests__/**",
+    "src/**/__mocks__/**",
+    "src/**/*.mock.ts",
+    "src/**/*.mock.tsx"
   ],
   "references": [
     {

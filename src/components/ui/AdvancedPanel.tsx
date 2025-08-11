@@ -7,7 +7,7 @@ import { useConnectionManagerStore } from '@/store/connectionManagerStore';
 import { useChatStore } from '@/store/chatStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { Button } from '@/components/ui/Button';
-import { Card, CardContent } from '@/components/ui/Card';
+import { CardContent } from '@/components/ui/Card';
 import { cn } from '@/lib/utils';
 import { AddToContextButton } from '@/components/common/AddToContextButton';
 import AutomationRuleBuilder from '@/features/automation/AutomationRuleBuilder';
@@ -15,7 +15,6 @@ import { automationService } from '@/services/automationService';
 import type { AutomationRule } from '@/types/automation';
 import { CollapsibleCard } from '@/components/common/CollapsibleCard';
 import { catppuccinAccentColorsHexMap } from '@/types';
-import { TextInput } from '@/components/common/TextInput';
 import useApiKeyStore, { ApiService, ApiServiceName } from '@/store/apiKeyStore';
 
 // Defines the services shown in the UI for API key input
@@ -58,7 +57,7 @@ const AdvancedPanel: React.FC = () => {
         deleteAutomationRule,
         toggleAutomationRule,
     } = useAutomationStore((state) => state.actions);
-    const { actions: obsActions, obsServiceInstance, streamerBotServiceInstance } = useConnectionsStore();
+    const { actions: obsActions, obsServiceInstance, streamerBotServiceInstance } = useConnectionManagerStore();
     const { uploadLog } = obsActions;
     const [obsLogFiles, setObsLogFiles] = useState<any[] | null>(null);
     
@@ -167,7 +166,23 @@ const AdvancedPanel: React.FC = () => {
                 automationService.processEvent(eventName, event);
             };
         });
-        obsServiceInstance.subscribeToEvents(handlers);
+
+        const unsubscribe =
+            typeof obsServiceInstance.subscribeToEvents === 'function'
+                ? obsServiceInstance.subscribeToEvents(handlers)
+                : undefined;
+
+        return () => {
+            try {
+                if (typeof unsubscribe === 'function') {
+                    unsubscribe();
+                } else if (typeof (obsServiceInstance as any).unsubscribeFromEvents === 'function') {
+                    (obsServiceInstance as any).unsubscribeFromEvents(handlers);
+                }
+            } catch (e) {
+                console.error('Failed to unsubscribe from OBS events', e);
+            }
+        };
     }, [obsServiceInstance, obsEventSubscriptions, addMessage]);
 
     // Automation rule handlers

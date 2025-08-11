@@ -28,6 +28,8 @@ const DOMAIN_FAVICONS: Record<string, string> = {
     'stackoverflow.com': '💻',
 };
 
+const ERROR_SENTINEL = 'error';
+
 export const FaviconIcon: React.FC<FaviconIconProps> = ({ domain, alt, className = '', size = 16 }) => {
     const [src, setSrc] = useState<string | null>(null);
     const [loaded, setLoaded] = useState(false);
@@ -35,12 +37,20 @@ export const FaviconIcon: React.FC<FaviconIconProps> = ({ domain, alt, className
     const [retryCount, setRetryCount] = useState(0);
 
     useEffect(() => {
+        // Reset states on domain or size change
+        setSrc(null);
+        setLoaded(false);
+        setError(false);
+        setRetryCount(0);
+    }, [domain, size]);
+
+    useEffect(() => {
         console.log(`[FaviconIcon] useEffect for ${domain}, retry: ${retryCount}`);
         if (!domain) return;
 
         // Try to get from cache first
-        const cached = localStorage.getItem(`favicon_${domain}`);
-        if (cached && !cached.includes('error')) {
+        const cached = localStorage.getItem(`favicon_${domain}_${size}`);
+        if (cached && cached !== ERROR_SENTINEL) {
             console.log(`[FaviconIcon] Cache hit for ${domain}`);
             setSrc(cached);
             return;
@@ -65,7 +75,7 @@ export const FaviconIcon: React.FC<FaviconIconProps> = ({ domain, alt, className
         setError(false);
         // Cache successful loads
         if (src) {
-            localStorage.setItem(`favicon_${domain}`, src);
+            localStorage.setItem(`favicon_${domain}_${size}`, src);
         }
     };
 
@@ -73,10 +83,10 @@ export const FaviconIcon: React.FC<FaviconIconProps> = ({ domain, alt, className
         console.log(`[FaviconIcon] handleError for ${domain}`);
         setError(true);
         setLoaded(false);
-        
+
         // Cache error to prevent repeated requests
-        localStorage.setItem(`favicon_${domain}`, 'error');
-        
+        localStorage.setItem(`favicon_${domain}_${size}`, ERROR_SENTINEL);
+
         // Simplified retry logic
         setRetryCount(prev => prev + 1);
     };
@@ -124,4 +134,3 @@ export const FaviconIcon: React.FC<FaviconIconProps> = ({ domain, alt, className
         />
     );
 }
-

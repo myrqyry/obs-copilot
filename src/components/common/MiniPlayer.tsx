@@ -27,29 +27,43 @@ const MiniPlayer = () => {
     const actions = useAudioStore(state => state.actions);
     const [minimized, setMinimized] = useState(false);
     const audioRef = useRef<HTMLAudioElement>(null);
-const noteRef = useRef<HTMLDivElement>(null);
+    const noteRef = useRef<HTMLDivElement>(null);
     const minimizedNoteRef = useRef<HTMLButtonElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
     const [isAnimating, setIsAnimating] = useState(false);
     const [editing, setEditing] = useState(false);
     const [editValue, setEditValue] = useState('');
     const inputRef = useRef<HTMLInputElement>(null);
     const [attention, setAttention] = useState(false);
     const attentionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-    // Attention animation and auto-collapse when music starts
-    useEffect(() => {
-        if (activeAudioSource?.type === 'music' && isPlayerVisible && !minimized) {
-            setAttention(true);
-            if (attentionTimeoutRef.current) clearTimeout(attentionTimeoutRef.current);
-            attentionTimeoutRef.current = setTimeout(() => {
-                setAttention(false);
-                setMinimized(true);
-            }, 1800); // 1.8s: glow, then minimize
-        }
-        // Clean up on unmount
-        return () => {
-            if (attentionTimeoutRef.current) clearTimeout(attentionTimeoutRef.current);
-        };
-    }, [activeAudioSource?.type, isPlayerVisible]);
+ // ... existing code ...
+
+     // Attention animation and auto-collapse when music starts
+     useEffect(() => {
+         if (activeAudioSource?.type === 'music' && isPlayerVisible && !minimized) {
+             setAttention(true);
+             if (attentionTimeoutRef.current) clearTimeout(attentionTimeoutRef.current);
+             attentionTimeoutRef.current = setTimeout(() => {
+                 setAttention(false);
+                 setMinimized(true);
+             }, 1800); // 1.8s: glow, then minimize
+         }
+         // Clean up on unmount
+         return () => {
+             if (attentionTimeoutRef.current) clearTimeout(attentionTimeoutRef.current);
+         };
+     }, [activeAudioSource?.type, isPlayerVisible]);
+
+     // Entrance animation for the mini player container
+     useEffect(() => {
+         if (!containerRef.current) return;
+         const el = containerRef.current;
+         gsap.set(el, { opacity: 0, y: -8, scale: 0.98 });
+         gsap.to(el, { opacity: 1, y: 0, scale: 1, duration: 0.45, ease: 'power2.out' });
+         return () => {
+             gsap.killTweensOf(el);
+         };
+     }, [isPlayerVisible]);
 
     if (!isPlayerVisible || !activeAudioSource) {
         return null;
@@ -97,6 +111,13 @@ const noteRef = useRef<HTMLDivElement>(null);
                 document.body.removeChild(clone);
                 setIsAnimating(false);
                 setMinimized(false);
+                // Animate controls in as a follow-up GSAP usage
+                try {
+                  const controls = containerRef.current?.querySelectorAll('.player-control');
+                  if (controls && controls.length) {
+                    gsap.fromTo(controls, { opacity: 0, y: 6, scale: 0.95 }, { opacity: 1, y: 0, scale: 1, duration: 0.35, stagger: 0.06, ease: 'power2.out' });
+                  }
+                } catch (e) {}
                 setTimeout(() => {
                     if (noteRef.current) noteRef.current.style.visibility = '';
                 }, 100);
@@ -160,6 +181,12 @@ const noteRef = useRef<HTMLDivElement>(null);
                 document.body.removeChild(clone);
                 setIsAnimating(false);
                 setMinimized(true);
+                // Briefly pulse the minimized button to indicate minimize using GSAP
+                try {
+                  if (minimizedNoteRef.current) {
+                    gsap.fromTo(minimizedNoteRef.current, { scale: 0.95 }, { scale: 1.06, duration: 0.18, yoyo: true, repeat: 1, ease: 'power2.out' });
+                  }
+                } catch (e) {}
                 setTimeout(() => {
                     if (noteRef.current) noteRef.current.style.visibility = '';
                 }, 100);
@@ -172,6 +199,7 @@ const noteRef = useRef<HTMLDivElement>(null);
             {/* Expanded player always rendered, toggled by visibility */}
             <div
                 className={`fixed top-2 right-2 z-[1000] bg-ctp-base/80 border border-ctp-mauve/30 shadow rounded-lg flex items-center gap-2 px-2 py-0.5 min-w-[90px] max-w-xs group${attention ? ' animate-glow' : ''}`}
+                ref={containerRef}
                 style={minimized ? { visibility: 'hidden', pointerEvents: 'none', position: 'absolute', backdropFilter: 'blur(6px)', height: '28px' } : { visibility: 'visible', pointerEvents: 'auto', backdropFilter: 'blur(6px)', height: '28px' }}
             >
                 <div ref={noteRef} className="w-5 h-5 flex items-center justify-center rounded-full bg-ctp-mauve/20">
@@ -259,8 +287,8 @@ const noteRef = useRef<HTMLDivElement>(null);
                 )}
                 {activeAudioSource.type === 'music' && (
                     <div className="flex items-center gap-1 ml-1">
-                        <button onClick={actions.resumeMusic} aria-label="Resume" className="p-0.5 rounded hover:bg-ctp-mauve/20 text-ctp-mauve focus:outline-none focus:ring-1 focus:ring-ctp-mauve"><MiniPlayerIcons.Play /></button>
-                        <button onClick={actions.pauseMusic} aria-label="Pause" className="p-0.5 rounded hover:bg-ctp-mauve/20 text-ctp-mauve focus:outline-none focus:ring-1 focus:ring-ctp-mauve"><MiniPlayerIcons.Pause /></button>
+                        <button onClick={actions.resumeMusic} aria-label="Resume" className="player-control p-0.5 rounded hover:bg-ctp-mauve/20 text-ctp-mauve focus:outline-none focus:ring-1 focus:ring-ctp-mauve"><MiniPlayerIcons.Play /></button>
+                        <button onClick={actions.pauseMusic} aria-label="Pause" className="player-control p-0.5 rounded hover:bg-ctp-mauve/20 text-ctp-mauve focus:outline-none focus:ring-1 focus:ring-ctp-mauve"><MiniPlayerIcons.Pause /></button>
                     </div>
                 )}
                 <button onClick={actions.stopMusic} aria-label="Stop" className="p-0.5 rounded hover:bg-ctp-red/20 text-ctp-red ml-1 focus:outline-none focus:ring-1 focus:ring-ctp-red"><MiniPlayerIcons.Stop /></button>

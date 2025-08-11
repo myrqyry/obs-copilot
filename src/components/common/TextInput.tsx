@@ -46,7 +46,7 @@ export const TextInput: React.FC<TextInputProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // GSAP animations
+  // GSAP animations (restored)
   useEffect(() => {
     if (!withAnimation || !containerRef.current) return;
 
@@ -90,12 +90,13 @@ export const TextInput: React.FC<TextInputProps> = ({
   const handleClear = () => {
     if (inputRef.current) {
       if (onChange) {
-        // Fire a synthetic event to clear the value
-        const event = {
+        // Fire a synthetic event to clear the value.
+        // Cast via unknown first to satisfy TypeScript's strict event type checks.
+        const syntheticEvent = {
           ...new Event('input', { bubbles: true }),
           target: { value: '' }
         };
-        onChange(event as React.ChangeEvent<HTMLInputElement>);
+        onChange(syntheticEvent as unknown as React.ChangeEvent<HTMLInputElement>);
       }
       inputRef.current.value = '';
       onClear?.();

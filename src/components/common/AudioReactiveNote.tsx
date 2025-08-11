@@ -10,7 +10,7 @@ interface Props {
 const AudioReactiveNote: React.FC<Props> = ({ audioSelector, size = 20, hidden = false }) => {
     const [level, setLevel] = useState(0);
     const levelRef = useRef(0);
-    const rafRef = useRef<number>();
+    const rafRef = useRef<ReturnType<typeof requestAnimationFrame> | null>(null);
     const analyserRef = useRef<AnalyserNode | null>(null);
     const audioCtxRef = useRef<AudioContext | null>(null);
     const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);

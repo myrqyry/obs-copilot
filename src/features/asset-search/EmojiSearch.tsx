@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
 import { useConnectionManagerStore } from '../store/connectionManagerStore';
 import { useSettingsStore } from '../store/settingsStore';
@@ -80,8 +80,14 @@ const EmojiSearch: React.FC = () => {
     const getModalActions = (type: 'emoji', data: any): ModalAction[] => {
         const emojiChar = getEmojiChar(data);
         return [
-            { label: 'Add as Browser Source', onClick: () => handleAddEmojiAsBrowserSource(emojiChar, data.name || 'emoji'), variant: 'primary' },
-            { label: 'Copy Emoji', onClick: () => { copyToClipboard(emojiChar); toast({ title: 'Info', description: 'Copied Emoji!' }); } },
+            { label: 'Add as Browser Source', onClick: () => handleAddEmojiAsBrowserSource(
+                emojiChar,
+                data.unicodeName || data.name || data.slug || 'emoji'
+            ), variant: 'primary' },
+            { label: 'Copy Emoji', onClick: () => { 
+                copyToClipboard(emojiChar); 
+                toast({ title: 'Info', description: 'Copied Emoji!' }); 
+            } },
         ];
     };
 
@@ -164,10 +170,19 @@ const EmojiSearch: React.FC = () => {
                         <Button type="submit" disabled={emojiLoading || !emojiQuery.trim()} size="sm">{emojiLoading ? 'Searching...' : 'Search'}</Button>
                     </form>
                     {emojiLoading && <div className="text-center text-xs">Loading...</div>}
-                    {!emojiLoading && emojiSearched && emojiResults.length === 0 && <div className="text-center text-muted-foreground text-xs">No results found.</div>}
+                    {!emojiLoading && searchError && (
+                        <div className="text-center text-destructive text-xs">{searchError}</div>
+                    )}
+                    {!emojiLoading && !searchError && emojiSearched && emojiResults.length === 0 && (
+                        <div className="text-center text-muted-foreground text-xs">No results found.</div>
+                    )}
                     <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-1">
                         {getPaginatedItems(emojiResults, emojiPage).map((emoji, index) => (
-                            <div key={`${emoji.slug}-${index}`} className="relative group cursor-pointer p-1 bg-slate-800 rounded-md flex items-center justify-center aspect-square text-2xl sm:text-3xl md:text-4xl" onClick={() => setModalContent({ type: 'emoji', data: emoji })}>
+                            <div
+                                key={(emoji.slug || emoji.name || emoji.unicodeName || getEmojiChar(emoji) || String(index)).toString()}
+                                className="relative group cursor-pointer p-1 bg-slate-800 rounded-md flex items-center justify-center aspect-square text-2xl sm:text-3xl md:text-4xl"
+                                onClick={() => setModalContent({ type: 'emoji', data: emoji })}
+                            >
                                 {getEmojiChar(emoji)}
                             </div>
                         ))}

@@ -1,5 +1,4 @@
 import React from 'react';
-import { cn } from '@/lib/utils';
 import { useLockStore } from '@/store/lockStore';
 
 interface LockToggleProps {

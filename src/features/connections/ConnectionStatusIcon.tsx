@@ -1,4 +1,4 @@
-import Tooltip from './ui/Tooltip';
+import Tooltip from '@/components/ui/Tooltip';
 
 import React, { useRef, useEffect } from 'react';
 import { gsap } from 'gsap';
@@ -12,6 +12,7 @@ interface ConnectionStatusIconProps {
 
 export const ConnectionStatusIcon: React.FC<ConnectionStatusIconProps> = ({ isConnected, isConnecting, error, onClick }) => {
   const statusDotRef = useRef<HTMLDivElement>(null);
+  const statusBtnRef = useRef<HTMLButtonElement>(null);
 
   let dotColor = 'bg-destructive'; // Default to red (disconnected/error)
   let title = 'OBS Disconnected';
@@ -29,6 +30,20 @@ export const ConnectionStatusIcon: React.FC<ConnectionStatusIconProps> = ({ isCo
 
   useEffect(() => {
     const dot = statusDotRef.current;
+    const button = statusBtnRef.current ?? null;
+    if (button) {
+      // Entrance animation for the whole button for polish
+      try {
+        gsap.fromTo(
+          button,
+          { opacity: 0, y: -6, scale: 0.98 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.35, ease: 'power2.out' }
+        );
+      } catch (e) {
+        // ignore animation errors
+      }
+    }
+
     if (dot) {
       if (isConnecting) {
         gsap.to(dot, {
@@ -46,12 +61,14 @@ export const ConnectionStatusIcon: React.FC<ConnectionStatusIconProps> = ({ isCo
     }
     return () => {
       if (dot) gsap.killTweensOf(dot);
+      if (button) gsap.killTweensOf(button);
     };
   }, [isConnecting]);
 
   return (
     <Tooltip content={title}>
       <button
+        ref={statusBtnRef}
         onClick={onClick}
         className="relative p-2 rounded-full hover:bg-muted focus-ring enhanced-focus transition-all duration-150 ease-in-out"
         aria-label="Open Connection Settings"

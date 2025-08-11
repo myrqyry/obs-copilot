@@ -1,9 +1,9 @@
 {
   "name": "obs-copilot",
   "overrides": {
-    "type-fest": "3.0.0"
+    "type-fest": "3.11.0"
   },
-  "_comment": "The 'type-fest' override is in place because while obs-websocket-js@5.0.6 requires ^3.11.0, a newer version of type-fest appears to conflict with another dependency, possibly related to React 19. This override forces an older version to resolve the conflict.",
+  "_comment": "Pinning type-fest to 3.11.x to satisfy obs-websocket-js@5.0.6 (^3.11.0) while avoiding conflicts observed with newer 3.x releases.",
   "version": "0.0.0",
   "private": true,
   "description": "<div align=\"center\">",

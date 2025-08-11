@@ -5,7 +5,7 @@ import { gsap } from 'gsap';
 import { getRandomSuggestions } from '../../constants/chatSuggestions';
 import { ChatMessage, CatppuccinAccentColorName, OBSSource, CatppuccinChatBubbleColorName } from '../../types';
 import { useSettingsStore } from '../../store/settingsStore';
-import Tooltip from '../ui/Tooltip';
+import Tooltip from '@/components/ui/Tooltip';
 import DOMPurify from 'dompurify';
 
 interface ChatMessageItemProps {
@@ -82,9 +82,12 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
         }
     };
 
+    // At the top of your component, initialize a ref to hold the timeout ID
+    const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
     useLayoutEffect(() => {
         if (itemRef.current) {
-            gsap.fromTo(
+            const animation = gsap.fromTo(
                 itemRef.current,
                 { opacity: 0, y: 15, scale: 0.98 },
                 { opacity: 1, y: 0, scale: 1, duration: 0.35, ease: 'power2.out' }
@@ -98,21 +101,53 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
             } else {
                 setIsShrunk(false);
             }
+            return () => {
+                animation.kill();
+            };
         }
     }, [message, forceExpand]);
 
+    // Debounced scroll handler (single implementation)
     const handleBubbleScroll = (event: React.UIEvent<HTMLDivElement>) => {
-        const target = event.target as HTMLDivElement;
+        const target = event.currentTarget as HTMLDivElement;
         setIsScrolling(true);
         setIsScrolledFromTop(target.scrollTop > 10);
 
-        // Check if scrolled to bottom (within 5px tolerance)
-        const isAtBottom = target.scrollHeight - target.scrollTop - target.clientHeight < 5;
+        const isAtBottom =
+            target.scrollHeight - target.scrollTop - target.clientHeight < 5;
         setIsScrolledToBottom(isAtBottom);
 
-        clearTimeout((handleBubbleScroll as any)._scrollTimeout);
-        (handleBubbleScroll as any)._scrollTimeout = setTimeout(() => setIsScrolling(false), 1000);
+        if (scrollTimeoutRef.current) {
+            clearTimeout(scrollTimeoutRef.current);
+        }
+        scrollTimeoutRef.current = setTimeout(() => setIsScrolling(false), 1000);
     };
+
+    // Add subtle hover animation to the bubble for polish (uses GSAP)
+    useLayoutEffect(() => {
+        const el = bubbleRef.current;
+        if (!el) return;
+
+        const handleEnter = () => {
+            try {
+                gsap.to(el, { scale: 1.015, boxShadow: '0 6px 18px rgba(0,0,0,0.12)', duration: 0.25, ease: 'power2.out' });
+            } catch (e) {}
+        };
+        const handleLeave = () => {
+            try {
+                gsap.to(el, { scale: 1, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', duration: 0.25, ease: 'power2.in' });
+            } catch (e) {}
+        };
+
+        el.addEventListener('mouseenter', handleEnter);
+        el.addEventListener('mouseleave', handleLeave);
+
+        return () => {
+            el.removeEventListener('mouseenter', handleEnter);
+            el.removeEventListener('mouseleave', handleLeave);
+            try { gsap.killTweensOf(el); } catch (e) {}
+        };
+    }, []);
 
     const isUser = message.role === 'user';
     const isSystem = message.role === 'system';
@@ -400,55 +435,51 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
 
                 {/* Timestamp outside of scrollable area */}
                 <div
-                    className="text-xs mt-1.5 relative z-20 tracking-wider"
+                    className="text-xs mt-1.5 relative z-20 tracking-wider flex items-center gap-2"
                     style={{
                         fontFamily: 'Reddit Sans, -apple-system, BlinkMacSystemFont, sans-serif',
                         fontWeight: 500,
                         color: textColor,
                         opacity: 0.8,
-                        fontStyle: 'normal' as React.CSSProperties['fontStyle']
                     }}
                 >
-                    {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </div>
+                    <div className="flex-1 text-xs">{/* placeholder for timestamp text if present */}</div>
 
-                {/* Hover action buttons (top right, visible on hover) */}
-                <div className="absolute top-2 right-2 z-30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex space-x-1">
-                    {/* Regenerate button (only for assistant messages) */}
-                    {isAssistant && onRegenerate && (
-                        <Tooltip content="Regenerate response">
+                    <div className="flex items-center gap-1">
+                        <Tooltip content="Copy text">
                             <button
-                                onClick={handleRegenerate}
-                                className="bg-card/90 backdrop-blur-sm text-muted-foreground hover:text-green-500 hover:bg-green-500/10 p-1 rounded-full shadow-md border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-green-500/50"
-                                aria-label="Regenerate message"
+                                onClick={handleCopyText}
+                                className="bg-card/90 backdrop-blur-sm text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 p-1 rounded-full shadow-md border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                aria-label="Copy message text"
                             >
-                                <ArrowPathIcon className="w-3 h-3" />
+                                <ClipboardDocumentIcon className="w-3 h-3" />
                             </button>
                         </Tooltip>
-                    )}
 
-                    <Tooltip content="Copy text">
-                        <div
-                            role="button"
-                            onClick={handleCopyText}
-                            className="bg-card/90 backdrop-blur-sm text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 p-1 rounded-full shadow-md border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                            aria-label="Copy message text"
-                        >
-                            <ClipboardDocumentIcon className="w-3 h-3" />
-                        </div>
-                    </Tooltip>
+                        {isAssistant && onRegenerate && (
+                            <Tooltip content="Regenerate response">
+                                <button
+                                    onClick={handleRegenerate}
+                                    className="bg-card/90 backdrop-blur-sm text-muted-foreground hover:text-green-500 hover:bg-green-500/10 p-1 rounded-full shadow-md border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                                    aria-label="Regenerate message"
+                                >
+                                    <ArrowPathIcon className="w-3 h-3" />
+                                </button>
+                            </Tooltip>
+                        )}
 
-                    {onAddToContext && (
-                        <Tooltip content="Add to context">
-                            <button
-                                onClick={handleAddToContextLocal}
-                                className="bg-card/90 backdrop-blur-sm text-accent hover:bg-accent/20 p-1 rounded-full shadow-md border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-accent/50"
-                                aria-label="Add message to context"
-                            >
-                                <ChatBubbleLeftEllipsisIcon className="w-4 h-4 text-accent" />
-                            </button>
-                        </Tooltip>
-                    )}
+                        {onAddToContext && (
+                            <Tooltip content="Add to context">
+                                <button
+                                    onClick={handleAddToContextLocal}
+                                    className="bg-card/90 backdrop-blur-sm text-accent hover:bg-accent/20 p-1 rounded-full shadow-md border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-accent/50"
+                                    aria-label="Add message to context"
+                                >
+                                    <ChatBubbleLeftEllipsisIcon className="w-4 h-4 text-accent" />
+                                </button>
+                            </Tooltip>
+                        )}
+                    </div>
                 </div>
 
                 {/* Expand/collapse floating icon button (bottom right, more visible) */}

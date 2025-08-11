@@ -26,6 +26,29 @@ export const Card: React.FC<CardProps> = ({
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
 
+  const baseStyles = 'rounded-xl transition-all duration-300 ease-out relative overflow-hidden';
+  
+  const variantStyles = {
+    default: 'bg-card border border-border shadow-sm hover:shadow-md',
+    glass: 'glass-card backdrop-blur-md border border-white/10 shadow-glass hover:shadow-glass-lg',
+    elevated: 'bg-card border border-border shadow-lg hover:shadow-xl hover:-translate-y-1',
+    outlined: 'bg-transparent border-2 border-border hover:border-primary/50',
+    gradient: 'bg-gradient-to-br from-card via-card/80 to-card/60 border border-border shadow-lg hover:shadow-xl',
+    neon: 'bg-card/80 border border-primary/30 shadow-glow hover:shadow-glow-lg backdrop-blur-sm',
+    frosted: 'bg-white/5 backdrop-blur-xl border border-white/10 shadow-lg hover:shadow-xl',
+    minimal: 'bg-transparent border border-border/50 hover:border-border'
+  };
+
+  const sizeStyles = {
+    sm: 'p-3',
+    md: 'p-4',
+    lg: 'p-6',
+    xl: 'p-8'
+  };
+
+  const hoverStyles = hover ? 'hover:scale-[1.02] hover:shadow-xl cursor-pointer' : '';
+  const glowStyles = glow ? 'shadow-glow hover:shadow-glow-lg' : '';
+
   // GSAP animations
   useEffect(() => {
     if (!withAnimation || !cardRef.current) return;
@@ -72,29 +95,6 @@ export const Card: React.FC<CardProps> = ({
       };
     }
   }, [withAnimation, interactive]);
-
-  const baseStyles = 'rounded-xl transition-all duration-300 ease-out relative overflow-hidden';
-  
-  const variantStyles = {
-    default: 'bg-card border border-border shadow-sm hover:shadow-md',
-    glass: 'glass-card backdrop-blur-md border border-white/10 shadow-glass hover:shadow-glass-lg',
-    elevated: 'bg-card border border-border shadow-lg hover:shadow-xl hover:-translate-y-1',
-    outlined: 'bg-transparent border-2 border-border hover:border-primary/50',
-    gradient: 'bg-gradient-to-br from-card via-card/80 to-card/60 border border-border shadow-lg hover:shadow-xl',
-    neon: 'bg-card/80 border border-primary/30 shadow-glow hover:shadow-glow-lg backdrop-blur-sm',
-    frosted: 'bg-white/5 backdrop-blur-xl border border-white/10 shadow-lg hover:shadow-xl',
-    minimal: 'bg-transparent border border-border/50 hover:border-border'
-  };
-
-  const sizeStyles = {
-    sm: 'p-3',
-    md: 'p-4',
-    lg: 'p-6',
-    xl: 'p-8'
-  };
-
-  const hoverStyles = hover ? 'hover:scale-[1.02] hover:shadow-xl cursor-pointer' : '';
-  const glowStyles = glow ? 'shadow-glow hover:shadow-glow-lg' : '';
 
   return (
     <div

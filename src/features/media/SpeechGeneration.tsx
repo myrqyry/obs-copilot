@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useSettingsStore } from '../store/settingsStore';
 import useApiKeyStore, { ApiService } from '../store/apiKeyStore';
 import { geminiService } from '../services/geminiService';
@@ -144,6 +144,23 @@ const SpeechGeneration: React.FC = () => {
             setAudioLoading(false);
         }
     }, [script, speakers]);
+
+    const downloadAnchorRef = useRef<HTMLAnchorElement | null>(null);
+
+    // Animate download link when generatedAudio appears
+    useEffect(() => {
+        if (generatedAudio && downloadAnchorRef.current) {
+            try {
+                gsap.fromTo(
+                    downloadAnchorRef.current,
+                    { opacity: 0, y: 6, scale: 0.96 },
+                    { opacity: 1, y: 0, scale: 1, duration: 0.45, ease: 'power2.out' }
+                );
+            } catch (e) {
+                // ignore animation errors
+            }
+        }
+    }, [generatedAudio]);
 
     return (
         <CollapsibleCard
@@ -312,6 +329,7 @@ const SpeechGeneration: React.FC = () => {
                     >
                         <audio controls src={generatedAudio} className="w-full max-w-md rounded border" />
                         <a
+                            ref={downloadAnchorRef}
                             href={generatedAudio}
                             download={
                                 (() => {

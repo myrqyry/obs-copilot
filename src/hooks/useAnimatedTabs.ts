@@ -77,12 +77,6 @@ export const useAnimatedTabs = (activeTab: string) => {
     return (event: React.MouseEvent<HTMLButtonElement>) => {
       const tabElement = event.currentTarget;
 
-      // Create click ripple effect
-      // const rect = tabElement.getBoundingClientRect();
-      // Position calculations for future hover effects
-      // const x = event.clientX - rect.left;
-      // const y = event.clientY - rect.top;
-
       // Animate the click
       gsap.fromTo(
         tabElement,

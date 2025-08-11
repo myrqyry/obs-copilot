@@ -2,7 +2,7 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { useApiSearch } from '../useApiSearch';
 import { useToast } from '../../components/ui/toast';
 
-jest.mock('../../components/ui/toast', () => ({
+jest.mock('@/components/ui/toast', () => ({
   useToast: jest.fn(),
 }));
 

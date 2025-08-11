@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useGifSearch } from '../hooks/useGifSearch.ts';
+import { useGifSearch } from '../hooks/useGifSearch';
 import { GifGrid } from './gif/GifGrid';
 import { GifSearchFilters } from './gif/GifSearchFilters';
 import { GifDetailsModal } from './gif/GifDetailsModal';

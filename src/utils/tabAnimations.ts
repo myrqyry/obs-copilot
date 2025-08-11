@@ -1,9 +1,9 @@
-import { gsap } from 'gsap';
-
 /**
  * Tab Animation System
  * Provides smooth GSAP-powered transitions for tab content
  */
+
+import { gsap } from 'gsap';
 
 export const tabAnimations = {
   /**
