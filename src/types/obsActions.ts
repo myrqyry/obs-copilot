@@ -1,4 +1,4 @@
-import type { OBSVideoSettings, GroundingChunk } from '../types';
+import type { GroundingChunk, OBSVideoSettings } from '@/types';
 
 export interface GeminiActionResponse {
   obsAction?: ObsAction | ObsAction[]; // Support both single actions and arrays
@@ -18,7 +18,7 @@ export interface CreateInputAction extends ObsActionBase {
   type: 'createInput';
   inputName: string;
   inputKind: string;
-  inputSettings?: object;
+  inputSettings?: Record<string, unknown>;
   sceneName?: string;
   sceneItemEnabled?: boolean;
 }
@@ -26,7 +26,7 @@ export interface CreateInputAction extends ObsActionBase {
 export interface SetInputSettingsAction extends ObsActionBase {
   type: 'setInputSettings';
   inputName: string;
-  inputSettings: object;
+  inputSettings: Record<string, unknown>;
   overlay?: boolean;
 }
 
@@ -35,7 +35,6 @@ export interface SetSceneItemEnabledAction extends ObsActionBase {
   sceneName: string;
   sourceName: string;
   sceneItemEnabled: boolean;
-  enabled?: boolean;
 }
 
 export interface GetInputSettingsAction extends ObsActionBase {
@@ -87,7 +86,7 @@ export interface CreateSourceFilterAction extends ObsActionBase {
   sourceName: string;
   filterName: string;
   filterKind: string;
-  filterSettings?: object;
+  filterSettings?: Record<string, unknown>;
 }
 
 export interface SetInputVolumeAction extends ObsActionBase {
@@ -236,7 +235,7 @@ export interface SetSourceFilterSettingsAction extends ObsActionBase {
   type: 'setSourceFilterSettings';
   sourceName: string;
   filterName: string;
-  filterSettings: object;
+  filterSettings: Record<string, unknown>;
   overlay?: boolean;
 }
 
@@ -372,7 +371,7 @@ export interface CreateSceneItemAction extends ObsActionBase {
   type: 'createSceneItem';
   sceneName: string;
   sourceName: string;
-  sceneItemEnabled?: boolean;
+  sceneItemEnabled: boolean;
 }
 
 export interface RemoveSceneItemAction extends ObsActionBase {
@@ -455,7 +454,7 @@ export interface GetSourceScreenshotAction extends ObsActionBase {
 
 export interface SetCurrentSceneTransitionSettingsAction extends ObsActionBase {
   type: 'setCurrentSceneTransitionSettings';
-  transitionSettings: object;
+  transitionSettings: Record<string, unknown>;
   overlay?: boolean;
 }
 

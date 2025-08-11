@@ -47,7 +47,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ rule }) => {
                         <ul className="text-sm text-muted-foreground ml-4">
                             {rule.conditions.map((condition) => (
                                 <li key={condition.id}>
-                                    {condition.field} {condition.operator} "{condition.value}"
+                                    {condition.field} {condition.operator} "{String(condition.value)}"
                                 </li>
                             ))}
                         </ul>

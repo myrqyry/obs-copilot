@@ -2,8 +2,6 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import useConnectionsStore from '@/store/connectionsStore';
 import { useChatStore } from '@/store/chatStore';
-import { useSettingsStore } from '@/store/settingsStore';
-import { useLockStore } from '@/store/lockStore';
 import { GEMINI_MODEL_NAME, INITIAL_SYSTEM_PROMPT } from '@/constants';
 import { buildMarkdownStylingSystemMessage } from '@/utils/systemPrompts';
 import { detectChoiceQuestion } from '@/utils/choiceDetection';
@@ -24,13 +22,28 @@ export const useGeminiChat = (
   const streamStatus = useConnectionsStore((state) => state.streamStatus);
   const recordStatus = useConnectionsStore((state) => state.recordStatus);
   const videoSettings = useConnectionsStore((state) => state.videoSettings);
-  const { handleObsAction } = useObsActions();
+  const obsService = useConnectionsStore((state) => state.obsServiceInstance);
 
   const geminiApiKey = useChatStore((state) => state.geminiApiKey);
   const userDefinedContext = useChatStore((state) => state.userDefinedContext);
   const chatActions = useChatStore((state) => state.actions);
-  const autoApplySuggestions = useSettingsStore((state) => state.autoApplySuggestions);
-  const { isLocked } = useLockStore();
+
+  const obsData = {
+    scenes,
+    currentProgramScene,
+    sources,
+    streamStatus,
+    recordStatus,
+    videoSettings,
+  };
+
+  const { handleObsAction } = useObsActions({
+    obsService,
+    obsData,
+    onRefreshData,
+    onAddMessage: chatActions.addMessage,
+    setErrorMessage,
+  });
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [useGoogleSearch, setUseGoogleSearch] = useState<boolean>(false);
@@ -131,7 +144,14 @@ export const useGeminiChat = (
         if (jsonMatch && jsonMatch[1]) {
           const parsed: GeminiActionResponse = JSON.parse(jsonMatch[1]);
           if (parsed.obsAction && isConnected) {
-            obsActionResult = await handleObsAction(parsed.obsAction);
+            const actions = Array.isArray(parsed.obsAction) ? parsed.obsAction : [parsed.obsAction];
+            for (const action of actions) {
+              obsActionResult = await handleObsAction(action);
+              // If one action fails, we might want to stop
+              if (!obsActionResult.success) {
+                break;
+              }
+            }
             await onRefreshData();
           }
           if (parsed.streamerBotAction) {
@@ -191,5 +211,6 @@ export const useGeminiChat = (
     handleAddToContext,
     handleSend,
     ai,
+    handleObsAction,
   };
 };

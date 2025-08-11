@@ -23,11 +23,9 @@ const SpeechGeneration: React.FC = () => {
         { name: 'Bob', voice: 'Charon', style: '', color: '#ffb703' },
     ]);
     const [generatedAudio, setGeneratedAudio] = useState<string | null>(null);
-    const [miniPlayerTTSUrl, setMiniPlayerTTSUrl] = useState<string | null>(null);
     const [audioLoading, setAudioLoading] = useState(false);
     const [audioError, setAudioError] = useState<string | null>(null);
     const [audioProvider, setAudioProvider] = useState<'gemini' | 'groq'>('gemini');
-    const [groqApiKey, setGroqApiKey] = useState('');
 
     // Advanced TTS settings (applies to all speakers for now)
     const [speakingRate, setSpeakingRate] = useState<number>(1.0);
@@ -59,7 +57,6 @@ const SpeechGeneration: React.FC = () => {
 
     // AI story generation
     const [storyLoading, setStoryLoading] = useState(false);
-    const GEMINI_TEXT_MODEL = "gemini-2.5-flash";
     const handleGenerateStory = useCallback(async (apiKey: string | undefined) => {
         setStoryLoading(true);
         setScript('');
@@ -104,7 +101,6 @@ const SpeechGeneration: React.FC = () => {
             // Gather all PCM buffers
             const pcmBuffers: ArrayBuffer[] = [];
             for (const part of parts) {
-                const speaker = speakers.find(s => s.name === part.speaker) || speakers[0];
                 const response = await geminiService.generateContent(part.text);
                 const data = response.audioData;
                 if (!data) throw new Error(`No audio data for ${part.speaker}`);
@@ -133,7 +129,6 @@ const SpeechGeneration: React.FC = () => {
             const finalUrl = dataUrlToBlobUrl(wavData);
 
             setGeneratedAudio(finalUrl);
-            setMiniPlayerTTSUrl(finalUrl);
         } catch (err: unknown) {
             if (err instanceof Error) {
                 setAudioError(err.message);

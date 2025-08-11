@@ -90,7 +90,7 @@ export const ConditionsStep: React.FC<ConditionsStepProps> = ({
                                 </select>
 
                                 <TextInput
-                                    value={condition.value}
+                                    value={condition.value as string}
                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateCondition(condition.id, { value: e.target.value })}
                                     placeholder="Value"
                                     className="text-sm"

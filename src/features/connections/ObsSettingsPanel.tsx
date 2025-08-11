@@ -39,6 +39,9 @@ export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
   const selectedAccentColorName = useSettingsStore((state: SettingsState) => state.theme.accent);
   const selectedUserChatBubbleColorName = useSettingsStore((state: SettingsState) => state.theme.userChatBubble);
   const selectedModelChatBubbleColorName = useSettingsStore((state: SettingsState) => state.theme.modelChatBubble);
+  const flipSides = useSettingsStore((state: SettingsState) => state.flipSides);
+  const autoApplySuggestions = useSettingsStore((state: SettingsState) => state.autoApplySuggestions);
+  const extraDarkMode = useSettingsStore((state: SettingsState) => state.extraDarkMode);
   // Zustand selectors
 const customChatBackground = useSettingsStore((state: SettingsState) => state.customChatBackground);
 const bubbleFillOpacity = useSettingsStore((state: SettingsState) => state.bubbleFillOpacity);
@@ -129,7 +132,6 @@ const storeActions = useSettingsStore((state: SettingsState) => state.actions);
               title="Chat Bubble Fill Settings"
               isOpen={showBubbleSettingsModal}
               onClose={() => setShowBubbleSettingsModal(false)}
-              accentColorName={selectedAccentColorName}
               size="sm"
             >
               <div className="flex flex-col gap-2 items-center py-2 w-56">
@@ -324,7 +326,6 @@ const storeActions = useSettingsStore((state: SettingsState) => state.actions);
               title="Chat Background Settings"
               isOpen={showBgSettingsModal}
               onClose={() => setShowBgSettingsModal(false)}
-              accentColorName={selectedAccentColorName}
               size="sm"
             >
               <div className="flex flex-col gap-2 items-center py-2 w-56">

@@ -1,26 +1,21 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useApiSearch } from '../useApiSearch';
-import { useToast } from '../../components/ui/toast';
+import { toast } from '@/components/ui/toast';
+import { logger } from '@/utils/logger';
 
 jest.mock('@/components/ui/toast', () => ({
-  useToast: jest.fn(),
+  toast: jest.fn(),
 }));
 
-jest.mock('../../utils/logger', () => ({
+jest.mock('@/utils/logger', () => ({
   logger: {
     error: jest.fn(),
   },
 }));
 
 describe('useApiSearch', () => {
-  let mockToast: jest.Mock;
-
   beforeEach(() => {
     jest.clearAllMocks();
-    mockToast = jest.fn();
-    (useToast as jest.Mock).mockReturnValue({
-      toast: mockToast,
-    });
   });
 
   it('should return initial state', () => {
@@ -47,7 +42,7 @@ describe('useApiSearch', () => {
     expect(result.current.results).toEqual(['item1', 'item2']);
     expect(mockFetcher).toHaveBeenCalledTimes(1);
     expect(mockOnSuccess).toHaveBeenCalledWith(['item1', 'item2']);
-    expect(mockToast).not.toHaveBeenCalled();
+    expect(toast).not.toHaveBeenCalled();
   });
 
   it('should handle search with error', async () => {
@@ -70,7 +65,7 @@ describe('useApiSearch', () => {
       'Failed to fetch search results: Network error',
       mockError,
     );
-    expect(mockToast).toHaveBeenCalledWith(
+    expect(toast).toHaveBeenCalledWith(
       expect.objectContaining({
         title: 'Search Error',
         description: 'Failed to fetch search results: Network error',

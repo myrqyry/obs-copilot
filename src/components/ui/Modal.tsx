@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/Button';
-import { CatppuccinAccentColorName } from '@/types';
 
 interface ModalAction {
   label: string;

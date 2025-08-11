@@ -26,4 +26,5 @@ export interface GeminiPromptFeedback {
 export interface GeminiGenerateContentResponse {
   candidates: GeminiCandidate[];
   promptFeedback: GeminiPromptFeedback;
+  audioData?: string;
 }

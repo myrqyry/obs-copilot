@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { logger } from '@/utils/logger';
 import { aiMiddleware } from './aiMiddleware';
-import { ChatMessage } from '@/types';
 import { GeminiGenerateContentResponse } from '@/types/gemini';
 import { AIService } from '@/types/ai';
 

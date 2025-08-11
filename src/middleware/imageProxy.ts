@@ -9,7 +9,7 @@ const router = express.Router();
 const imageCache = new Map<string, { data: Buffer; timestamp: number }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-router.get('/image/:url(*)', async (req, res, next) => {
+router.get('/image/:url(*)', async (req, res) => {
   const imageUrl = req.params.url;
   const cacheKey = `image_${imageUrl}`;
 

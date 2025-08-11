@@ -32,7 +32,6 @@ export type KBSearchResult = {
 
 let kbIndex: IndexJson | null = null;
 let vectors: Float32Array | null = null;
-const chunkTexts: string[] | null = null; // lazily populated from the source .txt slices if needed
 
 const INDEX_URL = '/src/knowledge/streamerbot/index.json';
 const VECTORS_URL = '/src/knowledge/streamerbot/vectors.bin';

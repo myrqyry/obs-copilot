@@ -7,34 +7,48 @@
 const OriginalURL = URL;
 
 import * as imageProxy from '../imageProxy';
+import * as api from '../api';
+
+// Mock the api module
+jest.mock('../api');
+const mockedApi = api as jest.Mocked<typeof api>;
 
 describe('Image Proxy Utilities', () => {
   afterEach(() => {
     jest.restoreAllMocks();
+    mockedApi.getApiEndpoint.mockClear();
   });
 
   describe('getProxiedImageUrl', () => {
     test('Test Case III.1 (External URL, Dev Env): Returns local proxy URL for external images in dev', () => {
-      jest.spyOn(imageProxy, 'getHostname').mockReturnValue('localhost');
-      const { getProxiedImageUrl } = imageProxy;
       const imageUrl = 'http://images.unsplash.com/photo.jpg';
       const expected = `/api/image?url=${encodeURIComponent(imageUrl)}`;
+      mockedApi.getApiEndpoint.mockReturnValue(expected);
+
+      const { getProxiedImageUrl } = imageProxy;
       expect(getProxiedImageUrl(imageUrl)).toBe(expected);
+      expect(mockedApi.getApiEndpoint).toHaveBeenCalledWith(
+        'image',
+        undefined,
+        expect.any(URLSearchParams),
+      );
     });
 
     test('Test Case III.1b (External Wallhaven URL, Dev Env): Returns local proxy URL for wallhaven images in dev', () => {
-      jest.spyOn(imageProxy, 'getHostname').mockReturnValue('127.0.0.1');
-      const { getProxiedImageUrl } = imageProxy;
       const imageUrl = 'https://th.wallhaven.cc/small/m9/m96g8p.jpg';
       const expected = `/api/image?url=${encodeURIComponent(imageUrl)}`;
+      mockedApi.getApiEndpoint.mockReturnValue(expected);
+
+      const { getProxiedImageUrl } = imageProxy;
       expect(getProxiedImageUrl(imageUrl)).toBe(expected);
     });
 
     test('Test Case III.2 (External URL, Prod Env): Returns Netlify proxy URL for external images in prod', () => {
-      jest.spyOn(imageProxy, 'getHostname').mockReturnValue('my-app.netlify.app');
-      const { getProxiedImageUrl } = imageProxy;
       const imageUrl = 'http://images.unsplash.com/photo.jpg';
       const expected = `/.netlify/functions/proxy?api=image&url=${encodeURIComponent(imageUrl)}`;
+      mockedApi.getApiEndpoint.mockReturnValue(expected);
+
+      const { getProxiedImageUrl } = imageProxy;
       expect(getProxiedImageUrl(imageUrl)).toBe(expected);
     });
 

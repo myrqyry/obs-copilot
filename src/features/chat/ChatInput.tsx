@@ -17,7 +17,7 @@ interface ChatInputProps {
     isConnected: boolean;
     currentProgramScene: string | null;
     onScreenshot: () => void;
-    chatInputRef: React.RefObject<HTMLInputElement>;
+    chatInputRef: React.RefObject<HTMLInputElement | null>;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
