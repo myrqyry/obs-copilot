@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import useConnectionsStore from '@/store/connectionsStore';
 import { useChatStore } from '@/store/chatStore';
 import { GEMINI_MODEL_NAME, INITIAL_SYSTEM_PROMPT } from '@/constants';
@@ -48,12 +48,12 @@ export const useGeminiChat = (
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [useGoogleSearch, setUseGoogleSearch] = useState<boolean>(false);
   const [contextMessages, setContextMessages] = useState<string[]>([]);
-  const ai = useRef<GoogleGenerativeAI | null>(null);
+  const ai = useRef<GoogleGenAI | null>(null);
 
   useEffect(() => {
     if (geminiApiKey) {
       try {
-        const genAI = new GoogleGenerativeAI(geminiApiKey);
+        const genAI = new GoogleGenAI({ apiKey: geminiApiKey });
         ai.current = genAI;
         chatActions.setGeminiClientInitialized(true);
       } catch (error) {
@@ -131,10 +131,11 @@ export const useGeminiChat = (
         contextPrompt += `\nContext from previous messages:\n${contextMessages.join('\n')}\n`;
       }
 
-      const model = ai.current.getGenerativeModel({ model: GEMINI_MODEL_NAME });
-      const result = await model.generateContent(`${systemPrompt}${contextPrompt}\n\n${userMessageText}`);
-      const response = await result.response;
-      const modelResponseText = response.text();
+      const response = await ai.current.models.generateContent({
+        model: GEMINI_MODEL_NAME,
+        contents: `${systemPrompt}${contextPrompt}\n\n${userMessageText}`
+      });
+      const modelResponseText = response.text || '';
 
       let displayText = modelResponseText;
       let obsActionResult: { success: boolean; message: string; error?: string } | null = null;

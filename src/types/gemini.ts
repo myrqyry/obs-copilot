@@ -1,30 +1,44 @@
-export interface GeminiContentPart {
-  text: string;
-}
-
-export interface GeminiContent {
-  parts: GeminiContentPart[];
-  role: string;
-}
-
-export interface GeminiSafetyRating {
-  category: string;
-  probability: string;
-}
-
-export interface GeminiCandidate {
-  content: GeminiContent;
-  finishReason: string;
-  index: number;
-  safetyRatings: GeminiSafetyRating[];
-}
-
-export interface GeminiPromptFeedback {
-  safetyRatings: GeminiSafetyRating[];
-}
+import { GenerateContentResponse, LiveServerMessage, LiveConnectParameters } from '@google/genai';
 
 export interface GeminiGenerateContentResponse {
-  candidates: GeminiCandidate[];
-  promptFeedback: GeminiPromptFeedback;
-  audioData?: string;
+  text: string;
+  candidates?: GenerateContentResponse['candidates'];
+  usageMetadata?: GenerateContentResponse['usageMetadata'];
+  toolCalls?: any[]; // Update with proper type when available
 }
+
+export interface GeminiGenerateImagesResponse {
+  generatedImages: {
+    image: {
+      url: string;
+    };
+  }[];
+}
+
+export interface LiveAPIMessage {
+  data?: string;
+  serverContent?: {
+    turnComplete?: boolean;
+    modelTurn?: {
+      parts: Array<{
+        inline_data?: {
+          mime_type: string;
+        }
+      }>
+    }
+  };
+}
+
+export type LiveAPIConfig = {
+  model: string;
+  callbacks: {
+    onopen?: () => void;
+    onmessage?: (message: LiveAPIMessage) => void;
+    onerror?: (error: Error) => void;
+    onclose?: (event: CloseEvent) => void;
+  };
+  config?: {
+    responseModalities?: string[];
+    systemInstruction?: string;
+  };
+};

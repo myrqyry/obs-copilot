@@ -20,6 +20,10 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, ''),
         },
+        '/image': {
+          target: env.VITE_API_URL || 'http://localhost:3000',
+          changeOrigin: true,
+        },
         '/obs': {
           target: env.VITE_OBS_WEBSOCKET_URL || 'ws://localhost:4455',
           ws: true,
