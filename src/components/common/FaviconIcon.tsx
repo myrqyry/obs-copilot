@@ -56,10 +56,25 @@ export const FaviconIcon: React.FC<FaviconIconProps> = ({ domain, alt, className
             return;
         }
 
+        // If we've cached an error, don't retry
+        if (cached === ERROR_SENTINEL) {
+            console.log(`[FaviconIcon] Cached error for ${domain}, using fallback`);
+            setError(true);
+            return;
+        }
+
         // Check if we've already failed too many times
-        if (retryCount >= 2) {
+        if (retryCount >= 1) { // Reduced from 2 to 1 to avoid excessive retries
             console.log(`[FaviconIcon] Max retries reached for ${domain}`);
             setError(true);
+            return;
+        }
+
+        // For localhost development, skip favicon loading entirely to avoid CORS issues
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            console.log(`[FaviconIcon] Localhost detected, skipping favicon for ${domain}`);
+            setError(true);
+            localStorage.setItem(`favicon_${domain}_${size}`, ERROR_SENTINEL);
             return;
         }
 
@@ -87,8 +102,10 @@ export const FaviconIcon: React.FC<FaviconIconProps> = ({ domain, alt, className
         // Cache error to prevent repeated requests
         localStorage.setItem(`favicon_${domain}_${size}`, ERROR_SENTINEL);
 
-        // Simplified retry logic
-        setRetryCount(prev => prev + 1);
+        // Only retry once for non-localhost environments
+        if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && retryCount < 1) {
+            setRetryCount(prev => prev + 1);
+        }
     };
 
     if (!domain) return null;

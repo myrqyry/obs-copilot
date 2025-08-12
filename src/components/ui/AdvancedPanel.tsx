@@ -591,93 +591,10 @@ const AdvancedPanel: React.FC = () => {
                 </CardContent>
             </CollapsibleCard>
 
-            {/* Custom API Keys Section */}
-            <CollapsibleCard
-                title="Custom API Keys"
-                emoji="🔑"
-                isOpen={openApiKeys}
-                onToggle={() => setOpenApiKeys((v) => !v)}
-                accentColor={accentColor}
-            >
-                <CardContent className="px-3 pb-3">
-                    <div className="space-y-4">
-                        <p className="text-sm text-muted-foreground">
-                            Enter your own API keys for supported services. These are stored only in your browser and used instead of the default keys.
-                        </p>
-                        <div className="space-y-3">
-                            {PANEL_API_KEY_SERVICES.map(({ id, label, optional }) => (
-                                <div key={id} className="flex flex-col gap-1">
-                                    <label className="text-sm font-medium text-primary">
-                                        {label} API Key
-                                        {!optional && <span className="text-red-500 ml-1">*</span>}
-                                    </label>
-                                    <div className="flex gap-2 items-center">
-                                        <input
-                                            className="w-full border rounded p-2 bg-background"
-                                            type={showApiKey[id] ? 'text' : 'password'}
-                                            value={localApiKeyInputs[id] || ''}
-                                            onChange={e => handleApiKeyInputChange(id, e.target.value)}
-                                            placeholder={`Enter your ${label} API key`}
-                                            autoComplete="new-password"
-                                        />
-                                        <Button
-                                            onClick={() => setShowApiKey(prev => ({ ...prev, [id]: !prev[id] }))}
-                                            variant="ghost"
-                                            size="sm"
-                                            className="px-2"
-                                            type="button"
-                                        >
-                                            {showApiKey[id] ? '🙈' : '👁️'}
-                                        </Button>
-                                        <Button
-                                            onClick={() => handleApiKeySave(id)}
-                                            size="sm"
-                                            disabled={localApiKeyInputs[id] === undefined || localApiKeyInputs[id]?.trim() === overrides[id]?.trim()}
-                                        >
-                                            {overrides[id] ? 'Update' : 'Save'}
-                                        </Button>
-                                        {overrides[id] && (
-                                            <Button
-                                                onClick={() => handleApiKeyRemove(id)}
-                                                variant="secondary"
-                                                size="sm"
-                                            >
-                                                Remove
-                                            </Button>
-                                        )}
-                                    </div>
-                                    {overrides[id] && (
-                                        <div className="text-xs text-muted-foreground mt-1">
-                                            Currently active: <span className="font-mono break-all">{overrides[id]}</span>
-                                            <button
-                                                onClick={() => navigator.clipboard.writeText(overrides[id] || '')}
-                                                className="ml-2 text-accent hover:text-accent-hover"
-                                                title="Copy key"
-                                            >
-                                                📋
-                                            </button>
-                                        </div>
-                                    )}
-                                    {!optional && (
-                                        <p className="text-xs text-red-400 mt-1">
-                                            This API key is required for core functionality.
-                                        </p>
-                                    )}
-                                    {optional && (
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                            This API key is optional and enhances specific features.
-                                        </p>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </CardContent>
-            </CollapsibleCard>
             {/* Reset Section */}
             <CollapsibleCard
                 title="Reset Settings"
-                emoji="🔄"
+                emoji="�"
                 isOpen={openReset}
                 onToggle={() => setOpenReset((v) => !v)}
                 accentColor={accentColor}

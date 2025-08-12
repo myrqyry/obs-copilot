@@ -61,7 +61,12 @@ yarn-error.log*
 
 # Local development
 .netlify
-.netlify/
+netlify/edge-functions
+netlify/functions
+.kilocode
+.cursorignore
+
+
 
 # AppMap
 /tmp/appmap/

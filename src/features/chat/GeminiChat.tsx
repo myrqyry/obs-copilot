@@ -1,10 +1,12 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useGeminiChat } from '@/hooks/useGeminiChat';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { useConnectionManagerStore } from '@/store/connectionManagerStore';
 import { useChatStore } from '@/store/chatStore';
 import { useSettingsStore } from '@/store/settingsStore';
+import { empService } from '@/services/empService';
+import { logger } from '@/utils/logger';
 
 interface GeminiChatProps {
     onRefreshData: () => Promise<void>;
@@ -56,6 +58,9 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
         }
     }, [isGeminiClientInitialized, ai]);
 
+    const [screenshotWidth, setScreenshotWidth] = useState<number>(1920);
+    const [screenshotHeight, setScreenshotHeight] = useState<number>(1080);
+
     const handleScreenshot = async () => {
         if (!isConnected || !currentProgramScene) {
             onAddMessage({ role: 'system', text: "📸 Need to be connected to OBS with an active scene to take screenshots!" });
@@ -65,7 +70,9 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
             const screenshot = await handleObsAction({
                 type: 'getSourceScreenshot',
                 sourceName: currentProgramScene,
-                imageFormat: 'png'
+                imageFormat: 'png',
+                imageWidth: screenshotWidth,
+                imageHeight: screenshotHeight
             });
             if (screenshot && screenshot.success) {
                 onAddMessage({ role: 'system', text: screenshot.message });
@@ -80,6 +87,28 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
                 onAddMessage({ role: 'system', text: `📸 Screenshot error: Unknown error` });
             }
         }
+    };
+
+    // Enhance user message with EMP context
+    const handleSendWithContext = async (message: string) => {
+        try {
+            // Get relevant context from knowledge base
+            const snippets = await empService.searchKnowledgeBase(message);
+            
+            if (snippets.length > 0) {
+                const context = empService.formatAsContext(snippets);
+                // Add context as a system message
+                handleAddToContext(context);
+                onAddMessage({ role: 'system', text: `🔍 Added ${snippets.length} knowledge snippets from EMP` });
+            }
+        } catch (error: unknown) {
+            const errorMsg = error instanceof Error ? error.message : 'Failed to load EMP context';
+            onAddMessage({ role: 'system', text: `⚠️ ${errorMsg}` });
+            logger.error('EMP context error:', error);
+        }
+        
+        // Send the original user message
+        handleSend(message, onChatInputChange);
     };
 
     return (
@@ -106,7 +135,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
                 onChatInputChange={onChatInputChange}
                 isLoading={isLoading}
                 isGeminiClientInitialized={isGeminiClientInitialized}
-                handleSend={() => handleSend(chatInputValue, onChatInputChange)}
+                handleSend={() => handleSendWithContext(chatInputValue)}
                 useGoogleSearch={useGoogleSearch}
                 setUseGoogleSearch={setUseGoogleSearch}
                 isConnected={isConnected}

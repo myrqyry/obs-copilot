@@ -62,6 +62,7 @@
     "@types/cors": "^2.8.19",
     "@types/dompurify": "^3.0.5",
     "@types/express": "^5.0.3",
+    "@types/glob": "^8.1.0",
     "@types/lodash": "^4.17.20",
     "@types/node": "^24.0.1",
     "@types/react": "^19.1.9",

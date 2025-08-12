@@ -75,12 +75,28 @@ export const shouldProxyImage = (imageUrl: string): boolean => {
 };
 
 /**
- * Returns the proxied URL for a favicon.
- * @param domain The domain to get the favicon for.
- * @param size The size of the favicon.
- * @returns The proxied favicon URL.
+ * Checks if we're running in a local development environment
  */
-export const getProxiedFaviconUrl = (domain: string, size = 16): string => {
-  const googleUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=${size}`;
-  return getProxiedImageUrl(googleUrl);
+const isLocalEnvironment = (): boolean => {
+  return window.location.hostname === 'localhost' ||
+         window.location.hostname === '127.0.0.1' ||
+         window.location.hostname.startsWith('192.168.') ||
+         window.location.hostname.endsWith('.local');
+};
+
+/**
+ * Get proxied favicon URL - bypasses proxy for Google favicon service in development
+ */
+export const getProxiedFaviconUrl = (domain: string, size: number = 16): string => {
+  if (!domain) return '';
+
+  const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=${size}`;
+
+  // In development, Google's favicon service doesn't have CORS issues, so use it directly
+  if (isLocalEnvironment()) {
+    return faviconUrl;
+  }
+
+  // In production, use the proxy
+  return getProxiedImageUrl(faviconUrl);
 };
