@@ -59,7 +59,6 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
   );
   // SECURITY: Never persist OBS passwords. Initialize empty and keep in memory only.
   const [password, setPassword] = useState<string>('');
-  const [localGeminiKey, setLocalGeminiKey] = useState<string>(geminiApiKey);
   const [showPasswordField, setShowPasswordField] = useState<boolean>(false);
   const [autoConnect, setAutoConnect] = useState<boolean>(
     Boolean(persistedConnectionSettings.autoConnect)
@@ -80,20 +79,9 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
   const obsConnectingDotRef = useRef<HTMLSpanElement>(null);
   const geminiStatusDotRef = useRef<HTMLSpanElement>(null);
 
-  useEffect(() => {
-    setLocalGeminiKey(geminiApiKey);
-  }, [geminiApiKey]);
-
-  const handleLocalGeminiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newKey = e.target.value;
-    setLocalGeminiKey(newKey);
-    onGeminiApiKeyChange(newKey);
-  };
-
   const handleApiKeyOverrideToggle = (enabled: boolean) => {
     setShowApiKeyOverride(enabled);
     if (!enabled) {
-      setLocalGeminiKey('');
       onGeminiApiKeyChange('');
     }
   };
@@ -453,7 +441,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
             {(isGeminiClientInitialized || geminiInitializationError) && (
               <>
                 <Tooltip content="Reconnect">
-                  <button type="button" onClick={(e) => { e.stopPropagation(); onGeminiApiKeyChange(localGeminiKey || geminiApiKey);}} className="w-3 h-3 p-1 rounded bg-blue-500 hover:bg-blue-600 text-white transition-colors duration-200">
+                  <button type="button" onClick={(e) => { e.stopPropagation(); onGeminiApiKeyChange(geminiApiKey);}} className="w-3 h-3 p-1 rounded bg-blue-500 hover:bg-blue-600 text-white transition-colors duration-200">
                     <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
                   </button>
                 </Tooltip>
@@ -464,7 +452,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
             )}
             {!isGeminiClientInitialized && !geminiInitializationError && (
               <Tooltip content="Initialize">
-                <button type="button" onClick={() => { if (localGeminiKey || geminiApiKey) { onGeminiApiKeyChange(localGeminiKey || geminiApiKey); }}} className="w-3 h-3 p-1 rounded bg-green-500 hover:bg-green-600 text-white transition-colors duration-200">
+                <button type="button" onClick={() => { if (geminiApiKey) { onGeminiApiKeyChange(geminiApiKey); }}} className="w-3 h-3 p-1 rounded bg-green-500 hover:bg-green-600 text-white transition-colors duration-200">
                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
                 </button>
               </Tooltip>
@@ -502,9 +490,9 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
                     id="gemini-api-key"
                     name="gemini-api-key"
                     type="password"
-                    value={localGeminiKey}
+                    value={geminiApiKey}
                     onChange={(e) => {
-                      handleLocalGeminiKeyChange(e);
+                      onGeminiApiKeyChange(e.target.value);
                       setGeminiApiKeyError(undefined);
                     }}
                     placeholder={envGeminiApiKey ? "Leave empty to use environment variable" : "Enter your Gemini API Key"}
@@ -521,7 +509,6 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
                       if (navigator.clipboard) {
                         try {
                           const text = await navigator.clipboard.readText();
-                          setLocalGeminiKey(text);
                           onGeminiApiKeyChange(text);
                           setGeminiApiKeyError(undefined);
                         } catch (err) {
@@ -533,13 +520,12 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
                   >
                     📋 Paste
                   </Button>
-                  {localGeminiKey && (
+                  {geminiApiKey && (
                     <Button
                       type="button"
                       variant="secondary"
                       size="sm"
                       onClick={() => {
-                        setLocalGeminiKey('');
                         onGeminiApiKeyChange('');
                         setGeminiApiKeyError(undefined);
                       }}
@@ -560,7 +546,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
                       let geminiValidationSuccess = true;
                       try {
                         geminiApiKeySchema.parse({
-                          geminiApiKey: localGeminiKey,
+                          geminiApiKey: geminiApiKey,
                         });
                         setGeminiApiKeyError(undefined);
                       } catch (err) {
@@ -574,13 +560,13 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
                         }
                       }
                       if (geminiValidationSuccess) {
-                        onGeminiApiKeyChange(localGeminiKey);
+                        onGeminiApiKeyChange(geminiApiKey);
                       }
                     } else {
-                      onGeminiApiKeyChange(localGeminiKey);
+                      onGeminiApiKeyChange(geminiApiKey);
                     }
                   }}
-                  disabled={showApiKeyOverride && (localGeminiKey.trim() === '' || !!geminiApiKeyError)}
+                  disabled={showApiKeyOverride && (geminiApiKey.trim() === '' || !!geminiApiKeyError)}
                 >
                   Save API Key
                 </Button>
