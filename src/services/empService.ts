@@ -1,8 +1,9 @@
-import { readFile, readdir, stat } from 'fs/promises';
+import { readFile } from 'fs/promises';
 import path from 'path';
-import { glob } from 'glob';
+import globCb from 'glob';
+import { promisify } from 'util';
 import { logger } from '@/utils/logger';
-import { catppuccinMochaColors } from '@/constants';
+const globAsync = promisify(globCb);
 
 /**
  * Represents a snippet of knowledge base content with metadata
@@ -33,7 +34,7 @@ class EmpService {
    */
   async searchKnowledgeBase(query: string, limit: number = 3): Promise<KnowledgeSnippet[]> {
     try {
-      const files = await glob('**/*.md', { cwd: this.memoryBankPath });
+      const files = await globAsync('**/*.md', { cwd: this.memoryBankPath });
       const results: KnowledgeSnippet[] = [];
 
       for (const file of files) {

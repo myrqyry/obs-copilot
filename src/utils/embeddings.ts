@@ -26,15 +26,19 @@ export interface Embedder {
   dim(): Promise<number>;
 }
 
+function isServerEnv(): boolean {
+  return typeof window === 'undefined';
+}
+
 export function getProvider(): EmbeddingsProvider {
-  const p = (import.meta as { env: Record<string, string> }).env?.VITE_EMBEDDINGS_PROVIDER || process.env.EMBEDDINGS_PROVIDER;
+  const envVal = (import.meta as { env: Record<string, string> }).env?.VITE_EMBEDDINGS_PROVIDER;
+  const serverVal = isServerEnv() ? (typeof process !== 'undefined' ? process.env.EMBEDDINGS_PROVIDER : undefined) : undefined;
+  const p = envVal ?? serverVal;
   if (p && typeof p === 'string' && p.toUpperCase() === 'GEMINI') return 'GEMINI';
   return 'LOCAL';
 }
 
-export async function createEmbedder(
-  provider: EmbeddingsProvider = getProvider(),
-): Promise<Embedder> {
+export async function createEmbedder(provider: EmbeddingsProvider = getProvider()): Promise<Embedder> {
   if (provider === 'GEMINI') {
     return new GeminiEmbedder();
   }
@@ -85,10 +89,10 @@ class GeminiEmbedder implements Embedder {
   private _dim: number | null = null;
 
   private getApiKey(): string {
-    const k =
-      (import.meta as { env: Record<string, string> }).env?.VITE_GOOGLE_API_KEY ||
-      process.env.GOOGLE_API_KEY ||
-      process.env.GEMINI_API_KEY;
+    const keyFromEnv =
+      (import.meta as { env: Record<string, string> }).env?.VITE_GOOGLE_API_KEY;
+    const serverKey = (typeof process !== 'undefined' ? process.env.GOOGLE_API_KEY : undefined) ?? (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : undefined);
+    const k = keyFromEnv ?? serverKey;
     if (!k) {
       throw new Error('Gemini embedder requires GOOGLE_API_KEY or GEMINI_API_KEY.');
     }
@@ -144,12 +148,9 @@ class GeminiEmbedder implements Embedder {
 
 // Simple cosine similarity utilities (shared)
 export function cosineSim(a: Float32Array, b: Float32Array): number {
-  let dot = 0,
-    na = 0,
-    nb = 0;
+  let dot = 0, na = 0, nb = 0;
   for (let i = 0; i < a.length; i++) {
-    const x = a[i],
-      y = b[i];
+    const x = a[i], y = b[i];
     dot += x * y;
     na += x * x;
     nb += y * y;

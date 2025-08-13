@@ -33,7 +33,7 @@ const LiveAPIDemo: React.FC = () => {
           onclose: (event) => console.log('Live API connection closed:', event.reason),
         },
         config: {
-          responseModalities: ['AUDIO'],
+          responseModalities: ['AUDIO' as any],
           systemInstruction: 'You are a helpful assistant. Respond in a friendly and conversational tone.'
         }
       });

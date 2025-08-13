@@ -13,7 +13,8 @@ export const useGeminiLive = () => {
   const audioChunksRef = useRef<Uint8Array[]>([]);
   const sessionRef = useRef<any>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
+  // audioSourceRef removed to avoid unused variable
+  // previously: const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
 
   // Initialize AudioContext on user interaction
   const initAudioContext = useCallback(() => {

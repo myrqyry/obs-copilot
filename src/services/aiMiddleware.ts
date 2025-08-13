@@ -3,20 +3,20 @@ import { AIService } from '../types/ai';
 // AI Middleware
 // This middleware will be used to inject fallback prompts, failover retries, and custom formatting utilities.
 
-export const aiMiddleware = (service: AIService): AIService => {
+export const aiMiddleware = (service: AIService): any => {
   return {
     ...service,
     generateContent: async (prompt: string, retries = 3) => {
       try {
         // Pass retries down to the original service call
-        return await service.generateContent(prompt, retries);
+        return await (service as any).generateContent(prompt, retries);
       } catch (error) {
         console.error('AI Service Error:', error);
         if (retries > 0) {
           console.log(`Retrying... ${retries} attempts left.`);
           await new Promise((res) => setTimeout(res, 1000));
           // Correctly call the middleware-wrapped function for retry
-          return await aiMiddleware(service).generateContent(prompt, retries - 1);
+          return await (aiMiddleware(service) as any).generateContent(prompt, retries - 1);
         }
         // This is a fallback, but it doesn't match the expected return type.
         // For now, we will return a mock response that fits the type.

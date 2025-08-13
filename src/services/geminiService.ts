@@ -4,7 +4,6 @@ import { GeminiGenerateContentResponse } from '@/types/gemini';
 import { AIService } from '@/types/ai';
 import { 
   GoogleGenAI, 
-  LiveServerMessage, 
   LiveConnectParameters
 } from '@google/genai';
 

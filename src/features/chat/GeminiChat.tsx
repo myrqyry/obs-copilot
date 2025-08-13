@@ -58,8 +58,9 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
         }
     }, [isGeminiClientInitialized, ai]);
 
-    const [screenshotWidth, setScreenshotWidth] = useState<number>(1920);
-    const [screenshotHeight, setScreenshotHeight] = useState<number>(1080);
+    const [screenshotWidth] = useState<number>(1920);
+
+    const [screenshotHeight] = useState<number>(1080);
 
     const handleScreenshot = async () => {
         if (!isConnected || !currentProgramScene) {

@@ -1,4 +1,4 @@
-import { GenerateContentResponse, LiveServerMessage, LiveConnectParameters } from '@google/genai';
+import { GenerateContentResponse } from '@google/genai';
 
 export interface GeminiGenerateContentResponse {
   text: string;

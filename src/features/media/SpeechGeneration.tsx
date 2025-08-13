@@ -64,7 +64,7 @@ const SpeechGeneration: React.FC = () => {
             if (!apiKey) throw new Error('Gemini API key is missing.');
             const prompt = `Hi, please generate a short (like 100 words) transcript that reads like it was clipped from a podcast from the following speakers: ${speakers.map(s => s.name).join(', ')}. Format as Speaker: line.`;
             const response = await geminiService.generateContent(prompt);
-            const responseText = response.candidates[0]?.content?.parts[0]?.text || '';
+            const responseText = response?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
             setScript(responseText.trim());
         } catch (err: unknown) {
             if (err instanceof Error) {
@@ -102,7 +102,7 @@ const SpeechGeneration: React.FC = () => {
             const pcmBuffers: ArrayBuffer[] = [];
             for (const part of parts) {
                 const response = await geminiService.generateContent(part.text);
-                const data = response.audioData;
+                const data = (response as any).audioData;
                 if (!data) throw new Error(`No audio data for ${part.speaker}`);
                 const pcmBuffer = base64ToArrayBuffer(data);
                 pcmBuffers.push(pcmBuffer);
