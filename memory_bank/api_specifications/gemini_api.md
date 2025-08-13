@@ -9,16 +9,19 @@ owner: "@myrqyry"
 
 ## Authentication
 - Uses API key authentication
-- Key stored in environment variable `VITE_GEMINI_API_KEY`
-- Passed in Authorization header: `Authorization: Bearer ${key}`
-
+- Never expose the key in client-side code. Store it server-side (e.g., `GEMINI_API_KEY`) and proxy requests through your backend.
+- Pass the key as a query parameter: `?key=${API_KEY}`. Do not use `Authorization: Bearer` with API keys.
+- If you must call from the browser (not recommended), strictly restrict the key to allowed HTTP referrers and rate-limit server-side to mitigate abuse.
 ## Base URL
 `https://generativelanguage.googleapis.com/v1beta`
 
 ## Endpoints
 
 ### Generate Content
-`POST /models/gemini-pro:generateContent`
+`POST /models/${MODEL}:generateContent` (e.g., `gemini-1.5-pro`, `gemini-1.5-flash`)
+
+### Stream Generate Content
+`POST /models/${MODEL}:streamGenerateContent`
 
 **Request Body:**
 ```json
@@ -66,16 +69,17 @@ owner: "@myrqyry"
 
 ### Integration Points
 1. Chat functionality (`GeminiChat.tsx`)
-2. Context-aware suggestions
-3. Automated OBS control actions
-
 ### Implementation Notes
-- Streaming responses handled via Server-Sent Events (SSE)
+- Streaming responses handled via `:streamGenerateContent` with chunked HTTP responses  
+  In browsers, parse the returned `ReadableStream` from `fetch` incrementally (no SSE/EventSource required)
 - Error handling for:
   - Rate limiting (429 responses)
   - Authentication failures (401 responses)
   - Content safety violations
-
+### Rate Limits
+- Values vary by plan and may change—see the official quotas page for current limits:
+  https://platform.openai.com/docs/guides/rate-limits
+- Clients should implement throttling and exponential backoff with jitter on 429 responses.
 ### Rate Limits
 - 60 requests per minute (free tier)
 - 600 requests per minute (paid tier)
@@ -85,7 +89,7 @@ owner: "@myrqyry"
 ```typescript:src/features/chat/GeminiChat.tsx
 // Example API usage
 const response = await fetch(
-  `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
+  '/api/gemini/generate',
   {
     method: "POST",
     headers: {

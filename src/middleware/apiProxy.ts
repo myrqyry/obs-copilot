@@ -149,7 +149,7 @@ router.post('/gemini/generate-content', async (req, res, next) => {
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
       { contents: [{ parts: [{ text: prompt }] }] },
       {
-        params: { key: geminiApiKey || process.env.GEMINI_API_KEY },
+        params: { key: geminiApiKey || process.env.GEMINI_API_KEY || process.env.VITE_ADMIN_API_KEY },
       },
     );
     res.json(response.data);
@@ -251,4 +251,29 @@ router.get('/chute/:action', async (req, res, next) => {
 
 // Silence unused isServer
 void isServer;
+  // Proxy for Gemini API (generate)
+router.post('/gemini/generate', async (req, res, next) => {
+  try {
+    const response = await axios.post(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+      req.body,
+      {
+        // Use server-side API key only
+        params: { key: process.env.GEMINI_API_KEY },
+      }
+    );
+    // Forward upstream response status and data
+    res.status(response.status).json(response.data);
+  } catch (err: any) {
+    // If upstream provided a response, forward its status/data
+    if (err?.response) {
+      res.status(err.response.status).json(err.response.data);
+    } else {
+      // Otherwise return a generic 502 with error details
+      const message = err?.message ?? 'Gemini proxy failed';
+      logger.error(`Gemini proxy failed: ${message}`);
+      res.status(502).json({ error: 'Gemini proxy failed', details: message });
+    }
+  }
+});
 export default router;
