@@ -1,19 +1,18 @@
+// vite.config.ts
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-
+import { nodePolyfills } from 'vite-plugin-node-polyfills'; // Import the plugin
 export default defineConfig({
   plugins: [
     react(),
+    nodePolyfills(), // Add the node polyfills plugin
     {
       name: 'ignore-middleware-in-client',
       resolveId(source) {
-        // Ignore any client import referencing middleware
-        if (
+        if ( // Only ignore middleware files when building for the client
           source.includes('/src/middleware') ||
-          source.includes('src/middleware') ||
-          source.startsWith('./src/middleware') ||
-          source.startsWith('../src/middleware')
+          source.includes('src/middleware')
         ) {
           return 'virtual:ignore-middleware';
         }
@@ -33,11 +32,13 @@ export default defineConfig({
     }
   },
   server: {
-    port: 5173
+    port: 5173,
+    proxy: {
+      '/api': 'http://localhost:3000', // Proxy API requests to the Express server
+    },
   },
   build: {
     rollupOptions: {
-      // Exclude the middleware directory from the client bundle
       external: [/^src\/middleware\/.*$/]
     }
   }

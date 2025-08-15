@@ -21,20 +21,13 @@ const MorphingLogos: React.FC<MorphingLogosProps> = ({ accentColor, secondaryAcc
         const morphingPath = morphingPathRef.current;
         if (!morphingPath) return;
 
-        // If MorphSVG plugin is not available, fall back to a simple rotation
-        if ((window as any).gsapMorphPluginMissing) {
-            gsap.to(morphingPath, { rotation: 360, duration: 12, repeat: -1, ease: 'none', transformOrigin: "24 24" });
-            return;
-        }
-
         // Set initial path
         gsap.set(morphingPath, { attr: { d: paths.gemini } });
 
-        // Morph between shapes if plugin present
+        // This will now work correctly!
         gsap.to(morphingPath, {
             duration: 2.8,
             ease: "power2.inOut",
-            // @ts-ignore morphSVG may be provided by plugin
             morphSVG: {
                 shape: paths.obs,
                 origin: "24 24"

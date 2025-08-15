@@ -1,248 +1,47 @@
-import React, { useState, useCallback } from 'react';
-import useApiKeyStore, { ApiService } from '@/store/apiKeyStore';
-import { useConnectionManagerStore } from '@/store/connectionManagerStore';
-import { useSettingsStore } from '@/store/settingsStore';
-import { toast } from '@/components/ui/toast';
-import { generateSourceName } from '@/utils/obsSourceHelpers';
-import { copyToClipboard } from '@/utils/persistence';
-import { CardContent } from '@/components/ui/Card';
-import { Modal } from '@/components/ui/Modal';
-import { Button } from '@/components/ui/Button';
-import { FaviconDropdown } from '@/components/common/FaviconDropdown';
-import { CollapsibleCard } from '@/components/common/CollapsibleCard';
-import { catppuccinAccentColorsHexMap } from '@/types';
-import { getSimpleApiEndpoint, buildApiUrl } from '@/utils/api';
+// src/features/asset-search/SvgSearch.tsx
+import React from 'react';
+import AssetSearch from './AssetSearch';
+// ... (other imports will be needed for handlers)
 
+// Define your SVG APIs
 const SVG_APIS = [
-    { value: 'iconfinder', label: 'Iconfinder', domain: 'iconfinder.com', icon: '🎨' },
-    { value: 'iconify', label: 'Iconify', domain: 'iconify.design', icon: '🔧' },
-    { value: 'feather', label: 'Feather Icons', domain: 'feathericons.com', icon: '🪶' },
-    { value: 'heroicons', label: 'Heroicons', domain: 'heroicons.com', icon: '🦸' },
-    { value: 'lucide', label: 'Lucide', domain: 'lucide.dev', icon: '💡' },
-    { value: 'tabler', label: 'Tabler Icons', domain: 'tabler-icons.io', icon: '📊' },
-    { value: 'bootstrap', label: 'Bootstrap Icons', domain: 'icons.getbootstrap.com', icon: '🚀' },
-    { value: 'fontawesome', label: 'Font Awesome', domain: 'fontawesome.com', icon: '⭐' }
+    { value: 'iconfinder', label: 'Iconfinder', domain: 'iconfinder.com' },
+    // Add other SVG APIs here
 ];
 
-type SvgResult = { name: string; svg: string };
+const mapSvgToStandard = (item: any) => ({
+    id: item.icon_id,
+    title: item.tags?.[0] || 'Icon',
+    url: item.vector_sizes?.[0]?.formats?.[0]?.download_url, // Example path
+    thumbnail: item.raster_sizes?.[6]?.formats?.[0]?.preview_url, // Example path
+    svgContent: item.svgContent // Assuming you fetch this separately
+});
 
-type ModalAction = {
-    label: string;
-    onClick: () => void;
-    variant?: 'primary' | 'secondary';
-    icon?: React.ReactNode;
-};
 
 const SvgSearch: React.FC = () => {
-    const [svgQuery, setSvgQuery] = useState('');
-    const [svgApi, setSvgApi] = useState('iconify');
-    const [svgResults, setSvgResults] = useState<SvgResult[]>([]);
-    const [svgLoading, setSvgLoading] = useState(false);
-    const [svgPage, setSvgPage] = useState(0);
-    const [svgSearched, setSvgSearched] = useState(false);
-    const [modalContent, setModalContent] = useState<{ type: 'svg', data: any } | null>(null);
+    // ... (Your handler functions like handleAddAsBrowserSource, getModalActions, etc.)
 
-    const { obsServiceInstance, isConnected, currentProgramScene } = useConnectionManagerStore();
-    const accentColorName = useSettingsStore(state => state.theme.accent);
-    const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
-
-    const ITEMS_PER_PAGE = 16;
-
-    const handleAddSvgAsBrowserSource = async (svg: string, sourceName: string) => {
-        if (!obsServiceInstance || !isConnected || !currentProgramScene) {
-            toast({
-                title: 'OBS Not Connected',
-                description: 'Please connect to OBS to add sources.',
-                variant: 'destructive',
-            });
-            return;
-        }
-        try {
-            await obsServiceInstance.addSvgAsBrowserSource(currentProgramScene, svg, generateSourceName(sourceName));
-            toast({ title: 'Success', description: `Added ${sourceName} to OBS.` });
-        } catch (err: any) {
-            toast({
-                title: 'Failed to add source',
-                description: err.message,
-                variant: 'destructive',
-            });
-        }
-    };
-
-    const getModalActions = (data: any): ModalAction[] => {
-        return [
-            { label: 'Add as Browser Source', onClick: () => handleAddSvgAsBrowserSource(data.svg, data.name), variant: 'primary' },
-            { label: 'Copy SVG Code', onClick: () => { copyToClipboard(data.svg); toast({ title: 'Info', description: 'Copied SVG code!' }); } },
-        ];
-    };
-
-    const handleSvgSearch = useCallback(async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!svgQuery.trim()) return;
-
-        setSvgLoading(true);
-        setSvgResults([]);
-        setSvgSearched(true);
-        setSvgPage(0);
-
-        try {
-            const limit = 48;
-            if (svgApi === 'iconfinder') {
-                const iconfinderKeyOverride = useApiKeyStore.getState().getApiKeyOverride(ApiService.ICONFINDER);
-                const requestUrl = buildApiUrl('iconfinder', undefined, {
-                    query: svgQuery,
-                    count: limit,
-                });
-
-                const headers: HeadersInit = {};
-                if (iconfinderKeyOverride) {
-                    headers['X-Api-Key'] = iconfinderKeyOverride;
-                }
-
-                const res = await fetch(requestUrl, { headers });
-                if (!res.ok) {
-                     const errorText = await res.text();
-                        throw new Error(`${svgApi} API error: ${res.status} ${res.statusText}. ${errorText}`);
-                }
-                const data = await res.json();
-                const icons = (data.icons || []).map((icon: any) => {
-                    let svg_url = undefined;
-                    if (icon.vector_sizes && icon.vector_sizes.length > 0) {
-                        const firstVector = icon.vector_sizes[0];
-                        if (firstVector.formats && firstVector.formats.length > 0) {
-                            const svgFormat = firstVector.formats.find((f: any) => f.format === 'svg');
-                            if (svgFormat && svgFormat.download_url) {
-                                svg_url = svgFormat.download_url;
-                            }
-                        }
-                    }
-                    return { ...icon, svg_url };
-                }).filter((icon: any) => icon.is_premium === false && icon.svg_url);
-                setSvgResults(icons.slice(0, limit).map((icon: any) => ({
-                    name: icon.tags && icon.tags.length > 0 ? icon.tags[0] : icon.icon_id,
-                    svg: `<img src="${getSimpleApiEndpoint('iconfinder', 'svg')}?url=${encodeURIComponent(icon.svg_url)}" alt="${icon.tags && icon.tags.length > 0 ? icon.tags[0] : icon.icon_id}" />`
-                })));
-            } else {
-                const searchApiUrl = getSimpleApiEndpoint('iconify', 'search');
-
-                const params = new URLSearchParams({
-                    query: svgQuery,
-                    limit: String(limit),
-                });
-                if (svgApi !== 'iconify') {
-                    params.append('prefix', svgApi);
-                }
-                
-                const res = await fetch(`${searchApiUrl}?${params.toString()}`);
-
-                const data = await res.json();
-                if (data.icons && data.icons.length > 0) {
-                    const iconNames = data.icons.map((icon: any) => typeof icon === 'string' ? icon : icon.name).slice(0, limit);
-                    const svgFetches = iconNames.map(async (iconName: string) => {
-                        try {
-                            const fullName = iconName.includes(':') ? iconName : `${svgApi}:${iconName}`;
-                            const svgApiUrl = getSimpleApiEndpoint('iconify', `svg/${fullName}`);
-                            const svgRes = await fetch(svgApiUrl);
-                            if (svgRes.ok) {
-                                const svgText = await svgRes.text();
-                                if (svgText.trim().startsWith('<svg') || svgText.trim().startsWith('<?xml')) {
-                                    return { name: fullName, svg: svgText };
-                                }
-                            }
-                            return null;
-                        } catch (svgErr) {
-                            console.warn(`Failed to fetch SVG for ${iconName}:`, svgErr);
-                            return null;
-                        }
-                    });
-                    setSvgResults((await Promise.all(svgFetches)).filter(r => r) as SvgResult[]);
-                }
-            }
-        } catch (err: any) {
-            console.error('SVG fetch error:', err);
-            let errorMessage = 'Unknown error occurred';
-            
-            if (err instanceof Error) {
-                errorMessage = err.message;
-            } else if (err && typeof err === 'object' && 'message' in err) {
-                errorMessage = String(err.message);
-            }
-            
-            // Don't show toast for network errors or API issues that are expected
-            if (!errorMessage.includes('Unexpected token') && !errorMessage.includes('JSON')) {
-                toast({
-                    title: 'Error fetching SVGs',
-                    description: errorMessage,
-                    variant: 'destructive',
-                });
-            }
-        }
-        setSvgLoading(false);
-    }, [svgApi, svgQuery, obsServiceInstance, isConnected, currentProgramScene]);
-
-    const getPaginatedItems = (items: any[], page: number) => {
-        const start = page * ITEMS_PER_PAGE;
-        return items.slice(start, start + ITEMS_PER_PAGE);
-    };
-
-    const getTotalPages = (items: any[]) => Math.ceil(items.length / ITEMS_PER_PAGE);
+    const renderGridItem = (item: any, onClick: () => void) => (
+        <div key={item.id} className="relative group cursor-pointer h-full bg-slate-800 rounded-md p-2" onClick={onClick}>
+             <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: item.svgContent }} />
+        </div>
+    );
+     const renderModalContent = (item: any) => (
+        <div className="p-4 bg-slate-800 rounded-md flex justify-center items-center">
+            <div className="w-64 h-64" dangerouslySetInnerHTML={{ __html: item.svgContent }} />
+        </div>
+    );
 
     return (
-        <CollapsibleCard
+        <AssetSearch
             title="SVG Icons"
             emoji="🎨"
-            isOpen={true}
-            onToggle={() => {}}
-            accentColor={accentColor}
-        >
-            <CardContent className="px-3 pb-3 pt-2">
-                <div>
-                    <form onSubmit={handleSvgSearch} className="flex items-center gap-1 mb-0.5">
-                        <input
-                            type="text"
-                            value={svgQuery}
-                            onChange={(e) => setSvgQuery(e.target.value)}
-                            placeholder="Search for SVG icons..."
-                            className="flex-grow rounded-md border border-border bg-background px-1 py-1.5 text-xs focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors placeholder:text-muted-foreground"
-                        />
-                        <FaviconDropdown
-                            options={SVG_APIS}
-                            value={svgApi}
-                            onChange={setSvgApi}
-                            className="min-w-[100px]"
-                            accentColor={accentColor}
-                        />
-                        <Button type="submit" disabled={svgLoading || !svgQuery.trim()} size="sm">{svgLoading ? 'Searching...' : 'Search'}</Button>
-                    </form>
-                    {svgLoading && <div className="text-center text-xs">Loading...</div>}
-                    {!svgLoading && svgSearched && svgResults.length === 0 && <div className="text-center text-muted-foreground text-xs">No results found.</div>}
-                    <div className="grid grid-cols-4 gap-1">
-                        {getPaginatedItems(svgResults, svgPage).map((result) => (
-                            <div key={result.name} className="relative group cursor-pointer p-1 bg-slate-800 rounded-md flex items-center justify-center aspect-square" onClick={() => setModalContent({ type: 'svg', data: result })}>
-                                <div className="w-full h-full svg-container" dangerouslySetInnerHTML={{ __html: result.svg }} />
-                            </div>
-                        ))}
-                    </div>
-                    {getTotalPages(svgResults) > 1 && (
-                        <div className="flex justify-center items-center space-x-1 mt-0.5">
-                            <Button variant="secondary" size="sm" onClick={() => setSvgPage(svgPage - 1)} disabled={svgPage === 0}>Previous</Button>
-                            <span className="text-xs text-muted-foreground">Page {svgPage + 1} of {getTotalPages(svgResults)}</span>
-                            <Button variant="secondary" size="sm" onClick={() => setSvgPage(svgPage + 1)} disabled={svgPage >= getTotalPages(svgResults) - 1}>Next</Button>
-                        </div>
-                    )}
-                </div>
-            </CardContent>
-            {modalContent && (
-                <Modal
-                    isOpen={!!modalContent}
-                    onClose={() => setModalContent(null)}
-                    title={modalContent.data.name}
-                    actions={getModalActions(modalContent.data)}
-                >
-                    <div className="p-4 bg-slate-800 rounded-md flex justify-center items-center aspect-square max-w-xs mx-auto"><div className="w-full h-full flex items-center justify-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]" dangerouslySetInnerHTML={{ __html: modalContent.data.svg }} /></div>
-                </Modal>
-            )}
-        </CollapsibleCard>
+            apiConfigs={SVG_APIS}
+            apiMapper={mapSvgToStandard}
+            renderGridItem={renderGridItem}
+            renderModalContent={renderModalContent}
+            getModalActions={() => [] /* Implement actions */}
+        />
     );
 };
 

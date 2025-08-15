@@ -1,3 +1,4 @@
+// src/hooks/useGenericApiSearch.ts
 import { useCallback } from 'react';
 import { useApiSearch } from './useApiSearch';
 import ApiService from '../services/apiService';
@@ -15,10 +16,12 @@ export const useGenericApiSearch = (apiName: keyof typeof apiConfigs) => {
     resetSearch,
   } = useApiSearch<any>();
 
+  // Update the search function to accept extra parameters
   const search = useCallback(
-    async (query: string) => {
+    async (query: string, extraParams: Record<string, any> = {}) => {
       const apiService = new ApiService(apiName);
-      await performSearch(() => apiService.search(query));
+      // Pass the extra params to the apiService's search method
+      await performSearch(() => apiService.search(query, extraParams));
     },
     [apiName, performSearch],
   );

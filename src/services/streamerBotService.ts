@@ -70,37 +70,45 @@ export class StreamerBotService {
     }
   }
 
-  private async _performConnectionWithRetry(
-    address: string,
-    port: number,
-    maxRetries: number,
-  ): Promise<void> {
-    let lastError: Error | null = null;
+private async _performConnectionWithRetry(
+  address: string,
+  port: number,
+  maxRetries: number,
+): Promise<void> {
+  let lastError: Error | null = null;
 
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        if (attempt > 0) {
-          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // Exponential backoff, max 5s
-          logger.info(`Retry attempt ${attempt}/${maxRetries} after ${delay}ms delay...`);
-          await new Promise((resolve) => setTimeout(resolve, delay));
-        }
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      if (attempt > 0) {
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // Exponential backoff
+        // We wait for the delay without logging to the console to reduce spam.
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
 
-        await this._performConnection(address, port);
-        return; // Success
-      } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error));
-        logger.warn(
-          `Connection attempt ${attempt + 1}/${maxRetries + 1} failed:`,
-          lastError.message,
-        );
+      // This will perform the actual connection attempt.
+      await this._performConnection(address, port);
+      
+      // If the line above doesn't throw an error, the connection was successful.
+      return; // Success! Exit the loop.
 
-        if (attempt === maxRetries) {
-          // Final attempt failed, throw the error
-          throw lastError;
-        }
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      
+      // We only log the final error after all retries have failed.
+      if (attempt === maxRetries) {
+          logger.error(
+              `Failed to connect to Streamer.bot after ${maxRetries + 1} attempts.`,
+              lastError
+          );
       }
     }
   }
+
+  // If the loop finishes without a successful connection, throw the last known error.
+  if (lastError) {
+      throw new Error(`Could not connect to Streamer.bot after ${maxRetries + 1} attempts. Please ensure it is running and the WebSocket server is enabled.`);
+  }
+}
 
   private async _performConnection(address: string, port: number): Promise<void> {
     try {

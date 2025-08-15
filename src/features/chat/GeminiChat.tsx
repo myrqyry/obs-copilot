@@ -5,7 +5,6 @@ import { ChatInput } from './ChatInput';
 import { useConnectionManagerStore } from '@/store/connectionManagerStore';
 import { useChatStore } from '@/store/chatStore';
 import { useSettingsStore } from '@/store/settingsStore';
-import { empService } from '@/services/empService';
 import { logger } from '@/utils/logger';
 
 interface GeminiChatProps {
@@ -90,27 +89,6 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
         }
     };
 
-    // Enhance user message with EMP context
-    const handleSendWithContext = async (message: string) => {
-        try {
-            // Get relevant context from knowledge base
-            const snippets = await empService.searchKnowledgeBase(message);
-            
-            if (snippets.length > 0) {
-                const context = empService.formatAsContext(snippets);
-                // Add context as a system message
-                handleAddToContext(context);
-                onAddMessage({ role: 'system', text: `🔍 Added ${snippets.length} knowledge snippets from EMP` });
-            }
-        } catch (error: unknown) {
-            const errorMsg = error instanceof Error ? error.message : 'Failed to load EMP context';
-            onAddMessage({ role: 'system', text: `⚠️ ${errorMsg}` });
-            logger.error('EMP context error:', error);
-        }
-        
-        // Send the original user message
-        handleSend(message, onChatInputChange);
-    };
 
     return (
         <div className="flex flex-col h-full bg-background border-l border-r border-b border-border rounded-b-lg shadow-lg relative">
@@ -136,7 +114,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
                 onChatInputChange={onChatInputChange}
                 isLoading={isLoading}
                 isGeminiClientInitialized={isGeminiClientInitialized}
-                handleSend={() => handleSendWithContext(chatInputValue)}
+                handleSend={() => handleSend(chatInputValue, onChatInputChange)}
                 useGoogleSearch={useGoogleSearch}
                 setUseGoogleSearch={setUseGoogleSearch}
                 isConnected={isConnected}

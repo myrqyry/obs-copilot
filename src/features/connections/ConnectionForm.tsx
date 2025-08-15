@@ -204,15 +204,7 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
                       <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
                     </svg>
                   </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (geminiApiKey || envGeminiApiKey) {
-                      onGeminiApiKeyChange(geminiApiKey || envGeminiApiKey || '');
-                    }
-                  }}
-                  className="w-3 h-3 p-1 rounded bg-green-500 hover:bg-green-600 text-white transition-colors duration-200"
-                >
+                </Tooltip>
                 <Tooltip content="Disconnect from OBS">
                   <button
                     type="button"
@@ -240,8 +232,8 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
                 )}
                 title={isConnected ? 'Connected' : isConnecting ? 'Connecting...' : 'Disconnected'}
               />
-            </Tooltip> {/* This was the mismatched Tooltip */}
-          </div> {/* This div for buttons/status is now correctly closed */}
+            </Tooltip>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-2 sm:space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 items-end">
@@ -601,3 +593,5 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
     </div>
   );
 };
+
+export default ConnectionForm;

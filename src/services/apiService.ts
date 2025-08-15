@@ -1,79 +1,37 @@
+// src/services/apiService.ts
 import axios from 'axios';
-import { apiConfigs } from '../config/apis';
 import { logger } from '../utils/logger';
 
-type ApiServiceError = {
-  message: string;
-  status?: number;
-};
-
 class ApiService {
-  private apiConfig: any;
+  private apiName: string;
 
-  constructor(apiName: keyof typeof apiConfigs) {
-    this.apiConfig = apiConfigs[apiName];
-    if (!this.apiConfig) {
-      throw new Error(`API configuration for '${apiName}' not found.`);
-    }
+  constructor(apiName: string) {
+    this.apiName = apiName;
   }
 
-  async search(query: string, page: number = 1): Promise<any[]> {
-    const {
-      baseUrl,
-      paramMappings,
-      defaultParams,
-      requiresKey,
-      apiKey,
-      responseDataPath,
-      authHeader,
-    } = this.apiConfig;
+  /**
+   * Performs a search by calling our own backend proxy.
+   * @param query The search term.
+   * @param extraParams Additional query parameters for the specific API.
+   * @returns A promise that resolves to the search results.
+   */
+  async search(query: string, extraParams: Record<string, any> = {}): Promise<any> {
+    // All requests now go through our secure, centralized backend.
+    const endpoint = `/api/assets/search/${this.apiName}`;
 
     const params = new URLSearchParams({
-      ...defaultParams,
-      [paramMappings.q || paramMappings.query]: query,
-      [paramMappings.page]: page.toString(),
+      ...extraParams,
+      query: query, // FastAPI will see this as 'q' or 'query' based on the request model
     });
 
-    const headers: Record<string, string> = {};
-
-    if (requiresKey) {
-      // In a real app, the key would be fetched from a secure store
-      // For now, we'll assume it's in the environment variables as defined in the config
-      const key = import.meta.env[apiKey.envVars[1]];
-      if (!key) {
-        throw new Error(`API key for ${this.apiConfig.label} not found.`);
-      }
-      if (authHeader) {
-        headers[authHeader] = key;
-      } else if (apiKey.paramName) {
-        params.set(apiKey.paramName, key);
-      }
-    }
-
-    const url = `${baseUrl}?${params.toString()}`;
-
     try {
-      // All requests are proxied through Netlify functions
-      // The actual API call is made from the function, not the client
-      const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
-      const response = await axios.get(proxyUrl, { headers });
-
-      let results = response.data;
-      if (responseDataPath) {
-        const pathParts = responseDataPath.split('.');
-        for (const part of pathParts) {
-          results = results[part];
-        }
-      }
-
-      return results || [];
+      const response = await axios.get(`${endpoint}?${params.toString()}`);
+      // The backend now handles finding the data path, so we can just return the data.
+      return response.data;
     } catch (error: any) {
-      logger.error(`Error fetching data from ${this.apiConfig.label}:`, error);
-      const errorData: ApiServiceError = {
-        message: error.response?.data?.message || error.message || 'An unknown error occurred',
-        status: error.response?.status,
-      };
-      throw errorData;
+      const errorData = error.response?.data?.detail || error.message || 'An unknown error occurred';
+      logger.error(`Error fetching data from '${this.apiName}':`, errorData);
+      throw new Error(errorData);
     }
   }
 }

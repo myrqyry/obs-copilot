@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { gsap } from 'gsap';
+import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin'; // <-- IMPORT THE PLUGIN
 import ErrorBoundary from './components/common/ErrorBoundary';
 import { useTheme } from './hooks/useTheme';
 import { Header } from './components/layout/Header';
@@ -10,12 +12,12 @@ import { GeminiChat } from './features/chat/GeminiChat';
 import StreamingAssetsTab from './components/ui/StreamingAssetsTab';
 import CreateTab from './components/ui/CreateTab';
 import { AppTab } from './types';
-import { gsap } from 'gsap';
 import MiniPlayer from './components/common/MiniPlayer';
 import { NotificationManager } from './components/common/NotificationManager';
 import { ConnectionProvider } from './components/ConnectionProvider';
 import { ConnectionPanel } from './features/connections/ConnectionPanel';
 
+gsap.registerPlugin(MorphSVGPlugin);
 const App: React.FC = () => {
     useTheme();
     const [activeTab, setActiveTab] = useState<AppTab>(AppTab.GEMINI);
