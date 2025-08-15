@@ -3,7 +3,19 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { nodePolyfills } from 'vite-plugin-node-polyfills'; // Import the plugin
+
 export default defineConfig({
+  server: {
+    port: 5173,
+    proxy: {
+      // Proxy all requests starting with /api to your Python backend
+      '/api': {
+        target: 'http://localhost:8000', // The address of your running Python server
+        changeOrigin: true,
+      },
+    },
+  },
+
   plugins: [
     react(),
     nodePolyfills(), // Add the node polyfills plugin
@@ -31,12 +43,7 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src')
     }
   },
-  server: {
-    port: 5173,
-    proxy: {
-      '/api': 'http://localhost:3000', // Proxy API requests to the Express server
-    },
-  },
+
   build: {
     rollupOptions: {
       external: [/^src\/middleware\/.*$/]

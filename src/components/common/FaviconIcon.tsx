@@ -70,13 +70,6 @@ export const FaviconIcon: React.FC<FaviconIconProps> = ({ domain, alt, className
             return;
         }
 
-        // For localhost development, skip favicon loading entirely to avoid CORS issues
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            console.log(`[FaviconIcon] Localhost detected, skipping favicon for ${domain}`);
-            setError(true);
-            localStorage.setItem(`favicon_${domain}_${size}`, ERROR_SENTINEL);
-            return;
-        }
 
         // Use our favicon proxy to avoid CORS issues
         const proxyUrl = getProxiedFaviconUrl(domain, size);

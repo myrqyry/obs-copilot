@@ -5,98 +5,60 @@ export const getHostname = (): string => {
 };
 
 /**
- * Proxies an image URL through our Netlify function to avoid CORS issues
- * @param imageUrl The original image URL
- * @returns The proxied image URL
+ * Proxies an image URL through our backend to avoid browser CORS issues.
+ * @param imageUrl The original image URL to proxy.
+ * @returns The new, proxied URL that points to our own server.
  */
 export const getProxiedImageUrl = (imageUrl: string): string => {
   if (!imageUrl) return '';
 
-  // Check if the image URL should be proxied (external domains that might have CORS issues)
+  // This is the internal helper function that decides if a URL is external
+  // and needs to be proxied.
   const shouldProxy = (url: string): boolean => {
     try {
       const urlObj = new URL(url);
+      // This is the list of external domains that we know cause CORS issues.
       const externalDomains = [
         'th.wallhaven.cc',
         'w.wallhaven.cc',
-        'wallhaven.cc',
         'images.unsplash.com',
         'images.pexels.com',
         'cdn.pixabay.com',
         'images.deviantart.com',
         'cdnb.artstation.com',
         'cdna.artstation.com',
-        'google.com',
+        'google.com', // For the favicon service
       ];
-
+      // If the image's hostname is in our list, we should proxy it.
       return externalDomains.some((domain) => urlObj.hostname.includes(domain));
     } catch {
-      // If URL parsing fails, assume it's a relative URL and doesn't need proxying
+      // If parsing fails, it's a relative path like '/assets/icon.png' and doesn't need proxying.
       return false;
     }
   };
 
   if (shouldProxy(imageUrl)) {
+    // If it's an external URL, we build a URL to our own backend's proxy endpoint.
     const params = new URLSearchParams({ url: imageUrl });
     return getApiEndpoint('image', undefined, params);
   }
 
+  // Otherwise, just return the original URL.
   return imageUrl;
 };
 
 /**
- * Checks if an image URL should be proxied (external domains that might have CORS issues)
- * @param imageUrl The image URL to check
- * @returns True if the image should be proxied
- */
-export const shouldProxyImage = (imageUrl: string): boolean => {
-  if (!imageUrl) return false;
-
-  try {
-    const url = new URL(imageUrl);
-    const externalDomains = [
-      'th.wallhaven.cc',
-      'w.wallhaven.cc',
-      'wallhaven.cc',
-      'images.unsplash.com',
-      'images.pexels.com',
-      'cdn.pixabay.com',
-      'images.deviantart.com',
-      'cdnb.artstation.com',
-      'cdna.artstation.com',
-      'google.com',
-    ];
-
-    return externalDomains.some((domain) => url.hostname.includes(domain));
-  } catch {
-    // If URL parsing fails, assume it's a relative URL and doesn't need proxying
-    return false;
-  }
-};
-
-/**
- * Checks if we're running in a local development environment
- */
-const isLocalEnvironment = (): boolean => {
-  return window.location.hostname === 'localhost' ||
-         window.location.hostname === '127.0.0.1' ||
-         window.location.hostname.startsWith('192.168.') ||
-         window.location.hostname.endsWith('.local');
-};
-
-/**
- * Get proxied favicon URL - bypasses proxy for Google favicon service in development
+ * A specific helper to get a proxied URL for a website's favicon.
+ * @param domain The domain of the website (e.g., "obsproject.com").
+ * @param size The desired size of the icon (e.g., 16).
+ * @returns The proxied URL to fetch the favicon.
  */
 export const getProxiedFaviconUrl = (domain: string, size: number = 16): string => {
   if (!domain) return '';
 
+  // We use Google's public favicon service as a reliable source.
   const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=${size}`;
 
-  // In development, Google's favicon service doesn't have CORS issues, so use it directly
-  if (isLocalEnvironment()) {
-    return faviconUrl;
-  }
-
-  // In production, use the proxy
+  // We then run that Google URL through our own proxy to avoid any potential CORS issues.
   return getProxiedImageUrl(faviconUrl);
 };

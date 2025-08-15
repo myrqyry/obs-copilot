@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger'; 
 import OBSWebSocket from 'obs-websocket-js';
 import type {
   Scene,
@@ -223,13 +224,17 @@ export class ObsClientImpl implements ObsClient {
    * @throws {ObsError} If the disconnection fails.
    */
   async disconnect(): Promise<void> {
+    // Only attempt to disconnect if we are actually connected.
+    if (!this.obs.identified) {
+        return; // Exit quietly if there's no active connection
+    }
     try {
       await this.obs.disconnect();
     } catch (error: unknown) {
       if (error instanceof Error) {
-        throw new ObsError(`Failed to disconnect from OBS: ${error.message}`);
+        // We can choose to log this quietly instead of throwing a big error
+        logger.warn(`An error occurred during disconnection: ${error.message}`);
       }
-      throw new ObsError('Failed to disconnect from OBS: Unknown error');
     }
   }
 
