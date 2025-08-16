@@ -5,7 +5,6 @@ import { ChatInput } from './ChatInput';
 import { useConnectionManagerStore } from '@/store/connectionManagerStore';
 import { useChatStore } from '@/store/chatStore';
 import { useSettingsStore } from '@/store/settingsStore';
-import { logger } from '@/utils/logger';
 
 interface GeminiChatProps {
     onRefreshData: () => Promise<void>;

@@ -11,7 +11,13 @@ const EMOJI_APIS = [
 const mapEmojiToStandard = (item: any) => ({
     id: item.slug,
     title: item.unicodeName,
-    character: item.character
+    character: item.character,
+    // Add source and author properties to match StandardApiItem type
+    source: 'emoji-api', // Assuming this is the source
+    author: 'Unicode Consortium', // Default author for emojis
+    // Add url and thumbnail properties to match StandardApiItem type
+    url: `https://emoji-api.com/emoji/${item.slug}`, // Example URL
+    thumbnail: `https://emoji-api.com/emoji/${item.slug}/thumbnail` // Example thumbnail URL
 });
 
 const EmojiSearch: React.FC = () => {

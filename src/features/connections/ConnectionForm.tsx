@@ -1,11 +1,10 @@
 // src/features/connections/ConnectionForm.tsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { TextInput } from '@/components/common/TextInput';
 import { CollapsibleCard } from '@/components/common/CollapsibleCard';
 import { loadConnectionSettings, saveConnectionSettings } from '@/utils/persistence';
 import useConnectionsStore from '@/store/connectionsStore';
-import { useSettingsStore } from '@/store/settingsStore';
 
 // The form now only needs the connect handlers as props
 interface ConnectionFormProps {

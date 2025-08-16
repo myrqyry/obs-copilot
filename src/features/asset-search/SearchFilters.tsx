@@ -45,13 +45,16 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({ filters, onFilterC
 
         {/* Language Filter */}
         <div>
-          <label className="text-xs font-medium text-muted-foreground">Language</label>
+          <label htmlFor="filter-lang" className="text-xs font-medium text-muted-foreground">Language</label>
           <input
+            id="filter-lang"
             type="text"
-            value={filters.lang || 'en'}
+            value={filters.lang ?? 'en'}
             onChange={(e) => onFilterChange('lang', e.target.value)}
             className="w-full text-xs bg-background border border-border rounded px-2 py-1 mt-1"
             placeholder="en (ISO 639-1)"
+            maxLength={5}
+            pattern="^[a-z]{2}(-[A-Z]{2})?$"
           />
         </div>
 

@@ -5,7 +5,6 @@ import { StreamerBotService } from '@/services/streamerBotService';
 import useConnectionsStore from '@/store/connectionsStore';
 import { useAutomationStore } from '@/store/automationStore';
 import { useChatStore } from '@/store/chatStore';
-import { useSettingsStore } from '@/store/settingsStore';
 import { toast } from '@/components/ui/toast';
 import { loadConnectionSettings } from '@/utils/persistence';
 
@@ -29,7 +28,6 @@ export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const { setObsServiceInstance, setConnected: setObsConnected } = useConnectionsStore();
     const { setStreamerBotServiceInstance } = useAutomationStore(state => state.actions);
     const { addMessage } = useChatStore(state => state.actions);
-    const { obsWebSocketUrl, obsWebSocketPassword } = useSettingsStore();
     
     // --- 3. Define Connection Logic ---
     const handleObsConnect = useCallback(async (url: string, password?: string) => {

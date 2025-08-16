@@ -12,7 +12,7 @@ import { toast } from '@/components/ui/toast';
 import { copyToClipboard } from '@/utils/persistence';
 import { generateSourceName } from '@/utils/obsSourceHelpers';
 import axios from 'axios';
-import { SearchFilters } from './SearchFilters'; // <-- IMPORT our new component
+import { SearchFilters } from './SearchFilters';
 
 // --- Configuration ---
 const GIF_APIS = [
@@ -25,18 +25,22 @@ const GifSearch: React.FC = () => {
     const [query, setQuery] = useState('');
     const [selectedApi, setSelectedApi] = useState('giphy');
     const [showFilters, setShowFilters] = useState(false);
-    // Add all the new filter options to our state
     const [filters, setFilters] = useState({
         rating: 'g',
         limit: 12,
         lang: 'en',
-        type: 'gifs', // Giphy-specific
-        bundle: 'messaging_non_clips' // Giphy-specific
+        type: 'gifs',
+        bundle: 'messaging_non_clips'
     });
     const [loading, setLoading] = useState(false);
     const [results, setResults] = useState<any[]>([]);
     const [searched, setSearched] = useState(false);
-    const [modalContent, setModalContent] = useState<any | null>(null);
+    const [modalContent, setModalContent] = useState<{
+        id: string;
+        title: string;
+        thumbnail: string;
+        url: string;
+    } | null>(null);
     const { obsServiceInstance, isConnected, currentProgramScene } = useConnectionManagerStore();
 
     // --- Event Handlers ---
@@ -52,10 +56,15 @@ const GifSearch: React.FC = () => {
         setResults([]);
         try {
             const endpoint = `/api/assets/search/${selectedApi}`;
-            const params = new URLSearchParams({ ...filters, query });
-            const adminApiKey = import.meta.env.VITE_ADMIN_API_KEY;
-            const headers = { 'X-API-KEY': adminApiKey };
-            const response = await axios.get(`${endpoint}?${params.toString()}`, { headers });
+            const params = new URLSearchParams({
+                query,
+                rating: filters.rating,
+                limit: String(filters.limit),
+                lang: filters.lang,
+                type: filters.type,
+                bundle: filters.bundle
+            });
+            const response = await axios.get(`${endpoint}?${params.toString()}`);
             const data = response.data.results || response.data.data || [];
             setResults(data);
         } catch (error: any) {
@@ -65,13 +74,57 @@ const GifSearch: React.FC = () => {
         }
     };
     
-    // --- Data Mapping & UI Handlers (No changes needed here) ---
+    // --- Data Mapping & UI Handlers ---
     const mappedResults = useMemo(() => {
-        return results.map(item => { /* ... (same mapping logic as before) */ });
+        return results.map(item => ({
+            id: String(item.id),
+            title: item.title || 'Untitled',
+            thumbnail: item.images?.fixed_height?.url || item.thumbnail || '',
+            url: item.images?.original?.url || item.url || ''
+        }));
     }, [results, selectedApi]);
 
-    const handleAddAsBrowserSource = async (url: string, title: string) => { /* ... */ };
-    const getModalActions = (item: any) => { /* ... */ };
+    const handleAddAsBrowserSource = async (url: string, title: string) => {
+        if (!isConnected || !obsServiceInstance) {
+            toast({ title: 'Not Connected', description: 'Please connect to OBS first', variant: 'destructive' });
+            return;
+        }
+        try {
+            const sourceName = generateSourceName(title);
+            await obsServiceInstance.createBrowserSource({
+                sceneName: currentProgramScene,
+                sourceName,
+                url,
+                width: 640,
+                height: 360
+            });
+            toast({ title: 'Success', description: `Added "${title}" as browser source` });
+        } catch (error: any) {
+            toast({ title: 'Failed to Add Source', description: error.message, variant: 'destructive' });
+        }
+    };
+
+    const getModalActions = (item: { id: string; title: string; url: string }): {
+        label: string;
+        onClick: () => void;
+        variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'warning';
+    }[] => {
+        return [
+            {
+                label: 'Add as Browser Source',
+                onClick: () => handleAddAsBrowserSource(item.url, item.title),
+                variant: 'primary'
+            },
+            {
+                label: 'Copy URL',
+                onClick: () => {
+                    copyToClipboard(item.url);
+                    toast({ title: 'Copied', description: 'URL copied to clipboard' });
+                },
+                variant: 'secondary'
+            }
+        ];
+    };
 
     // --- Render Logic ---
     return (

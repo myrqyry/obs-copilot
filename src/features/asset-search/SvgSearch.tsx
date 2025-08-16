@@ -14,7 +14,10 @@ const mapSvgToStandard = (item: any) => ({
     title: item.tags?.[0] || 'Icon',
     url: item.vector_sizes?.[0]?.formats?.[0]?.download_url, // Example path
     thumbnail: item.raster_sizes?.[6]?.formats?.[0]?.preview_url, // Example path
-    svgContent: item.svgContent // Assuming you fetch this separately
+    svgContent: item.svgContent, // Assuming you fetch this separately
+    // Add source and author properties to match StandardApiItem type
+    source: 'iconfinder', // Assuming this is the source
+    author: item.user?.username || 'Unknown' // Use the username if available, otherwise default to 'Unknown'
 });
 
 
