@@ -70,7 +70,7 @@ const App: React.FC = () => {
 
     // Wire streamer.bot action handler via hook (uses streamerBotServiceInstance and chat store)
     const { handleStreamerBotAction } = useStreamerBotActions({
-        streamerBotService: streamerBotServiceInstance as any,
+        streamerBotService: streamerBotServiceInstance,
         onAddMessage: chatActions.addMessage,
         setErrorMessage,
     });

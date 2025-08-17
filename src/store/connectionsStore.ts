@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { StreamerBotService } from '../services/streamerBotService';
 
 export interface ConnectionState {
   isConnected: boolean;
@@ -15,7 +16,7 @@ export interface ConnectionState {
   recordStatus: any;
   videoSettings: any;
   obsStats: any;
-  streamerBotServiceInstance: any;
+  streamerBotServiceInstance: StreamerBotService | null;
 }
 
 export interface ConnectionsActions {

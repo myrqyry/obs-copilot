@@ -4,7 +4,7 @@ import { useCallback } from 'react';
 import type { StreamerBotService } from '../services/streamerBotService';
 
 interface UseStreamerBotActionsProps {
-  streamerBotService: StreamerBotService;
+  streamerBotService: StreamerBotService | null;
   onAddMessage: (message: { role: 'system'; text: string }) => void;
   setErrorMessage: (message: string | null) => void;
 }
@@ -16,6 +16,15 @@ export const useStreamerBotActions = ({
 }: UseStreamerBotActionsProps) => {
   const handleStreamerBotAction = useCallback(
     async (action: { type: string; args?: Record<string, unknown> }) => {
+      // Guard: if no service instance is provided, report a friendly error instead of throwing
+      if (!streamerBotService) {
+        const msg = `Streamer.bot service is not available. Cannot execute action "${action.type}".`;
+        console.warn(msg);
+        onAddMessage({ role: 'system', text: msg });
+        setErrorMessage(msg);
+        return;
+      }
+
       let actionAttemptMessage = `**Streamer.bot Action: \`${action.type}\`**
 
 ⚙️ Attempting: ${action.type}...`;
