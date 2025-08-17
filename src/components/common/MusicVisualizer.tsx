@@ -16,9 +16,17 @@ const MusicVisualizer: React.FC<MusicVisualizerProps> = ({ onClick }) => {
     useEffect(() => {
         if (prefersReducedMotion()) return;
         if (innerCircleRef.current) {
-            gsap.to(innerCircleRef.current, { scale: 1.1, duration: 2, repeat: -1, yoyo: true, ease: 'sine.inOut' });
+            // Refined pulse: slightly larger scale, subtle opacity shift, and smooth ease-in-out
+            gsap.to(innerCircleRef.current, {
+                scale: 1.12,
+                opacity: 0.75,
+                duration: 1.6,
+                repeat: -1,
+                yoyo: true,
+                ease: 'power1.inOut',
+            });
         }
- 
+
         return () => {
             if (innerCircleRef.current) {
                 gsap.killTweensOf(innerCircleRef.current);
@@ -47,6 +55,9 @@ const MusicVisualizer: React.FC<MusicVisualizerProps> = ({ onClick }) => {
                     height: '18px',
                     background: pulseColor,
                     borderRadius: '50%',
+                    opacity: 0.95,
+                    transformOrigin: 'center',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.12)',
                 }}
             />
         </div>

@@ -16,6 +16,11 @@ import MiniPlayer from './components/common/MiniPlayer';
 import { NotificationManager } from './components/common/NotificationManager';
 import { ConnectionProvider } from './components/ConnectionProvider';
 import { ConnectionPanel } from './features/connections/ConnectionPanel';
+// Added imports for stores/hooks needed to provide proper props
+import useConnectionsStore from './store/connectionsStore';
+import { useChatStore } from './store/chatStore';
+import { useSettingsStore } from './store/settingsStore';
+import { useStreamerBotActions } from './hooks/useStreamerBotActions';
 
 gsap.registerPlugin(MorphSVGPlugin);
 const App: React.FC = () => {
@@ -38,16 +43,65 @@ const App: React.FC = () => {
         }
     }, [activeTab]);
     
-    // Cast props to any for tab registry to avoid required-props TypeScript errors.
-    // Individual components will still render and receive real props where used elsewhere.
+    // --- New state & callbacks to satisfy GeminiChat props ---
+    const [chatInputValue, setChatInputValue] = useState<string>('');
+    const onChatInputChange = (value: string) => setChatInputValue(value);
+
+    // Zustand stores/hooks used to provide real implementations
+    const onRefreshDataFromStore = useConnectionsStore((s) => s.onRefreshData);
+    const streamerBotServiceInstance = useConnectionsStore((s) => s.streamerBotServiceInstance);
+    const chatActions = useChatStore((s) => s.actions);
+    const settingsStoreActions = useSettingsStore((s) => s.actions);
+
+    // Wrap the store-provided onRefreshData into an async function matching the GeminiChat signature
+    const onRefreshData = async (): Promise<void> => {
+        try {
+            // support both sync and async implementations
+            await Promise.resolve(onRefreshDataFromStore && onRefreshDataFromStore());
+        } catch (err) {
+            console.error('onRefreshData failed', err);
+        }
+    };
+
+    // setErrorMessage delegates to chat store global error setter
+    const setErrorMessage = (message: string | null) => {
+        chatActions.setGlobalErrorMessage(message);
+    };
+
+    // Wire streamer.bot action handler via hook (uses streamerBotServiceInstance and chat store)
+    const { handleStreamerBotAction } = useStreamerBotActions({
+        streamerBotService: streamerBotServiceInstance as any,
+        onAddMessage: chatActions.addMessage,
+        setErrorMessage,
+    });
+
+    // --- ObsSettingsPanel actions mapping to settings store actions ---
+    const obsSettingsActions = {
+        setThemeColor: settingsStoreActions.setThemeColor,
+        toggleFlipSides: settingsStoreActions.toggleFlipSides,
+        toggleAutoApplySuggestions: settingsStoreActions.toggleAutoApplySuggestions,
+        toggleExtraDarkMode: settingsStoreActions.toggleExtraDarkMode,
+        setCustomChatBackground: settingsStoreActions.setCustomChatBackground,
+        resetSettings: () => {}, // optional; no-op for now
+    };
+
+    // Properly typed tabComponents registry without type-unsafe casts
     const tabComponents: Record<AppTab, React.ReactNode> = {
-        [AppTab.CONNECTIONS]: <ConnectionPanel {...({} as any)} />,
-        [AppTab.OBS_STUDIO]: <ObsMainControls {...({} as any)} />,
-        [AppTab.SETTINGS]: <ObsSettingsPanel {...({} as any)} />,
-        [AppTab.ADVANCED]: <AdvancedPanel {...({} as any)} />,
-        [AppTab.GEMINI]: <GeminiChat {...({} as any)} />,
-        [AppTab.STREAMING_ASSETS]: <StreamingAssetsTab {...({} as any)} />,
-        [AppTab.CREATE]: <CreateTab {...({} as any)} />,
+        [AppTab.CONNECTIONS]: <ConnectionPanel />,
+        [AppTab.OBS_STUDIO]: <ObsMainControls />,
+        [AppTab.SETTINGS]: <ObsSettingsPanel actions={obsSettingsActions} />,
+        [AppTab.ADVANCED]: <AdvancedPanel />,
+        [AppTab.GEMINI]: (
+            <GeminiChat
+                onRefreshData={onRefreshData}
+                setErrorMessage={setErrorMessage}
+                chatInputValue={chatInputValue}
+                onChatInputChange={onChatInputChange}
+                onStreamerBotAction={handleStreamerBotAction}
+            />
+        ),
+        [AppTab.STREAMING_ASSETS]: <StreamingAssetsTab />,
+        [AppTab.CREATE]: <CreateTab />,
     };
 
     return (

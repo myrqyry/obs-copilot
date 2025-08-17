@@ -41,8 +41,49 @@
     --radius: 0.75rem; /* 12px, matches original rounded-lg */
   }
 
-  /* ... rest of the CSS ... */
+  
+  /* ============================================================
+     Chat bubble / message CSS override strategy
+     
+     Important background:
+     - We avoid using !important on chat bubble backgrounds/borders so that
+       inline styles (React's style={{}}) and dynamically computed colors
+       (set at the component level) can override them reliably.
+     - Using !important here previously caused inline styles to be ignored
+       because the stylesheet forced higher precedence. To allow per-message
+       theming (and to let user-configured colors apply), these rules are
+       intentionally disabled below.
+     - If you need a stylesheet-level default, use regular declarations
+       (no !important) or increase specificity only as required, rather
+       than using !important which breaks inline-style precedence.
+     ============================================================ */
 
+  /* The following rules used to include !important which prevented
+     inline styles from applying (e.g. when setting style={{ backgroundColor }}).
+     They are preserved here as commented blocks so future maintainers can see
+     the previous overrides, but they are intentionally inactive.
+
+  .chat-message.bg-card {
+    background-color: var(--card) !important;
+  }
+
+  .chat-message.border-border {
+    border-color: var(--border) !important;
+  }
+  */
+
+  /* Recommended: If you need defaults, use non-!important fallbacks so inline
+     styles still work. Example:
+     
+  .chat-message.bg-card {
+    background-color: var(--card);
+  }
+
+  .chat-message.border-border {
+    border-color: var(--border);
+  }
+  */
+  
   /* Global class for dynamic accent colors (used by MorphingLogos and AnimatedTitleLogos) */
   .dynamic-accent-gradient {
     background: radial-gradient(circle, var(--dynamic-accent), var(--dynamic-secondary-accent));
