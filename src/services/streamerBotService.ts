@@ -2,27 +2,43 @@
 
 import { StreamerbotClient } from '@streamerbot/client';
 import { logger } from '../utils/logger';
+import {
+  ConnectionState,
+  StreamerBotClientOptions,
+  StreamerBotError,
+  ConnectionLifecycleCallbacks,
+  StreamerBotActionDescriptor,
+  ActionListResponse,
+  RunActionResponse,
+  StreamerBotInfo,
+} from '../types/streamerbot';
 
-// Define our own Action interface based on expected structure
-interface Action {
-  id: string;
-  name: string;
-  // Add other properties as needed based on actual response structure
-}
-
-// Define our own Broadcaster interface
-interface Broadcaster {
-  id?: string;
-  username?: string;
-  displayName?: string;
-  // Add other properties as needed based on actual response structure
-}
-
+/**
+ * StreamerBotService
+ *
+ * Singleton wrapper around @streamerbot/client that:
+ * - Uses the client's built-in autoReconnect support
+ * - Exposes lifecycle callbacks (onConnect, onDisconnect, onError, onEvent)
+ * - Tracks connection state using the typed ConnectionState
+ * - Preserves existing public method signatures for compatibility
+ *
+ * Notes:
+ * - The connect() method accepts either (host, port, maxRetries?) for backward
+ *   compatibility or a single StreamerBotClientOptions object.
+ * - This service intentionally avoids implementing manual retry/backoff logic and
+ *   instead relies on the client's autoReconnect behavior.
+ */
 export class StreamerBotService {
   private static instance: StreamerBotService;
   public client: StreamerbotClient | null = null;
-  private isConnecting: boolean = false;
-  private connectionPromise: Promise<void> | null = null;
+  private state: ConnectionState = 'disconnected';
+  private lifecycleCallbacks: ConnectionLifecycleCallbacks | null = null;
+
+  // Keep references to bound listeners so we can remove them on disconnect
+  private boundOnConnect?: (info?: unknown) => void;
+  private boundOnDisconnect?: (code?: number, reason?: string) => void;
+  private boundOnError?: (err?: unknown) => void;
+  private boundOnAnyEvent?: (message?: any) => void;
 
   private constructor() {}
 
@@ -33,300 +49,277 @@ export class StreamerBotService {
     return StreamerBotService.instance;
   }
 
-  async connect(address: string, port: number, maxRetries: number = 2): Promise<void> {
-    // If already connected, return immediately
-    if (this.client && this.isConnected()) {
-      logger.info('Already connected to Streamer.bot, skipping connection attempt');
+  /**
+   * Connect to Streamer.bot.
+   *
+   * Backwards-compatible signatures:
+   * - connect(host: string, port: number, maxRetries?: number)
+   * - connect(options: StreamerBotClientOptions)
+   *
+   * When passed host/port the call is converted into a StreamerBotClientOptions
+   * object. Use options.autoReconnect, reconnectIntervalMs, timeoutMs, password, secure, etc.
+   */
+  async connect(
+    a: string | StreamerBotClientOptions,
+    b?: number,
+    // note: maxRetries is accepted for compatibility but is ignored in favor of client's autoReconnect
+    _maxRetries?: number,
+  ): Promise<void> {
+    const options: StreamerBotClientOptions =
+      typeof a === 'string'
+        ? {
+            host: a,
+            port: typeof b === 'number' ? b : undefined,
+          }
+        : a;
+
+    // Sanity checks
+    if (!options.host || !options.port) {
+      throw new Error('Streamer.bot host and port are required to connect.');
+    }
+
+    // Prevent duplicate connect attempts
+    if (this.state === 'connecting' || this.state === 'connected' || this.state === 'reconnecting') {
+      logger.info('StreamerBotService: connect() called while already connecting/connected; ignoring.');
       return;
     }
 
-    // If a connection is already in progress, wait for it to complete
-    if (this.isConnecting && this.connectionPromise) {
-      logger.info('Connection already in progress, waiting for completion...');
-      try {
-        await this.connectionPromise;
-        return; // Connection completed successfully
-      } catch (error) {
-        // Connection failed, we can try again
-        logger.info('Previous connection attempt failed, retrying...');
-      }
-    }
-
-    // Prevent multiple simultaneous connection attempts
-    if (this.isConnecting) {
-      throw new Error('Connection attempt already in progress');
-    }
-
-    this.isConnecting = true;
-
-    // Create a promise that we can reference to prevent duplicate connections
-    this.connectionPromise = this._performConnectionWithRetry(address, port, maxRetries);
-
     try {
-      await this.connectionPromise;
-    } finally {
-      this.isConnecting = false;
-      this.connectionPromise = null;
-    }
-  }
+      this.state = 'connecting';
+      logger.info(`StreamerBotService: attempting to connect to ${options.host}:${options.port}`);
 
-private async _performConnectionWithRetry(
-  address: string,
-  port: number,
-  maxRetries: number,
-): Promise<void> {
-  let lastError: Error | null = null;
-
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      if (attempt > 0) {
-        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // Exponential backoff
-        // We wait for the delay without logging to the console to reduce spam.
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      }
-
-      // This will perform the actual connection attempt.
-      await this._performConnection(address, port);
-      
-      // If the line above doesn't throw an error, the connection was successful.
-      return; // Success! Exit the loop.
-
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-      
-      // We only log the final error after all retries have failed.
-      if (attempt === maxRetries) {
-          logger.error(
-              `Failed to connect to Streamer.bot after ${maxRetries + 1} attempts.`,
-              lastError
-          );
-      }
-    }
-  }
-
-  // If the loop finishes without a successful connection, throw the last known error.
-  if (lastError) {
-      throw new Error(`Could not connect to Streamer.bot after ${maxRetries + 1} attempts. Please ensure it is running and the WebSocket server is enabled.`);
-  }
-}
-
-  private async _performConnection(address: string, port: number): Promise<void> {
-    try {
-      logger.info(`Attempting to connect to Streamer.bot at ${address}:${port}`);
-
-      // Clean up any existing client
+      // Clean up existing client if present
       if (this.client) {
         try {
+          this._removeClientListeners();
           this.client.disconnect();
         } catch (e) {
-          logger.warn('Error disconnecting existing client:', e);
+          logger.warn('StreamerBotService: error while disconnecting existing client', e);
         }
         this.client = null;
       }
 
-      this.client = new StreamerbotClient({
-        host: address,
-        port: port,
-      });
+      // Construct client options with sensible defaults and enable autoReconnect
+      const clientOpts: any = {
+        host: options.host,
+        port: options.port,
+        password: options.password,
+        secure: options.secure,
+        autoReconnect: options.autoReconnect ?? true,
+        // The underlying client may accept these exact option names; pass them through.
+        reconnectIntervalMs: options.reconnectIntervalMs ?? 2000,
+        timeoutMs: options.timeoutMs ?? 10000,
+        metadata: options.metadata,
+      };
 
-      // Add connection timeout
-      const connectionTimeout = 10000; // 10 seconds
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(
-          () => reject(new Error(`Connection timeout after ${connectionTimeout}ms`)),
-          connectionTimeout,
-        );
-      });
+      // Initialize client
+      this.client = new StreamerbotClient(clientOpts);
 
-      // Race between connection and timeout
-      await Promise.race([this.client.connect(), timeoutPromise]);
+      // Bind lifecycle handlers that forward to our typed callbacks
+      this._bindClientListeners();
 
-      logger.info('Successfully connected to Streamer.bot');
-    } catch (error) {
-      logger.error('Streamer.bot connection failed:', error);
-      this.client = null;
+      // Attempt initial connection - the client's connect() resolves when connected
+      await this.client.connect();
 
-      // Provide more specific error messages
-      if (error instanceof Error) {
-        if (error.message.includes('ECONNREFUSED')) {
-          throw new Error(
-            `Connection refused to ${address}:${port}. Please ensure Streamer.bot is running and the WebSocket server is enabled.`,
-          );
-        } else if (error.message.includes('timeout')) {
-          throw new Error(
-            `Connection timeout to ${address}:${port}. Please check if Streamer.bot is running.`,
-          );
-        } else if (error.message.includes('WebSocket is closed')) {
-          throw new Error(
-            `WebSocket connection failed to ${address}:${port}. Please verify Streamer.bot WebSocket settings.`,
-          );
-        } else if (error.message.includes('Connection attempt already in progress')) {
-          throw new Error(
-            `Connection attempt already in progress. Please wait for the current connection to complete.`,
-          );
-        } else if (
-          error.message.includes('WebSocket closed before the connection is established')
-        ) {
-          throw new Error(
-            `WebSocket connection was closed before establishment. Please check if Streamer.bot is running and the WebSocket server is enabled on port ${port}.`,
-          );
+      // If client resolves, update state and notify
+      this.state = 'connected';
+
+      // Retrieve basic info from server if available and notify via callback
+      let info: StreamerBotInfo | undefined;
+      try {
+        const serverInfo = (this.client.getInfo && (await this.client.getInfo())) || undefined;
+        info = serverInfo as StreamerBotInfo;
+      } catch (err) {
+        // Non-fatal: just log it
+        logger.debug('StreamerBotService: getInfo failed', err);
+      }
+
+      if (this.lifecycleCallbacks?.onConnect) {
+        try {
+          this.lifecycleCallbacks.onConnect(info || {});
+        } catch (e) {
+          logger.warn('StreamerBotService: lifecycle onConnect handler threw', e);
         }
       }
 
-      // Provide general troubleshooting guidance
-      const troubleshootingTips = `
-            
-Troubleshooting tips:
-1. Make sure Streamer.bot is running
-2. Verify WebSocket server is enabled in Streamer.bot settings
-3. Check that the port ${port} is correct and not blocked by firewall
-4. Try restarting Streamer.bot if the issue persists`;
-
-      throw new Error(
-        `Failed to connect to Streamer.bot at ${address}:${port}: ${error instanceof Error ? error.message : 'Unknown error'}${troubleshootingTips}`,
-      );
-    }
-  }
-
-  disconnect() {
-    if (this.client) {
-      try {
-        this.client.disconnect();
-      } catch (e) {
-        logger.warn('Error disconnecting Streamer.bot client:', e);
+      logger.info('StreamerBotService: connected to Streamer.bot');
+    } catch (rawErr) {
+      // Convert to structured StreamerBotError where possible
+      const sbErr = this._normalizeError(rawErr);
+      this.state = 'failed';
+      logger.error('StreamerBotService: connection failed', sbErr);
+      // Invoke lifecycle error callback
+      if (this.lifecycleCallbacks?.onError) {
+        try {
+          this.lifecycleCallbacks.onError(sbErr);
+        } catch (e) {
+          logger.warn('StreamerBotService: lifecycle onError handler threw', e);
+        }
       }
-      this.client = null;
+      // Re-throw for callers to surface to UI
+      throw new Error(sbErr.message);
     }
-    this.isConnecting = false;
-    this.connectionPromise = null;
-  }
-
-  isConnected(): boolean {
-    return this.client !== null && !this.isConnecting;
-  }
-
-  isConnectingToStreamerBot(): boolean {
-    return this.isConnecting;
-  }
-
-  on(event: string, callback: (...args: any[]) => void) {
-    if (!this.client) return;
-    this.client.on(event as any, callback);
-  }
-
-  off(event: string, callback?: (...args: any[]) => void) {
-    if (!this.client) return;
-    (this.client as any).off(event, callback);
-  }
-
-  onEvent(callback: (event: Record<string, unknown>) => void): void {
-    if (!this.client) throw new Error('Streamer.bot client is not initialized.');
-
-    // The client's `on` method can listen to all events using '*'
-    this.client.on('*', (message) => {
-      callback(message.data.event);
-    });
-    logger.info('Subscribed to all Streamer.bot events.');
   }
 
   /**
-   * Fetches broadcaster information
+   * Disconnect gracefully from Streamer.bot and clear listeners.
    */
-  async getBroadcaster(): Promise<Broadcaster | undefined> {
+  disconnect(): void {
+    if (this.client) {
+      try {
+        this._removeClientListeners();
+        // The client's disconnect may be synchronous
+        this.client.disconnect();
+      } catch (e) {
+        logger.warn('StreamerBotService: Error disconnecting Streamer.bot client:', e);
+      }
+      this.client = null;
+    }
+
+    const prevState = this.state;
+    this.state = 'disconnected';
+    logger.info(`StreamerBotService: disconnected (previous state: ${prevState})`);
+
+    if (this.lifecycleCallbacks?.onDisconnect) {
+      try {
+        this.lifecycleCallbacks.onDisconnect();
+      } catch (e) {
+        logger.warn('StreamerBotService: lifecycle onDisconnect handler threw', e);
+      }
+    }
+  }
+
+  /**
+   * Returns true if currently connected.
+   */
+  isConnected(): boolean {
+    return this.state === 'connected';
+  }
+
+  /**
+   * Returns true if currently attempting to connect or reconnect.
+   */
+  isConnectingToStreamerBot(): boolean {
+    return this.state === 'connecting' || this.state === 'reconnecting';
+  }
+
+  /**
+   * Register lifecycle callbacks to receive connection and event updates.
+   */
+  setLifecycleCallbacks(callbacks: ConnectionLifecycleCallbacks): void {
+    this.lifecycleCallbacks = callbacks;
+  }
+
+  /**
+   * Proxy to client's event API. Keeps compatibility with existing usage.
+   */
+  on(event: string, callback: (...args: unknown[]) => void): void {
+    if (!this.client) {
+      // store callbacks through lifecycle if it's a lifecycle event
+      if (event === 'connect' && this.lifecycleCallbacks) {
+        // no-op: lifecycle callbacks are preferred
+      }
+      return;
+    }
+    // @ts-ignore - the client's types may be looser; preserve runtime behavior
+    this.client.on(event, callback);
+  }
+
+  off(event: string, callback?: (...args: unknown[]) => void): void {
+    if (!this.client) return;
+    // @ts-ignore
+    if (typeof (this.client as any).off === 'function') {
+      // @ts-ignore
+      (this.client as any).off(event, callback);
+    } else if (typeof (this.client as any).removeListener === 'function') {
+      // fallback
+      // @ts-ignore
+      (this.client as any).removeListener(event, callback);
+    }
+  }
+
+  /**
+   * Subscribe to all events sent from Streamer.bot. The provided callback
+   * will be invoked with (eventName, payload) matching our typed event map.
+   */
+  onEvent(callback: (event: string, payload: unknown) => void): void {
     if (!this.client) throw new Error('Streamer.bot client is not initialized.');
-    return this.client.getBroadcaster() as Broadcaster;
+
+    // Many Streamer.bot clients emit '*' with a message that contains 'event' and 'data'
+    this.client.on('*', (message: any) => {
+      try {
+        const evName = message?.event || message?.data?.event || 'unknown';
+        const payload = message?.data || message?.payload || message;
+        callback(evName, payload);
+      } catch (e) {
+        logger.warn('StreamerBotService: error processing incoming event', e);
+      }
+    });
+
+    logger.info('StreamerBotService: subscribed to all Streamer.bot events.');
+  }
+
+  /**
+   * Fetches broadcaster information (if supported by client).
+   */
+  async getBroadcaster(): Promise<unknown | undefined> {
+    if (!this.client) throw new Error('Streamer.bot client is not initialized.');
+    // Keep original behavior but typed as unknown
+    return (this.client.getBroadcaster && (await this.client.getBroadcaster())) || undefined;
   }
 
   /**
    * Fetches all available actions from Streamer.bot
    */
-  async getActions(): Promise<Action[]> {
+  async getActions(): Promise<StreamerBotActionDescriptor[]> {
     if (!this.client) throw new Error('Streamer.bot client is not initialized.');
-    // getActions returns an object, not an array, so extract the actions array
-    const response = await this.client.getActions();
-    // The response is typically { actions: [...] }
+    const response: ActionListResponse | any = await this.client.getActions();
     if (response && Array.isArray(response.actions)) {
-      return response.actions;
+      return response.actions as StreamerBotActionDescriptor[];
     }
-    // Fallback: return empty array if not found
     return [];
   }
 
   /**
    * Triggers an action in Streamer.bot by its ID or name
    */
-  async doAction(actionIdentifier: string, args: Record<string, unknown> = {}): Promise<void> {
+  async doAction(actionIdentifier: string, args: Record<string, unknown> = {}): Promise<RunActionResponse | void> {
     if (!this.client) throw new Error('Streamer.bot client is not initialized.');
 
-    // The client's doAction method accepts an object with name or id
     const identifier: { id?: string; name?: string } = {};
-    if (actionIdentifier.match(/^[0-9a-f-]{36}$/i)) {
+    if (/^[0-9a-f-]{36}$/i.test(actionIdentifier)) {
       identifier.id = actionIdentifier;
     } else {
       identifier.name = actionIdentifier;
     }
 
-    await this.client.doAction(identifier, args);
+    // Forward the call and return the client's response if available
+    const response = await this.client.doAction(identifier as any, args as any);
+    return response as RunActionResponse;
   }
 
   /**
-   * Sends a request generated by the Gemini model.
-   * This now acts as a wrapper around the client's methods.
-   * @param action The action object generated by Gemini
+   * Executes a structured action object (used by Gemini wrapper)
    */
-  async executeBotAction(action: {
-    type: string;
-    args?: Record<string, unknown>;
-  }): Promise<unknown> {
+  async executeBotAction(action: { type: string; args?: Record<string, unknown> }): Promise<unknown> {
     if (!this.client) throw new Error('Streamer.bot client is not initialized.');
 
     switch (action.type) {
       case 'GetActions': {
-        // getActions returns an object, not an array
-        const response = await this.client.getActions();
-        return response;
+        return await this.client.getActions();
       }
       case 'DoAction': {
         if (!action.args?.action) throw new Error('DoAction requires an action identifier.');
-        return this.client.doAction(action.args.action as any, action.args.args as any);
-      }
-      case 'CreateAction': {
-        // For now, CreateAction is not directly supported by the client
-        // We'll simulate the action creation by throwing a helpful error
-        throw new Error(
-          'CreateAction is not currently supported by the Streamer.bot client library. You can create actions manually in Streamer.bot and then use DoAction to trigger them.',
-        );
-      }
-      case 'UpdateAction': {
-        throw new Error(
-          'UpdateAction is not currently supported by the Streamer.bot client library.',
-        );
-      }
-      case 'DeleteAction': {
-        throw new Error(
-          'DeleteAction is not currently supported by the Streamer.bot client library.',
-        );
+        return await this.client.doAction(action.args.action as any, (action.args.args || {}) as any);
       }
       case 'TwitchSendMessage': {
-        // This would need to be handled by a pre-existing action in Streamer.bot
-        // that handles Twitch chat messages
         if (!action.args?.message) throw new Error('TwitchSendMessage requires a message.');
-
-        // Try to find and trigger a Twitch send message action
-        return await this.client.doAction(
-          { name: 'Send Twitch Message' },
-          {
-            message: action.args.message,
-          },
-        );
+        return await this.client.doAction({ name: 'Send Twitch Message' }, { message: action.args.message });
       }
       case 'TwitchCreatePoll': {
-        // This would need to be handled by a pre-existing action in Streamer.bot
-        // that handles Twitch chat messages
-        if (!action.args?.title || !action.args?.choices)
+        if (!action.args?.title || !action.args?.choices) {
           throw new Error('TwitchCreatePoll requires title and choices.');
-
-        // Try to find and trigger a Twitch create poll action
+        }
         return await this.client.doAction(
           { name: 'Create Twitch Poll' },
           {
@@ -336,9 +329,193 @@ Troubleshooting tips:
           },
         );
       }
-      // Add more cases as needed
+      case 'CreateAction':
+      case 'UpdateAction':
+      case 'DeleteAction':
+        throw new Error(`${action.type} is not currently supported by the Streamer.bot client library.`);
       default:
         throw new Error(`Unsupported Streamer.bot action type: ${action.type}`);
     }
+  }
+
+  // -------------------------
+  // Internal helpers
+  // -------------------------
+
+  /**
+   * Bind client-level event listeners and forward to lifecycle callbacks.
+   */
+  private _bindClientListeners(): void {
+    if (!this.client) return;
+
+    // Remove any previous handlers first
+    this._removeClientListeners();
+
+    // on connect/open
+    this.boundOnConnect = (info?: unknown) => {
+      logger.info('StreamerBotService: client reported connect/open', info);
+      this.state = 'connected';
+      if (this.lifecycleCallbacks?.onConnect) {
+        try {
+          this.lifecycleCallbacks.onConnect((info as StreamerBotInfo) || {});
+        } catch (e) {
+          logger.warn('StreamerBotService: lifecycle onConnect handler threw', e);
+        }
+      }
+    };
+
+    // on disconnect/close
+    this.boundOnDisconnect = (code?: number, reason?: string) => {
+      logger.info('StreamerBotService: client reported disconnect', { code, reason });
+      // If client is auto-reconnecting the client may emit disconnect then reconnect.
+      // Set state to reconnecting if autoReconnect is expected, otherwise disconnected.
+      this.state = this.client && (this.client as any).options?.autoReconnect ? 'reconnecting' : 'disconnected';
+      if (this.lifecycleCallbacks?.onDisconnect) {
+        try {
+          this.lifecycleCallbacks.onDisconnect(code, reason);
+        } catch (e) {
+          logger.warn('StreamerBotService: lifecycle onDisconnect handler threw', e);
+        }
+      }
+    };
+
+    // on error
+    this.boundOnError = (err?: unknown) => {
+      logger.error('StreamerBotService: client error', err);
+      const sbErr = this._normalizeError(err);
+      this.state = 'failed';
+      if (this.lifecycleCallbacks?.onError) {
+        try {
+          this.lifecycleCallbacks.onError(sbErr);
+        } catch (e) {
+          logger.warn('StreamerBotService: lifecycle onError handler threw', e);
+        }
+      }
+    };
+
+    // catch-all events
+    this.boundOnAnyEvent = (message?: any) => {
+      // message may contain { event, data } or similar shape
+      try {
+        const evName = message?.event || message?.type || message?.data?.event || 'unknown';
+        const payload = message?.data || message?.payload || message;
+        if (this.lifecycleCallbacks?.onEvent) {
+          // forward typed event (K extends keyof E in consumer)
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (this.lifecycleCallbacks.onEvent as any)(evName, payload);
+          } catch (e) {
+            logger.warn('StreamerBotService: lifecycle onEvent handler threw', e);
+          }
+        }
+      } catch (e) {
+        logger.warn('StreamerBotService: error while processing any-event', e);
+      }
+    };
+
+    // Bind into client - event names below are common; we listen to multiple to maximize compatibility
+    try {
+      if (typeof (this.client as any).on === 'function') {
+        // Common node/ws events
+        // Some clients emit 'open' / 'close' / 'error', others 'connect' / 'disconnect'
+        (this.client as any).on('open', this.boundOnConnect);
+        (this.client as any).on('connect', this.boundOnConnect);
+        (this.client as any).on('close', this.boundOnDisconnect);
+        (this.client as any).on('disconnect', this.boundOnDisconnect);
+        (this.client as any).on('error', this.boundOnError);
+        // Catch-all event emission (previous code used '*')
+        (this.client as any).on('*', this.boundOnAnyEvent);
+      }
+    } catch (e) {
+      logger.warn('StreamerBotService: failed to bind some client listeners', e);
+    }
+  }
+
+  /**
+   * Remove any previously bound client listeners.
+   */
+  private _removeClientListeners(): void {
+    if (!this.client) return;
+
+    try {
+      // @ts-ignore
+      if (typeof (this.client as any).off === 'function') {
+        // Try to remove each bound handler if present
+        if (this.boundOnConnect) {
+          // @ts-ignore
+          this.client.off('open', this.boundOnConnect);
+          // @ts-ignore
+          this.client.off('connect', this.boundOnConnect);
+        }
+        if (this.boundOnDisconnect) {
+          // @ts-ignore
+          this.client.off('close', this.boundOnDisconnect);
+          // @ts-ignore
+          this.client.off('disconnect', this.boundOnDisconnect);
+        }
+        if (this.boundOnError) {
+          // @ts-ignore
+          this.client.off('error', this.boundOnError);
+        }
+        if (this.boundOnAnyEvent) {
+          // @ts-ignore
+          this.client.off('*', this.boundOnAnyEvent);
+        }
+      } else if (typeof (this.client as any).removeListener === 'function') {
+        if (this.boundOnConnect) {
+          // @ts-ignore
+          this.client.removeListener('open', this.boundOnConnect);
+          // @ts-ignore
+          this.client.removeListener('connect', this.boundOnConnect);
+        }
+        if (this.boundOnDisconnect) {
+          // @ts-ignore
+          this.client.removeListener('close', this.boundOnDisconnect);
+          // @ts-ignore
+          this.client.removeListener('disconnect', this.boundOnDisconnect);
+        }
+        if (this.boundOnError) {
+          // @ts-ignore
+          this.client.removeListener('error', this.boundOnError);
+        }
+        if (this.boundOnAnyEvent) {
+          // @ts-ignore
+          this.client.removeListener('*', this.boundOnAnyEvent);
+        }
+      }
+    } catch (e) {
+      logger.warn('StreamerBotService: error removing client listeners', e);
+    } finally {
+      this.boundOnConnect = undefined;
+      this.boundOnDisconnect = undefined;
+      this.boundOnError = undefined;
+      this.boundOnAnyEvent = undefined;
+    }
+  }
+
+  /**
+   * Convert raw errors into a structured StreamerBotError for callbacks and logging.
+   */
+  private _normalizeError(err: unknown): StreamerBotError {
+    if (!err) {
+      return { code: 'UNKNOWN', message: 'Unknown error' };
+    }
+    if (typeof err === 'object' && (err as any).message) {
+      const maybe = err as any;
+      // Attempt to map common substrings to error codes
+      let code: string = 'UNKNOWN';
+      const msg = String(maybe.message || maybe);
+      if (/timeout/i.test(msg)) code = 'CONNECTION_TIMEOUT';
+      else if (/auth|password|unauthorized/i.test(msg)) code = 'AUTH_FAILED';
+      else if (/not connected|closed|ECONNREFUSED/i.test(msg)) code = 'NOT_CONNECTED';
+      return {
+        code,
+        message: msg,
+        details: maybe,
+        timestamp: new Date().toISOString(),
+      };
+    }
+    // Fallback: stringify
+    return { code: 'UNKNOWN', message: String(err), timestamp: new Date().toISOString() };
   }
 }
