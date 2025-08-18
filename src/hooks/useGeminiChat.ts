@@ -1,8 +1,8 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { GoogleGenAI } from '@google/genai';
+import { useState, useCallback } from 'react';
+import { geminiService } from '@/services/geminiService';
 import useConnectionsStore from '@/store/connectionsStore';
 import { useChatStore } from '@/store/chatStore';
-import { GEMINI_MODEL_NAME, INITIAL_SYSTEM_PROMPT } from '@/constants';
+import { INITIAL_SYSTEM_PROMPT } from '@/constants';
 import { buildMarkdownStylingSystemMessage } from '@/utils/systemPrompts';
 import { detectChoiceQuestion } from '@/utils/choiceDetection';
 import type { GeminiActionResponse } from '@/types/obsActions';
@@ -24,7 +24,6 @@ export const useGeminiChat = (
   const videoSettings = useConnectionsStore((state) => state.videoSettings);
   const obsService = useConnectionsStore((state) => state.obsServiceInstance);
 
-  const geminiApiKey = useChatStore((state) => state.geminiApiKey);
   const userDefinedContext = useChatStore((state) => state.userDefinedContext);
   const chatActions = useChatStore((state) => state.actions);
 
@@ -48,27 +47,13 @@ export const useGeminiChat = (
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [useGoogleSearch, setUseGoogleSearch] = useState<boolean>(false);
   const [contextMessages, setContextMessages] = useState<string[]>([]);
-  const ai = useRef<GoogleGenAI | null>(null);
-
-  useEffect(() => {
-    if (geminiApiKey) {
-      try {
-        const genAI = new GoogleGenAI({ apiKey: geminiApiKey });
-        ai.current = genAI;
-        chatActions.setGeminiClientInitialized(true);
-      } catch (error) {
-        console.error("Failed to initialize Gemini AI", error);
-        chatActions.setGeminiInitializationError('Failed to initialize Gemini AI client.');
-      }
-    }
-  }, [geminiApiKey, chatActions]);
 
   const handleAddToContext = useCallback((text: string) => {
     setContextMessages((prev) => [...prev, text].slice(-5));
   }, []);
 
   const handleSend = async (chatInputValue: string, onChatInputChange: (value: string) => void) => {
-    if (!chatInputValue.trim() || !ai.current || isLoading) return;
+    if (!chatInputValue.trim() || isLoading) return;
 
     const userMessageText = chatInputValue.trim();
     const hasObsIntent =
@@ -131,10 +116,8 @@ export const useGeminiChat = (
         contextPrompt += `\nContext from previous messages:\n${contextMessages.join('\n')}\n`;
       }
 
-      const response = await ai.current.models.generateContent({
-        model: GEMINI_MODEL_NAME,
-        contents: `${systemPrompt}${contextPrompt}\n\n${userMessageText}`
-      });
+      const fullPrompt = `${systemPrompt}${contextPrompt}\n\n${userMessageText}`;
+      const response = await geminiService.generateContent(fullPrompt);
       const modelResponseText = response.text || '';
 
       let displayText = modelResponseText;
@@ -211,7 +194,6 @@ export const useGeminiChat = (
     contextMessages,
     handleAddToContext,
     handleSend,
-    ai,
     handleObsAction,
   };
 };

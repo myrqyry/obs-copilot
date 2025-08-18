@@ -5,6 +5,36 @@ export const getHostname = (): string => {
 };
 
 /**
+ * Decides if a URL is external and needs to be proxied.
+ * @param url The URL to check.
+ * @returns True if the URL should be proxied, false otherwise.
+ */
+export const shouldProxyImage = (url: string): boolean => {
+  if (!url) return false;
+  try {
+    const urlObj = new URL(url);
+    // This is the list of external domains that we know cause CORS issues.
+    const externalDomains = [
+      'th.wallhaven.cc',
+      'w.wallhaven.cc',
+      'images.unsplash.com',
+      'images.pexels.com',
+      'cdn.pixabay.com',
+      'images.deviantart.com',
+      'cdnb.artstation.com',
+      'cdna.artstation.com',
+      'google.com', // For the favicon service
+    ];
+    // If the image's hostname is in our list, we should proxy it.
+    return externalDomains.some((domain) => urlObj.hostname.includes(domain));
+  } catch {
+    // If parsing fails, it's a relative path like '/assets/icon.png' and doesn't need proxying.
+    return false;
+  }
+};
+
+
+/**
  * Proxies an image URL through our backend to avoid browser CORS issues.
  * @param imageUrl The original image URL to proxy.
  * @returns The new, proxied URL that points to our own server.
@@ -12,32 +42,7 @@ export const getHostname = (): string => {
 export const getProxiedImageUrl = (imageUrl: string): string => {
   if (!imageUrl) return '';
 
-  // This is the internal helper function that decides if a URL is external
-  // and needs to be proxied.
-  const shouldProxy = (url: string): boolean => {
-    try {
-      const urlObj = new URL(url);
-      // This is the list of external domains that we know cause CORS issues.
-      const externalDomains = [
-        'th.wallhaven.cc',
-        'w.wallhaven.cc',
-        'images.unsplash.com',
-        'images.pexels.com',
-        'cdn.pixabay.com',
-        'images.deviantart.com',
-        'cdnb.artstation.com',
-        'cdna.artstation.com',
-        'google.com', // For the favicon service
-      ];
-      // If the image's hostname is in our list, we should proxy it.
-      return externalDomains.some((domain) => urlObj.hostname.includes(domain));
-    } catch {
-      // If parsing fails, it's a relative path like '/assets/icon.png' and doesn't need proxying.
-      return false;
-    }
-  };
-
-  if (shouldProxy(imageUrl)) {
+  if (shouldProxyImage(imageUrl)) {
     // If it's an external URL, we build a URL to our own backend's proxy endpoint.
     const params = new URLSearchParams({ url: imageUrl });
     return getApiEndpoint('image', undefined, params);

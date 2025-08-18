@@ -1,34 +1,26 @@
 import { create } from 'zustand';
 import { ChatMessage } from '../types';
 import { saveUserSettings } from '../utils/persistence';
-import { getGeminiApiKey } from '../config';
 
 export interface ChatState {
   geminiMessages: ChatMessage[];
-  geminiApiKey: string;
-  isGeminiClientInitialized: boolean;
-  geminiInitializationError: string | null;
   userDefinedContext: string[];
   actions: {
     addMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
     replaceMessage: (messageId: string, newMessage: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
-    setGeminiApiKey: (key: string) => void;
-    setGeminiClientInitialized: (initialized: boolean) => void;
-    setGeminiInitializationError: (error: string | null) => void;
     addToUserDefinedContext: (context: string) => void;
     removeFromUserDefinedContext: (context: string) => void;
     clearUserDefinedContext: () => void;
     addSystemMessageToChat: (contextText: string) => void;
     setGlobalErrorMessage: (message: string | null) => void;
   };
+  geminiInitializationError: string | null; // Keep this for general errors
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
   geminiMessages: [],
-  geminiApiKey: '',
-  isGeminiClientInitialized: false,
-  geminiInitializationError: null,
   userDefinedContext: [],
+  geminiInitializationError: null, // Keep for displaying general API errors
   actions: {
     addMessage: (message) =>
       set((state) => ({
@@ -47,15 +39,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
           msg.id === messageId ? { ...newMessage, id: messageId, timestamp: new Date() } : msg,
         ),
       })),
-    setGeminiApiKey: (key) => {
-      const newKey = key || getGeminiApiKey() || '';
-      set({ geminiApiKey: newKey });
-      if (key) {
-        saveUserSettings({ geminiApiKey: key });
-      }
-    },
-    setGeminiClientInitialized: (initialized) => set({ isGeminiClientInitialized: initialized }),
-    setGeminiInitializationError: (error) => set({ geminiInitializationError: error }),
     addToUserDefinedContext: (context) => {
       const updatedContext = [...get().userDefinedContext, context];
       set({ userDefinedContext: updatedContext });

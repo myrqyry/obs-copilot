@@ -11,17 +11,10 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { CollapsibleCard } from '@/components/common/CollapsibleCard';
 import { TextInput } from '@/components/common/TextInput';
+import { geminiService } from '@/services/geminiService';
 
 const ImageGeneration: React.FC = () => {
     const [prompt, setPrompt] = useState('');
-    const [negativePrompt, setNegativePrompt] = useState('');
-    const [width, setWidth] = useState(1024);
-    const [height, setHeight] = useState(1024);
-    const [steps, setSteps] = useState(20);
-    const [cfg, setCfg] = useState(7);
-    const [seed, setSeed] = useState(-1);
-    const [sampler, setSampler] = useState('Euler a');
-    const [model, setModel] = useState('sd_xl_base_1.0');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -38,31 +31,8 @@ const ImageGeneration: React.FC = () => {
         setImageUrl(null);
 
         try {
-            const response = await fetch('/api/image/generate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    prompt,
-                    negative_prompt: negativePrompt,
-                    width,
-                    height,
-                    steps,
-                    cfg_scale: cfg,
-                    seed,
-                    sampler_name: sampler,
-                    model_name: model,
-                }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to generate image');
-            }
-
-            const data = await response.json();
-            setImageUrl(data.imageUrl);
+            const generatedImageUrl = await geminiService.generateImage(prompt);
+            setImageUrl(generatedImageUrl);
             setModalOpen(true);
         } catch (err: unknown) {
             if (err instanceof Error) {
@@ -131,7 +101,7 @@ const ImageGeneration: React.FC = () => {
 
     return (
         <CollapsibleCard
-            title="Image Generation"
+            title="Image Generation (Gemini)"
             emoji="🎨"
             isOpen={true}
             onToggle={() => {}}
@@ -145,59 +115,7 @@ const ImageGeneration: React.FC = () => {
                         onChange={(e) => setPrompt(e.target.value)}
                         placeholder="A beautiful landscape painting"
                     />
-                    <TextInput
-                        label="Negative Prompt"
-                        value={negativePrompt}
-                        onChange={(e) => setNegativePrompt(e.target.value)}
-                        placeholder="ugly, tiling, poorly drawn hands"
-                    />
-                    <div className="grid grid-cols-2 gap-4">
-                        <TextInput
-                            label="Width"
-                            type="number"
-                            value={width}
-                            onChange={(e) => setWidth(parseInt(e.target.value))}
-                        />
-                        <TextInput
-                            label="Height"
-                            type="number"
-                            value={height}
-                            onChange={(e) => setHeight(parseInt(e.target.value))}
-                        />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <TextInput
-                            label="Steps"
-                            type="number"
-                            value={steps}
-                            onChange={(e) => setSteps(parseInt(e.target.value))}
-                        />
-                        <TextInput
-                            label="CFG Scale"
-                            type="number"
-                            value={cfg}
-                            onChange={(e) => setCfg(parseFloat(e.target.value))}
-                        />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <TextInput
-                            label="Seed"
-                            type="number"
-                            value={seed}
-                            onChange={(e) => setSeed(parseInt(e.target.value))}
-                        />
-                        <TextInput
-                            label="Sampler"
-                            value={sampler}
-                            onChange={(e) => setSampler(e.target.value)}
-                        />
-                    </div>
-                    <TextInput
-                        label="Model"
-                        value={model}
-                        onChange={(e) => setModel(e.target.value)}
-                    />
-                    <Button onClick={handleGenerateImage} disabled={loading}>
+                    <Button onClick={handleGenerateImage} disabled={loading || !prompt}>
                         {loading ? 'Generating...' : 'Generate Image'}
                     </Button>
                     {error && <p className="text-destructive">{error}</p>}

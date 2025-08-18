@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useAudioStore } from '@/store/audioStore';
 import gsap from 'gsap';
 import AudioReactiveNote from './AudioReactiveNote';
@@ -36,7 +36,12 @@ const MiniPlayer = () => {
     const inputRef = useRef<HTMLInputElement>(null);
     const [attention, setAttention] = useState(false);
     const attentionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
- // ... existing code ...
+    const gsapCtx = useRef<gsap.Context | null>(null);
+
+    useLayoutEffect(() => {
+        gsapCtx.current = gsap.context(() => {}, containerRef); // Initialize context
+        return () => gsapCtx.current?.revert(); // Cleanup
+    }, []);
 
      // Attention animation and auto-collapse when music starts
      useEffect(() => {
@@ -56,13 +61,11 @@ const MiniPlayer = () => {
 
      // Entrance animation for the mini player container
      useEffect(() => {
-         if (!containerRef.current) return;
-         const el = containerRef.current;
-         gsap.set(el, { opacity: 0, y: -8, scale: 0.98 });
-         gsap.to(el, { opacity: 1, y: 0, scale: 1, duration: 0.45, ease: 'power2.out' });
-         return () => {
-             gsap.killTweensOf(el);
-         };
+        if (!isPlayerVisible || !containerRef.current) return;
+        gsapCtx.current?.add(() => {
+            gsap.set(containerRef.current, { opacity: 0, y: -8, scale: 0.98 });
+            gsap.to(containerRef.current, { opacity: 1, y: 0, scale: 1, duration: 0.45, ease: 'power2.out' });
+        });
      }, [isPlayerVisible]);
 
     if (!isPlayerVisible || !activeAudioSource) {
@@ -77,7 +80,6 @@ const MiniPlayer = () => {
         setIsAnimating(true);
         const noteRect = noteRef.current.getBoundingClientRect();
         const minRect = minimizedNoteRef.current.getBoundingClientRect();
-        // Clone the minimized icon
         const minButton = minimizedNoteRef.current;
         const svg = minButton.querySelector('svg');
         if (!svg) {
@@ -94,41 +96,38 @@ const MiniPlayer = () => {
         clone.style.zIndex = '2000';
         clone.style.pointerEvents = 'none';
         document.body.appendChild(clone);
-        // Hide the real note until animation is done
         noteRef.current.style.visibility = 'hidden';
-        // Animate to the note position
-        const dx = noteRect.left - minRect.left;
-        const dy = noteRect.top - minRect.top;
-        const scale = noteRect.width / minRect.width;
-        gsap.to(clone, {
-            x: dx,
-            y: dy,
-            scale,
-            opacity: 1,
-            duration: 0.5,
-            ease: 'power2.inOut',
-            onComplete: () => {
-                document.body.removeChild(clone);
-                setIsAnimating(false);
-                setMinimized(false);
-                // Animate controls in as a follow-up GSAP usage
-                try {
-                  const controls = containerRef.current?.querySelectorAll('.player-control');
-                  if (controls && controls.length) {
-                    gsap.fromTo(controls, { opacity: 0, y: 6, scale: 0.95 }, { opacity: 1, y: 0, scale: 1, duration: 0.35, stagger: 0.06, ease: 'power2.out' });
-                  }
-                } catch (e) {}
-                setTimeout(() => {
-                    if (noteRef.current) noteRef.current.style.visibility = '';
-                }, 100);
-            }
+
+        gsapCtx.current?.add(() => {
+            const dx = noteRect.left - minRect.left;
+            const dy = noteRect.top - minRect.top;
+            const scale = noteRect.width / minRect.width;
+            gsap.to(clone, {
+                x: dx,
+                y: dy,
+                scale,
+                opacity: 1,
+                duration: 0.5,
+                ease: 'power2.inOut',
+                onComplete: () => {
+                    document.body.removeChild(clone);
+                    setIsAnimating(false);
+                    setMinimized(false);
+                    const controls = containerRef.current?.querySelectorAll('.player-control');
+                    if (controls && controls.length) {
+                        gsap.fromTo(controls, { opacity: 0, y: 6, scale: 0.95 }, { opacity: 1, y: 0, scale: 1, duration: 0.35, stagger: 0.06, ease: 'power2.out' });
+                    }
+                    setTimeout(() => {
+                        if (noteRef.current) noteRef.current.style.visibility = '';
+                    }, 100);
+                }
+            });
         });
     };
 
     if (minimized) {
         return (
             <>
-                {/* Minimized icon always rendered, toggled by visibility */}
                 <div className="fixed top-2 right-2 z-[1000]" style={minimized ? { visibility: 'visible', pointerEvents: 'auto' } : { visibility: 'hidden', pointerEvents: 'none', position: 'absolute' }}>
                     <button
                         ref={minimizedNoteRef}
@@ -148,7 +147,6 @@ const MiniPlayer = () => {
         );
     }
 
-    // Use actions.stopMusic for the Stop button, since hidePlayer is not in the actions type
     const handleMinimize = () => {
         if (!noteRef.current || !minimizedNoteRef.current) {
             setMinimized(true);
@@ -167,36 +165,35 @@ const MiniPlayer = () => {
         clone.style.pointerEvents = 'none';
         document.body.appendChild(clone);
         noteRef.current.style.visibility = 'hidden';
-        const dx = minRect.left - noteRect.left;
-        const dy = minRect.top - noteRect.top;
-        const scale = minRect.width / noteRect.width;
-        gsap.to(clone, {
-            x: dx,
-            y: dy,
-            scale,
-            opacity: 0.7,
-            duration: 0.5,
-            ease: 'power2.inOut',
-            onComplete: () => {
-                document.body.removeChild(clone);
-                setIsAnimating(false);
-                setMinimized(true);
-                // Briefly pulse the minimized button to indicate minimize using GSAP
-                try {
-                  if (minimizedNoteRef.current) {
-                    gsap.fromTo(minimizedNoteRef.current, { scale: 0.95 }, { scale: 1.06, duration: 0.18, yoyo: true, repeat: 1, ease: 'power2.out' });
-                  }
-                } catch (e) {}
-                setTimeout(() => {
-                    if (noteRef.current) noteRef.current.style.visibility = '';
-                }, 100);
-            }
+
+        gsapCtx.current?.add(() => {
+            const dx = minRect.left - noteRect.left;
+            const dy = minRect.top - noteRect.top;
+            const scale = minRect.width / noteRect.width;
+            gsap.to(clone, {
+                x: dx,
+                y: dy,
+                scale,
+                opacity: 0.7,
+                duration: 0.5,
+                ease: 'power2.inOut',
+                onComplete: () => {
+                    document.body.removeChild(clone);
+                    setIsAnimating(false);
+                    setMinimized(true);
+                    if (minimizedNoteRef.current) {
+                        gsap.fromTo(minimizedNoteRef.current, { scale: 0.95 }, { scale: 1.06, duration: 0.18, yoyo: true, repeat: 1, ease: 'power2.out' });
+                    }
+                    setTimeout(() => {
+                        if (noteRef.current) noteRef.current.style.visibility = '';
+                    }, 100);
+                }
+            });
         });
     };
 
     return (
         <>
-            {/* Expanded player always rendered, toggled by visibility */}
             <div
                 className={`fixed top-2 right-2 z-[1000] bg-ctp-base/80 border border-ctp-mauve/30 shadow rounded-lg flex items-center gap-2 px-2 py-0.5 min-w-[90px] max-w-xs group${attention ? ' animate-glow' : ''}`}
                 ref={containerRef}
@@ -271,17 +268,17 @@ const MiniPlayer = () => {
                         </div>
                     )
                 ) : null}
-{activeAudioSource.type === 'tts' && activeAudioSource.url && (
-    <audio
-        ref={audioRef}
-        controls
-        autoPlay
-        onEnded={() => actions.stopMusic()}
-        className="w-64 h-8"
-    >
-        Your browser does not support the audio element.
-    </audio>
-)}
+                {activeAudioSource.type === 'tts' && activeAudioSource.url && (
+                    <audio
+                        ref={audioRef}
+                        controls
+                        autoPlay
+                        onEnded={() => actions.stopMusic()}
+                        className="w-64 h-8"
+                    >
+                        Your browser does not support the audio element.
+                    </audio>
+                )}
                 {activeAudioSource.type === 'tts' && activeAudioSource.url && (
                     <audio src={activeAudioSource.url} controls autoPlay className="w-20 h-6 ml-1" style={{ minWidth: 60 }} />
                 )}
@@ -297,9 +294,7 @@ const MiniPlayer = () => {
                     className="ml-1 p-0.5 rounded-full hover:bg-ctp-mauve/10 transition-all focus:outline-none focus:ring-1 focus:ring-ctp-mauve"
                     onClick={handleMinimize}
                     style={{ alignSelf: 'center' }}
-                    ref={minimizedNoteRef}
                 >
-                    {/* Use the Minimize icon from the combined icons */}
                     <MiniPlayerIcons.Minimize />
                 </button>
             </div>
