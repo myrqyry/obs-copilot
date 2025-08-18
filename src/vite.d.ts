@@ -1,10 +1,20 @@
 /// <reference types="vite/client" />
 
+// ... existing code ...
 interface ImportMetaEnv {
   // Core API Keys
   readonly VITE_GIPHY_API_KEY: string;
   readonly VITE_TENOR_API_KEY: string;
   readonly VITE_ICONFINDER_API_KEY: string;
+
+  // New backend integration (FastAPI) - production backend URL and key
+  // VITE_ADMIN_API_URL: The public origin of the FastAPI backend (e.g., https://api.your-backend.tld)
+  readonly VITE_ADMIN_API_URL: string;
+  // VITE_ADMIN_API_KEY: X-API-KEY value the frontend may include when calling the backend origin directly
+  readonly VITE_ADMIN_API_KEY: string;
+
+  // Legacy / general API URL (kept for backward compatibility)
+  readonly VITE_API_URL: string;
 
   // Image and Photo APIs
   readonly VITE_UNSPLASH_API_KEY: string;

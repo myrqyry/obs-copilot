@@ -1,6 +1,5 @@
-import axios from 'axios';
+import { httpClient } from './httpClient';
 import { logger } from '../utils/logger';
-// import { createApi } from 'unsplash-js'; // This is no longer needed as we are proxying all requests.
 
 export interface UnsplashPhoto {
   id: string;
@@ -83,7 +82,7 @@ class UnsplashService {
      * @throws Throws an error if the API call fails.
      */
     try {
-      const response = await axios.post(`${this.proxyEndpoint}/search-photos`, {
+      const response = await httpClient.post(`${this.proxyEndpoint}/search-photos`, {
         query,
         options,
       });
@@ -113,7 +112,7 @@ class UnsplashService {
      * @throws Throws an error if the API call fails.
      */
     try {
-      const response = await axios.post(`${this.proxyEndpoint}/get-random-photo`, {
+      const response = await httpClient.post(`${this.proxyEndpoint}/get-random-photo`, {
         options,
       });
       return response.data.photos;
@@ -134,7 +133,7 @@ class UnsplashService {
      * @throws Throws an error if the API call fails.
      */
     try {
-      const response = await axios.get(`${this.proxyEndpoint}/get-photo/${photoId}`);
+      const response = await httpClient.get(`${this.proxyEndpoint}/get-photo/${photoId}`);
       return response.data;
     } catch (error) {
       logger.error('Error getting Unsplash photo:', error);
@@ -147,7 +146,7 @@ class UnsplashService {
    */
   async trackDownload(downloadLocation: string): Promise<void> {
     try {
-      await axios.post(`${this.proxyEndpoint}/track-download`, { downloadLocation });
+      await httpClient.post(`${this.proxyEndpoint}/track-download`, { downloadLocation });
     } catch (error) {
       logger.error('Error tracking download:', error);
       // Don't throw error for tracking failures as it's not critical
@@ -169,7 +168,7 @@ class UnsplashService {
      * @throws Throws an error if the API call fails.
      */
     try {
-      const response = await axios.post(`${this.proxyEndpoint}/list-photos`, {
+      const response = await httpClient.post(`${this.proxyEndpoint}/list-photos`, {
         options: {
           ...options,
           type: 'trending', // Add a type to differentiate on the proxy
@@ -196,7 +195,7 @@ class UnsplashService {
      * @throws Throws an error if the API call fails.
      */
     try {
-      const response = await axios.post(`${this.proxyEndpoint}/list-collections`, {
+      const response = await httpClient.post(`${this.proxyEndpoint}/list-collections`, {
         options,
       });
       return response.data.results;
@@ -225,12 +224,9 @@ class UnsplashService {
      * @throws Throws an error if the API call fails.
      */
     try {
-      const response = await axios.post(
-        `${this.proxyEndpoint}/get-collection-photos/${collectionId}`,
-        {
-          options,
-        },
-      );
+      const response = await httpClient.post(`${this.proxyEndpoint}/get-collection-photos/${collectionId}`, {
+        options,
+      });
       return response.data.results;
     } catch (error) {
       logger.error('Error getting collection photos:', error);
@@ -253,7 +249,7 @@ class UnsplashService {
      * @throws Throws an error if the API call fails.
      */
     try {
-      const response = await axios.post(`${this.proxyEndpoint}/list-topics`, {
+      const response = await httpClient.post(`${this.proxyEndpoint}/list-topics`, {
         options,
       });
       return response.data.results;
@@ -282,7 +278,7 @@ class UnsplashService {
      * @throws Throws an error if the API call fails.
      */
     try {
-      const response = await axios.post(`${this.proxyEndpoint}/get-topic-photos/${topicIdOrSlug}`, {
+      const response = await httpClient.post(`${this.proxyEndpoint}/get-topic-photos/${topicIdOrSlug}`, {
         options,
       });
       return response.data.results;
@@ -312,7 +308,7 @@ class UnsplashService {
      * @throws Throws an error if the API call fails.
      */
     try {
-      const response = await axios.post(`${this.proxyEndpoint}/get-user-photos/${username}`, {
+      const response = await httpClient.post(`${this.proxyEndpoint}/get-user-photos/${username}`, {
         options,
       });
       return response.data.results;

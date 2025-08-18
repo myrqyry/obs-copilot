@@ -1,6 +1,6 @@
 // src/services/apiService.ts
-import axios from 'axios';
 import { logger } from '../utils/logger';
+import { httpClient } from './httpClient';
 
 class ApiService {
   private apiName: string;
@@ -25,7 +25,7 @@ class ApiService {
     });
 
     try {
-      const response = await axios.get(`${endpoint}?${params.toString()}`);
+      const response = await httpClient.get(`${endpoint}?${params.toString()}`);
       // The backend now handles finding the data path, so we can just return the data.
       return response.data;
     } catch (error: any) {

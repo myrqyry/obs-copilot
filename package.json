@@ -20,7 +20,10 @@
   "type": "module",
   "main": "src/App.tsx",
   "scripts": {
-    "dev": "vite",
+    "frontend": "vite",
+    "backend:setup": "node -e \"const {execSync}=require('child_process'); const isWin=process.platform==='win32'; try{ execSync(isWin? 'python -m venv backend/venv' : 'python3 -m venv backend/venv', {stdio:'inherit'}); }catch(e){ execSync('python -m venv backend/venv', {stdio:'inherit'}); } console.log('backend venv ready');\"",
+    "backend:dev": "node -e \"const {execSync, spawn}=require('child_process'); const fs=require('fs'); const isWin=process.platform==='win32'; const py = isWin ? 'backend/venv/Scripts/python.exe' : 'backend/venv/bin/python'; if(!fs.existsSync('backend/venv')){ try{ execSync(isWin? 'python -m venv backend/venv' : 'python3 -m venv backend/venv', {stdio:'inherit'}); }catch(e){ execSync('python -m venv backend/venv', {stdio:'inherit'}); } } try{ execSync(py + ' -m pip install -r backend/requirements.txt', {stdio:'inherit'}); }catch(e){} const child=spawn(py, ['-m','uvicorn','backend.main:app','--reload','--port','8000','--host','127.0.0.1'], {stdio:'inherit'}); child.on('exit', code=>process.exit(code));\"",
+    "dev": "concurrently \"npm:frontend\" \"npm:backend:dev\" -n frontend,backend -c cyan,magenta",
     "build": "tsc && vite build",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "format": "prettier --write \"{src,apps,libs,test}/**/*.ts\"",
@@ -42,6 +45,7 @@
     "clsx": "^2.1.1",
     "dompurify": "^3.2.6",
     "dotenv": "^16.5.0",
+    "express": "^5.1.0",
     "firebase": "^12.1.0",
     "framer-motion": "^12.23.0",
     "gsap": "^3.13.0",
@@ -53,8 +57,7 @@
     "serverless-http": "^3.2.0",
     "tailwind-merge": "^3.3.1",
     "zod": "^4.0.11",
-    "zustand": "^5.0.5",
-    "express": "^5.1.0"
+    "zustand": "^5.0.5"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.28.0",
@@ -72,6 +75,7 @@
     "@typescript-eslint/parser": "^7.18.0",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.19",
+    "concurrently": "^9.2.0",
     "cors": "^2.8.5",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^10.1.8",
