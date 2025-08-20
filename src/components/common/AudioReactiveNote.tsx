@@ -24,22 +24,36 @@ const AudioReactiveNote: React.FC<Props> = ({ audioSelector, size = 20, hidden =
             audio = document.querySelector('.fixed.top-2.right-2 audio, .fixed.top-3.right-3 audio') as HTMLAudioElement;
         }
         if (!audio) return;
+        
+        // Initialize AudioContext only if not already created
         if (!audioCtxRef.current) {
             audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
         }
         const audioCtx = audioCtxRef.current;
+        
+        // Initialize analyser only if not already created
         if (!analyserRef.current) {
             analyserRef.current = audioCtx.createAnalyser();
             analyserRef.current.fftSize = 64;
         }
         const analyser = analyserRef.current;
+        
+        // Initialize source only if not already created
         if (!sourceRef.current) {
-            sourceRef.current = audioCtx.createMediaElementSource(audio);
-            sourceRef.current.connect(analyser);
-            analyser.connect(audioCtx.destination);
+            try {
+                sourceRef.current = audioCtx.createMediaElementSource(audio);
+                sourceRef.current.connect(analyser);
+                analyser.connect(audioCtx.destination);
+            } catch (error) {
+                // Handle case where audio element is already connected to another source
+                console.warn('AudioContext source creation failed:', error);
+                return;
+            }
         }
+        
         let running = true;
         const data = new Uint8Array(analyser.frequencyBinCount);
+        
         function loop() {
             if (!running) return;
             analyser.getByteFrequencyData(data);
@@ -59,13 +73,46 @@ const AudioReactiveNote: React.FC<Props> = ({ audioSelector, size = 20, hidden =
             setLevel(next);
             rafRef.current = requestAnimationFrame(loop);
         }
+        
         loop();
+        
         return () => {
             running = false;
-            if (rafRef.current) cancelAnimationFrame(rafRef.current);
-            // Don't disconnect audio graph here to avoid breaking playback
+            if (rafRef.current) {
+                cancelAnimationFrame(rafRef.current);
+                rafRef.current = null;
+            }
+            // Properly cleanup AudioContext resources
+            if (sourceRef.current) {
+                try {
+                    sourceRef.current.disconnect();
+                } catch (error) {
+                    // Ignore disconnect errors
+                }
+                sourceRef.current = null;
+            }
+            if (analyserRef.current) {
+                try {
+                    analyserRef.current.disconnect();
+                } catch (error) {
+                    // Ignore disconnect errors
+                }
+                analyserRef.current = null;
+            }
         };
     }, [audioSelector]);
+
+    // Cleanup AudioContext on component unmount
+    useEffect(() => {
+        return () => {
+            if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+                audioCtxRef.current.close().catch((error) => {
+                    console.warn('Failed to close AudioContext:', error);
+                });
+                audioCtxRef.current = null;
+            }
+        };
+    }, []);
 
     // Glowy effect: scale and shadow
     const scale = 1 + level * 0.7;
