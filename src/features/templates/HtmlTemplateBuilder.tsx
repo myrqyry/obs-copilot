@@ -6,7 +6,7 @@ import { Modal } from '@/components/ui/Modal';
 import { useConnectionManagerStore } from '@/store/connectionManagerStore';
 import { HtmlTemplateService, TemplateConfig } from '@/services/htmlTemplateService';
 import { catppuccinAccentColorsHexMap, CatppuccinAccentColorName } from '@/types';
-import ExternalHtmlRenderer from '@/components/ui/ExternalHtmlRenderer';
+import SecureHtmlRenderer from '@/components/ui/SecureHtmlRenderer';
 
 interface HtmlTemplateBuilderProps {
     accentColorName: CatppuccinAccentColorName;
@@ -365,7 +365,7 @@ const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({ accentColorNa
                     </div>
                 )}
                 <div className="mt-2">
-                    <ExternalHtmlRenderer htmlContent={htmlContent} customCss={customCss} />
+                    <SecureHtmlRenderer htmlContent={htmlContent} customCss={customCss} />
                 </div>
             </div>
 

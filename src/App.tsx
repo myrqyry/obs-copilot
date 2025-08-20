@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
-import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin'; // <-- IMPORT THE PLUGIN
+import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import { useTheme } from './hooks/useTheme';
 import { Header } from './components/layout/Header';
@@ -16,13 +16,14 @@ import MiniPlayer from './components/common/MiniPlayer';
 import { NotificationManager } from './components/common/NotificationManager';
 import { ConnectionProvider } from './components/ConnectionProvider';
 import { ConnectionPanel } from './features/connections/ConnectionPanel';
-// Added imports for stores/hooks needed to provide proper props
+// Optimized imports
 import useConnectionsStore from './store/connectionsStore';
-import { useChatStore } from './store/chatStore';
-import { useSettingsStore } from './store/settingsStore';
+import { useChatState, useSettingsState } from './hooks/useOptimizedStoreSelectors';
 import { useStreamerBotActions } from './hooks/useStreamerBotActions';
+import { useGsapCleanup } from './hooks/useGsapCleanup';
 
 gsap.registerPlugin(MorphSVGPlugin);
+
 const App: React.FC = () => {
     useTheme();
     const [activeTab, setActiveTab] = useState<AppTab>(AppTab.GEMINI);
@@ -30,6 +31,12 @@ const App: React.FC = () => {
     const tabContentRef = useRef<HTMLDivElement>(null);
     const headerRef = useRef<HTMLDivElement>(null);
     const [headerHeight, setHeaderHeight] = useState(64);
+    
+    // Use GSAP cleanup hook for proper animation management
+    const { createTween } = useGsapCleanup({
+        killImmediately: true,
+        revert: false
+    });
     
     useEffect(() => {
         if (headerRef.current) {
@@ -39,19 +46,36 @@ const App: React.FC = () => {
 
     useEffect(() => {
         if (tabContentRef.current) {
-            gsap.fromTo(tabContentRef.current, { opacity: 0 }, { opacity: 1, duration: 0.2 });
+            createTween(tabContentRef.current, { 
+                opacity: 1, 
+                duration: 0.2,
+                ease: "power2.out",
+                fromVars: { opacity: 0 }
+            });
         }
-    }, [activeTab]);
+    }, [activeTab, createTween]);
     
     // --- New state & callbacks to satisfy GeminiChat props ---
     const [chatInputValue, setChatInputValue] = useState<string>('');
     const onChatInputChange = (value: string) => setChatInputValue(value);
 
+    // Use optimized store selectors
+    const chatState = useChatState();
+    const settingsState = useSettingsState();
+    
     // Zustand stores/hooks used to provide real implementations
-    const onRefreshDataFromStore = useConnectionsStore((s) => s.onRefreshData);
-    const streamerBotServiceInstance = useConnectionsStore((s) => s.streamerBotServiceInstance);
-    const chatActions = useChatStore((s) => s.actions);
-    const settingsStoreActions = useSettingsStore((s) => s.actions);
+    const onRefreshDataFromStore = useConnectionsStore((s: any) => s.onRefreshData);
+    const streamerBotServiceInstance = useConnectionsStore((s: any) => s.streamerBotServiceInstance);
+    const chatActions = chatState.actions;
+    
+    // Get settings actions from the store directly (temporary until we optimize this)
+    const settingsStoreActions = useConnectionsStore((s: any) => s.actions) || {
+        setThemeColor: () => {},
+        toggleFlipSides: () => {},
+        toggleAutoApplySuggestions: () => {},
+        toggleExtraDarkMode: () => {},
+        setCustomChatBackground: () => {},
+    };
 
     // Wrap the store-provided onRefreshData into an async function matching the GeminiChat signature
     const onRefreshData = async (): Promise<void> => {
