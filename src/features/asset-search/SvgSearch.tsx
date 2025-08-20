@@ -1,6 +1,7 @@
 // src/features/asset-search/SvgSearch.tsx
 import React from 'react';
 import AssetSearch from './AssetSearch';
+import SecureHtmlRenderer from '@/components/ui/SecureHtmlRenderer';
 // ... (other imports will be needed for handlers)
 
 // Define your SVG APIs
@@ -26,12 +27,22 @@ const SvgSearch: React.FC = () => {
 
     const renderGridItem = (item: any, onClick: () => void) => (
         <div key={item.id} className="relative group cursor-pointer h-full bg-slate-800 rounded-md p-2" onClick={onClick}>
-             <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: item.svgContent }} />
+             <SecureHtmlRenderer 
+                 htmlContent={item.svgContent} 
+                 allowedTags={['svg','path','g','circle','rect','line','polygon','polyline','ellipse','defs','use','linearGradient','radialGradient','stop']}
+                 allowedAttributes={['viewBox','d','fill','stroke','stroke-width','cx','cy','r','x','y','width','height','points','x1','y1','x2','y2','rx','ry','transform','id','href','xlink:href','offset','stop-color','stop-opacity']}
+                 className="w-full h-full"
+             />
         </div>
     );
      const renderModalContent = (item: any) => (
         <div className="p-4 bg-slate-800 rounded-md flex justify-center items-center">
-            <div className="w-64 h-64" dangerouslySetInnerHTML={{ __html: item.svgContent }} />
+            <SecureHtmlRenderer 
+                htmlContent={item.svgContent} 
+                allowedTags={['svg','path','g','circle','rect','line','polygon','polyline','ellipse','defs','use','linearGradient','radialGradient','stop']}
+                allowedAttributes={['viewBox','d','fill','stroke','stroke-width','cx','cy','r','x','y','width','height','points','x1','y1','x2','y2','rx','ry','transform','id','href','xlink:href','offset','stop-color','stop-opacity']}
+                className="w-64 h-64"
+            />
         </div>
     );
 

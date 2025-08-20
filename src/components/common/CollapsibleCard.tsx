@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { FaviconIcon } from '@/components/common/FaviconIcon';
 import Tooltip from '@/components/ui/Tooltip';
+import SecureHtmlRenderer from '@/components/ui/SecureHtmlRenderer';
 
 interface CollapsibleCardProps {
     isOpen: boolean;
@@ -47,7 +48,18 @@ export const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
                         </span>
                     </Tooltip>
                 )}
-                {customSvg && <span className="w-6 h-6" style={{ color: accentColor }} dangerouslySetInnerHTML={{ __html: customSvg }} aria-hidden="true" />}
+
+                {customSvg && (
+                    <span className="w-6 h-6" style={{ color: accentColor }} aria-hidden="true">
+                        <SecureHtmlRenderer 
+                            htmlContent={customSvg}
+                            allowedTags={['svg','path','g','circle','rect','line','polygon','polyline','ellipse']}
+                            allowedAttributes={['viewBox','d','fill','stroke','stroke-width','cx','cy','r','x','y','width','height','points']}
+                            className="w-full h-full"
+                        />
+                    </span>
+                )}
+
                 {emoji && <span className="text-2xl select-none" style={{ color: accentColor }} aria-hidden="true">{emoji}</span>}
                 <span className="text-lg font-semibold flex-1 text-left truncate" style={{ color: accentColor }}>
                     {title}

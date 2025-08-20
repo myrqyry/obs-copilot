@@ -86,21 +86,11 @@ interface ConnectionStoreState {
     streamStatus: StreamStatus;
     recordStatus: StreamStatus;
     videoSettings: VideoSettings;
+    onRefreshData?: () => void | Promise<void>;
+    streamerBotServiceInstance?: any;
+    actions?: any;
 }
 
-interface ChatStoreState {
-    geminiMessages: GeminiMessage[];
-    isGeminiClientInitialized: boolean;
-    actions: ChatActions;
-}
-
-interface SettingsStoreState {
-    extraDarkMode: boolean;
-    flipSides: boolean;
-    theme: ThemeColors;
-}
-
-// Combined connection state selector
 export const useConnectionState = (): ConnectionState => {
     return useConnectionManagerStore(
         useCallback(
@@ -118,7 +108,7 @@ export const useConnectionState = (): ConnectionState => {
 export const useChatState = (): ChatState => {
     return useChatStore(
         useCallback(
-            (state: ChatStoreState) => ({
+            (state: any) => ({
                 messages: state.geminiMessages,
                 isGeminiClientInitialized: state.isGeminiClientInitialized,
                 actions: state.actions,
@@ -132,7 +122,7 @@ export const useChatState = (): ChatState => {
 export const useSettingsState = (): SettingsState => {
     return useSettingsStore(
         useCallback(
-            (state: SettingsStoreState) => ({
+            (state: any) => ({
                 extraDarkMode: state.extraDarkMode,
                 flipSides: state.flipSides,
                 theme: {
@@ -240,4 +230,18 @@ export const useShallowStore = <TState, TResult>(
     selector: (state: TState) => TResult
 ): TResult => {
     return store(selector, shallowEqual);
+};
+
+// Combined connection actions and services selector
+export const useConnectionActions = () => {
+    return useConnectionManagerStore(
+        useCallback(
+            (state: ConnectionStoreState) => ({
+                onRefreshData: state.onRefreshData,
+                streamerBotServiceInstance: state.streamerBotServiceInstance,
+                actions: state.actions,
+            }),
+            []
+        )
+    );
 };

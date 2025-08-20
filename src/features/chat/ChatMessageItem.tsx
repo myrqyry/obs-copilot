@@ -13,7 +13,7 @@ import { gsap } from 'gsap';
 import { getRandomSuggestions } from '@/constants/chatSuggestions';
 import { useSettingsStore } from '@/store/settingsStore';
 import Tooltip from '@/components/ui/Tooltip';
-import DOMPurify from 'dompurify';
+import SecureHtmlRenderer from '@/components/ui/SecureHtmlRenderer';
 
 interface ChatMessageItemProps {
     message: ChatMessage;
@@ -326,15 +326,29 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
 
                                         while ((match = codeBlockRegex.exec(message.text)) !== null) {
                                             if (match.index > lastIndex) {
-                                                const sanitizedHtml = DOMPurify.sanitize(message.text.substring(lastIndex, match.index));
-                                                parts.push(<div key={lastIndex} dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />);
+                                                const htmlFragment = message.text.substring(lastIndex, match.index);
+                                                parts.push(
+                                                    <SecureHtmlRenderer 
+                                                        key={lastIndex}
+                                                        htmlContent={htmlFragment}
+                                                        allowedTags={['p','br','strong','em','code','pre','ul','ol','li','a','span','div']}
+                                                        allowedAttributes={['class','href','target','rel']}
+                                                    />
+                                                );
                                             }
                                             lastIndex = codeBlockRegex.lastIndex;
                                         }
 
                                         if (lastIndex < message.text.length) {
-                                            const sanitizedHtml = DOMPurify.sanitize(message.text.substring(lastIndex));
-                                            parts.push(<div key={lastIndex} dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />);
+                                            const htmlFragment = message.text.substring(lastIndex);
+                                            parts.push(
+                                                <SecureHtmlRenderer 
+                                                    key={lastIndex}
+                                                    htmlContent={htmlFragment}
+                                                    allowedTags={['p','br','strong','em','code','pre','ul','ol','li','a','span','div']}
+                                                    allowedAttributes={['class','href','target','rel']}
+                                                />
+                                            );
                                         }
 
                                         return parts;

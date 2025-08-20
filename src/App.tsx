@@ -17,8 +17,7 @@ import { NotificationManager } from './components/common/NotificationManager';
 import { ConnectionProvider } from './components/ConnectionProvider';
 import { ConnectionPanel } from './features/connections/ConnectionPanel';
 // Optimized imports
-import useConnectionsStore from './store/connectionsStore';
-import { useChatState, useSettingsState } from './hooks/useOptimizedStoreSelectors';
+import { useChatState, useConnectionActions } from './hooks/useOptimizedStoreSelectors';
 import { useStreamerBotActions } from './hooks/useStreamerBotActions';
 import { useGsapCleanup } from './hooks/useGsapCleanup';
 
@@ -61,15 +60,15 @@ const App: React.FC = () => {
 
     // Use optimized store selectors
     const chatState = useChatState();
-    const settingsState = useSettingsState();
+    const connectionActions = useConnectionActions();
     
-    // Zustand stores/hooks used to provide real implementations
-    const onRefreshDataFromStore = useConnectionsStore((s: any) => s.onRefreshData);
-    const streamerBotServiceInstance = useConnectionsStore((s: any) => s.streamerBotServiceInstance);
+    // Extract values from optimized selectors
+    const onRefreshDataFromStore = connectionActions.onRefreshData;
+    const streamerBotServiceInstance = connectionActions.streamerBotServiceInstance;
     const chatActions = chatState.actions;
     
-    // Get settings actions from the store directly (temporary until we optimize this)
-    const settingsStoreActions = useConnectionsStore((s: any) => s.actions) || {
+    // Get settings actions from the connection actions (temporary until we optimize this)
+    const settingsStoreActions = connectionActions.actions || {
         setThemeColor: () => {},
         toggleFlipSides: () => {},
         toggleAutoApplySuggestions: () => {},
@@ -95,7 +94,13 @@ const App: React.FC = () => {
     // Wire streamer.bot action handler via hook (uses streamerBotServiceInstance and chat store)
     const { handleStreamerBotAction } = useStreamerBotActions({
         streamerBotService: streamerBotServiceInstance,
-        onAddMessage: chatActions.addMessage,
+        onAddMessage: (message: { role: "system"; text: string; }) => {
+            // Adapt the message format to match GeminiMessage structure
+            chatActions.addMessage({
+                role: message.role,
+                content: message.text,
+            });
+        },
         setErrorMessage,
     });
 

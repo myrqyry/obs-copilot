@@ -390,6 +390,9 @@ const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({ accentColorNa
                                     height="400"
                                     className="border-none"
                                     title="Template Preview"
+                                    sandbox="allow-scripts allow-same-origin"
+                                    referrerPolicy="no-referrer"
+                                    loading="lazy"
                                 />
                             </Tooltip>
                         </div>

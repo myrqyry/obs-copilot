@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { unsplashService, UnsplashPhoto } from '@/services/unsplashService';
+import SecureHtmlRenderer from '@/components/ui/SecureHtmlRenderer';
 
 interface UnsplashPhotoSearchProps {
   onPhotoSelect?: (photo: UnsplashPhoto) => void;
@@ -114,9 +115,11 @@ export const UnsplashPhotoSearch: React.FC<UnsplashPhotoSearchProps> = ({
               className="w-full h-64 object-cover rounded-lg"
             />
             <div className="mt-2 text-sm text-gray-600">
-              <div dangerouslySetInnerHTML={{ 
-                __html: unsplashService.getPhotoAttribution(selectedPhoto) 
-              }} />
+              <SecureHtmlRenderer 
+                htmlContent={unsplashService.getPhotoAttribution(selectedPhoto)}
+                allowedTags={['a','span','div']}
+                allowedAttributes={['href','target','rel','class']}
+              />
             </div>
           </div>
         </div>
