@@ -199,23 +199,47 @@ export class ObsClientImpl implements ObsClient {
   }
 
   /**
-   * Connects to the OBS WebSocket server.
+   * Connects to the OBS WebSocket server with retry logic.
    * @param address The WebSocket address (e.g., 'ws://localhost:4444').
    * @param password Optional password for authentication.
+   * @param maxRetries Maximum number of retry attempts.
    * @returns A Promise that resolves when the connection is successful.
-   * @throws {ObsError} If the connection fails.
+   * @throws {ObsError} If the connection fails after all retries.
    */
-  async connect(address: string, password?: string): Promise<void> {
-    try {
-      await this.obs.connect(address, password, {
-        eventSubscriptions: 0xffffffff, // Subscribe to all events
-      });
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        throw new ObsError(`Failed to connect to OBS: ${error.message}`);
+  async connect(address: string, password?: string, maxRetries: number = 3): Promise<void> {
+    let lastError: Error = new Error('No connection attempts made');
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        // If we're retrying, add a delay with exponential backoff
+        if (attempt > 0) {
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000); // Max 10 seconds
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+
+        await this.obs.connect(address, password, {
+          eventSubscriptions: 0xffffffff, // Subscribe to all events
+        });
+        return; // Success, exit the retry loop
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          lastError = error;
+          logger.warn(`OBS connection attempt ${attempt + 1} failed: ${error.message}`);
+
+          // If this is the last attempt, throw the error
+          if (attempt === maxRetries) {
+            throw new ObsError(`Failed to connect to OBS after ${maxRetries + 1} attempts: ${error.message}`);
+          }
+        } else {
+          lastError = new Error('Unknown error');
+          if (attempt === maxRetries) {
+            throw new ObsError('Failed to connect to OBS: Unknown error');
+          }
+        }
       }
-      throw new ObsError('Failed to connect to OBS: Unknown error');
     }
+
+    throw new ObsError(`Failed to connect to OBS: ${lastError.message}`);
   }
 
   /**

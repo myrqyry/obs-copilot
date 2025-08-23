@@ -255,17 +255,43 @@ function toast({ ...props }: Toast) {
     })
   const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
 
-  dispatch({
-    type: "ADD_TOAST",
-    toast: {
-      ...props,
-      id,
-      open: true,
-      onOpenChange: (open) => {
-        if (!open) dismiss()
+  // Prevent duplicate toasts - check if identical toast already exists
+  const existingToast = memoryState.toasts.find(t =>
+    t.title === props.title &&
+    t.description === props.description &&
+    t.variant === props.variant &&
+    t.open === true
+  )
+
+  if (existingToast) {
+    // If duplicate exists, just dismiss it and create a new one to refresh the timer
+    dispatch({ type: "DISMISS_TOAST", toastId: existingToast.id })
+    setTimeout(() => {
+      dispatch({
+        type: "ADD_TOAST",
+        toast: {
+          ...props,
+          id,
+          open: true,
+          onOpenChange: (open) => {
+            if (!open) dismiss()
+          },
+        },
+      })
+    }, 100) // Small delay to ensure dismissal is processed
+  } else {
+    dispatch({
+      type: "ADD_TOAST",
+      toast: {
+        ...props,
+        id,
+        open: true,
+        onOpenChange: (open) => {
+          if (!open) dismiss()
+        },
       },
-    },
-  })
+    })
+  }
 
   return {
     id: id,
@@ -285,7 +311,7 @@ function useToast() {
         listeners.splice(index, 1)
       }
     }
-  }, [state])
+  }, []) // Fix: Empty dependency array to prevent infinite loop
 
   return {
     ...state,

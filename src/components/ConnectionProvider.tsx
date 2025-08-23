@@ -41,7 +41,10 @@ export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             toast({ title: 'OBS Connection', description: 'Successfully connected to OBS!' });
         } catch (error: any) {
             setObsConnected(false);
-            toast({ title: 'OBS Connection Failed', description: error.message, variant: 'destructive' });
+            // Only show error toast if it's not a connection error that we're already handling
+            if (error.message && !error.message.includes('WebSocket')) {
+                toast({ title: 'OBS Connection Failed', description: error.message, variant: 'destructive' });
+            }
         }
     }, [obsClient, setObsConnected]);
     
