@@ -4,10 +4,12 @@ import { saveUserSettings } from '../utils/persistence';
 
 export interface ChatState {
   geminiMessages: ChatMessage[];
+  isGeminiClientInitialized: boolean;
   userDefinedContext: string[];
   actions: {
     addMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
     replaceMessage: (messageId: string, newMessage: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
+    setGeminiClientInitialized: (initialized: boolean) => void;
     addToUserDefinedContext: (context: string) => void;
     removeFromUserDefinedContext: (context: string) => void;
     clearUserDefinedContext: () => void;
@@ -17,12 +19,9 @@ export interface ChatState {
   geminiInitializationError: string | null; // Keep this for general errors
 }
 
-export const useChatStore = create<ChatState>((set, get) => ({
-  geminiMessages: [],
-  userDefinedContext: [],
-  geminiInitializationError: null, // Keep for displaying general API errors
-  actions: {
-    addMessage: (message) =>
+export const useChatStore = create<ChatState>((set, get) => {
+  const actions = {
+    addMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) =>
       set((state) => ({
         geminiMessages: [
           ...state.geminiMessages,
@@ -33,18 +32,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
           },
         ],
       })),
-    replaceMessage: (messageId, newMessage) =>
+    replaceMessage: (messageId: string, newMessage: Omit<ChatMessage, 'id' | 'timestamp'>) =>
       set((state) => ({
         geminiMessages: state.geminiMessages.map((msg) =>
-          msg.id === messageId ? { ...newMessage, id: messageId, timestamp: new Date() } : msg,
+          msg.id === messageId ? { ...newMessage, id: messageId, timestamp: new Date() } : msg
         ),
       })),
-    addToUserDefinedContext: (context) => {
+    setGeminiClientInitialized: (initialized: boolean) => set({ isGeminiClientInitialized: initialized }),
+    addToUserDefinedContext: (context: string) => {
       const updatedContext = [...get().userDefinedContext, context];
       set({ userDefinedContext: updatedContext });
       saveUserSettings({ userDefinedContext: updatedContext });
     },
-    removeFromUserDefinedContext: (context) => {
+    removeFromUserDefinedContext: (context: string) => {
       const updatedContext = get().userDefinedContext.filter((item) => item !== context);
       set({ userDefinedContext: updatedContext });
       saveUserSettings({ userDefinedContext: updatedContext });
@@ -53,9 +53,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({ userDefinedContext: [] });
       saveUserSettings({ userDefinedContext: [] });
     },
-    addSystemMessageToChat: (contextText) => {
+    addSystemMessageToChat: (contextText: string) => {
       get().actions.addMessage({ role: 'system', text: contextText });
     },
-    setGlobalErrorMessage: (message) => set({ geminiInitializationError: message }),
-  },
-}));
+    setGlobalErrorMessage: (message: string | null) => set({ geminiInitializationError: message }),
+  };
+
+  return {
+    geminiMessages: [],
+    isGeminiClientInitialized: false,
+    userDefinedContext: [],
+    geminiInitializationError: null, // Keep for displaying general API errors
+    actions,
+  };
+});

@@ -311,7 +311,7 @@ function useToast() {
         listeners.splice(index, 1)
       }
     }
-  }, []) // Fix: Empty dependency array to prevent infinite loop
+  }, [])
 
   return {
     ...state,
