@@ -1,7 +1,7 @@
 // src/features/connections/ConnectionPanel.tsx
 import React from 'react';
 import { ConnectionForm } from './ConnectionForm';
-import { useConnectionServices } from '@/components/ConnectionProvider'; // <-- IMPORT our new hook
+import { useConnectionServices } from '@/hooks/useConnectionServices';
 
 export const ConnectionPanel: React.FC = () => {
     // Use the hook to get all the necessary state and functions from the provider

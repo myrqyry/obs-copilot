@@ -111,7 +111,7 @@ class ComprehensiveErrorBoundary extends Component<Props, State> {
         }
     }
 
-    private reportError = (error: Error, errorInfo: ErrorInfo, context: any) => {
+    private reportError = (error: Error, /* unused */ _errorInfo: ErrorInfo, context: any) => {
         // This could be extended to report to services like Sentry, LogRocket, etc.
         try {
             // Example: Send to analytics or error reporting service

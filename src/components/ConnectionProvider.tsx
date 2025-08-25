@@ -1,5 +1,5 @@
 // src/components/ConnectionProvider.tsx
-import React, { createContext, useContext, useEffect, useMemo, useCallback } from 'react';
+import React, { createContext, useEffect, useMemo, useCallback } from 'react';
 import { ObsClientImpl } from '@/services/obsClient';
 import { StreamerBotService } from '@/services/streamerBotService';
 import useConnectionsStore from '@/store/connectionsStore';
@@ -16,7 +16,7 @@ interface ConnectionContextType {
     handleStreamerBotConnect: (address: string, port: string) => Promise<void>;
 }
 
-const ConnectionContext = createContext<ConnectionContextType | undefined>(undefined);
+export const ConnectionContext = createContext<ConnectionContextType | undefined>(undefined);
 
 export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     // --- 1. Get Singleton Instances of Services ---
@@ -80,7 +80,7 @@ export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             obsClient.disconnect();
             streamerBotService.disconnect();
         };
-    }, [obsClient, streamerBotService, setObsServiceInstance, setStreamerBotServiceInstance, handleObsConnect]);
+    }, [obsClient, streamerBotService, setObsServiceInstance, setStreamerBotServiceInstance]);
 
     // --- 5. Provide Context to Children ---
     const contextValue = useMemo(() => ({ 
@@ -97,10 +97,4 @@ export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     );
 };
 
-export const useConnectionServices = () => {
-    const context = useContext(ConnectionContext);
-    if (context === undefined) {
-        throw new Error('useConnectionServices must be used within a ConnectionProvider');
-    }
-    return context;
-};
+

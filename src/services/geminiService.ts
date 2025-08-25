@@ -23,19 +23,41 @@ class GeminiService implements AIService {
     options: {
       model?: string;
       retries?: number;
+      temperature?: number;
+      maxOutputTokens?: number;
+      topP?: number;
+      topK?: number;
+      history?: Array<{role: string, parts: Array<{text: string}>}>;
     } = {}
   ): Promise<GeminiGenerateContentResponse> {
     const {
-      retries = 3
+      retries = 3,
+      model = 'gemini-2.5-flash',
+      temperature = 0.7,
+      maxOutputTokens = 1000,
+      topP = 0.9,
+      topK = 40,
+      history = []
     } = options;
 
     try {
       // Use centralized httpClient which will prefix /api in dev or use VITE_ADMIN_API_URL in prod.
-      const resp = await httpClient.post('/gemini/generate', { prompt });
+      const requestBody = {
+        prompt,
+        model,
+        temperature,
+        max_output_tokens: maxOutputTokens,
+        top_p: topP,
+        top_k: topK,
+        history
+      };
+
+      const resp = await httpClient.post('/gemini/generate', requestBody);
       const data = resp?.data ?? {};
 
-      // Maintain backward-compatible shape where possible.
+      // Handle new backend response format
       const text =
+        data.content ??
         data.text ??
         (data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '') ??
         '';
@@ -43,7 +65,7 @@ class GeminiService implements AIService {
       return {
         text,
         candidates: data.candidates ?? [],
-        usageMetadata: data.usageMetadata ?? {},
+        usageMetadata: data.usage ?? data.usageMetadata ?? {},
         toolCalls: data.toolCalls ?? [],
       };
     } catch (error: any) {
@@ -63,24 +85,137 @@ class GeminiService implements AIService {
   }
 
   /**
-   * Generates an image using the Gemini API via our backend.
-   * If the backend does not expose an image generation endpoint yet, this will fail gracefully with a helpful message.
+   * Generates an enhanced image using the Gemini API with comprehensive parameters.
    * @param prompt The prompt to send to the Gemini API for image generation.
+   * @param options Configuration options for enhanced image generation
    * @returns A promise that resolves to a blob URL of the generated image.
    * @throws Throws an error if the API call fails or if the backend endpoint is missing.
    */
-  async generateImage(prompt: string): Promise<string> {
+  async generateEnhancedImage(
+    prompt: string,
+    options: {
+      model?: string;
+      responseModalities?: string[];
+      imageFormat?: string;
+      imageQuality?: number;
+      aspectRatio?: string;
+      personGeneration?: string;
+      safetySettings?: Array<{ category: string; threshold: string }>;
+      imageInput?: string; // Base64 encoded image for editing
+      imageInputMimeType?: string;
+    } = {}
+  ): Promise<string> {
+    const {
+      model = 'gemini-2.0-flash-exp-image-generation',
+      responseModalities = ['TEXT', 'IMAGE'],
+      imageFormat = 'png',
+      imageQuality = 0.8,
+      aspectRatio = '1:1',
+      personGeneration = 'allow_adult',
+      safetySettings,
+      imageInput,
+      imageInputMimeType
+    } = options;
+
+    try {
+      // Try the enhanced endpoint first
+      let resp;
+      try {
+        resp = await httpClient.post('/gemini/generate-image-enhanced', {
+          prompt,
+          model,
+          responseModalities,
+          imageFormat,
+          imageQuality,
+          aspectRatio,
+          personGeneration,
+          safetySettings,
+          imageInput,
+          imageInputMimeType
+        });
+      } catch (firstErr) {
+        // If backend returns 404, try camelCase fallback
+        const status = (firstErr as any)?.response?.status;
+        if (status === 404) {
+          try {
+            resp = await httpClient.post('/gemini/generateImageEnhanced', {
+              prompt,
+              model,
+              responseModalities,
+              imageFormat,
+              imageQuality,
+              aspectRatio,
+              personGeneration,
+              safetySettings,
+              imageInput,
+              imageInputMimeType
+            });
+          } catch (secondErr) {
+            // No enhanced endpoint available — fail gracefully
+            resp = undefined;
+            logger.info('No generate-image-enhanced endpoint found on backend (404).');
+          }
+        } else {
+          throw firstErr;
+        }
+      }
+
+      if (!resp || !resp.data) {
+        // Fallback to basic image generation
+        return this.generateImage(prompt, { model: 'gemini-2.0-flash-exp', size: '1024x1024' });
+      }
+
+      const data = resp.data;
+
+      // Handle enhanced response format
+      if (data.images && data.images.length > 0) {
+        const firstImage = data.images[0];
+        const mimeType = firstImage.mime_type || `image/${imageFormat}`;
+        const base64Data = firstImage.data;
+        const dataUrl = `data:${mimeType};base64,${base64Data}`;
+        return dataUrlToBlobUrl(dataUrl);
+      }
+
+      // If we reach here, we couldn't find image data in the response
+      throw new Error('Enhanced image generation response did not contain expected image data.');
+    } catch (error: any) {
+      logger.error('Error generating enhanced image from Gemini backend:', error);
+      // Surface friendly message for missing endpoint vs other failures
+      const status = error?.response?.status;
+      if (status === 401 || status === 403) {
+        throw new Error('Authentication failed when calling Gemini enhanced image endpoint (missing/invalid X-API-KEY).');
+      }
+      throw error instanceof Error ? error : new Error(String(error));
+    }
+  }
+
+  /**
+   * Generates an image using the native Gemini 2.0 Flash capabilities via our backend.
+   * @param prompt The prompt to send to the Gemini API for image generation.
+   * @param options Configuration options for image generation
+   * @returns A promise that resolves to a blob URL of the generated image.
+   * @throws Throws an error if the API call fails or if the backend endpoint is missing.
+   */
+  async generateImage(
+    prompt: string,
+    options: {
+      model?: string;
+      size?: string;
+    } = {}
+  ): Promise<string> {
+    const { model = 'gemini-2.0-flash-exp', size = '1024x1024' } = options;
+
     try {
       // Try the kebab-case endpoint first (matches many backend styles)
       let resp;
       try {
-        resp = await httpClient.post('/gemini/generate-image', { prompt });
+        resp = await httpClient.post('/gemini/generate-image', { prompt, model, size });
       } catch (firstErr) {
         // If backend returns 404, try camelCase fallback for compatibility
         const status = (firstErr as any)?.response?.status;
         if (status === 404) {
           try {
-            resp = await httpClient.post('/gemini/generateImage', { prompt });
+            resp = await httpClient.post('/gemini/generateImage', { prompt, model, size });
           } catch (secondErr) {
             // No image endpoint available — fail gracefully below
             resp = undefined;
@@ -94,16 +229,21 @@ class GeminiService implements AIService {
 
       if (!resp || !resp.data) {
         // Backend doesn't support image generation yet
-        // TODO: Implement /gemini/generate-image on the backend or update this client when endpoint is available.
         throw new Error('Image generation endpoint is not available on the backend. TODO: Add /api/gemini/generate-image or update frontend to match backend.');
       }
 
       const data = resp.data;
 
-      // Support multiple possible response shapes:
-      // - { imageBase64: '...' }
-      // - { generatedImages: [{ image: { url: 'data:...' } }] }
-      // - { generatedImages: [{ image: { bytesBase64: '...' } }] }
+      // Handle new backend response format with native Gemini 2.0 Flash
+      if (data.image && data.image.data) {
+        // New format: { image: { mime_type: '...', data: '...' } }
+        const mimeType = data.image.mime_type || 'image/png';
+        const base64Data = data.image.data;
+        const dataUrl = `data:${mimeType};base64,${base64Data}`;
+        return dataUrlToBlobUrl(dataUrl);
+      }
+
+      // Fallback to legacy response formats
       if (data.imageBase64) {
         const dataUrl = `data:image/png;base64,${data.imageBase64}`;
         return dataUrlToBlobUrl(dataUrl);
@@ -111,9 +251,7 @@ class GeminiService implements AIService {
 
       if (Array.isArray(data.generatedImages) && data.generatedImages.length > 0) {
         const first = data.generatedImages[0];
-        const url = first?.image?.url ?? first?.image?.bytesBase64;
         if (first?.image?.url) {
-          // If the backend already returns a URL, return it directly
           return first.image.url;
         } else if (first?.image?.bytesBase64) {
           const dataUrl = `data:image/png;base64,${first.image.bytesBase64}`;
@@ -131,6 +269,115 @@ class GeminiService implements AIService {
         throw new Error('Authentication failed when calling Gemini image endpoint (missing/invalid X-API-KEY).');
       }
       throw error instanceof Error ? error : new Error(String(error));
+    }
+  }
+
+  /**
+   * Generates content with structured output using JSON schema.
+   * @param prompt The prompt to send to the Gemini API.
+   * @param schema JSON schema for structured output
+   * @param options Configuration options
+   * @returns A promise that resolves to the generated content with structured data.
+   */
+  async generateStructuredContent(
+    prompt: string,
+    schema: any,
+    options: {
+      model?: string;
+      retries?: number;
+      temperature?: number;
+      maxOutputTokens?: number;
+    } = {}
+  ): Promise<any> {
+    const {
+      model = 'gemini-2.5-flash',
+      retries = 3,
+      temperature = 0.7,
+      maxOutputTokens = 2000
+    } = options;
+
+    try {
+      const requestBody = {
+        prompt,
+        model,
+        temperature,
+        max_output_tokens: maxOutputTokens,
+        response_schema: schema
+      };
+
+      const resp = await httpClient.post('/gemini/generate', requestBody);
+      const data = resp?.data ?? {};
+
+      return {
+        structuredData: data.structured_data || data.content,
+        rawContent: data.content,
+        usage: data.usage || data.usageMetadata || {}
+      };
+    } catch (error: any) {
+      logger.error('Error generating structured content from Gemini backend:', error);
+      if (retries > 0) {
+        logger.info(`Retrying generateStructuredContent... (${retries - 1} left)`);
+        await new Promise(res => setTimeout(res, 1000));
+        return this.generateStructuredContent(prompt, schema, { ...options, retries: retries - 1 });
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Generates content with long context support for stream analysis.
+   * @param prompt The prompt to send to the Gemini API.
+   * @param context Large context data (can be up to million tokens)
+   * @param options Configuration options
+   * @returns A promise that resolves to the generated content.
+   */
+  async generateWithLongContext(
+    prompt: string,
+    context: string,
+    options: {
+      model?: string;
+      retries?: number;
+      temperature?: number;
+      maxOutputTokens?: number;
+    } = {}
+  ): Promise<GeminiGenerateContentResponse> {
+    const {
+      model = 'gemini-2.5-flash',
+      retries = 3,
+      temperature = 0.7,
+      maxOutputTokens = 4000
+    } = options;
+
+    try {
+      // Combine context and prompt for long context processing
+      const fullPrompt = `Context:\n${context}\n\nBased on the above context, please respond to this request:\n${prompt}`;
+
+      const requestBody = {
+        prompt: fullPrompt,
+        model,
+        temperature,
+        max_output_tokens: maxOutputTokens
+      };
+
+      const resp = await httpClient.post('/gemini/generate', requestBody);
+      const data = resp?.data ?? {};
+
+      const text = data.content || data.text || '';
+
+      return {
+        text,
+        candidates: data.candidates ?? [],
+        usageMetadata: data.usage ?? data.usageMetadata ?? {},
+        toolCalls: data.toolCalls ?? [],
+      };
+    } catch (error: any) {
+      logger.error('Error generating content with long context:', error);
+      if (retries > 0) {
+        logger.info(`Retrying generateWithLongContext... (${retries - 1} left)`);
+        await new Promise(res => setTimeout(res, 1000));
+        return this.generateWithLongContext(prompt, context, { ...options, retries: retries - 1 });
+      }
+      throw error;
     }
   }
 

@@ -1,1 +1,9 @@
 export { ChatMessageItem } from './ChatMessageItem';
+export { EnhancedChatMessageItem } from './EnhancedChatMessageItem';
+export { EnhancedChatInput } from './EnhancedChatInput';
+export { EnhancedMessageList } from './EnhancedMessageList';
+export { EnhancedGeminiChat } from './EnhancedGeminiChat';
+export { GeminiChat } from './GeminiChat';
+export { MessageList } from './MessageList';
+export { ChatInput } from './ChatInput';
+export { ChatComparisonDemo } from './ChatComparisonDemo';

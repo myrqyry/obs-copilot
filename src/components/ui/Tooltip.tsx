@@ -176,3 +176,21 @@ const Tooltip: React.FC<TooltipProps> = ({
 };
 
 export default Tooltip;
+ 
+// Compatibility shims for Radix-style named imports used elsewhere in the codebase.
+// These are intentionally minimal wrappers that preserve render semantics for now.
+// If richer behavior is needed later, replace these with a more full-featured implementation.
+export const TooltipProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    return <>{children}</>;
+};
+
+export const TooltipTrigger: React.FC<{ asChild?: boolean; children: React.ReactNode }> = ({ children }) => {
+    // Radix's TooltipTrigger often uses `asChild` to forward children as trigger.
+    // Our shim simply renders the child directly.
+    return <>{children}</>;
+};
+
+export const TooltipContent: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    // When files import TooltipContent and render it, show the content directly.
+    return <>{children}</>;
+};

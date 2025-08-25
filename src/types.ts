@@ -49,6 +49,65 @@ export interface OBSVideoSettings {
   fpsDenominator: number;
 }
 
+// AI SDK 5 Data Parts types for streaming typed data
+export interface DataPart {
+  type: string;
+  value: unknown;
+  id?: string;
+  timestamp?: Date;
+}
+
+export interface StatusDataPart extends DataPart {
+  type: 'status';
+  value: {
+    message: string;
+    progress?: number;
+    status: 'pending' | 'in-progress' | 'completed' | 'error';
+    details?: string;
+  };
+}
+
+export interface ObsActionDataPart extends DataPart {
+  type: 'obs-action';
+  value: {
+    action: string;
+    target?: string;
+    status: 'pending' | 'executing' | 'completed' | 'error';
+    result?: {
+      success: boolean;
+      message: string;
+      error?: string;
+    };
+  };
+}
+
+export interface StreamerBotActionDataPart extends DataPart {
+  type: 'streamerbot-action';
+  value: {
+    action: string;
+    args?: Record<string, unknown>;
+    status: 'pending' | 'executing' | 'completed' | 'error';
+    result?: {
+      success: boolean;
+      message?: string;
+      error?: string;
+    };
+  };
+}
+
+export interface MediaDataPart extends DataPart {
+  type: 'media';
+  value: {
+    url?: string;
+    contentType: string;
+    alt?: string;
+    caption?: string;
+  };
+}
+
+// Union type for all supported data parts
+export type SupportedDataPart = StatusDataPart | ObsActionDataPart | StreamerBotActionDataPart | MediaDataPart;
+
 // Gemini related types
 export interface ChatMessage {
   id: string;
@@ -61,6 +120,9 @@ export interface ChatMessage {
   showSuggestions?: boolean;
   choices?: string[];
   choiceType?: string;
+  // AI SDK 5 Data Parts support
+  dataParts?: SupportedDataPart[];
+  isStreaming?: boolean;
 }
 
 export interface GroundingChunk {
@@ -69,6 +131,14 @@ export interface GroundingChunk {
     title: string;
   };
   // Other types of grounding chunks can be added here
+}
+
+// Streaming message handlers for AI SDK 5 compatibility
+export interface StreamingHandlers {
+  onData?: (dataPart: SupportedDataPart) => void;
+  onText?: (textDelta: string) => void;
+  onComplete?: (message: ChatMessage) => void;
+  onError?: (error: Error) => void;
 }
 
 export enum AppTab {

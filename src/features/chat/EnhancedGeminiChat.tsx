@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useGeminiChat } from '@/hooks/useGeminiChat';
-import { MessageList } from './MessageList';
-import { ChatInput } from './ChatInput';
+import { EnhancedMessageList } from './EnhancedMessageList';
+import { EnhancedChatInput } from './EnhancedChatInput';
 import { useConnectionManagerStore } from '@/store/connectionManagerStore';
 import { useChatStore } from '@/store/chatStore';
 import { useSettingsStore } from '@/store/settingsStore';
 
-interface GeminiChatProps {
+interface EnhancedGeminiChatProps {
     onRefreshData: () => Promise<void>;
     setErrorMessage: (message: string | null) => void;
     chatInputValue: string;
@@ -17,7 +17,7 @@ interface GeminiChatProps {
   }) => Promise<void>;
 }
 
-export const GeminiChat: React.FC<GeminiChatProps> = ({
+export const EnhancedGeminiChat: React.FC<EnhancedGeminiChatProps> = ({
     onRefreshData,
     setErrorMessage,
     chatInputValue,
@@ -51,12 +51,11 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
 
     useEffect(() => {
         if (isGeminiClientInitialized) {
-            // AI client state is initialized (hook now manages internal client)
+            // AI is already initialized by the hook
         }
     }, [isGeminiClientInitialized]);
 
     const [screenshotWidth] = useState<number>(1920);
-
     const [screenshotHeight] = useState<number>(1080);
 
     const handleScreenshot = async () => {
@@ -87,13 +86,12 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
         }
     };
 
-
     return (
         <div className="flex flex-col h-full bg-background border-l border-r border-b border-border rounded-b-lg shadow-lg relative">
-            <MessageList
+            <EnhancedMessageList
                 messages={messages}
                 isLoading={isLoading}
-                handleSuggestionClick={(prompt) => onChatInputChange(prompt)}
+                handleSuggestionClick={(prompt: string) => onChatInputChange(prompt)}
                 accentColorName={accentColorName}
                 obsSources={sources}
                 handleAddToContext={handleAddToContext}
@@ -107,7 +105,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
                 modelChatBubbleColorName={theme.modelChatBubble}
                 customChatBackground={""}
             />
-            <ChatInput
+            <EnhancedChatInput
                 chatInputValue={chatInputValue}
                 onChatInputChange={onChatInputChange}
                 isLoading={isLoading}
@@ -123,3 +121,5 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
         </div>
     );
 };
+
+export default EnhancedGeminiChat;

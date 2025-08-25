@@ -7,6 +7,14 @@ const config = {
   // Add other environment variables as needed
 };
 
+// AI SDK 5 feature flags for gradual adoption
+export const aiSdk5Config = {
+  enableDataParts: import.meta.env.VITE_AI_SDK5_DATA_PARTS === 'true' || true, // Default to true for POC
+  enableAgenticLoop: import.meta.env.VITE_AI_SDK5_AGENTIC_LOOP === 'true' || false,
+  enableSpeechUnification: import.meta.env.VITE_AI_SDK5_SPEECH === 'true' || false,
+  enableTypesSafeTools: import.meta.env.VITE_AI_SDK5_TOOLS === 'true' || false,
+};
+
 export const getGeminiApiKey = (): string => {
   const apiKey = import.meta.env[GEMINI_API_KEY_ENV_VAR] || '';
   if (!apiKey) {

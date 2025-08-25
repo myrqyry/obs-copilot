@@ -11,7 +11,15 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { CollapsibleCard } from '@/components/common/CollapsibleCard';
 import { TextInput } from '@/components/common/TextInput';
+import { ImageUpload } from '@/components/common/ImageUpload';
 import { geminiService } from '@/services/geminiService';
+import {
+  IMAGE_FORMATS,
+  ASPECT_RATIOS,
+  PERSON_GENERATION_OPTIONS,
+  ImageUploadResult
+} from '@/types/audio';
+import { Settings, Sparkles } from 'lucide-react';
 
 const ImageGeneration: React.FC = () => {
     const [prompt, setPrompt] = useState('');
@@ -19,19 +27,74 @@ const ImageGeneration: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [modalOpen, setModalOpen] = useState(false);
+    const [uploadedImage, setUploadedImage] = useState<ImageUploadResult | null>(null);
+    const [showAdvanced, setShowAdvanced] = useState(false);
+
+    // Enhanced parameters
+    const [model] = useState('gemini-2.0-flash-exp-image-generation');
+    const [imageFormat, setImageFormat] = useState('png');
+    const [aspectRatio, setAspectRatio] = useState('1:1');
+    const [personGeneration, setPersonGeneration] = useState('allow_adult');
+    const [responseModalities] = useState<string[]>(['TEXT', 'IMAGE']);
+    const [useEnhancedMode, setUseEnhancedMode] = useState(true);
 
     const { obsServiceInstance, currentProgramScene, isConnected } = useConnectionManagerStore();
-
     const accentColorName = useSettingsStore(state => state.theme.accent);
     const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
 
+    const handleImageUpload = (file: File, base64: string) => {
+        setUploadedImage({
+            data: base64,
+            mimeType: file.type,
+            fileName: file.name,
+            size: file.size,
+            width: undefined, // Could extract from image if needed
+            height: undefined
+        });
+    };
+
+    const handleClearImage = () => {
+        setUploadedImage(null);
+    };
+
     const handleGenerateImage = async () => {
+        if (!prompt.trim()) {
+            setError('Please enter a prompt');
+            return;
+        }
+
         setLoading(true);
         setError(null);
         setImageUrl(null);
 
         try {
-            const generatedImageUrl = await geminiService.generateImage(prompt);
+            let generatedImageUrl: string;
+
+            if (useEnhancedMode && uploadedImage) {
+                // Use enhanced image generation with editing capabilities
+                generatedImageUrl = await (geminiService as any).generateEnhancedImage(prompt, {
+                    model,
+                    responseModalities,
+                    imageFormat,
+                    aspectRatio,
+                    personGeneration,
+                    imageInput: uploadedImage.data,
+                    imageInputMimeType: uploadedImage.mimeType
+                });
+            } else if (useEnhancedMode) {
+                // Use enhanced image generation for new images
+                generatedImageUrl = await (geminiService as any).generateEnhancedImage(prompt, {
+                    model,
+                    responseModalities,
+                    imageFormat,
+                    aspectRatio,
+                    personGeneration
+                });
+            } else {
+                // Fallback to basic image generation
+                generatedImageUrl = await geminiService.generateImage(prompt);
+            }
+
             setImageUrl(generatedImageUrl);
             setModalOpen(true);
         } catch (err: unknown) {
@@ -109,16 +172,125 @@ const ImageGeneration: React.FC = () => {
         >
             <CardContent className="px-3 pb-3 pt-2">
                 <div className="space-y-4">
+                    {/* Image Upload for Editing */}
+                    <div>
+                        <label className="block text-sm font-medium mb-2">
+                            {uploadedImage ? 'Input Image (for editing)' : 'Upload Image (optional)'}
+                        </label>
+                        <ImageUpload
+                            onImageSelect={handleImageUpload}
+                            onClear={handleClearImage}
+                            placeholder="Upload image to edit"
+                            maxSizeMB={10}
+                        />
+                        {uploadedImage && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                                {uploadedImage.fileName} ({(uploadedImage.size / 1024 / 1024).toFixed(2)} MB)
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Prompt Input */}
                     <TextInput
                         label="Prompt"
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
-                        placeholder="A beautiful landscape painting"
+                        placeholder={uploadedImage
+                            ? "Describe how to edit the image (e.g., 'make it more colorful', 'add a sunset')"
+                            : "Describe the image you want to generate"
+                        }
                     />
+
+                    {/* Enhanced Mode Toggle */}
+                    <div className="flex items-center space-x-2">
+                        <input
+                            type="checkbox"
+                            id="enhanced-mode"
+                            checked={useEnhancedMode}
+                            onChange={(e) => setUseEnhancedMode(e.target.checked)}
+                        />
+                        <label htmlFor="enhanced-mode" className="text-sm">
+                            Use enhanced parameters
+                        </label>
+                        <Sparkles className="w-4 h-4" />
+                    </div>
+
+                    {/* Advanced Parameters */}
+                    {useEnhancedMode && (
+                        <div className="space-y-3 border rounded-lg p-3 bg-muted/20">
+                            <div className="flex items-center justify-between">
+                                <h4 className="text-sm font-medium flex items-center gap-2">
+                                    <Settings className="w-4 h-4" />
+                                    Advanced Parameters
+                                </h4>
+                                <button
+                                    onClick={() => setShowAdvanced(!showAdvanced)}
+                                    className="text-xs text-muted-foreground hover:text-foreground"
+                                >
+                                    {showAdvanced ? 'Hide' : 'Show'}
+                                </button>
+                            </div>
+
+                            {showAdvanced && (
+                                <div className="space-y-3">
+                                    {/* Aspect Ratio */}
+                                    <div>
+                                        <label className="block text-xs font-medium mb-1">Aspect Ratio</label>
+                                        <select
+                                            value={aspectRatio}
+                                            onChange={(e) => setAspectRatio(e.target.value)}
+                                            className="w-full p-2 border rounded text-sm"
+                                        >
+                                            {ASPECT_RATIOS.map(ratio => (
+                                                <option key={ratio.value} value={ratio.value}>
+                                                    {ratio.label} - {ratio.description}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* Image Format */}
+                                    <div>
+                                        <label className="block text-xs font-medium mb-1">Image Format</label>
+                                        <select
+                                            value={imageFormat}
+                                            onChange={(e) => setImageFormat(e.target.value)}
+                                            className="w-full p-2 border rounded text-sm"
+                                        >
+                                            {IMAGE_FORMATS.map(format => (
+                                                <option key={format.value} value={format.value}>
+                                                    {format.label} - {format.description}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* Person Generation */}
+                                    <div>
+                                        <label className="block text-xs font-medium mb-1">Person Generation</label>
+                                        <select
+                                            value={personGeneration}
+                                            onChange={(e) => setPersonGeneration(e.target.value)}
+                                            className="w-full p-2 border rounded text-sm"
+                                        >
+                                            {PERSON_GENERATION_OPTIONS.map(option => (
+                                                <option key={option.value} value={option.value}>
+                                                    {option.label} - {option.description}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Generate Button */}
                     <Button onClick={handleGenerateImage} disabled={loading || !prompt}>
-                        {loading ? 'Generating...' : 'Generate Image'}
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        {loading ? 'Generating...' : (uploadedImage ? 'Edit Image' : 'Generate Image')}
                     </Button>
-                    {error && <p className="text-destructive">{error}</p>}
+                    {error && <p className="text-destructive text-sm">{error}</p>}
                 </div>
                 {modalOpen && (
                     <Modal
