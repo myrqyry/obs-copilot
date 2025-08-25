@@ -25,6 +25,33 @@
     "paths": {
       "@/*": [
         "src/*"
+      ],
+      "*": [
+        "src/*"
+      ],
+      "components/*": [
+        "src/components/*"
+      ],
+      "features/*": [
+        "src/features/*"
+      ],
+      "hooks/*": [
+        "src/hooks/*"
+      ],
+      "services/*": [
+        "src/services/*"
+      ],
+      "store/*": [
+        "src/store/*"
+      ],
+      "types": [
+        "src/types/index.ts"
+      ],
+      "types/*": [
+        "src/types/*"
+      ],
+      "utils/*": [
+        "src/utils/*"
       ]
     }
   },

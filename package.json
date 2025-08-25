@@ -21,10 +21,12 @@
   "main": "src/App.tsx",
   "scripts": {
     "frontend": "vite",
-    "backend:setup": "node -e \"const {execSync}=require('child_process'); const isWin=process.platform==='win32'; try{ execSync(isWin? 'python -m venv backend/venv' : 'python3 -m venv backend/venv', {stdio:'inherit'}); }catch(e){ execSync('python -m venv backend/venv', {stdio:'inherit'}); } console.log('backend venv ready');\"",
-    "backend:dev": "node -e \"const {execSync, spawn}=require('child_process'); const fs=require('fs'); const isWin=process.platform==='win32'; const py = isWin ? 'backend/venv/Scripts/python.exe' : 'backend/venv/bin/python'; if(!fs.existsSync('backend/venv')){ try{ execSync(isWin? 'python -m venv backend/venv' : 'python3 -m venv backend/venv', {stdio:'inherit'}); }catch(e){ execSync('python -m venv backend/venv', {stdio:'inherit'}); } } try{ execSync(py + ' -m pip install -r backend/requirements.txt', {stdio:'inherit'}); }catch(e){} const child=spawn(py, ['-m','uvicorn','backend.main:app','--reload','--port','8000','--host','127.0.0.1'], {stdio:'inherit'}); child.on('exit', code=>process.exit(code));\"",
-    "dev": "concurrently \"npm:frontend\" \"npm:backend:dev\" -n frontend,backend -c cyan,magenta",
-    "build": "tsc && vite build",
+    "backend:setup": "node -e \"const {execSync}=require('child_process'); try { execSync('python3 --version', {stdio:'ignore'}); execSync('python3 -m venv backend/venv', {stdio:'inherit'}); } catch(e) { try { execSync('python -V', {stdio:'ignore'}); execSync('python -m venv backend/venv', {stdio:'inherit'}); } catch(e2) { console.error('Failed to create python venv. Ensure Python 3 is installed and on PATH.'); process.exit(1); } } console.log('backend venv ready');\"",
+    "backend:dev": "node -e \"const {execSync, spawn}=require('child_process'); const fs=require('fs'); const isWin=process.platform==='win32'; const py = isWin ? 'backend/venv/Scripts/python.exe' : 'backend/venv/bin/python'; if(!fs.existsSync('backend/venv')){ try{ execSync('python3 -m venv backend/venv', {stdio:'inherit'}); }catch(e){ try{ execSync('python -m venv backend/venv', {stdio:'inherit'}); }catch(e2){ console.error('Failed to create venv'); process.exit(1);} } } try{ execSync(`${py} -m pip install -r backend/requirements.txt`, {stdio:'inherit'}); }catch(e){} const port = process.env.BACKEND_PORT || process.env.PORT || '8000'; const host = process.env.BACKEND_HOST || '0.0.0.0'; const child = spawn(py, ['-m','uvicorn','backend.main:app','--reload','--port',port,'--host',host], {stdio:'inherit'}); child.on('exit', code=>process.exit(code));\"",
+    "dev": "vite",
+    "start": "vite preview",
+    "dev:full": "concurrently \"npm:dev\" \"npm:backend:dev\" -n frontend,backend -c cyan,magenta",
+    "build": "tsc --noEmit && vite build",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "format": "prettier --write \"{src,apps,libs,test}/**/*.ts\"",
     "preview": "vite preview",
@@ -72,7 +74,7 @@
     "tailwind-merge": "^3.3.1",
     "use-stick-to-bottom": "^1.1.1",
     "ws": "^8.18.3",
-    "zod": "^4.1.1",
+    "zod": "^3.25.1",
     "zustand": "^5.0.5"
   },
   "devDependencies": {

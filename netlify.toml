@@ -31,3 +31,24 @@
 # - Use the rewrite above to forward requests from the Netlify-hosted frontend to your backend domain
 #   without changing client-side code (client still calls /api/*).
 # - Alternatively, set VITE_ADMIN_API_URL in the frontend to the backend origin and call it directly.
+
+[build]
+  command   = "npm run build"
+  publish   = "dist"
+  functions = "netlify/functions"
+
+[build.environment]
+  # Set your production backend URL or configure via Netlify UI environment variables
+  VITE_API_URL = "https://api.your-backend.tld"
+
+[dev]
+  command   = "npm run dev:full"
+  port      = 5173
+  publish   = "dist"
+  functions = "netlify/functions"
+
+[[dev.redirects]]
+  from   = "/api/*"
+  to     = "http://localhost:8000/:splat"
+  status = 200
+  force  = true

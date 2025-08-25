@@ -1,60 +1,35 @@
 // vite.config.ts
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import path from 'path';
-import { nodePolyfills } from 'vite-plugin-node-polyfills'; // Import the plugin
+import { fileURLToPath, URL } from 'node:url';
 
+// https://vitejs.dev/config/
 export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: [
+      { find: '@', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
+      { find: 'components', replacement: fileURLToPath(new URL('./src/components', import.meta.url)) },
+      { find: 'features', replacement: fileURLToPath(new URL('./src/features', import.meta.url)) },
+      { find: 'hooks', replacement: fileURLToPath(new URL('./src/hooks', import.meta.url)) },
+      { find: 'services', replacement: fileURLToPath(new URL('./src/services', import.meta.url)) },
+      { find: 'store', replacement: fileURLToPath(new URL('./src/store', import.meta.url)) },
+      { find: 'types', replacement: fileURLToPath(new URL('./src/types', import.meta.url)) },
+      { find: 'utils', replacement: fileURLToPath(new URL('./src/utils', import.meta.url)) },
+    ],
+  },
   server: {
     port: 5173,
+    host: true, // bind on all interfaces for LAN testing
     proxy: {
-      // Proxy all requests starting with /api to your Python backend.
-      // In development the Vite dev server will forward /api to the target below to avoid CORS.
-      // By default this points to localhost:8000 (FastAPI local server). To use a different
-      // target during dev you can set the environment variable VITE_ADMIN_API_URL before
-      // starting the dev server (Vite will replace import.meta.env values at build time).
-      // This keeps parity with production where VITE_ADMIN_API_URL should point at your backend.
       '/api': {
-        target: process.env.VITE_ADMIN_API_URL || 'http://localhost:8000', // prefer VITE_ADMIN_API_URL if set, otherwise default
+        target: 'http://localhost:8000',
         changeOrigin: true,
-        // If your backend supports websockets, enable ws: true
-        ws: true,
-        // secure: false // Uncomment for local HTTPS/self-signed certs if needed
+        secure: false,
       },
     },
   },
-
-  plugins: [
-    react(),
-    nodePolyfills(), // Add the node polyfills plugin
-    {
-      name: 'ignore-middleware-in-client',
-      resolveId(source) {
-        if ( // Only ignore middleware files when building for the client
-          source.includes('/src/middleware') ||
-          source.includes('src/middleware')
-        ) {
-          return 'virtual:ignore-middleware';
-        }
-        return null;
-      },
-      load(id) {
-        if (id === 'virtual:ignore-middleware') {
-          return 'export default {};';
-        }
-        return null;
-      },
-    },
-  ],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, 'src')
-    }
+  preview: {
+    port: 4173,
   },
-
-  build: {
-    rollupOptions: {
-      external: [/^src\/middleware\/.*$/]
-    }
-  }
 });

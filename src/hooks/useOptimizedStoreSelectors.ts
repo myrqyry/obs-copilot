@@ -106,16 +106,23 @@ export const useConnectionState = (): ConnectionState => {
 
 // Combined chat state selector
 export const useChatState = (): ChatState => {
-    return useChatStore(
-        useCallback(
-            (state: any) => ({
-                messages: state.geminiMessages,
-                isGeminiClientInitialized: state.isGeminiClientInitialized,
-                actions: state.actions,
-            }),
-            []
-        )
+    const selector = useCallback(
+        (state: any) => {
+            // Cache the result to prevent infinite loops
+            const messages = state.geminiMessages || [];
+            const isGeminiClientInitialized = state.isGeminiClientInitialized || false;
+            const actions = state.actions || {};
+
+            return {
+                messages,
+                isGeminiClientInitialized,
+                actions,
+            };
+        },
+        []
     );
+
+    return useChatStore(selector);
 };
 
 // Combined settings state selector
