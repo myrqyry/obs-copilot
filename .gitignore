@@ -93,3 +93,7 @@ desktop.ini
 .eslintcache
 
 .env
+.kilocode
+.cursorignore
+AGENTS.md
+/backend/venv/*
