@@ -3,8 +3,11 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { getTheme, Theme } from '@/types/themes';
 
 export const useTheme = () => {
-  const { theme, actions } = useSettingsStore();
-  const selectedTheme = getTheme(theme.name);
+  // Use individual selectors to prevent re-renders
+  const themeName = useSettingsStore((state) => state.theme.name);
+  const setThemeName = useSettingsStore((state) => state.actions.setThemeName);
+  
+  const selectedTheme = getTheme(themeName);
 
   useEffect(() => {
     if (selectedTheme) {
@@ -15,7 +18,7 @@ export const useTheme = () => {
   const setTheme = (themeName: string) => {
     const newTheme = getTheme(themeName);
     if (newTheme) {
-      actions.setThemeName(themeName);
+      setThemeName(themeName);
       applyTheme(newTheme);
     }
   };

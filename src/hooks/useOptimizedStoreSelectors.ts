@@ -1,7 +1,8 @@
 import { useMemo, useCallback } from 'react';
-import { useConnectionManagerStore } from '@/store/connectionManagerStore';
+import useConnectionsStore from '@/store/connectionsStore';
 import { useChatStore } from '@/store/chatStore';
 import { useSettingsStore } from '@/store/settingsStore';
+import { ChatMessage } from '@/types';
 
 // Define proper interfaces to replace 'any' types
 interface ObsSource {
@@ -48,10 +49,14 @@ interface GeminiMessage {
 }
 
 interface ChatActions {
-    addMessage: (message: Omit<GeminiMessage, 'id' | 'timestamp'>) => void;
-    clearMessages: () => void;
+    addMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
+    replaceMessage: (messageId: string, newMessage: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
+    setGeminiClientInitialized: (initialized: boolean) => void;
+    addToUserDefinedContext: (context: string) => void;
+    removeFromUserDefinedContext: (context: string) => void;
+    clearUserDefinedContext: () => void;
+    addSystemMessageToChat: (contextText: string) => void;
     setGlobalErrorMessage: (message: string | null) => void;
-    updateMessage: (id: string, updates: Partial<GeminiMessage>) => void;
 }
 
 interface ChatState {
@@ -92,7 +97,7 @@ interface ConnectionStoreState {
 }
 
 export const useConnectionState = (): ConnectionState => {
-    return useConnectionManagerStore(
+    return useConnectionsStore(
         useCallback(
             (state: ConnectionStoreState) => ({
                 isConnected: state.isConnected,
@@ -104,25 +109,37 @@ export const useConnectionState = (): ConnectionState => {
     );
 };
 
-// Combined chat state selector
+// Memoize the selector function to prevent recreation on each render
+const chatStateSelector = (state: any): ChatState => {
+    const messages = state.geminiMessages || [];
+    const isGeminiClientInitialized = state.isGeminiClientInitialized || false;
+    const actions: ChatActions = state.actions || {};
+
+    // Convert ChatMessage to GeminiMessage format
+    const geminiMessages = messages.map((msg: { 
+        id: string; 
+        role: string; 
+        text: string; 
+        timestamp?: Date; 
+        sources?: any[];
+    }) => ({
+        id: msg.id,
+        role: msg.role as 'user' | 'assistant' | 'system',
+        content: msg.text,
+        timestamp: msg.timestamp?.getTime?.() || Date.now(),
+        metadata: msg.sources ? { sources: msg.sources } : undefined,
+    }));
+
+    return {
+        messages: geminiMessages,
+        isGeminiClientInitialized,
+        actions,
+    };
+};
+
+// Combined chat state selector with proper memoization
 export const useChatState = (): ChatState => {
-    const selector = useCallback(
-        (state: any) => {
-            // Cache the result to prevent infinite loops
-            const messages = state.geminiMessages || [];
-            const isGeminiClientInitialized = state.isGeminiClientInitialized || false;
-            const actions = state.actions || {};
-
-            return {
-                messages,
-                isGeminiClientInitialized,
-                actions,
-            };
-        },
-        []
-    );
-
-    return useChatStore(selector);
+    return useChatStore(chatStateSelector);
 };
 
 // Combined settings state selector
@@ -158,16 +175,16 @@ export const useObsData = (): ObsData => {
     const connectionState = useConnectionState();
     
     // Get additional OBS data using properly typed selectors
-    const scenes = useConnectionManagerStore(
+    const scenes = useConnectionsStore(
         useCallback((state: ConnectionStoreState) => state.scenes, [])
     );
-    const streamStatus = useConnectionManagerStore(
+    const streamStatus = useConnectionsStore(
         useCallback((state: ConnectionStoreState) => state.streamStatus, [])
     );
-    const recordStatus = useConnectionManagerStore(
+    const recordStatus = useConnectionsStore(
         useCallback((state: ConnectionStoreState) => state.recordStatus, [])
     );
-    const videoSettings = useConnectionManagerStore(
+    const videoSettings = useConnectionsStore(
         useCallback((state: ConnectionStoreState) => state.videoSettings, [])
     );
     
@@ -231,24 +248,20 @@ export const shallowEqual = <T>(a: T, b: T): boolean => {
     return true;
 };
 
-// Custom hook for optimized store subscriptions with shallow comparison
-export const useShallowStore = <TState, TResult>(
-    store: (selector: (state: TState) => TResult, equalityFn?: (a: TResult, b: TResult) => boolean) => TResult,
-    selector: (state: TState) => TResult
-): TResult => {
-    return store(selector, shallowEqual);
+export const useOnRefreshData = (): (() => void | Promise<void>) | undefined => {
+    return useConnectionsStore(
+        useCallback((state: ConnectionStoreState) => state.onRefreshData, [])
+    );
 };
 
-// Combined connection actions and services selector
-export const useConnectionActions = () => {
-    return useConnectionManagerStore(
-        useCallback(
-            (state: ConnectionStoreState) => ({
-                onRefreshData: state.onRefreshData,
-                streamerBotServiceInstance: state.streamerBotServiceInstance,
-                actions: state.actions,
-            }),
-            []
-        )
+export const useStreamerBotServiceInstance = (): any => {
+    return useConnectionsStore(
+        useCallback((state: ConnectionStoreState) => state.streamerBotServiceInstance, [])
+    );
+};
+
+export const useConnectionActions = (): any => {
+    return useConnectionsStore(
+        useCallback((state: ConnectionStoreState) => state.actions, [])
     );
 };

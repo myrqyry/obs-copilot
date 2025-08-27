@@ -1,151 +1,56 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { gsap } from 'gsap';
 import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
 import ErrorBoundary from './components/common/ErrorBoundary';
-import { useTheme } from './hooks/useTheme';
 import { Header } from './components/layout/Header';
 import { TabNavigation } from './components/layout/TabNavigation';
-import { ObsMainControls } from './features/connections/ObsMainControls';
-import { ObsSettingsPanel } from './features/connections/ObsSettingsPanel';
-import AdvancedPanel from './components/ui/AdvancedPanel';
-import { GeminiChat } from './features/chat/GeminiChat';
-import StreamingAssetsTab from './components/ui/StreamingAssetsTab';
-import CreateTab from './components/ui/CreateTab';
 import { AppTab } from './types';
-import MiniPlayer from './components/common/MiniPlayer';
-import { NotificationManager } from './components/common/NotificationManager';
 import { ConnectionProvider } from './components/ConnectionProvider';
-import { ConnectionPanel } from './features/connections/ConnectionPanel';
-// Optimized imports
-import { useChatState, useConnectionActions } from './hooks/useOptimizedStoreSelectors';
-import { useStreamerBotActions } from './hooks/useStreamerBotActions';
-import { useGsapCleanup } from './hooks/useGsapCleanup';
+import { useOnRefreshData } from './hooks/useOptimizedStoreSelectors';
 
-gsap.registerPlugin(MorphSVGPlugin);
+// Register GSAP plugins
+try {
+  gsap.registerPlugin(MorphSVGPlugin);
+} catch (error) {
+  console.warn('GSAP plugin registration failed:', error);
+}
+
+// Memoize tab order to prevent unnecessary re-renders
+const TAB_ORDER: AppTab[] = [AppTab.GEMINI];
 
 const App: React.FC = () => {
-    useTheme();
     const [activeTab, setActiveTab] = useState<AppTab>(AppTab.GEMINI);
-
-    const tabContentRef = useRef<HTMLDivElement>(null);
     const headerRef = useRef<HTMLDivElement>(null);
-    const [headerHeight, setHeaderHeight] = useState(64);
+    const onRefreshData = useOnRefreshData();
     
-    // Use GSAP cleanup hook for proper animation management
-    const { createTween } = useGsapCleanup({
-        killImmediately: true,
-        revert: false
-    });
-    
-    useEffect(() => {
-        if (headerRef.current) {
-            setHeaderHeight(headerRef.current.offsetHeight);
-        }
+    // Memoize the tab change handler
+    const handleTabChange = useCallback((tab: AppTab) => {
+        setActiveTab(tab);
     }, []);
-
+    
+    // Handle initial data load
     useEffect(() => {
-        if (tabContentRef.current) {
-            createTween(tabContentRef.current, { 
-                opacity: 1, 
-                duration: 0.2,
-                ease: "power2.out",
-                fromVars: { opacity: 0 }
-            });
-        }
-    }, [activeTab, createTween]);
-    
-    // --- New state & callbacks to satisfy GeminiChat props ---
-    const [chatInputValue, setChatInputValue] = useState<string>('');
-    const onChatInputChange = (value: string) => setChatInputValue(value);
-
-    // Use optimized store selectors
-    const chatState = useChatState();
-    const connectionActions = useConnectionActions();
-    
-    // Extract values from optimized selectors
-    const onRefreshDataFromStore = connectionActions.onRefreshData;
-    const streamerBotServiceInstance = connectionActions.streamerBotServiceInstance;
-    const chatActions = chatState.actions;
-    
-    // Get settings actions from the connection actions (temporary until we optimize this)
-    const settingsStoreActions = connectionActions.actions || {
-        setThemeColor: () => {},
-        toggleFlipSides: () => {},
-        toggleAutoApplySuggestions: () => {},
-        toggleExtraDarkMode: () => {},
-        setCustomChatBackground: () => {},
-    };
-
-    // Wrap the store-provided onRefreshData into an async function matching the GeminiChat signature
-    const onRefreshData = async (): Promise<void> => {
-        try {
-            // support both sync and async implementations
-            await Promise.resolve(onRefreshDataFromStore && onRefreshDataFromStore());
-        } catch (err) {
-            console.error('onRefreshData failed', err);
-        }
-    };
-
-    // setErrorMessage delegates to chat store global error setter
-    const setErrorMessage = (message: string | null) => {
-        chatActions.setGlobalErrorMessage(message);
-    };
-
-    // Wire streamer.bot action handler via hook (uses streamerBotServiceInstance and chat store)
-    const { handleStreamerBotAction } = useStreamerBotActions({
-        streamerBotService: streamerBotServiceInstance,
-        onAddMessage: (message: { role: "system"; text: string; }) => {
-            // Adapt the message format to match GeminiMessage structure
-            chatActions.addMessage({
-                role: message.role,
-                content: message.text,
-            });
-        },
-        setErrorMessage,
-    });
-
-    // --- ObsSettingsPanel actions mapping to settings store actions ---
-    const obsSettingsActions = {
-        setThemeColor: settingsStoreActions.setThemeColor,
-        toggleFlipSides: settingsStoreActions.toggleFlipSides,
-        toggleAutoApplySuggestions: settingsStoreActions.toggleAutoApplySuggestions,
-        toggleExtraDarkMode: settingsStoreActions.toggleExtraDarkMode,
-        setCustomChatBackground: settingsStoreActions.setCustomChatBackground,
-        resetSettings: () => {}, // optional; no-op for now
-    };
-
-    // Properly typed tabComponents registry without type-unsafe casts
-    const tabComponents: Record<AppTab, React.ReactNode> = {
-        [AppTab.CONNECTIONS]: <ConnectionPanel />,
-        [AppTab.OBS_STUDIO]: <ObsMainControls />,
-        [AppTab.SETTINGS]: <ObsSettingsPanel actions={obsSettingsActions} />,
-        [AppTab.ADVANCED]: <AdvancedPanel />,
-        [AppTab.GEMINI]: (
-            <GeminiChat
-                onRefreshData={onRefreshData}
-                setErrorMessage={setErrorMessage}
-                chatInputValue={chatInputValue}
-                onChatInputChange={onChatInputChange}
-                onStreamerBotAction={handleStreamerBotAction}
-            />
-        ),
-        [AppTab.STREAMING_ASSETS]: <StreamingAssetsTab />,
-        [AppTab.CREATE]: <CreateTab />,
-    };
+        onRefreshData?.();
+    }, [onRefreshData]);
 
     return (
         <ErrorBoundary>
             <ConnectionProvider>
                 <div className="h-screen max-h-screen bg-gradient-to-br from-background to-card text-foreground flex flex-col overflow-hidden">
-                     <Header headerRef={headerRef as React.RefObject<HTMLDivElement>} />
-                    <div className="sticky z-10 px-2 pt-2" style={{ top: `${headerHeight}px` }}>
-                        <TabNavigation activeTab={activeTab} setActiveTab={setActiveTab} tabOrder={[AppTab.GEMINI, AppTab.OBS_STUDIO, AppTab.STREAMING_ASSETS, AppTab.CREATE, AppTab.SETTINGS, AppTab.CONNECTIONS, AppTab.ADVANCED]} />
+                    <Header headerRef={headerRef} />
+                    <div className="sticky z-10 px-2 pt-2" style={{ top: '64px' }}>
+                        <TabNavigation 
+                            activeTab={activeTab} 
+                            setActiveTab={handleTabChange} 
+                            tabOrder={TAB_ORDER} 
+                        />
                     </div>
-                    <main ref={tabContentRef} className="flex-grow overflow-y-auto px-1 sm:px-2 pb-1">
-                        {tabComponents[activeTab]}
+                    <main className="flex-grow overflow-y-auto px-1 sm:px-2 pb-1">
+                        <div className="p-4">
+                            <h2 className="text-xl font-semibold mb-2">OBS Copilot</h2>
+                            <p>Application is running in simplified mode.</p>
+                        </div>
                     </main>
-                    <MiniPlayer />
-                    <NotificationManager />
                 </div>
             </ConnectionProvider>
         </ErrorBoundary>
