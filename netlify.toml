@@ -20,13 +20,13 @@
 # Optional redirects: If you'd rather have Netlify route /api/* to your backend (rewrite),
 # you can enable a redirect rule below. This is commented out as an example.
 #
-# [[redirects]]
-#   from = "/api/*"
-#   # :splat is replaced with the matched path fragment
-#   to = "https://api.your-backend.tld/:splat"
-#   status = 200
-#   force = true
-#
+[[redirects]]
+  from = "/api/*"
+  # :splat is replaced with the matched path fragment
+  to = "https://api.your-backend.tld/:splat"
+  status = 200
+  force = true
+
 # Notes:
 # - Use the rewrite above to forward requests from the Netlify-hosted frontend to your backend domain
 #   without changing client-side code (client still calls /api/*).

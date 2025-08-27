@@ -38,7 +38,7 @@ API_CONFIGS = {
 }
 
 
-# In baqend/api/routes/assets.py
+# In backend/api/routes/assets.py
 
 
 @router.get("/search/{api_name}", dependencies=[Depends(get_api_key)])
