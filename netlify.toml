@@ -10,6 +10,7 @@
     # Cross-origin policies recommended for security; adjust if needed for your deployment.
     Cross-Origin-Opener-Policy = "same-origin"
     Cross-Origin-Embedder-Policy = "require-corp"
+    Cross-Origin-Resource-Policy = "same-origin"
 
     # Content-Security-Policy:
     # - We add a placeholder backend domain (api.your-backend.tld) to connect-src so the browser may

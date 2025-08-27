@@ -11,3 +11,6 @@ pydantic>=2.0.0
 pytest
 pytest-asyncio
 httpx
+
+# Logging
+structlog

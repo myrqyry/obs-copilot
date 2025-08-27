@@ -9,12 +9,15 @@ from fastapi_mcp import FastApiMCP  # Import FastApiMCP
 from backend.auth import get_api_key
 from backend.api.routes import gemini
 from backend.api.routes import assets
+from backend.middleware import logging_middleware
 
 app = FastAPI(
     title="Universal Backend Server",
     description="A single backend to serve all my projects with Google AI integration.",
     version="1.1.0",
 )
+
+app.middleware("http")(logging_middleware)
 
 # Load allowed origins from environment variable
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
