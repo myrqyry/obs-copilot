@@ -1,4 +1,4 @@
-# baqend/api/routes/assets.py
+# backend/api/routes/assets.py
 import os
 import httpx
 from fastapi import APIRouter, HTTPException, Request, Depends, status

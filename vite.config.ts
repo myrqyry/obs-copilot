@@ -15,7 +15,6 @@ export default defineConfig({
       { find: 'services', replacement: fileURLToPath(new URL('./src/services', import.meta.url)) },
       { find: 'store', replacement: fileURLToPath(new URL('./src/store', import.meta.url)) },
       { find: 'types', replacement: fileURLToPath(new URL('./src/types', import.meta.url)) },
-      { find: 'utils', replacement: fileURLToPath(new URL('./src/utils', import.meta.url)) },
     ],
   },
   server: {

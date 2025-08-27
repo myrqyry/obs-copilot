@@ -41,14 +41,14 @@ def get_gemini_client():
 
 
 @router.post("/generate-image-enhanced", dependencies=[Depends(get_api_key)])
-async def generate_image_enhanced(request: EnhancedImageGenerateRequest):
+async def generate_image_enhanced(
+    request: EnhancedImageGenerateRequest, client: genai.Client = Depends(get_gemini_client)
+):
     """
     Enhanced image generation using Gemini 1.5 Flash with comprehensive parameters.
     Supports both text-to-image and image-to-image editing.
     """
     try:
-        client = get_gemini_client()
-        
         # Build contents array
         contents = []
 
