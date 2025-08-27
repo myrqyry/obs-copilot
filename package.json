@@ -21,8 +21,13 @@
   "main": "src/App.tsx",
   "scripts": {
     "frontend": "vite",
-    "backend:setup": "node -e \"const {execSync, spawn}=require('child_process'); const fs=require('fs'); const isWin=process.platform==='win32'; const py = isWin ? 'backend/venv/Scripts/python.exe' : 'backend/venv/bin/python'; if(!fs.existsSync('backend/venv')){ try{ execSync('python3 -m venv backend/venv', {stdio:'inherit'}); }catch(e){ try{ execSync('python -m venv backend/venv', {stdio:'inherit'}); }catch(e2){ console.error('Failed to create venv'); process.exit(1);} } } try{ execSync(`${py} -m pip install -r backend/requirements.txt`, {stdio:'inherit'}); }catch(e){} const port = process.env.BACKEND_PORT || process.env.PORT || '8000'; const host = process.env.BACKEND_HOST || '0.0.0.0'; const child = spawn(py, ['-m','uvicorn','backend.main:app','--reload','--port',port,'--host',host], {stdio:'inherit'}); child.on('exit', code=>process.exit(code));\"",
-    "backend:dev": "node scripts/backend-dev.js"
+    "frontend:dev": "vite",
+    "backend:setup": "./scripts/setup_backend.sh",
+    "backend:dev": "node scripts/backend-dev.js",
+    "dev": "concurrently \"npm run frontend:dev\" \"npm run backend:dev\"",
+    "setup": "./scripts/setup_dev.sh",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "devDependencies": {
     "@types/node": "^18.11.18",
@@ -32,6 +37,7 @@
     "@typescript-eslint/parser": "^5.48.2",
     "@vitejs/plugin-react": "^3.0.1",
     "autoprefixer": "^10.4.13",
+    "concurrently": "^9.2.1",
     "eslint": "^8.32.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.3.4",
@@ -41,8 +47,13 @@
     "vite": "^4.0.4"
   },
   "dependencies": {
+    "axios": "^1.11.0",
+    "dompurify": "^3.2.6",
+    "framer-motion": "^12.23.12",
+    "lodash": "^4.17.21",
     "obs-websocket-js": "^5.0.6",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "tailwind-scrollbar": "^2.1.0"
   }
 }

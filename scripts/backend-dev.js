@@ -1,70 +1,203 @@
-/* scripts/backend-dev.js */
+#!/usr/bin/env node
+
+/**
+ * Backend Development Server
+ * 
+ * Starts the FastAPI backend server with hot-reload enabled.
+ * Automatically sets up the Python virtual environment if needed.
+ */
+
 import { execSync, spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import process from 'process';
 
-function runOrThrow(cmd) {
-  execSync(cmd, { stdio: 'inherit' });
+// Colors for console output
+const COLORS = {
+  reset: '\x1b[0m',
+  bright: '\x1b[1m',
+  dim: '\x1b[2m',
+  red: '\x1b[31m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  blue: '\x1b[34m',
+  magenta: '\x1b[35m',
+  cyan: '\x1b[36m',
+};
+
+function logInfo(message) {
+  console.log(`${COLORS.cyan}ℹ️ ${message}${COLORS.reset}`);
 }
 
-function quoteArg(arg) {
-  // Robust quoting to handle spaces/special chars in paths
-  // JSON.stringify yields a valid shell-escaped string for execSync when passed as a single argument.
-  return JSON.stringify(arg);
+function logSuccess(message) {
+  console.log(`${COLORS.green}✓ ${message}${COLORS.reset}`);
 }
 
-async function main() {
+function logWarning(message) {
+  console.warn(`${COLORS.yellow}⚠️ ${message}${COLORS.reset}`);
+}
+
+function logError(message, error) {
+  console.error(`${COLORS.red}✗ ${message}${COLORS.reset}`);
+  if (error) {
+    console.error(error);
+  }
+}
+
+function runCommand(command, options = {}) {
+  const { cwd = process.cwd(), exitOnError = true } = options;
+  
+  try {
+    logInfo(`Running: ${command}`);
+    const result = execSync(command, { 
+      stdio: 'inherit',
+      cwd,
+      env: { ...process.env, FORCE_COLOR: '1' }
+    });
+    return { success: true, result };
+  } catch (error) {
+    if (exitOnError) {
+      logError(`Command failed: ${command}`, error);
+      process.exit(1);
+    }
+    return { success: false, error };
+  }
+}
+
+function getPythonExecutable(venvPath) {
+  const isWindows = process.platform === 'win32';
+  const pyInVenv = isWindows
+    ? path.join(venvPath, 'Scripts', 'python.exe')
+    : path.join(venvPath, 'bin', 'python');
+
+  // Use the virtual environment's Python if it exists
+  if (fs.existsSync(pyInVenv)) {
+    return pyInVenv;
+  }
+
+  // Fall back to system Python
+  return isWindows ? 'python' : 'python3';
+}
+
+async function ensureVenv() {
   const repoRoot = process.cwd();
   const venvRel = path.join('backend', 'venv');
   const venvPath = path.resolve(repoRoot, venvRel);
 
-  const isWin = process.platform === 'win32';
-  const pyInVenv = isWin
-    ? path.join(venvPath, 'Scripts', 'python.exe')
-    : path.join(venvPath, 'bin', 'python');
-
-  // 1) Ensure venv exists
   if (!fs.existsSync(venvPath)) {
-    console.log('Creating Python venv at', venvRel);
-    try {
-      runOrThrow('python3 -m venv ' + quoteArg(venvRel));
-    } catch (e1) {
-      console.log('python3 failed or is unavailable, trying python -m venv ...');
+    logInfo('Creating Python virtual environment...');
+    
+    // Try python3 first, then python
+    const pythonCommands = ['python3', 'python'];
+    let venvCreated = false;
+    
+    for (const pyCmd of pythonCommands) {
       try {
-        runOrThrow('python -m venv ' + quoteArg(venvRel));
-      } catch (e2) {
-        console.error('Failed to create venv with python3 or python. Please ensure Python is installed.');
-        process.exit(1);
+        runCommand(`${pyCmd} -m venv "${venvPath}"`);
+        logSuccess(`Virtual environment created at ${venvRel}`);
+        venvCreated = true;
+        break;
+      } catch (error) {
+        logWarning(`Failed to create venv with ${pyCmd}, trying next...`);
       }
     }
+    
+    if (!venvCreated) {
+      logError('Failed to create virtual environment. Please ensure Python is installed.');
+      process.exit(1);
+    }
   } else {
-    console.log('Using existing venv at', venvRel);
+    logInfo(`Using existing virtual environment at ${venvRel}`);
   }
 
-  // 2) Install requirements (best-effort; continue if it fails)
-  const pythonExec = fs.existsSync(pyInVenv) ? pyInVenv : (isWin ? 'python' : 'python3');
+  return venvPath;
+}
+
+async function installDependencies(venvPath) {
+  const pythonExec = getPythonExecutable(venvPath);
+  const requirementsPath = path.join('backend', 'requirements.txt');
+  
+  if (!fs.existsSync(requirementsPath)) {
+    logWarning(`Requirements file not found at ${requirementsPath}`);
+    return false;
+  }
+
   try {
-    console.log('Installing python requirements using', pythonExec);
-    runOrThrow(`${quoteArg(pythonExec)} -m pip install -r backend/requirements.txt`);
-  } catch (e) {
-    console.warn('pip install failed (continuing). If dependencies are missing, run:');
-    console.warn(`${pythonExec} -m pip install -r backend/requirements.txt`);
+    logInfo('Installing Python dependencies...');
+    runCommand(`"${pythonExec}" -m pip install --upgrade pip`);
+    runCommand(`"${pythonExec}" -m pip install -r "${requirementsPath}"`);
+    logSuccess('Dependencies installed successfully');
+    return true;
+  } catch (error) {
+    logWarning('Failed to install dependencies. You may need to install them manually:');
+    console.log(`  ${pythonExec} -m pip install -r ${requirementsPath}`);
+    return false;
   }
+}
 
-  // 3) Host/port
+function startUvicorn(venvPath) {
+  const pythonExec = getPythonExecutable(venvPath);
   const port = process.env.BACKEND_PORT || process.env.PORT || '8000';
   const host = process.env.BACKEND_HOST || '0.0.0.0';
+  
+  const uvicornArgs = [
+    '-m', 'uvicorn',
+    'backend.main:app',
+    '--reload',
+    '--port', port,
+    '--host', host,
+    '--app-dir', process.cwd()
+  ];
 
-  // 4) Spawn uvicorn
-  const uvicornArgs = ['-m', 'uvicorn', 'backend.main:app', '--reload', '--port', String(port), '--host', String(host)];
-  console.log('Spawning uvicorn:', pythonExec, uvicornArgs.join(' '));
+  logInfo(`Starting backend server at http://${host}:${port}`);
+  logInfo(`Using Python: ${pythonExec}`);
+  logInfo(`Uvicorn args: ${uvicornArgs.join(' ')}`);
 
-  const child = spawn(pythonExec, uvicornArgs, { stdio: 'inherit' });
-  child.on('exit', (code) => process.exit(code ?? 0));
-  child.on('error', (err) => {
-    console.error('Failed to spawn uvicorn:', err);
+  const child = spawn(pythonExec, uvicornArgs, { 
+    stdio: 'inherit',
+    env: { ...process.env, FORCE_COLOR: '1' }
+  });
+
+  // Handle process termination
+  process.on('SIGINT', () => {
+    logInfo('Shutting down backend server...');
+    child.kill();
+    process.exit(0);
+  });
+
+  child.on('exit', (code) => {
+    if (code !== 0) {
+      logError(`Backend server exited with code ${code}`);
+    } else {
+      logInfo('Backend server stopped');
+    }
+    process.exit(code ?? 0);
+  });
+
+  child.on('error', (error) => {
+    logError('Failed to start backend server', error);
     process.exit(1);
   });
 }
 
+async function main() {
+  try {
+    console.log(`\n${COLORS.bright}🚀 Starting OBS Copilot Backend${COLORS.reset}\n`);
+    
+    // 1. Ensure virtual environment exists
+    const venvPath = await ensureVenv();
+    
+    // 2. Install dependencies (best effort)
+    await installDependencies(venvPath);
+    
+    // 3. Start the backend server
+    startUvicorn(venvPath);
+    
+  } catch (error) {
+    logError('An unexpected error occurred', error);
+    process.exit(1);
+  }
+}
+
+// Run the main function
 main();

@@ -66,8 +66,6 @@ netlify/functions
 .kilocode
 .cursorignore
 
-
-
 # AppMap
 /tmp/appmap/
 
@@ -92,8 +90,7 @@ desktop.ini
 .vite/
 .eslintcache
 
-.env
-.kilocode
-.cursorignore
+# Backend specific
 AGENTS.md
 /backend/venv/*
+/backend/__pycache__/*
