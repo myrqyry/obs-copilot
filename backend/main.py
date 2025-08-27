@@ -27,8 +27,7 @@ app.add_middleware(
     allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
-    # --- UPDATE THIS LINE ---
-    allow_headers=["*", "X-API-KEY"],
+    allow_headers=["Content-Type", "Authorization", "X-API-KEY"],
 )
 
 # Create the MCP server from our FastAPI app

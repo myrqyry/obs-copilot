@@ -47,13 +47,18 @@
     "vite": "^4.0.4"
   },
   "dependencies": {
+    "@streamerbot/client": "^1.12.2",
     "axios": "^1.11.0",
+    "class-variance-authority": "^0.7.1",
     "dompurify": "^3.2.6",
     "framer-motion": "^12.23.12",
+    "gsap": "^3.13.0",
     "lodash": "^4.17.21",
     "obs-websocket-js": "^5.0.6",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "tailwind-scrollbar": "^2.1.0"
+    "tailwind-scrollbar": "^2.1.0",
+    "tailwindcss-animate": "^1.0.7",
+    "zustand": "^5.0.8"
   }
 }

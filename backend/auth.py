@@ -22,6 +22,12 @@ API_KEY_NAME = "X-API-KEY"
 if not VALID_API_KEYS:
     logger.warning("⚠️ SECURITY WARNING: Server running in INSECURE MODE - No API keys configured!")
     logger.warning("This should only be used for development. Set API_KEYS environment variable for production.")
+    REQUIRE_API_KEYS = os.getenv("REQUIRE_API_KEYS", "false").lower() == "true"
+    if REQUIRE_API_KEYS:
+        raise RuntimeError(
+            "Server startup failed: API_KEYS environment variable is not set, but REQUIRE_API_KEYS is true."
+        )
+
 
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=True)
 
