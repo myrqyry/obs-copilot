@@ -15,6 +15,13 @@ import { useSettingsStore } from '@/store/settingsStore';
 import Tooltip from '@/components/ui/Tooltip';
 import SecureHtmlRenderer from '@/components/ui/SecureHtmlRenderer';
 
+// Import AI Elements components
+import {
+    Message,
+    MessageContent,
+} from '@/components/ai-elements';
+import { CodeBlock } from '@/components/ai-elements/code-block';
+
 interface ChatMessageItemProps {
     message: ChatMessage;
     onSuggestionClick?: (prompt: string) => void;
@@ -166,7 +173,165 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
         }
     };
 
-    // System messages are always centered
+    // Use AI Elements Message and MessageContent for better structure
+    const messageRole = isUser ? 'user' : 'assistant';
+
+    // Render content with AI Elements Response component and enhanced code blocks
+    const renderContent = () => {
+        if (message.status) {
+            const { type, message: statusMessage } = message.status;
+            let icon = 'ℹ️';
+            let colorClass = 'text-blue-400';
+            if (type === 'success') {
+                icon = '✅';
+                colorClass = 'text-green-400';
+            } else if (type === 'error') {
+                icon = '❌';
+                colorClass = 'text-red-400';
+            } else if (type === 'warning') {
+                icon = '⚠️';
+                colorClass = 'text-yellow-400';
+            }
+
+            return (
+                <div className={`flex items-center gap-2 ${colorClass}`}>
+                    <span className="text-lg">{icon}</span>
+                    <span>{statusMessage}</span>
+                </div>
+            );
+        }
+
+        const parts = [];
+        let lastIndex = 0;
+        const codeBlockRegex = /```(\w*)\s*\n?([\s\S]*?)\n?\s*```/g;
+        let match;
+
+        while ((match = codeBlockRegex.exec(message.text)) !== null) {
+            if (match.index > lastIndex) {
+                const htmlFragment = message.text.substring(lastIndex, match.index);
+                if (htmlFragment.trim()) {
+                    parts.push(
+                        <SecureHtmlRenderer
+                            key={lastIndex}
+                            htmlContent={htmlFragment}
+                            allowedTags={['p','br','strong','em','code','pre','ul','ol','li','a','span','div']}
+                            allowedAttributes={['class','href','target','rel']}
+                        />
+                    );
+                }
+            }
+
+            const language = match[1] || 'text';
+            const code = match[2];
+
+            parts.push(
+                <CodeBlock
+                    key={`code-${match.index}`}
+                    language={language}
+                    code={code}
+                    className="my-2"
+                />
+            );
+
+            lastIndex = codeBlockRegex.lastIndex;
+        }
+
+        if (lastIndex < message.text.length) {
+            const htmlFragment = message.text.substring(lastIndex);
+            if (htmlFragment.trim()) {
+                parts.push(
+                    <SecureHtmlRenderer
+                        key={lastIndex}
+                        htmlContent={htmlFragment}
+                        allowedTags={['p','br','strong','em','code','pre','ul','ol','li','a','span','div']}
+                        allowedAttributes={['class','href','target','rel']}
+                    />
+                );
+            }
+        }
+
+        return parts.length > 0 ? parts : <span style={{ color: textColor }}>{message.text}</span>;
+    };
+
+    // Render AI SDK 5 Data Parts (typed streaming updates)
+    const renderDataParts = () => {
+        if (!message.dataParts || message.dataParts.length === 0) return null;
+
+        return (
+            <div className="mb-2 space-y-2">
+                {message.dataParts.map((part, idx) => {
+                    const key = part.id || `datapart-${idx}`;
+                    if (part.type === 'status') {
+                        const val = (part.value as any) || {};
+                        return (
+                            <div key={key} className="bg-muted/10 p-2 rounded-md border border-border">
+                                <div className="flex items-center justify-between text-xs mb-1">
+                                    <div className="font-medium text-sm">{val.message || 'Status'}</div>
+                                    <div className="text-xs opacity-80">{val.status}</div>
+                                </div>
+                                {typeof val.progress === 'number' ? (
+                                    <div className="w-full bg-background h-2 rounded overflow-hidden">
+                                        <div className="h-2 bg-primary" style={{ width: `${Math.min(100, Math.max(0, val.progress))}%` }} />
+                                    </div>
+                                ) : val.details ? (
+                                    <div className="text-xs opacity-80">{val.details}</div>
+                                ) : null}
+                            </div>
+                        );
+                    }
+
+                    if (part.type === 'obs-action' || part.type === 'streamerbot-action') {
+                        const val = (part.value as any) || {};
+                        return (
+                            <div key={key} className="bg-muted/5 p-2 rounded-md border border-border flex flex-col">
+                                <div className="flex items-center gap-2">
+                                    <div className="text-sm font-medium">{val.action || part.type}</div>
+                                    <div className="text-xs opacity-80">{val.target ? `→ ${val.target}` : null}</div>
+                                </div>
+                                <div className="text-xs mt-1 opacity-80">Status: {val.status}</div>
+                                {val.result && (
+                                    <div className="text-xs mt-1">
+                                        {val.result.success ? (
+                                            <span className="text-green-500">Success: {val.result.message || 'OK'}</span>
+                                        ) : (
+                                            <span className="text-red-500">Error: {val.result.error || 'Failed'}</span>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    }
+
+                    if (part.type === 'media') {
+                        const val = (part.value as any) || {};
+                        if (val.url) {
+                            const isImage = String(val.contentType || '').startsWith('image');
+                            return (
+                                <div key={key} className="rounded-md overflow-hidden border border-border">
+                                    {isImage ? (
+                                        // eslint-disable-next-line jsx-a11y/img-redundant-alt
+                                        <img src={val.url} alt={val.alt || 'media'} className="w-full object-contain" />
+                                    ) : (
+                                        <a href={val.url} target="_blank" rel="noreferrer" className="block p-2 text-sm">
+                                            {val.caption || val.url}
+                                        </a>
+                                    )}
+                                </div>
+                            );
+                        }
+                    }
+
+                    // Fallback: render JSON preview
+                    return (
+                        <pre key={key} className="text-xs bg-muted/5 p-2 rounded-md overflow-x-auto">
+                            {JSON.stringify(part.value)}
+                        </pre>
+                    );
+                })}
+            </div>
+        );
+    };
+
     const containerClasses = isSystem ? 'justify-center' : flipSides
         ? (isUser ? 'justify-start' : 'justify-end')
         : (isUser ? 'justify-end' : 'justify-start');
@@ -250,223 +415,182 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
 
     return (
         <div ref={itemRef} className={`flex ${containerClasses} mb-3 font-sans ${isSystem ? 'px-6' : isUser ? 'pl-4' : 'pr-4'}`}>
-            <div
-                className={`chat-message rounded-2xl shadow-xl border relative font-sans group ${glassEffectClass}
-          ${isSystem
-                        ? 'p-3 text-sm leading-tight max-w-lg'
-                        : 'p-3 text-sm leading-tight max-w-lg'}
-        `}
-                style={bubbleStyle}
+            <Message
+                from={messageRole}
+                className="w-full"
             >
                 <div
-                    style={{
-                        position: 'relative',
-                        color: textColor
-                    }}
+                    className={`chat-message rounded-2xl shadow-xl border relative font-sans group ${glassEffectClass}
+                  ${isSystem
+                                ? 'p-3 text-sm leading-tight max-w-lg'
+                                : 'p-3 text-sm leading-tight max-w-lg'}
+                `}
+                    style={bubbleStyle}
                 >
                     <div
-                        ref={bubbleRef}
-                        className={`chat-scrollable-content
-              ${isShrunk ? 'max-h-80 overflow-y-auto custom-scrollbar shrunk' : ''}
-              ${isScrolling ? 'scrolling' : ''}
-            `}
-                        onScroll={isShrunk ? handleBubbleScroll : undefined}
+                        style={{
+                            position: 'relative',
+                            color: textColor
+                        }}
                     >
-                        {message.type === "source-prompt" && obsSources && onSourceSelect ? (
-                            <div className="source-selection-container">
-                                <div className="source-selection-header mb-2">
-                                    <div className="flex items-center gap-1.5 mb-1">
-                                        <span className="text-sm emoji">🎯</span>
-                                        <div className="text-sm font-medium font-sans leading-tight">
-                                            Choose a source
-                                        </div>
-                                    </div>
-                                    <div className="text-sm opacity-80 font-normal font-sans">
-                                        {message.sourcePrompt || message.text}
-                                    </div>
-                                </div>
-                                <div className="source-selection-grid grid grid-cols-2 gap-2">
-                                    {obsSources.map((source) => (
-                                        <Tooltip key={source.sourceName} content={source.typeName || source.inputKind || 'Source'}>
-                                            <button
-                                                onClick={() => onSourceSelect(source.sourceName)}
-                                                className="source-select-btn group flex items-center px-3 py-1.5 bg-background/80 text-foreground border border-border rounded transition-all duration-200 hover:bg-primary hover:text-primary-foreground hover:border-primary focus:outline-none focus:ring-1 focus:ring-primary shadow-sm"
-                                                tabIndex={0}
-                                                aria-label={`Select source ${source.sourceName}`}
-                                            >
-                                                <span className="text-sm mr-2 group-hover:scale-105 transition-transform duration-200 flex-shrink-0 emoji">
-                                                    {source.inputKind === 'text_gdiplus_v2' || source.inputKind === 'text_ft2_source_v2' ? '📝' :
-                                                        source.inputKind === 'image_source' ? '🖼️' :
-                                                            source.inputKind === 'browser_source' ? '🌐' :
-                                                                source.inputKind === 'window_capture' ? '🪟' :
-                                                                    source.inputKind === 'monitor_capture' ? '🖥️' :
-                                                                        source.inputKind === 'game_capture' ? '🎮' :
-                                                                            source.inputKind === 'dshow_input' ? '📹' :
-                                                                                source.inputKind === 'wasapi_input_capture' || source.inputKind === 'wasapi_output_capture' ? '🎵' :
-                                                                                    '🎯'}
-                                                </span>
-                                                <div className="flex-1 text-left min-w-0">
-                                                    <div className="font-medium text-sm group-hover:text-background transition-colors duration-200 overflow-hidden text-ellipsis whitespace-nowrap">
-                                                        {source.sourceName}
+                        <div
+                            ref={bubbleRef}
+                            className={`chat-scrollable-content
+                  ${isShrunk ? 'max-h-80 overflow-y-auto custom-scrollbar shrunk' : ''}
+                  ${isScrolling ? 'scrolling' : ''}
+                `}
+                            onScroll={isShrunk ? handleBubbleScroll : undefined}
+                        >
+                            <MessageContent className="p-0 bg-transparent border-0">
+                                <div className="p-0 bg-transparent">
+                                    {message.type === "source-prompt" && obsSources && onSourceSelect ? (
+                                        <div className="source-selection-container">
+                                            <div className="source-selection-header mb-2">
+                                                <div className="flex items-center gap-1.5 mb-1">
+                                                    <span className="text-sm emoji">🎯</span>
+                                                    <div className="text-sm font-medium font-sans leading-tight">
+                                                        Choose a source
                                                     </div>
                                                 </div>
-                                            </button>
-                                        </Tooltip>
-                                    ))}
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="relative">
-                                <div style={{ color: textColor, fontStyle: isSystem ? 'italic' : 'normal', wordBreak: 'break-word', whiteSpace: 'normal' }}>
-                                    {(() => {
-                                        const parts = [];
-                                        let lastIndex = 0;
-                                        const codeBlockRegex = /```(\w*)\s*\n?([\s\S]*?)\n?\s*```/g;
-                                        let match;
-
-                                        while ((match = codeBlockRegex.exec(message.text)) !== null) {
-                                            if (match.index > lastIndex) {
-                                                const htmlFragment = message.text.substring(lastIndex, match.index);
-                                                parts.push(
-                                                    <SecureHtmlRenderer 
-                                                        key={lastIndex}
-                                                        htmlContent={htmlFragment}
-                                                        allowedTags={['p','br','strong','em','code','pre','ul','ol','li','a','span','div']}
-                                                        allowedAttributes={['class','href','target','rel']}
-                                                    />
-                                                );
-                                            }
-                                            lastIndex = codeBlockRegex.lastIndex;
-                                        }
-
-                                        if (lastIndex < message.text.length) {
-                                            const htmlFragment = message.text.substring(lastIndex);
-                                            parts.push(
-                                                <SecureHtmlRenderer 
-                                                    key={lastIndex}
-                                                    htmlContent={htmlFragment}
-                                                    allowedTags={['p','br','strong','em','code','pre','ul','ol','li','a','span','div']}
-                                                    allowedAttributes={['class','href','target','rel']}
-                                                />
-                                            );
-                                        }
-
-                                        return parts;
-                                    })()}
-                                </div>
-
-                                {/* Show suggestion buttons for greeting system messages */}
-                                {showSuggestions && isSystem && onSuggestionClick && (
-                                    <div className="mt-3 pt-3 border-t border-opacity-30" style={{ borderColor: bubbleColorHex }}>
-                                        <div className="text-sm opacity-90 mb-3 font-normal font-sans"><span className="emoji">✨</span> Try these commands:</div>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {memoizedSuggestions.map((suggestion) => (
-                                                <button
-                                                    key={suggestion.id}
-                                                     onClick={() => onSuggestionClick(suggestion.prompt)}                                                     className="text-xs px-2 py-1.5 bg-muted/50 hover:bg-primary/20 text-foreground hover:text-primary-foreground rounded border border-border hover:border-primary transition-all duration-200 text-left group shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                                                >
-                                                    <span className="mr-1.5 text-sm group-hover:scale-110 transition-transform duration-200 inline-block emoji">{suggestion.emoji}</span>
-                                                    <span className="font-normal">{suggestion.label}</span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {message.sources && message.sources.length > 0 && (
-                                    <div className="mt-3 pt-3 border-t border-border">
-                                        <div className="text-sm opacity-90 mb-2 font-normal font-sans"><span className="emoji">📚</span> Sources:</div>
-                                        <div className="space-y-1">
-                                            {message.sources.map((source, idx) => (
-                                                <div key={idx} className="text-xs">
-                                                    <a
-                                                        href={source.web?.uri}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="text-primary hover:text-primary/80 hover:underline transition-colors duration-200 focus:outline-none focus:ring-1 focus:ring-primary rounded"
-                                                    >
-                                                        <span className="emoji">🔗</span> {source.web?.title || source.web?.uri}
-                                                    </a>
+                                                <div className="text-sm opacity-80 font-normal font-sans">
+                                                    {message.sourcePrompt || message.text}
                                                 </div>
-                                            ))}
+                                            </div>
+                                            <div className="source-selection-grid grid grid-cols-2 gap-2">
+                                                {obsSources.map((source) => (
+                                                    <Tooltip key={source.sourceName} content={source.typeName || source.inputKind || 'Source'}>
+                                                        <button
+                                                            onClick={() => onSourceSelect(source.sourceName)}
+                                                            className="source-select-btn group flex items-center px-3 py-1.5 bg-background/80 text-foreground border border-border rounded transition-all duration-200 hover:bg-primary hover:text-primary-foreground hover:border-primary focus:outline-none focus:ring-1 focus:ring-primary shadow-sm"
+                                                            tabIndex={0}
+                                                            aria-label={`Select source ${source.sourceName}`}
+                                                        >
+                                                            <span className="text-sm mr-2 group-hover:scale-105 transition-transform duration-200 flex-shrink-0 emoji">
+                                                                {source.inputKind === 'text_gdiplus_v2' || source.inputKind === 'text_ft2_source_v2' ? '📝' :
+                                                                    source.inputKind === 'image_source' ? '🖼️' :
+                                                                        source.inputKind === 'browser_source' ? '🌐' :
+                                                                            source.inputKind === 'window_capture' ? '🪟' :
+                                                                                source.inputKind === 'monitor_capture' ? '🖥️' :
+                                                                                    source.inputKind === 'game_capture' ? '🎮' :
+                                                                                        source.inputKind === 'dshow_input' ? '📹' :
+                                                                                            source.inputKind === 'wasapi_input_capture' || source.inputKind === 'wasapi_output_capture' ? '🎵' :
+                                                                                                '🎯'}
+                                                            </span>
+                                                            <div className="flex-1 text-left min-w-0">
+                                                                <div className="font-medium text-sm group-hover:text-background transition-colors duration-200 overflow-hidden text-ellipsis whitespace-nowrap">
+                                                                    {source.sourceName}
+                                                                </div>
+                                                            </div>
+                                                        </button>
+                                                    </Tooltip>
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
+                                    ) : (
+                                        <div className="relative">
+                                            <div style={{ color: textColor, fontStyle: isSystem ? 'italic' : 'normal', wordBreak: 'break-word', whiteSpace: 'normal' }}>
+                                                {renderContent()}
+                                                {renderDataParts()}
+                                            </div>
 
-                                {/* Show choice buttons for model messages with choices */}
-                                {message.type === "choice-prompt" && message.choices && onSuggestionClick && (
-                                    <div className="mt-3 pt-3 border-t border-opacity-30" style={{ borderColor: bubbleColorHex }}>
-                                        <div className="text-sm opacity-90 mb-3 font-normal font-sans">
-                                            <span className="emoji">
-                                                {message.choiceType === 'scene' ? '🎬' :
-                                                    message.choiceType === 'source' ? '🎯' :
-                                                        message.choiceType === 'camera-source' ? '📹' :
-                                                            message.choiceType === 'audio-source' ? '🎵' :
-                                                                message.choiceType === 'text-source' ? '📝' :
-                                                                    message.choiceType === 'screen-source' ? '🖥️' :
-                                                                        message.choiceType === 'source-filter' ? '🎨' :
-                                                                            '🤔'}
-                                            </span>{' '}
-                                            {message.choiceType === 'scene' ? 'Select a scene:' :
-                                                message.choiceType === 'source' ? 'Select a source:' :
-                                                    message.choiceType === 'camera-source' ? 'Select a camera:' :
-                                                        message.choiceType === 'audio-source' ? 'Select an audio source:' :
-                                                            message.choiceType === 'text-source' ? 'Select a text source:' :
-                                                                message.choiceType === 'screen-source' ? 'Select a screen capture:' :
-                                                                    message.choiceType === 'source-filter' ? 'Select a source for filters:' :
-                                                                        'Choose an option:'}
+                                            {/* Show suggestion buttons for greeting system messages */}
+                                            {showSuggestions && isSystem && onSuggestionClick && (
+                                                <div className="mt-3 pt-3 border-t border-opacity-30" style={{ borderColor: bubbleColorHex }}>
+                                                    <div className="text-sm opacity-90 mb-3 font-normal font-sans"><span className="emoji">✨</span> Try these commands:</div>
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        {memoizedSuggestions.map((suggestion) => (
+                                                            <button
+                                                                key={suggestion.id}
+                                                                 onClick={() => onSuggestionClick(suggestion.prompt)}                                                     className="text-xs px-2 py-1.5 bg-muted/50 hover:bg-primary/20 text-foreground hover:text-primary-foreground rounded border border-border hover:border-primary transition-all duration-200 text-left group shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                                                            >
+                                                                <span className="mr-1.5 text-sm group-hover:scale-110 transition-transform duration-200 inline-block emoji">{suggestion.emoji}</span>
+                                                                <span className="font-normal">{suggestion.label}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {message.sources && message.sources.length > 0 && (
+                                                <div className="mt-3 pt-3 border-t border-border">
+                                                    <div className="text-sm opacity-90 mb-2 font-normal font-sans"><span className="emoji">📚</span> Sources:</div>
+                                                    <div className="space-y-1">
+                                                        {message.sources.map((source, idx) => (
+                                                            <div key={idx} className="text-xs">
+                                                                <a
+                                                                    href={source.web?.uri}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="text-primary hover:text-primary/80 hover:underline transition-colors duration-200 focus:outline-none focus:ring-1 focus:ring-primary rounded"
+                                                                >
+                                                                    <span className="emoji">🔗</span> {source.web?.title || source.web?.uri}
+                                                                </a>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Show choice buttons for model messages with choices */}
+                                            {message.type === "choice-prompt" && message.choices && onSuggestionClick && (
+                                                <div className="mt-3 pt-3 border-t border-opacity-30" style={{ borderColor: bubbleColorHex }}>
+                                                    <div className="text-sm opacity-90 mb-3 font-normal font-sans">
+                                                        <span className="emoji">
+                                                            {message.choiceType === 'scene' ? '🎬' :
+                                                                message.choiceType === 'source' ? '🎯' :
+                                                                    message.choiceType === 'camera-source' ? '📹' :
+                                                                        message.choiceType === 'audio-source' ? '🎵' :
+                                                                            message.choiceType === 'text-source' ? '📝' :
+                                                                                message.choiceType === 'screen-source' ? '🖥️' :
+                                                                                    message.choiceType === 'source-filter' ? '🎨' :
+                                                                                        '🤔'}
+                                                        </span>{' '}
+                                                        {message.choiceType === 'scene' ? 'Select a scene:' :
+                                                            message.choiceType === 'source' ? 'Select a source:' :
+                                                                message.choiceType === 'camera-source' ? 'Select a camera:' :
+                                                                    message.choiceType === 'audio-source' ? 'Select an audio source:' :
+                                                                        message.choiceType === 'text-source' ? 'Select a text source:' :
+                                                                            message.choiceType === 'screen-source' ? 'Select a screen capture:' :
+                                                                                message.choiceType === 'source-filter' ? 'Select a source for filters:' :
+                                                                                    'Choose an option:'}
+                                                    </div>
+                                                    <div className={`grid gap-2 ${message.choices.length > 4 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                                                        {message.choices.map((choice, idx) => (
+                                                            <button
+                                                                key={idx}
+                                                                onClick={() => {
+                                                                    if (onAddToContext) {
+                                                                        const contextText = `Previous assistant: ${message.text}`;
+                                                                        onAddToContext(contextText);
+                                                                    }
+                                                                    if (onSuggestionClick) {
+                                                                        onSuggestionClick(choice);
+                                                                    }
+                                                                }}
+                                                                className="text-sm px-3 py-2 bg-background/80 hover:bg-primary hover:text-primary-foreground rounded border border-border hover:border-primary transition-all duration-200 text-left group shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                                                            >
+                                                                <span className="mr-2 text-sm font-medium text-primary group-hover:text-primary-foreground">
+                                                                    {String.fromCharCode(65 + idx)})
+                                                                </span>
+                                                                <span className="font-normal">{choice}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
-                                        <div className={`grid gap-2 ${message.choices.length > 4 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                                            {message.choices.map((choice, idx) => (
-                                                <button
-                                                    key={idx}
-                                                    onClick={() => {
-                                                        if (onAddToContext) {
-                                                            const contextText = `Previous assistant: ${message.text}`;
-                                                            onAddToContext(contextText);
-                                                        }
-                                                        if (onSuggestionClick) {
-                                                            onSuggestionClick(choice);
-                                                        }
-                                                    }}
-                                                    className="text-sm px-3 py-2 bg-background/80 hover:bg-primary hover:text-primary-foreground rounded border border-border hover:border-primary transition-all duration-200 text-left group shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                                                >
-                                                    <span className="mr-2 text-sm font-medium text-primary group-hover:text-primary-foreground">
-                                                        {String.fromCharCode(65 + idx)})
-                                                    </span>
-                                                    <span className="font-normal">{choice}</span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                                    )}
+                                </div>
+                            </MessageContent>
+                        </div>
+                    </div>
+                    <div
+                        className="text-xs mt-1.5 relative z-20 tracking-wider flex items-center gap-2"
+                    >
+                        {/* placeholder for timestamp text if present */}
                     </div>
 
-                    {/* Top fade overlay when scrolled from top */}
-                    {isShrunk && isScrolledFromTop && (
-                        <div className="bubble-fade-top" />
-                    )}
-                    {/* Absolutely positioned fade overlay, only when shrunk and not at bottom */}
-                    {isShrunk && !isScrolledToBottom && (
-                        <div className={`bubble-fade-bottom ${isScrolling ? 'opacity-30' : 'opacity-100'}`} />
-                    )}
-                </div>
-
-                {/* Timestamp outside of scrollable area */}
-                <div
-                    className="text-xs mt-1.5 relative z-20 tracking-wider flex items-center gap-2"
-                    style={{
-                        fontFamily: 'Reddit Sans, -apple-system, BlinkMacSystemFont, sans-serif',
-                        fontWeight: 500,
-                        color: textColor,
-                        opacity: 0.8,
-                    }}
-                >
-                    <div className="flex-1 text-xs">{/* placeholder for timestamp text if present */}</div>
-
-                    <div className="flex items-center gap-1">
+                    <div className="text-xs mt-1.5 relative z-20 tracking-wider flex items-center gap-2">
                         <Tooltip content="Copy text">
                             <button
                                 onClick={handleCopyText}
@@ -501,32 +625,27 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                             </Tooltip>
                         )}
                     </div>
-                </div>
 
-                {/* Expand/collapse floating icon button (bottom right, more visible) */}
-                {isShrunk && !forceExpand && (
-                    <Tooltip content="Expand bubble">
-                        <button
-                            className="absolute right-3 bottom-3 z-40 bg-card/90 backdrop-blur-sm text-primary hover:text-primary/80 hover:bg-primary/10 p-2 rounded-full shadow-xl border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/50"
-                            onClick={() => setForceExpand(true)}
-                            aria-label="Expand chat bubble"
-                        >
-                            <ChevronDownIcon className="w-5 h-5" />
-                        </button>
-                    </Tooltip>
-                )}
-                {forceExpand && (
-                    <Tooltip content="Shrink bubble">
-                        <button
-                            className="absolute right-3 bottom-3 z-40 bg-card/90 backdrop-blur-sm text-muted-foreground hover:text-primary hover:bg-primary/10 p-2 rounded-full shadow-xl border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/50"
-                            onClick={() => setForceExpand(false)}
-                            aria-label="Shrink chat bubble"
-                        >
-                            <ChevronUpIcon className="w-5 h-5" />
-                        </button>
-                    </Tooltip>
-                )}
-            </div>
+                    <div
+                        className="absolute right-3 bottom-3 z-40 bg-card/90 backdrop-blur-sm text-primary hover:text-primary/80 hover:bg-primary/10 p-2 rounded-full shadow-xl border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        onClick={() => setForceExpand(true)}
+                        aria-label="Expand chat bubble"
+                    >
+                        <ChevronDownIcon className="w-5 h-5" />
+                    </div>
+                    {forceExpand && (
+                        <Tooltip content="Shrink bubble">
+                            <button
+                                className="absolute right-3 bottom-3 z-40 bg-card/90 backdrop-blur-sm text-muted-foreground hover:text-primary hover:bg-primary/10 p-2 rounded-full shadow-xl border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                onClick={() => setForceExpand(false)}
+                                aria-label="Shrink chat bubble"
+                            >
+                                <ChevronUpIcon className="w-5 h-5" />
+                            </button>
+                        </Tooltip>
+                    )}
+                </div>
+            </Message>
         </div>
     );
 };

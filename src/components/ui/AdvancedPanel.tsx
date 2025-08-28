@@ -35,8 +35,6 @@ const AdvancedPanel: React.FC = () => {
     // Simplified component tree
     return (
         <div className="space-y-2 max-w-2xl mx-auto p-0">
-            {/* The UI sections would render here, as in the original AdvancedPanel component. */}
-            {/* For brevity in this patch, the full render tree is omitted. The focus was on TS hygiene. */}
         </div>
     );
 };

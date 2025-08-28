@@ -23,7 +23,6 @@ export function FaviconDropdown({ options, value, onChange, className = '', plac
     const dropdownRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
     const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
-    // Revert: no need for buttonRef or dropdownStyle
 
     const selectedOption = options.find(option => option.value === value);
 
@@ -55,8 +54,6 @@ export function FaviconDropdown({ options, value, onChange, className = '', plac
         }
     }, [isOpen]);
 
-    // Revert: no need for dynamic dropdownStyle
-
     const handleOptionClick = (optionValue: string) => {
         onChange(optionValue);
         setIsOpen(false);
@@ -77,14 +74,12 @@ export function FaviconDropdown({ options, value, onChange, className = '', plac
                 className="w-full border rounded px-2 py-1 bg-background text-left flex items-center justify-between transition-colors text-sm h-8 focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                 style={{
                     borderColor: accentColor || undefined,
-                    // boxShadow: isOpen ? `0 0 0 2px ${accentColor}` : undefined // Replaced by Tailwind focus
                 }}
                 onClick={() => setIsOpen(!isOpen)}
                 onKeyDown={(e) => {
                     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
                         e.preventDefault();
                         setIsOpen(true);
-                        // Focus first/last item in listbox - requires refs to items
                     } else if (e.key === 'Escape') {
                         setIsOpen(false);
                     }
@@ -121,7 +116,6 @@ export function FaviconDropdown({ options, value, onChange, className = '', plac
                             setIsOpen(false);
                             buttonRef.current?.focus();
                         }
-                        // More complex item navigation (ArrowUp, ArrowDown, Home, End, Enter, Space) would go here
                     }}
                 >
                     {options.map((option) => (
@@ -130,11 +124,9 @@ export function FaviconDropdown({ options, value, onChange, className = '', plac
                             type="button"
                             role="option"
                             aria-selected={option.value === value}
-                            // id={`option-${dropdownId}-${option.value}`} // For aria-activedescendant
                             className="w-full px-2 py-1.5 text-left transition-colors flex items-center gap-2 text-sm hover:bg-muted focus:bg-muted focus:outline-none"
                             style={{ color: option.value === value ? accentColor : undefined, background: option.value === value ? `${accentColor}22` : undefined }}
                             onClick={() => handleOptionClick(option.value)}
-                            // onFocus, onMouseEnter for managing visual focus if not using aria-activedescendant
                         >
                             {option.domain && (
                                 <FaviconIcon domain={option.domain} size={16} aria-hidden="true" />

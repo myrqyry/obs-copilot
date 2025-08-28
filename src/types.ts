@@ -109,13 +109,19 @@ export interface MediaDataPart extends DataPart {
 export type SupportedDataPart = StatusDataPart | ObsActionDataPart | StreamerBotActionDataPart | MediaDataPart;
 
 // Gemini related types
+export type SystemMessageType = 'success' | 'error' | 'info' | 'warning';
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'model' | 'system';
   text: string;
   timestamp: Date;
   sources?: GroundingChunk[];
-  type?: 'source-prompt' | 'choice-prompt';
+  type?: 'source-prompt' | 'choice-prompt' | SystemMessageType;
+  status?: {
+    type: SystemMessageType;
+    message: string;
+  };
   sourcePrompt?: string;
   showSuggestions?: boolean;
   choices?: string[];

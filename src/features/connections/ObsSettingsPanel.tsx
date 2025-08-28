@@ -1,4 +1,3 @@
-import { ColorChooser } from '@/components/common/ColorChooser';
 import { ThemeChooser } from '@/components/common/ThemeChooser';
 import React, { useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
@@ -32,6 +31,57 @@ interface ObsSettingsPanelActions {
 interface ObsSettingsPanelProps {
   actions: ObsSettingsPanelActions;
 }
+
+type AccentColorChooserProps = {
+  colorType: 'accent' | 'secondaryAccent';
+};
+
+const AccentColorChooser: React.FC<AccentColorChooserProps> = ({ colorType }) => {
+  const storeActions = useSettingsStore(state => state.actions);
+  const selectedColorName = useSettingsStore(state => state.theme[colorType]);
+
+  const isPrimary = colorType === 'accent';
+  const colorsHexMap = isPrimary ? catppuccinAccentColorsHexMap : catppuccinSecondaryAccentColorsHexMap;
+  const label = isPrimary ? '🎨 Primary Accent Color' : '🎨 Secondary Accent Color';
+
+  const colorNameTypeGuard = (name: string): name is CatppuccinAccentColorName | CatppuccinSecondaryAccentColorName => {
+    return name in colorsHexMap;
+  };
+
+  const handleChange = (color: string) => {
+    if (colorNameTypeGuard(color)) {
+      storeActions.setThemeColor(colorType, color);
+    }
+  };
+
+  return (
+    <div className="mb-2">
+      <label className="block text-sm font-medium mb-1 text-primary">{label}</label>
+      <div className="flex flex-wrap gap-1.5">
+        {Object.keys(colorsHexMap).map((colorNameIter: string) => {
+          if (!colorNameTypeGuard(colorNameIter)) return null;
+          const hex = colorsHexMap[colorNameIter as keyof typeof colorsHexMap];
+          const isSelected = selectedColorName === colorNameIter;
+          return (
+            <button
+              key={colorNameIter}
+              onClick={() => handleChange(colorNameIter)}
+              className={`w-5 h-5 rounded-full border-2 transition-all duration-150 focus:outline-none ${
+                isSelected ? 'ring-2 ring-offset-2 ring-offset-background border-border' : 'border-border hover:border-muted-foreground'
+              }`}
+              style={{
+                backgroundColor: hex,
+                borderColor: isSelected ? hex : undefined,
+              }}
+              aria-label={`Select ${colorNameIter} for ${label}`}
+              title={colorNameIter}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 
 export const ObsSettingsPanel: React.FC<ObsSettingsPanelProps> = ({
   actions
@@ -72,22 +122,8 @@ const storeActions = useSettingsStore((state: SettingsState) => state.actions);
         accentColor={accentColor}
       >
         <ThemeChooser />
-        <ColorChooser
-          label="🎨 Primary Accent Color"
-          onChange={(color) => storeActions.setThemeColor('accent', color as CatppuccinAccentColorName)}
-          colorsHexMap={catppuccinAccentColorsHexMap}
-          selectedColorName={useSettingsStore((state: SettingsState) => state.theme.accent)}
-          themeKey="accent"
-          colorNameTypeGuard={(name): name is CatppuccinAccentColorName => name in catppuccinAccentColorsHexMap}
-        />
-        <ColorChooser
-          label="🎨 Secondary Accent Color"
-          onChange={(color) => storeActions.setThemeColor('secondaryAccent', color as CatppuccinSecondaryAccentColorName)}
-          colorsHexMap={catppuccinSecondaryAccentColorsHexMap}
-          selectedColorName={useSettingsStore((state: SettingsState) => state.theme.secondaryAccent)}
-          themeKey="secondaryAccent"
-          colorNameTypeGuard={(name): name is CatppuccinSecondaryAccentColorName => name in catppuccinSecondaryAccentColorsHexMap}
-        />
+        <AccentColorChooser colorType="accent" />
+        <AccentColorChooser colorType="secondaryAccent" />
       </CollapsibleSection>
 
       {/* Chat Bubble Section */}

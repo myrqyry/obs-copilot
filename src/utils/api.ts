@@ -111,8 +111,3 @@ export const buildApiUrl = (
   return getApiEndpoint(service, subPath, params);
 };
 
-/**
- * Legacy function names for backward compatibility
- * @deprecated Use getSimpleApiEndpoint instead
- */
-export const getApiUrl = getSimpleApiEndpoint;

@@ -5,7 +5,7 @@ import { useChatStore } from '@/store/chatStore';
 import { INITIAL_SYSTEM_PROMPT } from '@/constants';
 import { buildMarkdownStylingSystemMessage } from '@/utils/systemPrompts';
 import { detectChoiceQuestion } from '@/utils/choiceDetection';
-import type { GeminiActionResponse } from '@/types/obsActions';
+import type { GeminiActionResponse, ObsAction } from '@/types/obsActions';
 import { logger } from '@/utils/logger';
 import { OBSScene, OBSSource, SupportedDataPart, StreamingHandlers } from '@/types';
 import { useObsActions } from './useObsActions';
@@ -41,7 +41,6 @@ export const useGeminiChat = (
     obsService,
     obsData,
     onRefreshData,
-    onAddMessage: chatActions.addMessage,
     setErrorMessage,
   });
 
@@ -87,20 +86,20 @@ export const useGeminiChat = (
   }, [chatActions]);
 
   // Enhanced OBS action handler with data parts
-  const handleObsActionWithDataParts = useCallback(async (
-    action: any, 
-    streamingHandlers?: StreamingHandlers
-  ) => {
-    if (aiSdk5Config.enableDataParts) {
-      // Emit pending status
-      const pendingDataPart: SupportedDataPart = {
-        type: 'obs-action',
-        value: {
-          action: action.action,
-          target: action.sceneName || action.sourceName,
-          status: 'pending',
-        },
-      };
+ const handleObsActionWithDataParts = useCallback(async (
+   action: ObsAction,
+   streamingHandlers?: StreamingHandlers
+ ) => {
+   if (aiSdk5Config.enableDataParts) {
+     // Emit pending status
+     const pendingDataPart: SupportedDataPart = {
+       type: 'obs-action',
+       value: {
+         action: action.type,
+         target: (action as any).sceneName || (action as any).sourceName,
+         status: 'pending',
+       },
+     };
       
       emitDataPart(pendingDataPart);
       streamingHandlers?.onData?.(pendingDataPart);
@@ -109,8 +108,8 @@ export const useGeminiChat = (
       const executingDataPart: SupportedDataPart = {
         type: 'obs-action',
         value: {
-          action: action.action,
-          target: action.sceneName || action.sourceName,
+          action: action.type,
+          target: (action as any).sceneName || (action as any).sourceName,
           status: 'executing',
         },
       };
@@ -127,8 +126,8 @@ export const useGeminiChat = (
       const completedDataPart: SupportedDataPart = {
         type: 'obs-action',
         value: {
-          action: action.action,
-          target: action.sceneName || action.sourceName,
+          action: action.type,
+          target: (action as any).sceneName || (action as any).sourceName,
           status: result.success ? 'completed' : 'error',
           result,
         },
@@ -409,26 +408,37 @@ export const useGeminiChat = (
       }
 
       if (obsActionResult) {
-        if (obsActionResult.success) {
-          chatActions.addMessage({
-            role: 'system',
-            text: `{{success:${obsActionResult.message}}}`,
-          });
-        } else {
-          chatActions.addMessage({
-            role: 'system',
-            text: `{{error:OBS Action failed: ${obsActionResult.error}}}`,
-          });
-          setErrorMessage(`OBS Action failed: ${obsActionResult.error}`);
+        const message = obsActionResult.success
+          ? obsActionResult.message
+          : `OBS Action failed: ${obsActionResult.error}`;
+        chatActions.addMessage({
+          role: 'system',
+          text: message,
+          status: {
+            type: obsActionResult.success ? 'success' : 'error',
+            message,
+          },
+        });
+        if (!obsActionResult.success) {
+          setErrorMessage(message);
         }
       }
 
-      if (streamerBotResult && !streamerBotResult.success) {
+      if (streamerBotResult) {
+        const message = streamerBotResult.success
+          ? 'Streamer.bot action completed successfully.'
+          : `Streamer.bot Action failed: ${streamerBotResult.error}`;
         chatActions.addMessage({
           role: 'system',
-          text: `{{error:Streamer.bot Action failed: ${streamerBotResult.error}}}`,
+          text: message,
+          status: {
+            type: streamerBotResult.success ? 'success' : 'error',
+            message,
+          },
         });
-        setErrorMessage(`Streamer.bot Action failed: ${streamerBotResult.error}`);
+        if (!streamerBotResult.success) {
+          setErrorMessage(message);
+        }
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -447,11 +457,14 @@ export const useGeminiChat = (
         streamingHandlers?.onError?.(error as Error);
       }
 
-      if (error instanceof Error) {
-        chatActions.addMessage({ role: 'system', text: `❗ Gemini API Error: ${error.message}` });
-      } else {
-        chatActions.addMessage({ role: 'system', text: `❗ Gemini API Error: Unknown error` });
-      }
+      chatActions.addMessage({
+        role: 'system',
+        text: `Gemini API Error: ${errorMessage}`,
+        status: {
+          type: 'error',
+          message: `Gemini API Error: ${errorMessage}`,
+        },
+      });
     } finally {
       setIsLoading(false);
     }

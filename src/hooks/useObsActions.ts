@@ -1,13 +1,12 @@
 import { useCallback } from 'react';
-import type { ObsClient } from '@/services/obsClient';
+import type { ObsClientImpl } from '@/services/obsClient';
 import type { ObsAction } from '@/types/obsActions';
 import type { OBSData, OBSScene } from '@/types';
 
 interface UseObsActionsProps {
-  obsService: ObsClient;
+  obsService: ObsClientImpl;
   obsData: OBSData;
   onRefreshData: () => Promise<void>;
-  onAddMessage: (message: { role: 'system'; text: string }) => void;
   setErrorMessage: (message: string | null) => void;
 }
 
@@ -22,81 +21,61 @@ export const useObsActions = ({
   obsService,
   obsData,
   onRefreshData,
-  onAddMessage,
   setErrorMessage,
 }: UseObsActionsProps) => {
   const handleObsAction = useCallback(
     async (action: ObsAction): Promise<ActionResult> => {
-      let actionAttemptMessage = `**OBS Action: \`${action.type}\`**\n\n⚙️ Attempting: ${action.type}...`;
-      let actionFeedback = '';
-      let additionalSystemMessage = '';
-      let successMessage = '';
-
       try {
+        let successMessage = '';
         switch (action.type) {
           case 'createInput': {
-            const createAction = action;
-            let sceneToAddTo = createAction.sceneName;
-            if (sceneToAddTo && !obsData.scenes.find((s: OBSScene) => s.sceneName === sceneToAddTo)) {
-              sceneToAddTo = obsData.currentProgramScene || undefined;
+            const { inputName, inputKind, inputSettings, sceneItemEnabled } = action;
+            let { sceneName } = action;
+            if (sceneName && !obsData.scenes.find((s: OBSScene) => s.sceneName === sceneName)) {
+              sceneName = obsData.currentProgramScene || undefined;
             }
-            await obsService.createInput(
-              createAction.inputName,
-              createAction.inputKind,
-              createAction.inputSettings,
-              sceneToAddTo,
-              createAction.sceneItemEnabled,
-            );
-            actionFeedback = `\n✅ Successfully created input "${createAction.inputName}" of kind "${createAction.inputKind}".`;
-            successMessage = `Successfully created input "${createAction.inputName}" of kind "${createAction.inputKind}".`;
+            
+            const params = {
+              inputName,
+              inputKind,
+              inputSettings,
+              sceneName,
+              sceneItemEnabled,
+            };
+
+            await obsService.call('CreateInput', params);
+            successMessage = `Successfully created input "${inputName}" of kind "${inputKind}".`;
             break;
           }
 
           case 'setInputSettings': {
-            const setSettingsAction = action;
-            await obsService.setInputSettings(
-              setSettingsAction.inputName,
-              setSettingsAction.inputSettings,
-              setSettingsAction.overlay,
-            );
-            actionFeedback = `\n✅ Successfully updated settings for input "${setSettingsAction.inputName}".`;
-            successMessage = `Successfully updated settings for input "${setSettingsAction.inputName}".`;
+            const { inputName, inputSettings, overlay } = action;
+            await obsService.call('SetInputSettings', { inputName, inputSettings, overlay });
+            successMessage = `Successfully updated settings for input "${inputName}".`;
             break;
           }
 
           case 'setSceneItemEnabled': {
-            const targetAction = action;
-            const sceneItemId = await obsService.getSceneItemId(
-              targetAction.sceneName,
-              targetAction.sourceName,
-            );
-            if (sceneItemId === null) {
-              throw new Error(
-                `Source "${targetAction.sourceName}" not found in scene "${targetAction.sceneName}"`,
-              );
+            const { sceneName, sourceName, sceneItemEnabled } = action;
+            const { sceneItems } = await obsService.call<{ sceneItems: { sourceName: string, sceneItemId: number }[] }>('GetSceneItemList', { sceneName });
+            const sceneItem = sceneItems.find(item => item.sourceName === sourceName);
+            
+            if (!sceneItem) {
+              throw new Error(`Source "${sourceName}" not found in scene "${sceneName}"`);
             }
-            const enabledValue =
-              typeof targetAction.sceneItemEnabled === 'boolean'
-                ? targetAction.sceneItemEnabled
-                : false;
-            await obsService.setSceneItemEnabled(targetAction.sceneName, sceneItemId, enabledValue);
-            actionFeedback = `\n✅ Successfully ${enabledValue ? 'enabled' : 'disabled'} "${targetAction.sourceName}" in scene "${targetAction.sceneName}".`;
-            successMessage = `Successfully ${enabledValue ? 'enabled' : 'disabled'} "${targetAction.sourceName}" in scene "${targetAction.sceneName}".`;
+            
+            const enabledValue = typeof sceneItemEnabled === 'boolean' ? sceneItemEnabled : false;
+            await obsService.call('SetSceneItemEnabled', { sceneName, sceneItemId: sceneItem.sceneItemId, sceneItemEnabled: enabledValue });
+            successMessage = `Successfully ${enabledValue ? 'enabled' : 'disabled'} "${sourceName}" in scene "${sceneName}".`;
             break;
           }
 
           default: {
             const unknownActionType = (action as { type: string }).type;
-            actionFeedback = `\n❌ Unsupported OBS action type: ${unknownActionType}`;
             throw new Error(`Unsupported OBS action type: ${unknownActionType}`);
           }
         }
 
-        actionAttemptMessage += actionFeedback;
-        if (additionalSystemMessage) {
-          actionAttemptMessage += `\n\n---\n${additionalSystemMessage}`;
-        }
-        onAddMessage({ role: 'system', text: actionAttemptMessage });
         await onRefreshData();
 
         return {
@@ -104,26 +83,18 @@ export const useObsActions = ({
           message: successMessage,
         };
       } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
         console.error(`OBS Action "${action.type}" failed:`, err);
-        const failureFeedback = `\n❗ Failed to execute OBS action "${action.type}": ${
-          err instanceof Error ? err.message : 'Unknown error'
-        }`;
-        actionAttemptMessage += failureFeedback;
-        onAddMessage({ role: 'system', text: actionAttemptMessage });
-        setErrorMessage(
-          `OBS Action "${action.type}" failed: ${
-            err instanceof Error ? err.message : 'Unknown error'
-          }`,
-        );
+        setErrorMessage(`OBS Action "${action.type}" failed: ${errorMessage}`);
 
         return {
           success: false,
-          message: err instanceof Error ? err.message : 'Unknown error',
-          error: err instanceof Error ? err.message : 'Unknown error',
+          message: errorMessage,
+          error: errorMessage,
         };
       }
     },
-    [obsService, obsData, onRefreshData, onAddMessage, setErrorMessage],
+    [obsService, obsData, onRefreshData, setErrorMessage],
   );
 
   return { handleObsAction };

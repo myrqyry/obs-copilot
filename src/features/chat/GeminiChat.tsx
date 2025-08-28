@@ -3,8 +3,10 @@ import { useGeminiChat } from '@/hooks/useGeminiChat';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { useConnectionManagerStore } from '@/store/connectionManagerStore';
-import { useChatStore } from '@/store/chatStore';
-import { useSettingsStore } from '@/store/settingsStore';
+import { useChatStore, ChatState } from '@/store/chatStore';
+import { useSettingsStore, SettingsState } from '@/store/settingsStore';
+import { ChatMessage, OBSSource } from '@/types';
+import { ConnectionState } from '@/store/connectionsStore';
 
 interface GeminiChatProps {
     onRefreshData: () => Promise<void>;
@@ -24,16 +26,20 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
     onChatInputChange,
     onStreamerBotAction,
 }) => {
-    const isConnected = useConnectionManagerStore((state: any) => state.isConnected);
-    const sources = useConnectionManagerStore((state: any) => state.sources);
-    const currentProgramScene = useConnectionManagerStore((state: any) => state.currentProgramScene);
-    const messages = useChatStore((state: any) => state.geminiMessages);
-    const isGeminiClientInitialized = useChatStore((state: any) => state.isGeminiClientInitialized);
-    const chatActions = useChatStore((state: any) => state.actions);
+    const isConnected = useConnectionManagerStore((state: ConnectionState) => state.isConnected);
+    const sources = useConnectionManagerStore((state: ConnectionState) => state.sources);
+    const currentProgramScene = useConnectionManagerStore(
+        (state: ConnectionState) => state.currentProgramScene
+    );
+    const messages: ChatMessage[] = useChatStore((state: ChatState) => state.geminiMessages);
+    const isGeminiClientInitialized = useChatStore(
+        (state: ChatState) => state.isGeminiClientInitialized
+    );
+    const chatActions = useChatStore((state: ChatState) => state.actions);
 
-    const extraDarkMode = useSettingsStore((state: any) => state.extraDarkMode);
-    const flipSides = useSettingsStore((state: any) => state.flipSides);
-    const theme = useSettingsStore((state: any) => state.theme);
+    const extraDarkMode = useSettingsStore((state: SettingsState) => state.extraDarkMode);
+    const flipSides = useSettingsStore((state: SettingsState) => state.flipSides);
+    const theme = useSettingsStore((state: SettingsState) => state.theme);
 
     const onAddMessage = chatActions.addMessage;
     const accentColorName = theme.accent;
@@ -105,7 +111,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
                 }}
                 userChatBubbleColorName={theme.userChatBubble}
                 modelChatBubbleColorName={theme.modelChatBubble}
-                customChatBackground={""}
+                customChatBackground=""
             />
             <ChatInput
                 chatInputValue={chatInputValue}

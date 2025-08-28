@@ -4,7 +4,6 @@
  * evaluate this module while loading tailwind.config.js, causing a Node "exports" resolution error.
  * If you need the full theme list at runtime, do a guarded dynamic import from browser code.
  */
-// import { themes } from 'tm-themes';
 
 export interface Theme {
   name: string;
