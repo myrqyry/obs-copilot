@@ -2,13 +2,13 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { gsap } from 'gsap';
 import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
 import ErrorBoundary from './components/common/ErrorBoundary';
-import { Header } from './components/layout/Header';
+import { Header } from './components/layout/Header'; // Keep Header imported
 import { TabNavigation } from './components/layout/TabNavigation';
 import { AppTab } from './types';
 import { ConnectionProvider } from './components/ConnectionProvider';
-import { useOnRefreshData } from './hooks/useOptimizedStoreSelectors';
+import { useConnectionManagerStore } from './store/connectionManagerStore';
 import { GeminiChat } from './features/chat/GeminiChat';
-import ConnectionPanel from './components/ui/ConnectionPanel';
+import { ConnectionPanel } from './features/connections/ConnectionPanel';
 import ObsStudioTab from './components/ui/ObsStudioTab';
 import CreateTab from './components/ui/CreateTab';
 import StreamingAssetsTab from './components/ui/StreamingAssetsTab';
@@ -38,24 +38,26 @@ const App: React.FC = () => {
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [chatInputValue, setChatInputValue] = useState('');
     const headerRef = useRef<HTMLDivElement>(null);
-    const onRefreshData = useOnRefreshData();
+    const [headerHeight, setHeaderHeight] = useState(64); // State to store header height
+    
+    const { actions } = useConnectionManagerStore();
 
-    // Memoize the tab change handler
     const handleTabChange = useCallback((tab: AppTab) => {
         setActiveTab(tab);
     }, []);
 
-    // Handle initial data load
+    // Set header height on mount and resize
     useEffect(() => {
-        onRefreshData?.();
-    }, [onRefreshData]);
+        if (headerRef.current) {
+            setHeaderHeight(headerRef.current.offsetHeight);
+        }
+    }, []);
 
     const handleStreamerBotAction = async (action: { type: string; args?: Record<string, unknown> }) => {
-        // Placeholder for Streamer.bot action
         console.log('Streamer.bot action:', action);
     };
 
-    const renderTabContent = () => {
+    const renderTabContent = useCallback(() => { // Memoize renderTabContent
         switch (activeTab) {
             case AppTab.CONNECTIONS:
                 return <ConnectionPanel />;
@@ -64,7 +66,7 @@ const App: React.FC = () => {
             case AppTab.GEMINI:
                 return (
                     <GeminiChat
-                        onRefreshData={async () => onRefreshData?.()}
+                        onRefreshData={async () => { /* no-op as per new connection strategy */ }}
                         setErrorMessage={setErrorMessage}
                         chatInputValue={chatInputValue}
                         onChatInputChange={setChatInputValue}
@@ -82,23 +84,21 @@ const App: React.FC = () => {
             default:
                 return <div>Select a tab</div>;
         }
-    };
+    }, [activeTab, chatInputValue]); // Add dependencies for renderTabContent
 
     return (
         <ErrorBoundary>
             <ConnectionProvider>
                 <div className="h-screen max-h-screen bg-gradient-to-br from-background to-card text-foreground flex flex-col overflow-hidden">
-                    <Header headerRef={headerRef} />
-                    <div className="sticky z-10 px-2 pt-2" style={{ top: '64px' }}>
-                        <TabNavigation
-                            activeTab={activeTab}
-                            setActiveTab={handleTabChange}
-                            tabOrder={TAB_ORDER}
-                        />
-                    </div>
-                    <main className="flex-grow overflow-y-auto px-1 sm:px-2 pb-1">
-                        {renderTabContent()}
-                    </main>
+                    {/* Header and TabNavigation are now separate components */}
+                    <Header headerRef={headerRef} /> {/* Render Header outside TabNavigation */}
+                    <TabNavigation
+                        activeTab={activeTab}
+                        setActiveTab={handleTabChange}
+                        headerRef={headerRef}
+                        headerHeight={headerHeight}
+                        renderTabContent={renderTabContent}
+                    />
                 </div>
             </ConnectionProvider>
         </ErrorBoundary>
