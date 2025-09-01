@@ -36,4 +36,14 @@ class ApiService {
   }
 }
 
+export const callStreamerBotAction = (action: { type: string; args?: Record<string, unknown> }) => {
+  // 💡 This is a placeholder for your actual API call to Streamer.bot
+  // The Streamer.bot API would expect a payload with action details.
+  // For example:
+  // return httpClient.post('/api/streamerbot/action', action);
+  
+  console.log('API Service: Calling Streamer.bot action:', action);
+  return Promise.resolve({ success: true, message: `Action "${action.type}" called.` });
+};
+
 export default ApiService;

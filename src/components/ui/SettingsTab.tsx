@@ -28,8 +28,9 @@ const SettingsTab: React.FC = () => {
         backgroundOpacity,
         chatBackgroundBlendMode,
         chatBubbleBlendMode,
-        obsWebSocketUrl,
-        obsWebSocketPassword,
+        obsUrl, // Corrected property name
+        obsPassword, // Corrected property name
+        currentTheme, // Destructure currentTheme
         theme,
         actions,
     } = useSettingsStore();
@@ -43,9 +44,10 @@ const SettingsTab: React.FC = () => {
         setBackgroundOpacity,
         setChatBackgroundBlendMode,
         setChatBubbleBlendMode,
-        setObsWebSocketUrl,
-        setObsWebSocketPassword,
+        setObsUrl, // Corrected action name
+        setObsPassword, // Corrected action name
         setThemeColor,
+        setCurrentTheme,
     } = actions;
 
     const isCatppuccinAccentColorName = (name: string): name is CatppuccinAccentColorName => {
@@ -64,6 +66,25 @@ const SettingsTab: React.FC = () => {
             <section className="space-y-4">
                 <h3 className="text-xl font-semibold text-secondary-foreground">Theme & Appearance</h3>
                 <ThemeChooser />
+
+                {/* Theme Selector */}
+                <div className="flex items-center justify-between">
+                    <Label>Interface Theme</Label>
+                    <div className="flex space-x-2">
+                        <Button
+                            onClick={() => setCurrentTheme('light')}
+                            variant={currentTheme === 'light' ? 'default' : 'outline'}
+                        >
+                            Light
+                        </Button>
+                        <Button
+                            onClick={() => setCurrentTheme('dark')}
+                            variant={currentTheme === 'dark' ? 'default' : 'outline'}
+                        >
+                            Dark
+                        </Button>
+                    </div>
+                </div>
 
                 <ColorChooser
                     label="Accent Color"

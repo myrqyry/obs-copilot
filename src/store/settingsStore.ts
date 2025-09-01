@@ -18,6 +18,7 @@ export interface SettingsState {
   obsUrl: string;
   obsPassword?: string;
   geminiApiKey?: string; // Added geminiApiKey
+  currentTheme: 'light' | 'dark'; // Added currentTheme
   theme: {
     name: string;
     accent: CatppuccinAccentColorName;
@@ -42,6 +43,7 @@ export interface SettingsState {
         | CatppuccinChatBubbleColorName,
     ) => void;
     setThemeName: (name: string) => void;
+    setCurrentTheme: (theme: 'light' | 'dark') => void; // Added setCurrentTheme
     setObsUrl: (url: string) => void;
     setObsPassword: (password: string) => void;
     setGeminiApiKey: (key: string) => void; // Added setGeminiApiKey
@@ -60,6 +62,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   obsUrl: '',
   obsPassword: '',
   geminiApiKey: '', // Added geminiApiKey
+  currentTheme: 'light', // Initial theme
   theme: {
     name: 'catppuccin-mocha',
     accent: 'mauve',
@@ -112,6 +115,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       const newTheme = { ...get().theme, name };
       set({ theme: newTheme });
       saveUserSettings({ theme: newTheme });
+    },
+    setCurrentTheme: (theme) => {
+      set({ currentTheme: theme });
+      saveUserSettings({ currentTheme: theme });
     },
     setObsUrl: (url) => {
       set({ obsUrl: url });

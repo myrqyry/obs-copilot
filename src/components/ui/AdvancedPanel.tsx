@@ -10,7 +10,7 @@ const AdvancedPanel: React.FC = () => {
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground">
-          This section is for advanced configuration and experimental features.
+          This section is for advanced configuration and experimental features. You can add things like logging controls, debug tools, or new integrations here.
         </p>
       </CardContent>
     </Card>

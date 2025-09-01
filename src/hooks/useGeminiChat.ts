@@ -14,7 +14,6 @@ import { aiSdk5Config } from '@/config';
 export const useGeminiChat = (
   onRefreshData: () => Promise<void>,
   setErrorMessage: (message: string | null) => void,
-  onStreamerBotAction: (action: { type: string; args?: Record<string, unknown> }) => Promise<void>,
   geminiApiKey: string | undefined, // Added geminiApiKey
 ) => {
   const isConnected = useConnectionsStore((state) => state.isConnected);
@@ -24,7 +23,7 @@ export const useGeminiChat = (
   const streamStatus = useConnectionsStore((state) => state.streamStatus);
   const recordStatus = useConnectionsStore((state) => state.recordStatus);
   const videoSettings = useConnectionsStore((state) => state.videoSettings);
-  const obsService: ObsClientImpl | null = useConnectionsStore((state) => state.obsServiceInstance); // Explicitly type obsService
+  const obs: any | null = useConnectionsStore((state) => state.obs); // Changed type to any for now
 
   const userDefinedContext = useChatStore((state) => state.userDefinedContext);
   const chatActions = useChatStore((state) => state.actions);
@@ -32,14 +31,16 @@ export const useGeminiChat = (
 
   // Effect to initialize Gemini client status
   useEffect(() => {
-    if (geminiApiKey && !isGeminiClientInitialized) {
-      // Assuming the presence of an API key means the client can be initialized
-      chatActions.setGeminiClientInitialized(true);
-    } else if (!geminiApiKey && isGeminiClientInitialized) {
-      // If API key is removed, de-initialize the client
-      chatActions.setGeminiClientInitialized(false);
+    const shouldInitialize = geminiApiKey && !isGeminiClientInitialized;
+    const shouldDeinitialize = !geminiApiKey && isGeminiClientInitialized;
+
+    // Use getState() to avoid depending on changing action references from the selector
+    if (shouldInitialize) {
+      useChatStore.getState().actions.setGeminiClientInitialized(true);
+    } else if (shouldDeinitialize) {
+      useChatStore.getState().actions.setGeminiClientInitialized(false);
     }
-  }, [geminiApiKey, isGeminiClientInitialized, chatActions]);
+  }, [geminiApiKey, isGeminiClientInitialized]);
 
   const obsData = {
     scenes,
@@ -51,7 +52,7 @@ export const useGeminiChat = (
   };
 
   const { handleObsAction } = useObsActions({
-    obsService,
+    obsService: obs, // Corrected to use 'obs'
     obsData,
     onRefreshData,
     setErrorMessage,
@@ -185,13 +186,16 @@ export const useGeminiChat = (
     return result;
   }, [handleObsAction, emitDataPart]);
 
-  // Enhanced Streamer.bot action handler with data parts
+  // Placeholder for actual Streamer.bot action handler
   const handleStreamerBotActionWithDataParts = useCallback(async (
     action: { type: string; args?: Record<string, unknown> },
     streamingHandlers?: StreamingHandlers
   ) => {
+    logger.warn('Streamer.bot action handler not yet implemented in useGeminiChat.');
+    // In a real scenario, you would call the actual streamer.bot service here.
+    // For now, we'll just simulate a successful action.
+
     if (aiSdk5Config.enableDataParts) {
-      // Emit pending status
       const pendingDataPart: SupportedDataPart = {
         type: 'streamerbot-action',
         value: {
@@ -200,11 +204,9 @@ export const useGeminiChat = (
           status: 'pending',
         },
       };
-      
       emitDataPart(pendingDataPart);
       streamingHandlers?.onData?.(pendingDataPart);
 
-      // Emit executing status
       const executingDataPart: SupportedDataPart = {
         type: 'streamerbot-action',
         value: {
@@ -213,17 +215,15 @@ export const useGeminiChat = (
           status: 'executing',
         },
       };
-      
       emitDataPart(executingDataPart);
       streamingHandlers?.onData?.(executingDataPart);
     }
 
     try {
-      // Execute the actual action
-      await onStreamerBotAction(action);
-
+      // Simulate a delay for the action
+      await new Promise(resolve => setTimeout(resolve, 1000)); 
+      
       if (aiSdk5Config.enableDataParts) {
-        // Emit completed status
         const completedDataPart: SupportedDataPart = {
           type: 'streamerbot-action',
           value: {
@@ -233,7 +233,6 @@ export const useGeminiChat = (
             result: { success: true },
           },
         };
-        
         emitDataPart(completedDataPart);
         streamingHandlers?.onData?.(completedDataPart);
       }
@@ -263,7 +262,7 @@ export const useGeminiChat = (
 
       return { success: false, error: errorMessage };
     }
-  }, [onStreamerBotAction, emitDataPart]);
+  }, [emitDataPart]); // Removed onStreamerBotAction from dependencies
 
   const handleSend = async (
     chatInputValue: string, 

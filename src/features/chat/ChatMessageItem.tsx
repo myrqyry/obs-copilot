@@ -1,4 +1,4 @@
-import React, { useState, useRef, useLayoutEffect, useMemo } from 'react';
+import React, { useState, useRef, useLayoutEffect, useCallback, useMemo } from 'react';
 import {
     catppuccinChatBubbleColorsHexMap,
     catppuccinMochaColors,
@@ -62,6 +62,8 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     const [isScrolledFromTop, setIsScrolledFromTop] = useState(false);
     const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
     const bubbleRef = useRef<HTMLDivElement>(null);
+    // Track previous shrink state to avoid setting state unnecessarily (prevents nested updates)
+    const prevShrunkRef = useRef<boolean | null>(null);
 
     // Get styling from store using individual selectors to prevent infinite re-renders
     const bubbleFillOpacity = useSettingsStore(state => state.bubbleFillOpacity);
@@ -102,25 +104,28 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useLayoutEffect(() => {
-        if (itemRef.current) {
-            const animation = gsap.fromTo(
-                itemRef.current,
-                { opacity: 0, y: 15, scale: 0.98 },
-                { opacity: 1, y: 0, scale: 1, duration: 0.35, ease: 'power2.out' }
-            );
-            // Shrink logic: if height > 320px + tolerance (360px), shrink (unless forceExpand)
-            // This avoids unnecessary expand buttons for messages just slightly over the limit
-            const heightLimit = 320;
-            const tolerance = 40; // 40px tolerance to avoid expand button for slightly oversized content
-            if (!forceExpand && itemRef.current.scrollHeight > heightLimit + tolerance) {
-                setIsShrunk(true);
-            } else {
-                setIsShrunk(false);
-            }
-            return () => {
-                animation.kill();
-            };
+        if (!itemRef.current) return;
+        const el = itemRef.current;
+        const animation = gsap.fromTo(
+            el,
+            { opacity: 0, y: 15, scale: 0.98 },
+            { opacity: 1, y: 0, scale: 1, duration: 0.35, ease: 'power2.out' }
+        );
+
+        // Shrink logic: if height > 320px + tolerance (360px), shrink (unless forceExpand)
+        // Only update state if the computed shrink value differs from previous to avoid nested updates
+        const heightLimit = 320;
+        const tolerance = 40; // 40px tolerance to avoid expand button for slightly oversized content
+        const shouldShrink = !forceExpand && el.scrollHeight > heightLimit + tolerance;
+
+        if (prevShrunkRef.current !== shouldShrink) {
+            prevShrunkRef.current = shouldShrink;
+            setIsShrunk(shouldShrink);
         }
+
+        return () => {
+            animation.kill();
+        };
     }, [message, forceExpand]);
 
     // Debounced scroll handler (single implementation)
@@ -154,11 +159,11 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     const isSystem = message.role === 'system';
     const isAssistant = message.role === 'model';
 
-    const handleRegenerate = () => {
+    const handleRegenerateMemo = useCallback(() => {
         if (onRegenerate && message.id) {
             onRegenerate(message.id);
         }
-    };
+    }, [onRegenerate, message.id]);
 
     // Use AI Elements Message and MessageContent for better structure
     const messageRole = isUser ? 'user' : 'assistant';
@@ -469,7 +474,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                                                 <div className="mt-3 pt-3 border-t border-opacity-30" style={{ borderColor: bubbleColorHex }}>
                                                     <div className="text-sm opacity-90 mb-3 font-normal font-sans"><span className="emoji">✨</span> Try these commands:</div>
                                                     <Suggestions className="grid grid-cols-2 gap-2">
-                                                        {memoizedSuggestions.map((suggestion) => (
+                                                        {memoizedSuggestions.map((suggestion: any) => (
                                                             <Suggestion
                                                                 key={suggestion.id}
                                                                 suggestion={suggestion.prompt}
@@ -577,7 +582,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                         {isAssistant && onRegenerate && (
                             <Tooltip content="Regenerate response">
                                 <button
-                                    onClick={handleRegenerate}
+                                    onClick={handleRegenerateMemo}
                                     className="text-muted-foreground hover:text-green-500 hover:bg-green-500/10 p-1 rounded-full transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-green-500/50"
                                     aria-label="Regenerate message"
                                 >

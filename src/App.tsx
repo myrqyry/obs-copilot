@@ -15,6 +15,7 @@ import SettingsTab from './components/ui/SettingsTab';
 import AdvancedPanel from './components/ui/AdvancedPanel';
 import { useTheme } from './hooks/useTheme'; // Import useTheme hook
 import { logger } from './utils/logger'; // Import logger
+import { useSettingsStore } from './store/settingsStore'; // Import useSettingsStore
 
 // Register GSAP plugins
 try {
@@ -30,7 +31,7 @@ const App: React.FC = () => {
     const headerRef = useRef<HTMLDivElement>(null);
     const [headerHeight, setHeaderHeight] = useState(64); // State to store header height
     
-    // Removed unused 'actions' destructuring from useConnectionManagerStore();
+    const currentTheme = useSettingsStore((state) => state.currentTheme); // Get currentTheme from settingsStore
 
     const handleTabChange = useCallback((tab: AppTab) => {
         setActiveTab(tab);
@@ -56,11 +57,10 @@ const App: React.FC = () => {
             case AppTab.GEMINI:
                 return (
                     <GeminiChat
-                        onRefreshData={async () => { /* no-op as per new connection strategy */ }}
-                        setErrorMessage={() => {}} // Pass a no-op function as setErrorMessage is no longer used in App.tsx
+                        onRefreshData={useCallback(async () => { /* no-op as per new connection strategy */ }, [])}
+                        setErrorMessage={useCallback(() => {}, [])} // Memoize setErrorMessage as well
                         chatInputValue={chatInputValue}
                         onChatInputChange={setChatInputValue}
-                        onStreamerBotAction={handleStreamerBotAction}
                     />
                 );
             case AppTab.CREATE:
@@ -79,7 +79,7 @@ const App: React.FC = () => {
     return (
         <ComprehensiveErrorBoundary>
             <ConnectionProvider>
-                <div className="h-screen max-h-screen bg-gradient-to-br from-background to-card text-foreground flex flex-col overflow-hidden">
+                <div className={`h-screen max-h-screen bg-gradient-to-br from-background to-card text-foreground flex flex-col overflow-hidden ${currentTheme === 'dark' ? 'dark' : 'light'}`}>
                     <TabNavigation
                         activeTab={activeTab}
                         setActiveTab={handleTabChange}

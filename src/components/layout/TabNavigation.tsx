@@ -185,7 +185,7 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
                 </div>
             </div>
 
-            <main className="flex-grow overflow-y-auto px-1 pb-1">
+            <main className="flex-grow overflow-y-auto px-1 pb-1 transition-all duration-300 ease-in-out">
                 {renderTabContent()}
             </main>
         </div>

@@ -14,6 +14,7 @@ export interface UserSettings {
     userChatBubble: string;
     modelChatBubble: string;
   };
+  currentTheme?: 'light' | 'dark'; // Added currentTheme
   flipSides: boolean;
   autoApplySuggestions: boolean;
   extraDarkMode: boolean;
