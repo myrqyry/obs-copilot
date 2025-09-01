@@ -25,14 +25,17 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
     const obs = useConnectionsStore((state) => state.obs);
     const isConnected = useConnectionsStore((state) => state.isConnected);
     const sources = useConnectionsStore((state) => state.sources);
-    const currentProgramScene = useConnectionsStore(
-        (state) => state.currentProgramScene
-    );
+    const currentProgramScene = useConnectionsStore((state) => state.currentProgramScene);
 
     // The function that will take an action and send it to OBS
     const handleObsAction = useCallback(async (action: { type: string; args?: Record<string, unknown> }) => {
         if (!isConnected) {
             console.error('Not connected to OBS.');
+            return;
+        }
+
+        if (!obs || typeof obs.call !== 'function') {
+            console.error('OBS client is not available or does not support .call().');
             return;
         }
 

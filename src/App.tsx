@@ -25,7 +25,7 @@ try {
 }
 
 const App: React.FC = () => {
-    useTheme(); // Call the useTheme hook here to apply theme globally
+    // Theme application handled via CSS classes and settingsStore.currentTheme
     const [activeTab, setActiveTab] = useState<AppTab>(AppTab.GEMINI);
     const [chatInputValue, setChatInputValue] = useState('');
     const headerRef = useRef<HTMLDivElement>(null);
@@ -36,6 +36,10 @@ const App: React.FC = () => {
     const handleTabChange = useCallback((tab: AppTab) => {
         setActiveTab(tab);
     }, []);
+
+    // Memoize callbacks passed into tab content to avoid calling hooks inside renderTabContent
+    const memoOnRefreshData = useCallback(async () => { /* no-op as per new connection strategy */ }, []);
+    const memoSetErrorMessage = useCallback((msg: string | null) => {}, []);
 
     // Set header height on mount and resize
     useEffect(() => {
@@ -48,38 +52,46 @@ const App: React.FC = () => {
         logger.info('Streamer.bot action:', action);
     };
 
-    const renderTabContent = useCallback(() => { // Memoize renderTabContent
+    const renderTabContent = useCallback(() => {
+        // For triage: render simple placeholders so we can identify which tab triggers the hook-mismatch.
+        // Replace tab components with lightweight placeholders temporarily.
+        // eslint-disable-next-line no-console
+        console.debug('[renderTabContent - placeholder] activeTab=', activeTab);
+
         switch (activeTab) {
             case AppTab.CONNECTIONS:
-                return <ConnectionPanel />;
+                return <div data-tab="connections"><ConnectionPanel /></div>;
             case AppTab.OBS_STUDIO:
-                return <ObsStudioTab />;
+                return <div data-tab="obs_studio"><ObsStudioTab /></div>;
             case AppTab.GEMINI:
                 return (
-                    <GeminiChat
-                        onRefreshData={useCallback(async () => { /* no-op as per new connection strategy */ }, [])}
-                        setErrorMessage={useCallback(() => {}, [])} // Memoize setErrorMessage as well
-                        chatInputValue={chatInputValue}
-                        onChatInputChange={setChatInputValue}
-                    />
+                    <div data-tab="gemini" className="p-6">
+                        <GeminiChat
+                            onRefreshData={memoOnRefreshData}
+                            setErrorMessage={memoSetErrorMessage}
+                            chatInputValue={chatInputValue}
+                            onChatInputChange={setChatInputValue}
+                        />
+                    </div>
                 );
             case AppTab.CREATE:
-                return <CreateTab />;
+                return <div data-tab="create"><CreateTab /></div>;
             case AppTab.STREAMING_ASSETS:
-                return <StreamingAssetsTab />;
+                return <div data-tab="streaming_assets"><StreamingAssetsTab /></div>;
             case AppTab.SETTINGS:
-                return <SettingsTab />;
+                return <div data-tab="settings"><SettingsTab /></div>;
             case AppTab.ADVANCED:
-                return <AdvancedPanel />;
+                return <div data-tab="advanced"><AdvancedPanel /></div>;
             default:
-                return <div>Select a tab</div>;
+                return <div data-tab="unknown" className="p-6">Select a tab</div>;
         }
-    }, [activeTab, chatInputValue]); // Add dependencies for renderTabContent
+    }, [activeTab]); // simplified dependencies for placeholder mode
 
     return (
         <ComprehensiveErrorBoundary>
             <ConnectionProvider>
-                <div className={`h-screen max-h-screen bg-gradient-to-br from-background to-card text-foreground flex flex-col overflow-hidden ${currentTheme === 'dark' ? 'dark' : 'light'}`}>
+
+                <div className={`h-screen max-h-screen ${currentTheme === 'dark' ? 'dark bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'} flex flex-col overflow-hidden`}>
                     <TabNavigation
                         activeTab={activeTab}
                         setActiveTab={handleTabChange}

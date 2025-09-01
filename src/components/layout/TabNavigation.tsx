@@ -45,6 +45,10 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
     // Get theme colors from settings store
     const theme = useSettingsStore((state: any) => state.theme);
 
+    // Defensive defaults to avoid throws during render if theme isn't loaded yet
+    const accentColor = theme?.accent ?? 'mauve';
+    const secondaryAccentColor = theme?.secondaryAccent ?? 'flamingo';
+
 
     const tabOrder: AppTab[] = [
         AppTab.GEMINI,
@@ -109,8 +113,8 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
         <div className="h-screen max-h-screen bg-gradient-to-br from-background to-card text-foreground flex flex-col overflow-hidden">
             <header ref={headerRef} className="sticky top-0 z-20 bg-background p-2 shadow-sm h-12 flex justify-center items-center">
                 <AnimatedTitleLogos 
-                    accentColor={theme.accent} 
-                    secondaryAccentColor={theme.secondaryAccent} 
+                    accentColor={accentColor} 
+                    secondaryAccentColor={secondaryAccentColor} 
                 />
             </header>
 
@@ -186,7 +190,14 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
             </div>
 
             <main className="flex-grow overflow-y-auto px-1 pb-1 transition-all duration-300 ease-in-out">
-                {renderTabContent()}
+                {(() => {
+                    try {
+                        return renderTabContent();
+                    } catch (e) {
+                        console.error('Error rendering tab content:', e);
+                        return <div className="p-4 text-destructive">Error rendering tab content</div>;
+                    }
+                })()}
             </main>
         </div>
     );
