@@ -29,9 +29,8 @@ export interface UserSettings {
 }
 
 export interface ConnectionSettings {
-  obsWebSocketUrl: string;
-  obsWebSocketPassword?: string;
-  // SECURITY: Do not persist OBS passwords. Prompt per session and keep in memory only.
+  obsUrl: string;
+  obsPassword?: string; // SECURITY: Do not persist OBS passwords. Prompt per session and keep in memory only.
   rememberApiKey: boolean; // User preference for persisting API key
   autoConnect: boolean; // Auto-connect to OBS on app reload
   streamerBotAddress?: string; // Streamer.bot connection address

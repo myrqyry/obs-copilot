@@ -15,6 +15,8 @@ export interface SettingsState {
   backgroundOpacity: number;
   chatBackgroundBlendMode: string;
   chatBubbleBlendMode: string;
+  obsUrl: string;
+  obsPassword?: string;
   theme: {
     name: string;
     accent: CatppuccinAccentColorName;
@@ -39,6 +41,8 @@ export interface SettingsState {
         | CatppuccinChatBubbleColorName,
     ) => void;
     setThemeName: (name: string) => void;
+    setObsUrl: (url: string) => void;
+    setObsPassword: (password: string) => void;
   };
 }
 
@@ -51,6 +55,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   backgroundOpacity: 0.7,
   chatBackgroundBlendMode: 'normal',
   chatBubbleBlendMode: 'normal',
+  obsUrl: '',
+  obsPassword: '',
   theme: {
     name: 'catppuccin-mocha',
     accent: 'mauve',
@@ -103,6 +109,14 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       const newTheme = { ...get().theme, name };
       set({ theme: newTheme });
       saveUserSettings({ theme: newTheme });
+    },
+    setObsUrl: (url) => {
+      set({ obsUrl: url });
+      saveConnectionSettings({ obsUrl: url });
+    },
+    setObsPassword: (password) => {
+      set({ obsPassword: password });
+      saveConnectionSettings({ obsPassword: password });
     },
   },
 }));

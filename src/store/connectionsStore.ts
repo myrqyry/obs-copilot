@@ -4,7 +4,7 @@ import { StreamerBotService } from '../services/streamerBotService';
 export interface ConnectionState {
   isConnected: boolean;
   isConnecting: boolean;
-  error: string | null;
+  connectionError: string | null;
   apiKey: string | null;
   otherRelevantState: string;
   obsServiceInstance: any;
@@ -22,7 +22,7 @@ export interface ConnectionState {
 export interface ConnectionsActions {
   setConnected: (isConnected: boolean) => void;
   setConnecting: (isConnecting: boolean) => void;
-  setError: (error: string | null) => void;
+  setConnectionError: (error: string | null) => void;
   setApiKey: (apiKey: string | null) => void;
   otherAction: () => void;
   setObsServiceInstance: (obsServiceInstance: any) => void;
@@ -34,14 +34,14 @@ export interface ConnectionsActions {
   setRecordStatus: (recordStatus: any) => void;
   setVideoSettings: (videoSettings: any) => void;
   setObsStats: (obsStats: any) => void;
-  connect: (url: string, password?: string) => Promise<void>;
-  disconnect: () => void;
+  connectToObs: (url: string, password?: string) => Promise<void>;
+  disconnectFromObs: () => void;
 }
 
 const useConnectionsStore = create<ConnectionState & ConnectionsActions>((set, get) => ({
   isConnected: false,
   isConnecting: false,
-  error: null,
+  connectionError: null,
   apiKey: null,
   otherRelevantState: '',
   obsServiceInstance: null,
@@ -57,7 +57,7 @@ const useConnectionsStore = create<ConnectionState & ConnectionsActions>((set, g
 
   setConnected: (isConnected) => set({ isConnected }),
   setConnecting: (isConnecting) => set({ isConnecting }),
-  setError: (error) => set({ error }),
+  setConnectionError: (connectionError) => set({ connectionError }),
   setApiKey: (apiKey) => set({ apiKey }),
   otherAction: () => set({ otherRelevantState: 'new value' }),
   setObsServiceInstance: (obsServiceInstance) => set({ obsServiceInstance }),
@@ -70,26 +70,26 @@ const useConnectionsStore = create<ConnectionState & ConnectionsActions>((set, g
   setVideoSettings: (videoSettings) => set({ videoSettings }),
   setObsStats: (obsStats) => set({ obsStats }),
 
-  connect: async (url, password) => {
-    const { obsServiceInstance, setConnecting, setConnected, setError } = get();
+  connectToObs: async (url, password) => {
+    const { obsServiceInstance, setConnecting, setConnected, setConnectionError } = get();
     if (!obsServiceInstance) {
-      setError('OBS service instance not available.');
+      setConnectionError('OBS service instance not available.');
       return;
     }
     setConnecting(true);
-    setError(null);
+    setConnectionError(null);
     try {
       await obsServiceInstance.connect(url, password);
       setConnected(true);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
-      setError(message);
+      setConnectionError(message);
       setConnected(false);
     } finally {
       setConnecting(false);
     }
   },
-  disconnect: () => {
+  disconnectFromObs: () => {
     const { obsServiceInstance, setConnected } = get();
     if (obsServiceInstance) {
       obsServiceInstance.disconnect();
