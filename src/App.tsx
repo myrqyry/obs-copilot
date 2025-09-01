@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { gsap } from 'gsap';
 import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
-import ErrorBoundary from './components/common/ErrorBoundary';
+import ComprehensiveErrorBoundary from './components/common/ComprehensiveErrorBoundary'; // Use ComprehensiveErrorBoundary
 import { TabNavigation } from './components/layout/TabNavigation';
 import { AppTab } from './types';
 import { ConnectionProvider } from './components/ConnectionProvider';
@@ -14,12 +14,13 @@ import StreamingAssetsTab from './components/ui/StreamingAssetsTab';
 import SettingsTab from './components/ui/SettingsTab';
 import AdvancedPanel from './components/ui/AdvancedPanel';
 import { useTheme } from './hooks/useTheme'; // Import useTheme hook
+import { logger } from './utils/logger'; // Import logger
 
 // Register GSAP plugins
 try {
   gsap.registerPlugin(MorphSVGPlugin);
 } catch (error) {
-  console.warn('GSAP plugin registration failed:', error);
+  logger.warn('GSAP plugin registration failed:', error);
 }
 
 // Memoize tab order to prevent unnecessary re-renders
@@ -55,7 +56,7 @@ const App: React.FC = () => {
     }, []);
 
     const handleStreamerBotAction = async (action: { type: string; args?: Record<string, unknown> }) => {
-        console.log('Streamer.bot action:', action);
+        logger.info('Streamer.bot action:', action);
     };
 
     const renderTabContent = useCallback(() => { // Memoize renderTabContent
@@ -88,7 +89,7 @@ const App: React.FC = () => {
     }, [activeTab, chatInputValue]); // Add dependencies for renderTabContent
 
     return (
-        <ErrorBoundary>
+        <ComprehensiveErrorBoundary>
             <ConnectionProvider>
                 <div className="h-screen max-h-screen bg-gradient-to-br from-background to-card text-foreground flex flex-col overflow-hidden">
                     <TabNavigation
@@ -100,7 +101,7 @@ const App: React.FC = () => {
                     />
                 </div>
             </ConnectionProvider>
-        </ErrorBoundary>
+        </ComprehensiveErrorBoundary>
     );
 };
 
