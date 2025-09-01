@@ -25,7 +25,7 @@ export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     // --- 2. Get State and Actions from Zustand Stores ---
     // Note how each store is called according to its structure
-    const { setObsServiceInstance, setConnected: setObsConnected } = useConnectionsStore();
+    const { connectToObs, disconnectFromObs } = useConnectionsStore();
     const { setStreamerBotServiceInstance } = useAutomationStore(state => state.actions);
     const { addMessage } = useChatStore(state => state.actions);
     
@@ -36,17 +36,14 @@ export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             return;
         }
         try {
-            await obsClient.connect(url, password);
-            setObsConnected(true);
+            await connectToObs(url, password); // Use the store's connectToObs
             toast({ title: 'OBS Connection', description: 'Successfully connected to OBS!' });
         } catch (error: any) {
-            setObsConnected(false);
-            // Only show error toast if it's not a connection error that we're already handling
-            if (error.message && !error.message.includes('WebSocket')) {
-                toast({ title: 'OBS Connection Failed', description: error.message, variant: 'destructive' });
-            }
+            // The error is now handled by the store, so we just log it here if needed
+            console.error('OBS Connection Failed:', error);
+            toast({ title: 'OBS Connection Failed', description: 'Failed to connect. Please check the URL and password.', variant: 'destructive' });
         }
-    }, [obsClient, setObsConnected]);
+    }, [connectToObs]);
     
     const handleStreamerBotConnect = useCallback(async (address: string, port: string) => {
          if (!address.trim() || !port.trim()) {
@@ -66,21 +63,20 @@ export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     // --- 4. Auto-Connect on App Load ---
     useEffect(() => {
-        setObsServiceInstance(obsClient);
         setStreamerBotServiceInstance(streamerBotService);
 
         const savedSettings = loadConnectionSettings();
-        if (savedSettings.autoConnect && savedSettings.obsWebSocketUrl) {
-            handleObsConnect(savedSettings.obsWebSocketUrl, savedSettings.obsWebSocketPassword);
+        if (savedSettings.autoConnect && savedSettings.obsUrl) { // Use obsUrl
+            connectToObs(savedSettings.obsUrl, savedSettings.obsPassword); // Use obsUrl and obsPassword
         }
         // We can add auto-connect for Streamer.bot here later if needed.
 
         // Define cleanup logic
         return () => {
-            obsClient.disconnect();
+            disconnectFromObs(); // Use the store's disconnectFromObs
             streamerBotService.disconnect();
         };
-    }, [obsClient, streamerBotService, setObsServiceInstance, setStreamerBotServiceInstance]);
+    }, [streamerBotService, setStreamerBotServiceInstance, connectToObs, disconnectFromObs]);
 
     // --- 5. Provide Context to Children ---
     const contextValue = useMemo(() => ({ 
@@ -96,5 +92,3 @@ export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         </ConnectionContext.Provider>
     );
 };
-
-
