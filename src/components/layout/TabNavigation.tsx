@@ -107,7 +107,7 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
 
     return (
         <div className="h-screen max-h-screen bg-gradient-to-br from-background to-card text-foreground flex flex-col overflow-hidden">
-            <header ref={headerRef} className="sticky top-0 z-20 bg-background p-1 shadow-lg h-12 flex justify-center items-center">
+            <header ref={headerRef} className="sticky top-0 z-20 bg-background p-2 shadow-sm h-12 flex justify-center items-center">
                 <AnimatedTitleLogos 
                     accentColor={theme.accent} 
                     secondaryAccentColor={theme.secondaryAccent} 
@@ -115,7 +115,7 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
             </header>
 
             <div className="sticky z-10 px-1 pt-1" style={{ top: `${headerHeight}px` }}>
-                <div className="py-1 px-3 border-b border-border text-base font-semibold emoji-text bg-background rounded-t-lg font-sans text-primary shadow-lg">
+                <div className="py-1 px-3 border-b border-border text-base font-semibold emoji-text bg-background rounded-t-lg font-sans text-primary shadow-sm">
                     <div className="flex items-center justify-center gap-1 min-w-0">
                         {tabOrder.map((tab) => {
                             const isActive = activeTab === tab;

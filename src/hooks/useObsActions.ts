@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import type { ObsClientImpl } from '@/services/obsClient';
 import type { ObsAction } from '@/types/obsActions';
 import type { OBSData, OBSScene } from '@/types';
+import { logger } from '../utils/logger'; // Import logger
 
 interface UseObsActionsProps {
   obsService: ObsClientImpl;
@@ -84,7 +85,7 @@ export const useObsActions = ({
         };
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-        console.error(`OBS Action "${action.type}" failed:`, err);
+        logger.error(`OBS Action "${action.type}" failed:`, err);
         setErrorMessage(`OBS Action "${action.type}" failed: ${errorMessage}`);
 
         return {

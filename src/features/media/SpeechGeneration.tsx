@@ -3,7 +3,7 @@ import { useSettingsStore } from '@/store/settingsStore';
 import useApiKeyStore, { ApiService } from '@/store/apiKeyStore';
 import { geminiService } from '@/services/geminiService';
 import { CardContent } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+import { CustomButton as Button } from '@/components/ui/CustomButton';
 import { pcm16ToWavUrl } from '@/lib/pcmToWavUrl';
 import { base64ToArrayBuffer, dataUrlToBlobUrl } from '@/lib/utils';
 import { CollapsibleCard } from '@/components/common/CollapsibleCard';

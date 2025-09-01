@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '@/components/ui/Button';
+import { CustomButton as Button } from '@/components/ui/CustomButton';
 import { TextInput } from '@/components/common/TextInput';
 import { AutomationCondition, CONDITION_FIELD_OPTIONS } from '@/types/automation';
 

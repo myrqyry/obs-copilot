@@ -2,7 +2,6 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { gsap } from 'gsap';
 import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
 import ErrorBoundary from './components/common/ErrorBoundary';
-import { Header } from './components/layout/Header'; // Keep Header imported
 import { TabNavigation } from './components/layout/TabNavigation';
 import { AppTab } from './types';
 import { ConnectionProvider } from './components/ConnectionProvider';
@@ -14,6 +13,7 @@ import CreateTab from './components/ui/CreateTab';
 import StreamingAssetsTab from './components/ui/StreamingAssetsTab';
 import SettingsTab from './components/ui/SettingsTab';
 import AdvancedPanel from './components/ui/AdvancedPanel';
+import { useTheme } from './hooks/useTheme'; // Import useTheme hook
 
 // Register GSAP plugins
 try {
@@ -34,6 +34,7 @@ const TAB_ORDER: AppTab[] = [
 ];
 
 const App: React.FC = () => {
+    useTheme(); // Call the useTheme hook here to apply theme globally
     const [activeTab, setActiveTab] = useState<AppTab>(AppTab.GEMINI);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [chatInputValue, setChatInputValue] = useState('');
@@ -90,8 +91,6 @@ const App: React.FC = () => {
         <ErrorBoundary>
             <ConnectionProvider>
                 <div className="h-screen max-h-screen bg-gradient-to-br from-background to-card text-foreground flex flex-col overflow-hidden">
-                    {/* Header and TabNavigation are now separate components */}
-                    <Header headerRef={headerRef} /> {/* Render Header outside TabNavigation */}
                     <TabNavigation
                         activeTab={activeTab}
                         setActiveTab={handleTabChange}

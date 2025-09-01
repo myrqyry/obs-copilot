@@ -1,5 +1,6 @@
 import { logger } from '../utils/logger';
 import { httpClient } from './httpClient';
+import { handleServiceCall } from '../lib/apiUtils';
 import {
   TTSRequest,
   TTSResponse,
@@ -26,90 +27,42 @@ export class AudioService {
 
   // Enhanced TTS using Gemini 2.5 Flash Preview TTS
   async generateTTS(request: TTSRequest): Promise<TTSResponse> {
-    try {
-      const response = await httpClient.post<TTSResponse>(
-        `${this.baseUrl}/generate-tts`,
-        request
-      );
-
-      if (!response.data.audio) {
-        logger.error('No audio content returned from Gemini TTS API');
-        throw new Error('No audio content returned from Gemini TTS API');
-      }
-
-      return response.data;
-    } catch (error) {
-      logger.error('Error generating TTS via Gemini:', error);
-      throw new Error(
-        `Failed to generate TTS: ${error instanceof Error ? error.message : String(error)}`
-      );
-    }
+    return handleServiceCall<TTSResponse>(
+      () => httpClient.post<TTSResponse>(`${this.baseUrl}/generate-tts`, request),
+      'Gemini TTS API',
+      'Failed to generate TTS',
+      'audio'
+    );
   }
 
   // Multi-speaker conversation TTS
   async generateMultiSpeakerTTS(request: MultiSpeakerTTSRequest): Promise<MultiSpeakerTTSResponse> {
-    try {
-      const response = await httpClient.post<MultiSpeakerTTSResponse>(
-        `${this.baseUrl}/generate-multi-speaker-tts`,
-        request
-      );
-
-      if (!response.data.audio) {
-        logger.error('No audio content returned from Gemini multi-speaker TTS API');
-        throw new Error('No audio content returned from Gemini multi-speaker TTS API');
-      }
-
-      return response.data;
-    } catch (error) {
-      logger.error('Error generating multi-speaker TTS via Gemini:', error);
-      throw new Error(
-        `Failed to generate multi-speaker TTS: ${error instanceof Error ? error.message : String(error)}`
-      );
-    }
+    return handleServiceCall<MultiSpeakerTTSResponse>(
+      () => httpClient.post<MultiSpeakerTTSResponse>(`${this.baseUrl}/generate-multi-speaker-tts`, request),
+      'Gemini multi-speaker TTS API',
+      'Failed to generate multi-speaker TTS',
+      'audio'
+    );
   }
 
   // Music generation using Lyria RealTime
   async generateMusic(request: MusicGenerationRequest): Promise<MusicGenerationResponse> {
-    try {
-      const response = await httpClient.post<MusicGenerationResponse>(
-        `${this.baseUrl}/generate-music`,
-        request
-      );
-
-      if (!response.data.audio) {
-        logger.error('No audio content returned from Gemini music generation API');
-        throw new Error('No audio content returned from Gemini music generation API');
-      }
-
-      return response.data;
-    } catch (error) {
-      logger.error('Error generating music via Gemini:', error);
-      throw new Error(
-        `Failed to generate music: ${error instanceof Error ? error.message : String(error)}`
-      );
-    }
+    return handleServiceCall<MusicGenerationResponse>(
+      () => httpClient.post<MusicGenerationResponse>(`${this.baseUrl}/generate-music`, request),
+      'Gemini music generation API',
+      'Failed to generate music',
+      'audio'
+    );
   }
 
   // Music steering for real-time adjustments
   async steerMusic(request: MusicSteeringRequest): Promise<MusicSteeringResponse> {
-    try {
-      const response = await httpClient.post<MusicSteeringResponse>(
-        `${this.baseUrl}/steer-music`,
-        request
-      );
-
-      if (!response.data.audio) {
-        logger.error('No audio content returned from Gemini music steering API');
-        throw new Error('No audio content returned from Gemini music steering API');
-      }
-
-      return response.data;
-    } catch (error) {
-      logger.error('Error steering music via Gemini:', error);
-      throw new Error(
-        `Failed to steer music: ${error instanceof Error ? error.message : String(error)}`
-      );
-    }
+    return handleServiceCall<MusicSteeringResponse>(
+      () => httpClient.post<MusicSteeringResponse>(`${this.baseUrl}/steer-music`, request),
+      'Gemini music steering API',
+      'Failed to steer music',
+      'audio'
+    );
   }
 
   // WebSocket connection for real-time music streaming

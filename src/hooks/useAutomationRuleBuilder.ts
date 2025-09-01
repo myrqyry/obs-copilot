@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useLifecycleManagement } from './useLifecycleManagement';
 import type {
   AutomationRule,
   AutomationTrigger,
@@ -27,28 +28,30 @@ export const useAutomationRuleBuilder = (
     'trigger',
   );
 
-  useEffect(() => {
-    if (editingRule) {
-      setRuleName(editingRule.name);
-      setEnabled(editingRule.enabled);
-      setTrigger(editingRule.trigger);
-      setConditions(editingRule.conditions || []);
-      setActions(editingRule.actions);
-    } else if (initialEventName) {
-      setTrigger((prev) => ({ ...prev, eventName: initialEventName }));
-    }
-  }, [editingRule, initialEventName]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      setRuleName('');
-      setEnabled(true);
-      setTrigger({ eventName: initialEventName || '', eventData: {} });
-      setConditions([]);
-      setActions([]);
-      setCurrentStep('trigger');
-    }
-  }, [isOpen, initialEventName]);
+  useLifecycleManagement({
+    onMount: () => {
+      if (editingRule) {
+        setRuleName(editingRule.name);
+        setEnabled(editingRule.enabled);
+        setTrigger(editingRule.trigger);
+        setConditions(editingRule.conditions || []);
+        setActions(editingRule.actions);
+      } else if (initialEventName) {
+        setTrigger((prev) => ({ ...prev, eventName: initialEventName }));
+      }
+    },
+    onUpdate: () => {
+      if (!isOpen) {
+        setRuleName('');
+        setEnabled(true);
+        setTrigger({ eventName: initialEventName || '', eventData: {} });
+        setConditions([]);
+        setActions([]);
+        setCurrentStep('trigger');
+      }
+    },
+    dependencies: [editingRule, initialEventName, isOpen],
+  });
 
   const handleSave = () => {
     if (!ruleName.trim() || !trigger.eventName || actions.length === 0) {

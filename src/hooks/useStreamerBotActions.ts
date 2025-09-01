@@ -2,6 +2,7 @@
 
 import { useCallback } from 'react';
 import type { StreamerBotService } from '../services/streamerBotService';
+import { logger } from '../utils/logger'; // Import logger
 
 interface UseStreamerBotActionsProps {
   streamerBotService: StreamerBotService | null;
@@ -19,7 +20,7 @@ export const useStreamerBotActions = ({
       // Guard: if no service instance is provided, report a friendly error instead of throwing
       if (!streamerBotService) {
         const msg = `Streamer.bot service is not available. Cannot execute action "${action.type}".`;
-        console.warn(msg);
+        logger.warn(msg);
         onAddMessage({ role: 'system', text: msg });
         setErrorMessage(msg);
         return;
@@ -56,7 +57,7 @@ ${JSON.stringify(response, null, 2)}
 
         onAddMessage({ role: 'system', text: actionAttemptMessage });
       } catch (err: unknown) {
-        console.error(`Streamer.bot Action "${action.type}" failed:`, err);
+        logger.error(`Streamer.bot Action "${action.type}" failed:`, err);
         const failureFeedback = `
 ❗ Failed to execute Streamer.bot action "${action.type}": ${
           err instanceof Error ? err.message : 'Unknown error'

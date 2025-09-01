@@ -3,6 +3,8 @@ import { StreamerBotService } from '@/services/streamerBotService';
 import { useChatStore } from '@/store/chatStore';
 import { useAutomationStore } from '@/store/automationStore';
 import { toast } from '@/components/ui/toast';
+import { logger } from '../utils/logger'; // Import logger
+import { handleAppError, createToastError } from '../lib/errorUtils'; // Import error utilities
 
 export const useStreamerBotConnection = (streamerBotService: StreamerBotService) => {
   const [isStreamerBotConnected, setIsStreamerBotConnected] = useState<boolean>(false);
@@ -22,11 +24,10 @@ export const useStreamerBotConnection = (streamerBotService: StreamerBotService)
           role: 'system',
           text: '⚠️ Please provide both Streamer.bot address and port.',
         });
-        toast({
-          title: 'Streamer.bot Connection',
-          description: 'Please provide both Streamer.bot address and port.',
-          variant: 'destructive',
-        });
+        toast(createToastError(
+          'Streamer.bot Connection',
+          'Please provide both Streamer.bot address and port.'
+        ));
         return;
       }
 
@@ -52,15 +53,13 @@ export const useStreamerBotConnection = (streamerBotService: StreamerBotService)
           variant: 'default',
         });
       } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred.';
-        console.error('Streamer.bot connection failed:', error);
-        addMessage({ role: 'system', text: `⚠️ Streamer.bot connection failed: ${errorMessage}.` });
+        const errorMessage = handleAppError('Streamer.bot connection', error);
+        addMessage({ role: 'system', text: `⚠️ ${errorMessage}.` });
         setIsStreamerBotConnected(false);
-        toast({
-          title: 'Streamer.bot Connection Failed',
-          description: `Streamer.bot connection failed: ${errorMessage}`,
-          variant: 'destructive',
-        });
+        toast(createToastError(
+          'Streamer.bot Connection Failed',
+          errorMessage
+        ));
       } finally {
         setIsStreamerBotConnecting(false);
       }
@@ -85,13 +84,11 @@ export const useStreamerBotConnection = (streamerBotService: StreamerBotService)
         });
       }
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred.';
-      console.error('Error disconnecting from Streamer.bot:', error);
-      toast({
-        title: 'Streamer.bot Disconnection Error',
-        description: `Error disconnecting from Streamer.bot: ${errorMessage}`,
-        variant: 'destructive',
-      });
+      const errorMessage = handleAppError('Streamer.bot disconnection', error);
+      toast(createToastError(
+        'Streamer.bot Disconnection Error',
+        errorMessage
+      ));
     }
   }, [isStreamerBotConnected, streamerBotService, addMessage, setStreamerBotServiceInstance]);
 

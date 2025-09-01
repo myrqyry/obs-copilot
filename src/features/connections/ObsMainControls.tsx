@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CatppuccinAccentColorName, OBSVideoSettings, OBSScene, OBSSource, catppuccinAccentColorsHexMap } from '@/types';
-import { Button } from '@/components/ui/Button';
+import { CustomButton as Button } from '@/components/ui/CustomButton';
 import { AddToContextButton } from '@/components/common/AddToContextButton';
 import { LockToggle } from '@/components/common/LockToggle';
 import { TextInput } from '@/components/common/TextInput';
@@ -11,6 +11,8 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { useChatStore } from '@/store/chatStore';
 import { COMMON_RESOLUTIONS, COMMON_FPS } from '@/constants';
 import { CollapsibleCard } from '@/components/common/CollapsibleCard';
+import { handleAppError } from '@/lib/errorUtils'; // Import error utilities
+// No need to import logger here, handleAppError uses it internally
 
 export const ObsMainControls: React.FC = () => {
   const { obsServiceInstance: obsService, onRefreshData } = useConnectionsStore();
@@ -90,12 +92,7 @@ export const ObsMainControls: React.FC = () => {
       await action();
       await onRefreshData();
     } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error('OBS Action Error:', error);
-        setErrorMessage(`Action failed: ${error.message}`);
-      } else {
-        setErrorMessage('An unknown error occurred');
-      }
+      setErrorMessage(handleAppError('OBS Action', error));
     } finally {
       setIsLoading(false);
     }
@@ -204,12 +201,7 @@ export const ObsMainControls: React.FC = () => {
       await obsService.setVideoSettings(editableSettings);
       await onRefreshData();
     } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error('Failed to save video settings:', error);
-        setErrorMessage(`Failed to save video settings: ${error.message}`);
-      } else {
-        setErrorMessage('An unknown error occurred while saving video settings');
-      }
+      setErrorMessage(handleAppError('Failed to save video settings', error));
     } finally {
       setIsVideoSettingsLoading(false);
     }

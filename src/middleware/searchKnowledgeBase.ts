@@ -1,10 +1,11 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import globCb from 'glob';
+import * as glob from 'glob'; // Import glob as a namespace
 import { promisify } from 'util';
+import { logger } from '../utils/logger'; // Import logger
 
 // Backend API handler to perform glob-based knowledge base search server-side
-const globAsync = promisify(globCb);
+const globAsync = promisify(glob.glob); // Use glob.glob
 
 export interface KnowledgeSnippet {
   source: string;
@@ -31,7 +32,7 @@ async function readMarkdownFile(filePath: string): Promise<{ text: string; title
     }
     return { text: fileContent };
   } catch (error) {
-    console.error(`Error reading markdown file: ${filePath}`, error);
+    logger.error(`Error reading markdown file: ${filePath}`, error);
     return null;
   }
 }
@@ -82,7 +83,7 @@ export async function handleSearchKnowledgeBase(req: Request): Promise<Response>
     const limit = parseInt(url.searchParams.get('limit') ?? '3', 10);
 
     const memoryBankPath = path.join(process.cwd(), 'memory_bank');
-    const files = await globAsync('**/*.md', { cwd: memoryBankPath });
+    const files = await globAsync('**/*.md', { cwd: memoryBankPath }) as string[];
     const results: KnowledgeSnippet[] = [];
 
     for (const file of files) {
@@ -103,7 +104,7 @@ export async function handleSearchKnowledgeBase(req: Request): Promise<Response>
     const sorted = results.sort((a, b) => b.relevance - a.relevance).slice(0, limit);
     return new Response(JSON.stringify(sorted), { status: 200, headers: { 'Content-Type': 'application/json' } });
   } catch (err) {
-    console.error('Error in searchKnowledgeBase handler:', err);
+    logger.error('Error in searchKnowledgeBase handler:', err);
     return new Response(JSON.stringify([]), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 }

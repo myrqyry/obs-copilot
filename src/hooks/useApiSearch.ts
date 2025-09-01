@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { toast } from '@/components/ui/toast';
 import { logger } from '../utils/logger';
+import { handleAppError, createToastError } from '../lib/errorUtils'; // Import error utilities
 
 interface UseApiSearchOptions<T> {
   initialPageSize?: number;
@@ -52,14 +53,12 @@ export const useApiSearch = <T>(options?: UseApiSearchOptions<T>): UseApiSearchR
         setResults(fetchedResults);
         options?.onSuccess?.(fetchedResults);
       } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+        const errorMessage = handleAppError('API Search', err);
         setError(errorMessage);
-        logger.error(`Failed to fetch search results: ${errorMessage}`, err);
-        toast({
-          title: 'Search Error',
-          description: `Failed to fetch search results: ${errorMessage}`,
-          variant: 'destructive',
-        });
+        toast(createToastError(
+          'Search Error',
+          errorMessage
+        ));
         options?.onError?.(errorMessage);
       } finally {
         setLoading(false);

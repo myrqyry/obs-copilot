@@ -1,5 +1,6 @@
 import { httpClient } from './httpClient';
 import { logger } from '../utils/logger';
+import { handleServiceCall } from '../lib/apiUtils';
 
 export interface UnsplashPhoto {
   id: string;
@@ -81,16 +82,11 @@ class UnsplashService {
      * @returns A promise that resolves to an UnsplashSearchResult object.
      * @throws Throws an error if the API call fails.
      */
-    try {
-      const response = await httpClient.post(`${this.proxyEndpoint}/search-photos`, {
-        query,
-        options,
-      });
-      return response.data;
-    } catch (error) {
-      logger.error('Error searching Unsplash photos:', error);
-      throw error; // Re-throw to allow calling components to handle
-    }
+    return handleServiceCall<UnsplashSearchResult>(
+      () => httpClient.post(`${this.proxyEndpoint}/search-photos`, { query, options }),
+      'Unsplash API',
+      'Error searching Unsplash photos'
+    );
   }
 
   /**
@@ -111,15 +107,11 @@ class UnsplashService {
      * @returns A promise that resolves to an array of UnsplashPhoto objects.
      * @throws Throws an error if the API call fails.
      */
-    try {
-      const response = await httpClient.post(`${this.proxyEndpoint}/get-random-photo`, {
-        options,
-      });
-      return response.data.photos;
-    } catch (error) {
-      logger.error('Error getting random Unsplash photo:', error);
-      throw error; // Re-throw to allow calling components to handle
-    }
+    return handleServiceCall<UnsplashPhoto[]>(
+      () => httpClient.post(`${this.proxyEndpoint}/get-random-photo`, { options }),
+      'Unsplash API',
+      'Error getting random Unsplash photo'
+    );
   }
 
   /**
@@ -132,24 +124,23 @@ class UnsplashService {
      * @returns A promise that resolves to an UnsplashPhoto object.
      * @throws Throws an error if the API call fails.
      */
-    try {
-      const response = await httpClient.get(`${this.proxyEndpoint}/get-photo/${photoId}`);
-      return response.data;
-    } catch (error) {
-      logger.error('Error getting Unsplash photo:', error);
-      throw error; // Re-throw to allow calling components to handle
-    }
+    return handleServiceCall<UnsplashPhoto>(
+      () => httpClient.get(`${this.proxyEndpoint}/get-photo/${photoId}`),
+      'Unsplash API',
+      'Error getting Unsplash photo'
+    );
   }
 
   /**
    * Track a photo download (required by Unsplash API guidelines)
    */
   async trackDownload(downloadLocation: string): Promise<void> {
+    // This method's error handling is intentionally different as per original comment:
+    // "Don't throw error for tracking failures as it's not critical"
     try {
       await httpClient.post(`${this.proxyEndpoint}/track-download`, { downloadLocation });
     } catch (error) {
       logger.error('Error tracking download:', error);
-      // Don't throw error for tracking failures as it's not critical
     }
   }
 
@@ -167,18 +158,16 @@ class UnsplashService {
      * @returns A promise that resolves to an array of UnsplashPhoto objects.
      * @throws Throws an error if the API call fails.
      */
-    try {
-      const response = await httpClient.post(`${this.proxyEndpoint}/list-photos`, {
+    return handleServiceCall<UnsplashPhoto[]>(
+      () => httpClient.post(`${this.proxyEndpoint}/list-photos`, {
         options: {
           ...options,
           type: 'trending', // Add a type to differentiate on the proxy
         },
-      });
-      return response.data.results;
-    } catch (error) {
-      logger.error('Error getting trending Unsplash photos:', error);
-      throw error; // Re-throw to allow calling components to handle
-    }
+      }),
+      'Unsplash API',
+      'Error getting trending Unsplash photos'
+    );
   }
 
   /**
@@ -194,15 +183,11 @@ class UnsplashService {
      * @returns A promise that resolves to an array of UnsplashCollection objects.
      * @throws Throws an error if the API call fails.
      */
-    try {
-      const response = await httpClient.post(`${this.proxyEndpoint}/list-collections`, {
-        options,
-      });
-      return response.data.results;
-    } catch (error) {
-      logger.error('Error getting Unsplash collections:', error);
-      throw error; // Re-throw to allow calling components to handle
-    }
+    return handleServiceCall<UnsplashCollection[]>(
+      () => httpClient.post(`${this.proxyEndpoint}/list-collections`, { options }),
+      'Unsplash API',
+      'Error getting Unsplash collections'
+    );
   }
 
   /**
@@ -223,15 +208,11 @@ class UnsplashService {
      * @returns A promise that resolves to an array of UnsplashPhoto objects.
      * @throws Throws an error if the API call fails.
      */
-    try {
-      const response = await httpClient.post(`${this.proxyEndpoint}/get-collection-photos/${collectionId}`, {
-        options,
-      });
-      return response.data.results;
-    } catch (error) {
-      logger.error('Error getting collection photos:', error);
-      throw error; // Re-throw to allow calling components to handle
-    }
+    return handleServiceCall<UnsplashPhoto[]>(
+      () => httpClient.post(`${this.proxyEndpoint}/get-collection-photos/${collectionId}`, { options }),
+      'Unsplash API',
+      'Error getting collection photos'
+    );
   }
 
   /**
@@ -248,15 +229,11 @@ class UnsplashService {
      * @returns A promise that resolves to an array of UnsplashTopic objects.
      * @throws Throws an error if the API call fails.
      */
-    try {
-      const response = await httpClient.post(`${this.proxyEndpoint}/list-topics`, {
-        options,
-      });
-      return response.data.results;
-    } catch (error) {
-      logger.error('Error getting Unsplash topics:', error);
-      throw error; // Re-throw to allow calling components to handle
-    }
+    return handleServiceCall<UnsplashTopic[]>(
+      () => httpClient.post(`${this.proxyEndpoint}/list-topics`, { options }),
+      'Unsplash API',
+      'Error getting Unsplash topics'
+    );
   }
 
   /**
@@ -277,15 +254,11 @@ class UnsplashService {
      * @returns A promise that resolves to an array of UnsplashPhoto objects.
      * @throws Throws an error if the API call fails.
      */
-    try {
-      const response = await httpClient.post(`${this.proxyEndpoint}/get-topic-photos/${topicIdOrSlug}`, {
-        options,
-      });
-      return response.data.results;
-    } catch (error) {
-      logger.error('Error getting topic photos:', error);
-      throw error; // Re-throw to allow calling components to handle
-    }
+    return handleServiceCall<UnsplashPhoto[]>(
+      () => httpClient.post(`${this.proxyEndpoint}/get-topic-photos/${topicIdOrSlug}`, { options }),
+      'Unsplash API',
+      'Error getting topic photos'
+    );
   }
 
   /**
@@ -307,15 +280,11 @@ class UnsplashService {
      * @returns A promise that resolves to an array of UnsplashPhoto objects.
      * @throws Throws an error if the API call fails.
      */
-    try {
-      const response = await httpClient.post(`${this.proxyEndpoint}/get-user-photos/${username}`, {
-        options,
-      });
-      return response.data.results;
-    } catch (error) {
-      logger.error('Error getting user photos:', error);
-      throw error; // Re-throw to allow calling components to handle
-    }
+    return handleServiceCall<UnsplashPhoto[]>(
+      () => httpClient.post(`${this.proxyEndpoint}/get-user-photos/${username}`, { options }),
+      'Unsplash API',
+      'Error getting user photos'
+    );
   }
 
   /**

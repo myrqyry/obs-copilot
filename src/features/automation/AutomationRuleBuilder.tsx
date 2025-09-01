@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal } from '@/components/ui/Modal';
-import { Button } from '@/components/ui/Button';
+import { CustomButton as Button } from '@/components/ui/CustomButton';
 import { useAutomationRuleBuilder } from '@/hooks/useAutomationRuleBuilder';
 import { TriggerStep } from './TriggerStep';
 import { ConditionsStep } from './ConditionsStep';

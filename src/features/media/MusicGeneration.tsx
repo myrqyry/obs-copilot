@@ -4,7 +4,7 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { toast } from '@/components/ui/toast';
 import useApiKeyStore, { ApiService } from '@/store/apiKeyStore';
 import { CardContent } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+import { CustomButton as Button } from '@/components/ui/CustomButton';
 import { TextInput } from '@/components/common/TextInput';
 import Tooltip from '@/components/ui/Tooltip';
 import InlineMusicControls from '@/components/ui/InlineMusicControls';

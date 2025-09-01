@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@/components/ui/Button';
+import { CustomButton as Button } from '@/components/ui/CustomButton';
 import {
   Select,
   SelectContent,
@@ -11,13 +11,14 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import type { ChatStatus } from 'ai';
-import { Loader2Icon, SendIcon, SquareIcon, XIcon } from 'lucide-react';
+import { Loader2Icon, SendIcon, SquareIcon, XIcon, ImageUpIcon, ClipboardPasteIcon } from 'lucide-react';
 import type {
   ComponentProps,
   HTMLAttributes,
   KeyboardEventHandler,
 } from 'react';
-import { Children } from 'react';
+import { Children, useState, useCallback } from 'react';
+import { ImageUpload } from '@/components/common/ImageUpload';
 
 export type PromptInputProps = HTMLAttributes<HTMLFormElement>;
 
@@ -34,6 +35,9 @@ export const PromptInput = ({ className, ...props }: PromptInputProps) => (
 export type PromptInputTextareaProps = ComponentProps<typeof Textarea> & {
   minHeight?: number;
   maxHeight?: number;
+  label?: string; // Add label prop
+  onImageSelect?: (file: File, base64: string) => void;
+  onClearImage?: () => void;
 };
 
 export const PromptInputTextarea = ({
@@ -42,8 +46,18 @@ export const PromptInputTextarea = ({
   placeholder = 'What would you like to know?',
   minHeight = 48,
   maxHeight = 164,
+  label = 'Type your message...', // Default label for the prompt input
+  id = 'prompt-input-textarea', // Default ID for accessibility
+  onImageSelect,
+  onClearImage,
   ...props
-}: PromptInputTextareaProps) => {
+}: PromptInputTextareaProps & {
+  onImageSelect?: (file: File, base64: string) => void;
+  onClearImage?: () => void;
+}) => {
+  const [isImageUploadOpen, setIsImageUploadOpen] = useState(false);
+  const [isImagePasted, setIsImagePasted] = useState(false);
+
   const handleKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
     if (e.key === 'Enter') {
       // Don't submit if IME composition is in progress
@@ -65,22 +79,114 @@ export const PromptInputTextarea = ({
     }
   };
 
+  const handlePaste = useCallback(async (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = event.clipboardData?.items;
+    if (items) {
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const blob = items[i].getAsFile();
+          if (blob) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const base64 = (e.target?.result as string).split(',')[1];
+              onImageSelect?.(blob, base64);
+              setIsImagePasted(true);
+            };
+            reader.readAsDataURL(blob);
+            event.preventDefault();
+            return;
+          }
+        }
+      }
+    }
+  }, [onImageSelect]);
+
+  const handleImageUploadSelect = (file: File, base64: string) => {
+    onImageSelect?.(file, base64);
+    setIsImageUploadOpen(false);
+  };
+
+  const handleImageClear = () => {
+    onClearImage?.();
+    setIsImagePasted(false);
+  };
+
   return (
-    <Textarea
-      className={cn(
-        'w-full resize-none rounded-none border-none p-3 shadow-none outline-none ring-0',
-        'field-sizing-content max-h-[6lh] bg-transparent dark:bg-transparent',
-        'focus-visible:ring-0',
-        className
+    <>
+      <Textarea
+        className={cn(
+          'w-full resize-none rounded-none border-none p-3 shadow-none outline-none ring-0',
+          'field-sizing-content max-h-[6lh] bg-transparent dark:bg-transparent',
+          'focus-visible:ring-0',
+          className
+        )}
+        name="message"
+        onChange={(e) => {
+          onChange?.(e);
+        }}
+        onKeyDown={handleKeyDown}
+        onPaste={handlePaste}
+        placeholder={label ? '' : placeholder} // Conditionally set placeholder
+        label={label} // Pass label to Textarea
+        id={id} // Pass id to Textarea
+        {...props}
+      />
+      <div className="flex items-center gap-2 p-2">
+        <PromptInputButton
+          onClick={() => setIsImageUploadOpen(!isImageUploadOpen)}
+          variant="ghost"
+          size="icon"
+          title="Upload Image"
+        >
+          <ImageUpIcon className="size-4" />
+        </PromptInputButton>
+        <PromptInputButton
+          onClick={() => {
+            // Trigger paste functionality
+            navigator.clipboard.read().then(async (clipboardItems) => {
+              for (const clipboardItem of clipboardItems) {
+                for (const type of clipboardItem.types) {
+                  if (type.startsWith('image/')) {
+                    const blob = await clipboardItem.getType(type);
+                    // Create a File object from the Blob
+                    const file = new File([blob], 'pasted_image.png', { type: blob.type });
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                      const base64 = (e.target?.result as string).split(',')[1];
+                      onImageSelect?.(file, base64);
+                      setIsImagePasted(true);
+                    };
+                    reader.readAsDataURL(file);
+                    return;
+                  }
+                }
+              }
+            });
+          }}
+          variant="ghost"
+          size="icon"
+          title="Paste Image"
+          disabled={isImagePasted}
+        >
+          <ClipboardPasteIcon className="size-4" />
+        </PromptInputButton>
+        {(isImageUploadOpen || isImagePasted) && (
+          <PromptInputButton
+            onClick={handleImageClear}
+            variant="ghost"
+            size="icon"
+            title="Clear Image"
+          >
+            <XIcon className="size-4" />
+          </PromptInputButton>
+        )}
+      </div>
+      {isImageUploadOpen && (
+        <div className="p-2">
+          <ImageUpload onImageSelect={handleImageUploadSelect} onClear={handleImageClear} />
+        </div>
       )}
-      name="message"
-      onChange={(e) => {
-        onChange?.(e);
-      }}
-      onKeyDown={handleKeyDown}
-      placeholder={placeholder}
-      {...props}
-    />
+    </>
   );
 };
 

@@ -21,6 +21,8 @@ import {
     MessageContent,
 } from '@/components/ai-elements';
 import { CodeBlock } from '@/components/ai-elements/code-block';
+import { Suggestions, Suggestion } from '@/components/ai-elements/suggestion'; // Import Suggestions and Suggestion
+import { Sources, SourcesTrigger, SourcesContent, Source } from '@/components/ai-elements/source'; // Import Source components
 
 interface ChatMessageItemProps {
     message: ChatMessage;
@@ -142,23 +144,8 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
         const el = bubbleRef.current;
         if (!el) return;
 
-        const handleEnter = () => {
-            try {
-                gsap.to(el, { scale: 1.015, boxShadow: '0 6px 18px rgba(0,0,0,0.12)', duration: 0.25, ease: 'power2.out' });
-            } catch (e) {}
-        };
-        const handleLeave = () => {
-            try {
-                gsap.to(el, { scale: 1, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', duration: 0.25, ease: 'power2.in' });
-            } catch (e) {}
-        };
-
-        el.addEventListener('mouseenter', handleEnter);
-        el.addEventListener('mouseleave', handleLeave);
-
+        // Removed hover animation for a cleaner look
         return () => {
-            el.removeEventListener('mouseenter', handleEnter);
-            el.removeEventListener('mouseleave', handleLeave);
             try { gsap.killTweensOf(el); } catch (e) {}
         };
     }, []);
@@ -336,18 +323,6 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
         ? (isUser ? 'justify-start' : 'justify-end')
         : (isUser ? 'justify-end' : 'justify-start');
 
-    // Helper to convert hex to rgba
-    function hexToRgba(hex: string, alpha: number) {
-        let c = hex.replace('#', '');
-        if (c.length === 3) {
-            c = c[0] + c[0] + c[1] + c[1] + c[2] + c[2];
-        }
-        const r = parseInt(c.substring(0, 2), 16);
-        const g = parseInt(c.substring(2, 4), 16);
-        const b = parseInt(c.substring(4, 6), 16);
-        return `rgba(${r},${g},${b},${alpha})`;
-    }
-
     // Get color mappings from store and types
     const userColor = catppuccinChatBubbleColorsHexMap[userChatBubbleColorName];
     const modelColor = catppuccinChatBubbleColorsHexMap[modelChatBubbleColorName];
@@ -366,9 +341,6 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
         bubbleColorHex = accentColor;
     }
 
-    // Dark base color for outlines and dark fills
-    const darkColor = catppuccinMochaColors.base; // #1e1e2e
-
     // Apply color logic based on mode
     let backgroundColor: string;
     let borderColor: string;
@@ -376,14 +348,14 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
 
     if (extraDarkMode) {
         // Extra dark mode: dark fill, chosen color for text and border
-        backgroundColor = hexToRgba(darkColor, bubbleFillOpacity);
-        borderColor = hexToRgba(bubbleColorHex, 0.8);
+        backgroundColor = `rgba(${parseInt(catppuccinMochaColors.base.substring(1, 3), 16)}, ${parseInt(catppuccinMochaColors.base.substring(3, 5), 16)}, ${parseInt(catppuccinMochaColors.base.substring(5, 7), 16)}, ${bubbleFillOpacity})`;
+        borderColor = bubbleColorHex;
         textColor = bubbleColorHex;
     } else {
         // Regular mode: chosen color fill, dark text and border
-        backgroundColor = hexToRgba(bubbleColorHex, bubbleFillOpacity);
-        borderColor = hexToRgba(darkColor, 0.8);
-        textColor = darkColor;
+        backgroundColor = `rgba(${parseInt(bubbleColorHex.substring(1, 3), 16)}, ${parseInt(bubbleColorHex.substring(3, 5), 16)}, ${parseInt(bubbleColorHex.substring(5, 7), 16)}, ${bubbleFillOpacity})`;
+        borderColor = catppuccinMochaColors.base;
+        textColor = catppuccinMochaColors.base;
     }
 
     // Apply glass effect classes if needed
@@ -396,20 +368,19 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     const bubbleStyle: React.CSSProperties = {
         backgroundColor,
         borderColor,
-        borderWidth: extraDarkMode ? '2px' : '1px',
+        borderWidth: '1px', // Standardize border width
         borderStyle: 'solid',
         color: textColor,
         fontStyle: isSystem ? 'italic' : 'normal',
         fontSize: '0.875rem',
         position: 'relative',
-        boxShadow: '0 2px 8px 0 rgba(0,0,0,0.08)',
-        borderRadius: '1rem',
-        padding: '0.5rem 1rem',
+        boxShadow: 'none', // Remove box shadow
+        borderRadius: '0.75rem', // Adjust border radius
+        padding: '0.75rem 1rem', // Adjust padding
         maxWidth: isSystem ? '400px' : '480px',
-        minWidth: '60px',
         margin: '0.25rem 0',
         overflow: 'hidden',
-        transition: 'background 0.3s, box-shadow 0.3s, border-color 0.3s',
+        transition: 'background 0.3s, border-color 0.3s', // Remove box-shadow from transition
         mixBlendMode: (chatBubbleBlendMode || 'normal') as React.CSSProperties['mixBlendMode'],
     };
 
@@ -497,38 +468,40 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                                             {showSuggestions && isSystem && onSuggestionClick && (
                                                 <div className="mt-3 pt-3 border-t border-opacity-30" style={{ borderColor: bubbleColorHex }}>
                                                     <div className="text-sm opacity-90 mb-3 font-normal font-sans"><span className="emoji">✨</span> Try these commands:</div>
-                                                    <div className="grid grid-cols-2 gap-2">
+                                                    <Suggestions className="grid grid-cols-2 gap-2">
                                                         {memoizedSuggestions.map((suggestion) => (
-                                                            <button
+                                                            <Suggestion
                                                                 key={suggestion.id}
-                                                                 onClick={() => onSuggestionClick(suggestion.prompt)}                                                     className="text-xs px-2 py-1.5 bg-muted/50 hover:bg-primary/20 text-foreground hover:text-primary-foreground rounded border border-border hover:border-primary transition-all duration-200 text-left group shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                                                                suggestion={suggestion.prompt}
+                                                                onClick={onSuggestionClick}
+                                                                className="text-xs px-2 py-1.5 bg-muted/50 hover:bg-primary/20 text-foreground hover:text-primary-foreground rounded border border-border hover:border-primary transition-all duration-200 text-left group shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
                                                             >
                                                                 <span className="mr-1.5 text-sm group-hover:scale-110 transition-transform duration-200 inline-block emoji">{suggestion.emoji}</span>
                                                                 <span className="font-normal">{suggestion.label}</span>
-                                                            </button>
+                                                            </Suggestion>
                                                         ))}
-                                                    </div>
+                                                    </Suggestions>
                                                 </div>
                                             )}
 
                                             {message.sources && message.sources.length > 0 && (
-                                                <div className="mt-3 pt-3 border-t border-border">
-                                                    <div className="text-sm opacity-90 mb-2 font-normal font-sans"><span className="emoji">📚</span> Sources:</div>
-                                                    <div className="space-y-1">
+                                                <Sources className="mt-3 pt-3 border-t border-border">
+                                                    <SourcesTrigger count={message.sources.length}>
+                                                        <div className="text-sm opacity-90 mb-2 font-normal font-sans"><span className="emoji">📚</span> Sources:</div>
+                                                    </SourcesTrigger>
+                                                    <SourcesContent className="space-y-1">
                                                         {message.sources.map((source, idx) => (
-                                                            <div key={idx} className="text-xs">
-                                                                <a
-                                                                    href={source.web?.uri}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="text-primary hover:text-primary/80 hover:underline transition-colors duration-200 focus:outline-none focus:ring-1 focus:ring-primary rounded"
-                                                                >
-                                                                    <span className="emoji">🔗</span> {source.web?.title || source.web?.uri}
-                                                                </a>
-                                                            </div>
+                                                            <Source
+                                                                key={idx}
+                                                                href={source.web?.uri}
+                                                                title={source.web?.title || source.web?.uri}
+                                                                className="text-xs"
+                                                            >
+                                                                <span className="emoji">🔗</span> {source.web?.title || source.web?.uri}
+                                                            </Source>
                                                         ))}
-                                                    </div>
-                                                </div>
+                                                    </SourcesContent>
+                                                </Sources>
                                             )}
 
                                             {/* Show choice buttons for model messages with choices */}
@@ -590,11 +563,11 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                         {/* placeholder for timestamp text if present */}
                     </div>
 
-                    <div className="text-xs mt-1.5 relative z-20 tracking-wider flex items-center gap-2">
+                    <div className={`absolute ${isUser ? 'left-2' : 'right-2'} -bottom-6 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200 ${isUser ? 'translate-x-[-10px]' : 'translate-x-[10px]'} group-hover:translate-x-0`}>
                         <Tooltip content="Copy text">
                             <button
                                 onClick={handleCopyText}
-                                className="bg-card/90 backdrop-blur-sm text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 p-1 rounded-full shadow-md border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                className="text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 p-1 rounded-full transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                                 aria-label="Copy message text"
                             >
                                 <ClipboardDocumentIcon className="w-3 h-3" />
@@ -605,7 +578,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                             <Tooltip content="Regenerate response">
                                 <button
                                     onClick={handleRegenerate}
-                                    className="bg-card/90 backdrop-blur-sm text-muted-foreground hover:text-green-500 hover:bg-green-500/10 p-1 rounded-full shadow-md border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                                    className="text-muted-foreground hover:text-green-500 hover:bg-green-500/10 p-1 rounded-full transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-green-500/50"
                                     aria-label="Regenerate message"
                                 >
                                     <ArrowPathIcon className="w-3 h-3" />
@@ -617,7 +590,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                             <Tooltip content="Add to context">
                                 <button
                                     onClick={handleAddToContextLocal}
-                                    className="bg-card/90 backdrop-blur-sm text-accent hover:bg-accent/20 p-1 rounded-full shadow-md border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-accent/50"
+                                    className="text-accent hover:bg-accent/20 p-1 rounded-full transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-accent/50"
                                     aria-label="Add message to context"
                                 >
                                     <ChatBubbleLeftEllipsisIcon className="w-4 h-4 text-accent" />
@@ -626,17 +599,19 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                         )}
                     </div>
 
-                    <div
-                        className="absolute right-3 bottom-3 z-40 bg-card/90 backdrop-blur-sm text-primary hover:text-primary/80 hover:bg-primary/10 p-2 rounded-full shadow-xl border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/50"
-                        onClick={() => setForceExpand(true)}
-                        aria-label="Expand chat bubble"
-                    >
-                        <ChevronDownIcon className="w-5 h-5" />
-                    </div>
+                    {isShrunk && (
+                        <div
+                            className={`absolute ${isUser ? 'right-2' : 'left-2'} -bottom-6 opacity-0 group-hover:opacity-100 transition-all duration-200 ${isUser ? 'translate-x-[10px]' : 'translate-x-[-10px]'} group-hover:translate-x-0 bg-background/80 text-primary hover:text-primary/80 hover:bg-primary/10 p-2 rounded-full flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/50`}
+                            onClick={() => setForceExpand(true)}
+                            aria-label="Expand chat bubble"
+                        >
+                            <ChevronDownIcon className="w-5 h-5" />
+                        </div>
+                    )}
                     {forceExpand && (
                         <Tooltip content="Shrink bubble">
                             <button
-                                className="absolute right-3 bottom-3 z-40 bg-card/90 backdrop-blur-sm text-muted-foreground hover:text-primary hover:bg-primary/10 p-2 rounded-full shadow-xl border border-border transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                className={`absolute ${isUser ? 'right-2' : 'left-2'} -bottom-6 opacity-0 group-hover:opacity-100 transition-all duration-200 ${isUser ? 'translate-x-[10px]' : 'translate-x-[-10px]'} group-hover:translate-x-0 bg-background/80 text-muted-foreground hover:text-primary hover:bg-primary/10 p-2 rounded-full flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/50`}
                                 onClick={() => setForceExpand(false)}
                                 aria-label="Shrink chat bubble"
                             >

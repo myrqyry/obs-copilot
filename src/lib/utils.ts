@@ -2,6 +2,7 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { logger } from '../utils/logger'; // Import logger
 
 // Register GSAP plugins
 gsap.registerPlugin(ScrollTrigger);
@@ -33,7 +34,7 @@ export function safeGsapTo(target: any, vars: any): boolean {
     gsap.to(target, vars);
     return true;
   } catch (error) {
-    console.error('GSAP safeGsapTo error:', error);
+    logger.error('GSAP safeGsapTo error:', error);
     return false;
   }
 }
@@ -49,9 +50,14 @@ export function safeGsapSet(target: any, vars: any): void {
   }
 
   try {
+    gsap.to(target, vars);
+  } catch (error) {
+    logger.error('GSAP safeGsapTo error:', error);
+  }
+  try {
     gsap.set(target, vars);
   } catch (error) {
-    console.error('GSAP safeGsapSet error:', error);
+    logger.error('GSAP safeGsapSet error:', error);
   }
 }
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/Button';
+import { CustomButton as Button } from '@/components/ui/CustomButton';
 import { FaviconDropdown } from '@/components/common/FaviconDropdown';
 import { TextInput } from '@/components/common/TextInput';
 import { ZodError } from 'zod';

@@ -1,10 +1,19 @@
 import { logger } from '@/utils/logger';
+import { handleAppError } from '@/lib/errorUtils'; // Import handleAppError
 import { aiMiddleware } from './aiMiddleware';
-import { GeminiGenerateContentResponse } from '@/types/gemini';
+import { GeminiGenerateContentResponse, GeminiGenerateImagesResponse, GeminiGenerateImagesConfig, GeminiGenerateContentConfig, LiveAPIConfig } from '@/types/gemini';
 import { AIService } from '@/types/ai';
 import { dataUrlToBlobUrl } from '@/lib/utils';
-import { GoogleGenAI, LiveConnectParameters } from '@google/genai';
+import { GoogleGenAI, Part, Content, Image } from '@google/genai';
 import { httpClient } from './httpClient';
+import { Buffer } from 'buffer';
+
+// Initialize the Google GenAI client
+// The new SDK handles token generation internally or via client initialization.
+// We need to ensure the client is initialized with the correct API key.
+// If using an ephemeral token, it should be handled during client creation.
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || ''; // Ensure GEMINI_API_KEY is set
+const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
 class GeminiService implements AIService {
   constructor() {
@@ -12,7 +21,7 @@ class GeminiService implements AIService {
   }
 
   /**
-   * Generates content using the Gemini API via our backend.
+   * Generates content using the Gemini API.
    * @param prompt The prompt to send to the Gemini API.
    * @param options Configuration options
    * @returns A promise that resolves to the generated content.
@@ -22,7 +31,6 @@ class GeminiService implements AIService {
     prompt: string,
     options: {
       model?: string;
-      retries?: number;
       temperature?: number;
       maxOutputTokens?: number;
       topP?: number;
@@ -31,8 +39,7 @@ class GeminiService implements AIService {
     } = {}
   ): Promise<GeminiGenerateContentResponse> {
     const {
-      retries = 3,
-      model = 'gemini-2.5-flash',
+      model = 'gemini-1.5-flash-latest', // Updated model name to latest stable
       temperature = 0.7,
       maxOutputTokens = 1000,
       topP = 0.9,
@@ -41,46 +48,43 @@ class GeminiService implements AIService {
     } = options;
 
     try {
-      // Use centralized httpClient which will prefix /api in dev or use VITE_ADMIN_API_URL in prod.
-      const requestBody = {
-        prompt,
-        model,
+      // Prepare history for the new SDK format
+      const formattedHistory: Content[] = history.map(turn => ({
+        role: turn.role,
+        parts: turn.parts.map(part => ({ text: part.text }))
+      }));
+
+      // Construct the config object for the new SDK
+      const config: GeminiGenerateContentConfig = {
         temperature,
-        max_output_tokens: maxOutputTokens,
-        top_p: topP,
-        top_k: topK,
-        history
+        maxOutputTokens,
+        topP,
+        topK,
       };
 
-      const resp = await httpClient.post('/gemini/generate', requestBody);
-      const data = resp?.data ?? {};
+      // Use the new SDK's generateContent method
+      const response = await ai.models.generateContent({
+        model: model,
+        contents: [
+          ...formattedHistory,
+          { role: 'user', parts: [{ text: prompt }] }
+        ],
+        config: config,
+      });
 
-      // Handle new backend response format
-      const text =
-        data.content ??
-        data.text ??
-        (data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '') ??
-        '';
+      const text = response.text || '';
+      const candidates = response.candidates || [];
+      const usageMetadata = response.usageMetadata || {};
+      const toolCalls = response.functionCalls || []; // Assuming functionCalls maps to toolCalls
 
       return {
         text,
-        candidates: data.candidates ?? [],
-        usageMetadata: data.usage ?? data.usageMetadata ?? {},
-        toolCalls: data.toolCalls ?? [],
+        candidates,
+        usageMetadata,
+        toolCalls,
       };
     } catch (error: any) {
-      logger.error('Error generating content from Gemini backend:', error);
-      if (retries > 0) {
-        logger.info(`Retrying generateContent... (${retries - 1} left)`);
-        await new Promise(res => setTimeout(res, 1000));
-        return this.generateContent(prompt, { ...options, retries: retries - 1 });
-      }
-      // surface a clearer message if the backend returns an auth issue
-      const status = error?.response?.status;
-      if (status === 401 || status === 403) {
-        throw new Error('Authentication failed when calling Gemini generate endpoint (missing/invalid X-API-KEY).');
-      }
-      throw error;
+      throw new Error(handleAppError('Gemini API content generation', error, `Model '${model}' not found or authentication failed.`));
     }
   }
 
@@ -89,7 +93,7 @@ class GeminiService implements AIService {
    * @param prompt The prompt to send to the Gemini API for image generation.
    * @param options Configuration options for enhanced image generation
    * @returns A promise that resolves to a blob URL of the generated image.
-   * @throws Throws an error if the API call fails or if the backend endpoint is missing.
+   * @throws Throws an error if the API call fails.
    */
   async generateEnhancedImage(
     prompt: string,
@@ -106,10 +110,8 @@ class GeminiService implements AIService {
     } = {}
   ): Promise<string> {
     const {
-      model = 'gemini-2.0-flash-exp-image-generation',
-      responseModalities = ['TEXT', 'IMAGE'],
+      model = 'imagen-3.0-generate-001', // Updated model name for image generation
       imageFormat = 'png',
-      imageQuality = 0.8,
       aspectRatio = '1:1',
       personGeneration = 'allow_adult',
       safetySettings,
@@ -118,83 +120,53 @@ class GeminiService implements AIService {
     } = options;
 
     try {
-      // Try the enhanced endpoint first
-      let resp;
-      try {
-        resp = await httpClient.post('/gemini/generate-image-enhanced', {
-          prompt,
-          model,
-          responseModalities,
-          imageFormat,
-          imageQuality,
-          aspectRatio,
-          personGeneration,
-          safetySettings,
-          imageInput,
-          imageInputMimeType
-        });
-      } catch (firstErr) {
-        // If backend returns 404, try camelCase fallback
-        const status = (firstErr as any)?.response?.status;
-        if (status === 404) {
-          try {
-            resp = await httpClient.post('/gemini/generateImageEnhanced', {
-              prompt,
-              model,
-              responseModalities,
-              imageFormat,
-              imageQuality,
-              aspectRatio,
-              personGeneration,
-              safetySettings,
-              imageInput,
-              imageInputMimeType
-            });
-          } catch (secondErr) {
-            // No enhanced endpoint available — fail gracefully
-            resp = undefined;
-            logger.info('No generate-image-enhanced endpoint found on backend (404).');
-          }
-        } else {
-          throw firstErr;
+      // Prepare safety settings for the new SDK
+      const formattedSafetySettings = safetySettings?.map(setting => ({
+        category: setting.category as any, // Type assertion might be needed
+        threshold: setting.threshold as any, // Type assertion might be needed
+      }));
+
+      // Prepare image input if provided
+      let imagePart: Part | undefined;
+      if (imageInput && imageInputMimeType) {
+        imagePart = { inlineData: { data: imageInput, mimeType: imageInputMimeType } };
+      }
+
+      // Use the new SDK's generateImages method
+      const response = await ai.models.generateImages({
+        model: model,
+        prompt: prompt,
+        config: {
+          numberOfImages: 1,
+          outputMimeType: `image/${imageFormat}`,
+          safetyFilterLevel: formattedSafetySettings?.[0]?.threshold as any, // Assuming single safety setting for simplicity
+          personGeneration: personGeneration as any,
+          aspectRatio: aspectRatio as any,
+        },
+      });
+
+      // Handle response format
+      if (response.generatedImages && response.generatedImages.length > 0) {
+        const firstImage = response.generatedImages[0];
+        if (firstImage.image?.imageBytes) {
+          const mimeType = firstImage.image.mimeType || `image/${imageFormat}`;
+          const dataUrl = `data:${mimeType};base64,${Buffer.from(firstImage.image.imageBytes).toString('base64')}`;
+          return dataUrlToBlobUrl(dataUrl);
         }
       }
 
-      if (!resp || !resp.data) {
-        // Fallback to basic image generation
-        return this.generateImage(prompt, { model: 'gemini-2.0-flash-exp', size: '1024x1024' });
-      }
-
-      const data = resp.data;
-
-      // Handle enhanced response format
-      if (data.images && data.images.length > 0) {
-        const firstImage = data.images[0];
-        const mimeType = firstImage.mime_type || `image/${imageFormat}`;
-        const base64Data = firstImage.data;
-        const dataUrl = `data:${mimeType};base64,${base64Data}`;
-        return dataUrlToBlobUrl(dataUrl);
-      }
-
-      // If we reach here, we couldn't find image data in the response
-      throw new Error('Enhanced image generation response did not contain expected image data.');
+      throw new Error('Image generation response did not contain expected image data.');
     } catch (error: any) {
-      logger.error('Error generating enhanced image from Gemini backend:', error);
-      // Surface friendly message for missing endpoint vs other failures
-      const status = error?.response?.status;
-      if (status === 401 || status === 403) {
-        throw new Error('Authentication failed when calling Gemini enhanced image endpoint (missing/invalid X-API-KEY).');
-      }
-      throw error instanceof Error ? error : new Error(String(error));
+      throw new Error(handleAppError('Gemini API enhanced image generation', error, 'Image generation response did not contain expected image data or authentication failed.'));
     }
   }
 
   /**
-   * Generates an image using the native Gemini 2.0 Flash capabilities via our backend.
+   * Generates an image using the native Gemini 2.0 Flash capabilities.
    * @param prompt The prompt to send to the Gemini API for image generation.
    * @param options Configuration options for image generation
    * @returns A promise that resolves to a blob URL of the generated image.
-   * @throws Throws an error if the API call fails or if the backend endpoint is missing.
+   * @throws Throws an error if the API call fails.
    */
   async generateImage(
     prompt: string,
@@ -203,72 +175,33 @@ class GeminiService implements AIService {
       size?: string;
     } = {}
   ): Promise<string> {
-    const { model = 'gemini-2.0-flash-exp', size = '1024x1024' } = options;
+    const { model = 'imagen-3.0-generate-001', size = 'IMAGE_SIZE_1024_1024' } = options; // Updated model name and default size to enum
 
     try {
-      // Try the kebab-case endpoint first (matches many backend styles)
-      let resp;
-      try {
-        resp = await httpClient.post('/gemini/generate-image', { prompt, model, size });
-      } catch (firstErr) {
-        // If backend returns 404, try camelCase fallback for compatibility
-        const status = (firstErr as any)?.response?.status;
-        if (status === 404) {
-          try {
-            resp = await httpClient.post('/gemini/generateImage', { prompt, model, size });
-          } catch (secondErr) {
-            // No image endpoint available — fail gracefully below
-            resp = undefined;
-            logger.info('No generate-image endpoint found on backend (404).');
-          }
-        } else {
-          // Propagate non-404 errors to be handled by outer catch
-          throw firstErr;
-        }
-      }
+      // Use the new SDK's generateImages method
+      const response = await ai.models.generateImages({
+        model: model,
+        prompt: prompt,
+        config: {
+          numberOfImages: 1,
+          imageSize: size as any, // Map size to imageSize enum
+          outputMimeType: 'image/png',
+        },
+      });
 
-      if (!resp || !resp.data) {
-        // Backend doesn't support image generation yet
-        throw new Error('Image generation endpoint is not available on the backend. TODO: Add /api/gemini/generate-image or update frontend to match backend.');
-      }
-
-      const data = resp.data;
-
-      // Handle new backend response format with native Gemini 2.0 Flash
-      if (data.image && data.image.data) {
-        // New format: { image: { mime_type: '...', data: '...' } }
-        const mimeType = data.image.mime_type || 'image/png';
-        const base64Data = data.image.data;
-        const dataUrl = `data:${mimeType};base64,${base64Data}`;
-        return dataUrlToBlobUrl(dataUrl);
-      }
-
-      // Fallback to legacy response formats
-      if (data.imageBase64) {
-        const dataUrl = `data:image/png;base64,${data.imageBase64}`;
-        return dataUrlToBlobUrl(dataUrl);
-      }
-
-      if (Array.isArray(data.generatedImages) && data.generatedImages.length > 0) {
-        const first = data.generatedImages[0];
-        if (first?.image?.url) {
-          return first.image.url;
-        } else if (first?.image?.bytesBase64) {
-          const dataUrl = `data:image/png;base64,${first.image.bytesBase64}`;
+      // Handle response format
+      if (response.generatedImages && response.generatedImages.length > 0) {
+        const firstImage = response.generatedImages[0];
+        if (firstImage.image?.imageBytes) {
+          const mimeType = firstImage.image.mimeType || 'image/png';
+          const dataUrl = `data:${mimeType};base64,${Buffer.from(firstImage.image.imageBytes).toString('base64')}`;
           return dataUrlToBlobUrl(dataUrl);
         }
       }
 
-      // If we reach here, we couldn't find image data in the response
       throw new Error('Image generation response did not contain expected image data.');
     } catch (error: any) {
-      logger.error('Error generating image from Gemini backend:', error);
-      // Surface friendly message for missing endpoint vs other failures
-      const status = error?.response?.status;
-      if (status === 401 || status === 403) {
-        throw new Error('Authentication failed when calling Gemini image endpoint (missing/invalid X-API-KEY).');
-      }
-      throw error instanceof Error ? error : new Error(String(error));
+      throw new Error(handleAppError('Gemini API image generation', error, 'Image generation response did not contain expected image data or authentication failed.'));
     }
   }
 
@@ -284,43 +217,42 @@ class GeminiService implements AIService {
     schema: any,
     options: {
       model?: string;
-      retries?: number;
       temperature?: number;
       maxOutputTokens?: number;
     } = {}
   ): Promise<any> {
     const {
-      model = 'gemini-2.5-flash',
-      retries = 3,
+      model = 'gemini-2.0-flash', // Updated model name
       temperature = 0.7,
       maxOutputTokens = 2000
     } = options;
 
     try {
-      const requestBody = {
-        prompt,
-        model,
-        temperature,
-        max_output_tokens: maxOutputTokens,
-        response_schema: schema
-      };
+      // Use the new SDK's generateContent method with response_schema
+      const response = await ai.models.generateContent({
+        model: model,
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        config: {
+          temperature,
+          maxOutputTokens,
+          responseSchema: schema, // Pass schema directly
+          responseMimeType: 'application/json', // Ensure JSON output
+        },
+      });
 
-      const resp = await httpClient.post('/gemini/generate', requestBody);
-      const data = resp?.data ?? {};
+      // The new SDK returns parsed data directly in `response.parsed` if a schema is provided.
+      // Explicitly cast to any to access the parsed property which is conditionally available.
+      const structuredData = (response as any).parsed || response.text;
+      const rawContent = response.text;
+      const usage = response.usageMetadata || {};
 
       return {
-        structuredData: data.structured_data || data.content,
-        rawContent: data.content,
-        usage: data.usage || data.usageMetadata || {}
+        structuredData,
+        rawContent,
+        usage
       };
     } catch (error: any) {
-      logger.error('Error generating structured content from Gemini backend:', error);
-      if (retries > 0) {
-        logger.info(`Retrying generateStructuredContent... (${retries - 1} left)`);
-        await new Promise(res => setTimeout(res, 1000));
-        return this.generateStructuredContent(prompt, schema, { ...options, retries: retries - 1 });
-      }
-      throw error;
+      throw new Error(handleAppError('Gemini API structured content generation', error, 'Structured content generation failed or authentication failed.'));
     }
   }
 
@@ -336,14 +268,12 @@ class GeminiService implements AIService {
     context: string,
     options: {
       model?: string;
-      retries?: number;
       temperature?: number;
       maxOutputTokens?: number;
     } = {}
   ): Promise<GeminiGenerateContentResponse> {
     const {
-      model = 'gemini-2.5-flash',
-      retries = 3,
+      model = 'gemini-2.5-flash', // Updated model name
       temperature = 0.7,
       maxOutputTokens = 4000
     } = options;
@@ -352,85 +282,48 @@ class GeminiService implements AIService {
       // Combine context and prompt for long context processing
       const fullPrompt = `Context:\n${context}\n\nBased on the above context, please respond to this request:\n${prompt}`;
 
-      const requestBody = {
-        prompt: fullPrompt,
-        model,
-        temperature,
-        max_output_tokens: maxOutputTokens
-      };
+      // Use the new SDK's generateContent method
+      const response = await ai.models.generateContent({
+        model: model,
+        contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
+        config: {
+          temperature,
+          maxOutputTokens,
+        },
+      });
 
-      const resp = await httpClient.post('/gemini/generate', requestBody);
-      const data = resp?.data ?? {};
-
-      const text = data.content || data.text || '';
+      const text = response.text || '';
+      const candidates = response.candidates || [];
+      const usageMetadata = response.usageMetadata || {};
+      const toolCalls = response.functionCalls || [];
 
       return {
         text,
-        candidates: data.candidates ?? [],
-        usageMetadata: data.usage ?? data.usageMetadata ?? {},
-        toolCalls: data.toolCalls ?? [],
+        candidates,
+        usageMetadata,
+        toolCalls,
       };
     } catch (error: any) {
-      logger.error('Error generating content with long context:', error);
-      if (retries > 0) {
-        logger.info(`Retrying generateWithLongContext... (${retries - 1} left)`);
-        await new Promise(res => setTimeout(res, 1000));
-        return this.generateWithLongContext(prompt, context, { ...options, retries: retries - 1 });
-      }
-      throw error;
+      throw new Error(handleAppError('Gemini API long context generation', error, 'Long context generation failed or authentication failed.'));
     }
   }
 
   /**
    * Connects to the Gemini Live API for real-time streaming using an ephemeral token.
-   * This implementation attempts to get an ephemeral token from the backend.
-   * If the backend does not expose a generateToken endpoint yet, this will fail with a clear TODO message.
    * @param options Configuration options for the Live API connection
    * @returns A LiveSession instance for real-time communication
    */
-  async liveConnect(options: LiveConnectParameters): Promise<any> {
+  async liveConnect(options: LiveAPIConfig): Promise<any> {
     try {
-      // The legacy implementation used /.netlify/functions/proxy/api/gemini/generateToken.
-      // New backend may expose something like POST /api/gemini/generateToken or /api/gemini/generate-token.
-      // Try a couple of likely endpoints and fail gracefully if none exist.
-      let tokenResp;
-      try {
-        tokenResp = await httpClient.post('/gemini/generateToken');
-      } catch (firstErr) {
-        const status = (firstErr as any)?.response?.status;
-        if (status === 404) {
-          try {
-            tokenResp = await httpClient.post('/gemini/generate-token');
-          } catch (secondErr) {
-            tokenResp = undefined;
-            logger.info('No generateToken endpoint found on backend (404).');
-          }
-        } else {
-          throw firstErr;
-        }
-      }
+      // The new SDK handles token generation internally or via client initialization.
+      // We need to ensure the client is initialized with the correct API key.
+      // If using an ephemeral token, it should be handled during client creation.
 
-      if (!tokenResp || !tokenResp.data) {
-        // TODO: Add /api/gemini/generateToken (or /api/gemini/generate-token) to backend to support Live API.
-        throw new Error('Gemini Live ephemeral token endpoint is not available on the backend. TODO: implement generateToken endpoint.');
-      }
-
-      const { token } = tokenResp.data;
-      if (!token) {
-        throw new Error('No token received from backend for Gemini Live connection.');
-      }
-
-      // Use the ephemeral token to create the client and connect
-      const clientWithToken = new GoogleGenAI({
-        apiKey: token,
-        httpOptions: { apiVersion: 'v1alpha' }
-      });
-
-      // 3. Use the new client to connect to the Live API
-      return await clientWithToken.live.connect(options);
-    } catch (error) {
-      logger.error('Error connecting to Gemini Live API:', error);
-      throw error;
+      // Assuming the GoogleGenAI client is already initialized with a valid API key (or env var)
+      // The liveConnect method is called on the client instance.
+      return await ai.live.connect(options);
+    } catch (error: any) {
+      throw new Error(handleAppError('Gemini Live API connection', error, 'Live API connection failed or authentication failed.'));
     }
   }
 }

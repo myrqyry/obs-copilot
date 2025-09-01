@@ -11,6 +11,7 @@ import { execSync, spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import process from 'process';
+import net from 'net'; // Import net module for port checking
 
 // Colors for console output
 const COLORS = {
@@ -135,10 +136,36 @@ async function installDependencies(venvPath) {
   }
 }
 
-function startUvicorn(venvPath) {
+// Function to check if a port is in use
+function checkPortInUse(port) {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.once('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        resolve(true);
+      } else {
+        resolve(false);
+      }
+    });
+    server.once('listening', () => {
+      server.close(() => {
+        resolve(false);
+      });
+    });
+    server.listen(port);
+  });
+}
+
+async function startUvicorn(venvPath) {
   const pythonExec = getPythonExecutable(venvPath);
-  const port = process.env.BACKEND_PORT || process.env.PORT || '8000';
+  let port = process.env.BACKEND_PORT || process.env.PORT || '8000';
   const host = process.env.BACKEND_HOST || '0.0.0.0';
+
+  // Check if default port 8000 is in use
+  if (port === '8000' && await checkPortInUse(8000)) {
+    logWarning('Port 8000 is in use, trying port 8001...');
+    port = '8001';
+  }
   
   const uvicornArgs = [
     '-m', 'uvicorn',

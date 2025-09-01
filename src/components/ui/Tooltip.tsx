@@ -1,5 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { usePortal } from '@/lib/portalUtils'; // Import the new usePortal hook
+import { useSettingsStore } from '@/store/settingsStore';
+import { catppuccinAccentColorsHexMap, catppuccinMochaColors } from '@/types';
+
 // Extend window for global tooltip tracking
 declare global {
     interface Window {
@@ -7,8 +10,6 @@ declare global {
         __activeTooltipHide?: (() => void) | null;
     }
 }
-import { useSettingsStore } from '@/store/settingsStore';
-import { catppuccinAccentColorsHexMap, catppuccinMochaColors } from '@/types';
 
 interface TooltipProps {
     content: React.ReactNode;
@@ -29,7 +30,6 @@ const Tooltip: React.FC<TooltipProps> = ({
     delay = 200,
 }) => {
     const [visible, setVisible] = useState(false);
-    const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
     const [mouse, setMouse] = useState<{ x: number; y: number } | null>(null);
     const [tooltipId] = useState(() => Math.random().toString(36).slice(2));
     const timeout = useRef<NodeJS.Timeout | null>(null);
@@ -44,7 +44,7 @@ const Tooltip: React.FC<TooltipProps> = ({
     }, []);
 
     // Smoother mouse tracking for tooltip
-    const showTooltip = (e?: React.MouseEvent) => {
+    const showTooltip = useCallback((e?: React.MouseEvent) => {
         if (e) {
             lastMouse.current = { x: e.clientX, y: e.clientY };
         }
@@ -61,11 +61,12 @@ const Tooltip: React.FC<TooltipProps> = ({
                 setMouse({ ...lastMouse.current });
             } else if (childRef.current) {
                 const rect = childRef.current.getBoundingClientRect();
-                setCoords({ top: rect.top + window.scrollY, left: rect.left + window.scrollX });
+                setMouse({ top: rect.top + window.scrollY, left: rect.left + window.scrollX } as any); // Use mouse for positioning
             }
         }, delay);
-    };
-    const hideTooltip = () => {
+    }, [delay, tooltipId]);
+
+    const hideTooltip = useCallback(() => {
         if (timeout.current) clearTimeout(timeout.current);
         setVisible(false);
         setMouse(null);
@@ -74,7 +75,7 @@ const Tooltip: React.FC<TooltipProps> = ({
             window.__activeTooltip = null;
             window.__activeTooltipHide = null;
         }
-    };
+    }, [tooltipId]);
 
     useEffect(() => {
         return () => {
@@ -93,10 +94,10 @@ const Tooltip: React.FC<TooltipProps> = ({
     if (mouse) {
         calculatedLeft = mouse.x;
         calculatedTop = mouse.y - 18;
-    } else if (coords && childRef.current) {
+    } else if (childRef.current) {
         const rect = childRef.current.getBoundingClientRect();
-        calculatedLeft = coords.left + rect.width / 2;
-        calculatedTop = coords.top - 8;
+        calculatedLeft = rect.left + rect.width / 2;
+        calculatedTop = rect.top - 8;
     }
     // Clamp tooltip position to viewport
     if (typeof window !== 'undefined' && calculatedLeft !== undefined && calculatedTop !== undefined && visible) {
@@ -137,6 +138,15 @@ const Tooltip: React.FC<TooltipProps> = ({
     // Glass effect (optional, can be tweaked)
     const glassClass = extraDarkMode ? 'chat-bubble-glass-extra-dark' : 'chat-bubble-glass';
 
+    const renderPortal = usePortal({
+        isOpen: visible && (mouse !== null || childRef.current !== null),
+        onClose: hideTooltip,
+        closeOnEscape: true,
+        closeOnBackdropClick: false, // Tooltip should not close on backdrop click
+        preventBodyScroll: false, // Tooltip should not prevent body scroll
+        portalId: 'tooltip-portal-root', // Unique ID for tooltip portal
+    });
+
     return (
         <div
             ref={childRef}
@@ -150,7 +160,7 @@ const Tooltip: React.FC<TooltipProps> = ({
             style={{ outline: 'none' }}
         >
             {children}
-            {visible && (mouse || coords) && createPortal(
+            {renderPortal(
                 <div
                     className={`fixed pointer-events-none px-3 py-2 rounded-2xl shadow-xl border font-sans text-xs font-medium ${glassClass} ${className}`}
                     style={{
@@ -168,8 +178,7 @@ const Tooltip: React.FC<TooltipProps> = ({
                     role="tooltip"
                 >
                     {content}
-                </div>,
-                document.body
+                </div>
             )}
         </div>
     );

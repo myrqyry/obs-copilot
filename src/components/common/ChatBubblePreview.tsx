@@ -103,7 +103,7 @@ export const ChatBubblePreview: React.FC<ChatBubblePreviewProps> = ({
         boxShadow: '0 2px 8px 0 rgba(0,0,0,0.08)',
         position: 'relative',
         overflow: 'hidden',
-        transition: 'background 0.3s, box-shadow 0.3s, border-color 0.3s',
+        transition: 'background 0.3s, box-shadow 0.3s, border-color 0.3s, align-self 0.3s ease-in-out', // Added align-self transition
         mixBlendMode: chatBubbleBlendMode,
     };
 
@@ -123,7 +123,7 @@ export const ChatBubblePreview: React.FC<ChatBubblePreviewProps> = ({
         boxShadow: '0 2px 8px 0 rgba(0,0,0,0.08)',
         position: 'relative',
         overflow: 'hidden',
-        transition: 'background 0.3s, box-shadow 0.3s, border-color 0.3s',
+        transition: 'background 0.3s, box-shadow 0.3s, border-color 0.3s, align-self 0.3s ease-in-out', // Added align-self transition
         mixBlendMode: chatBubbleBlendMode,
     };
     return (

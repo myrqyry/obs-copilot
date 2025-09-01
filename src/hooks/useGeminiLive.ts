@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
+import { useLifecycleManagement } from './useLifecycleManagement';
 import { geminiService } from '@/services/geminiService';
 import { logger } from '@/utils/logger';
 import { LiveServerMessage, LiveConnectParameters } from '@google/genai';
@@ -168,14 +169,15 @@ export const useGeminiLive = () => {
     return buffer;
   };
 
-  useEffect(() => {
-    return () => {
+  useLifecycleManagement({
+    onUnmount: () => {
       disconnect();
       if (audioUrl) {
         URL.revokeObjectURL(audioUrl);
       }
-    };
-  }, [audioUrl, disconnect]);
+    },
+    dependencies: [audioUrl, disconnect],
+  });
 
   return {
     isConnecting,

@@ -1,4 +1,5 @@
 import { AIService } from '../types/ai';
+import { logger } from '../utils/logger';
 
 // AI Middleware
 // This middleware will be used to inject fallback prompts, failover retries, and custom formatting utilities.
@@ -11,9 +12,9 @@ export const aiMiddleware = (service: AIService): any => {
         // Pass retries down to the original service call
         return await (service as any).generateContent(prompt, retries);
       } catch (error) {
-        console.error('AI Service Error:', error);
+        logger.error('AI Service Error:', error);
         if (retries > 0) {
-          console.log(`Retrying... ${retries} attempts left.`);
+          logger.warn(`Retrying... ${retries} attempts left.`);
           await new Promise((res) => setTimeout(res, 1000));
           // Correctly call the middleware-wrapped function for retry
           return await (aiMiddleware(service) as any).generateContent(prompt, retries - 1);

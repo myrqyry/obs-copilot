@@ -1,44 +1,19 @@
-import { GenerateContentResponse } from '@google/genai';
+import { GenerateContentResponse, GenerateImagesResponse, LiveServerMessage, LiveConnectParameters, GenerateImagesConfig, GenerateContentConfig } from '@google/genai';
 
 export interface GeminiGenerateContentResponse {
   text: string;
   candidates?: GenerateContentResponse['candidates'];
   usageMetadata?: GenerateContentResponse['usageMetadata'];
-  toolCalls?: any[]; // Update with proper type when available
+  toolCalls?: GenerateContentResponse['functionCalls'];
 }
 
 export interface GeminiGenerateImagesResponse {
-  generatedImages: {
-    image: {
-      url: string;
-    };
-  }[];
+  generatedImages?: GenerateImagesResponse['generatedImages'];
 }
 
-export interface LiveAPIMessage {
-  data?: string;
-  serverContent?: {
-    turnComplete?: boolean;
-    modelTurn?: {
-      parts: Array<{
-        inline_data?: {
-          mime_type: string;
-        }
-      }>
-    }
-  };
-}
+export interface LiveAPIMessage extends LiveServerMessage {}
 
-export type LiveAPIConfig = {
-  model: string;
-  callbacks: {
-    onopen?: () => void;
-    onmessage?: (message: LiveAPIMessage) => void;
-    onerror?: (error: Error) => void;
-    onclose?: (event: CloseEvent) => void;
-  };
-  config?: {
-    responseModalities?: string[];
-    systemInstruction?: string;
-  };
-};
+export type LiveAPIConfig = LiveConnectParameters;
+
+export interface GeminiGenerateImagesConfig extends GenerateImagesConfig {}
+export interface GeminiGenerateContentConfig extends GenerateContentConfig {}

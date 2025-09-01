@@ -3,6 +3,7 @@ import useApiKeyStore, { ApiService } from '@/store/apiKeyStore';
 import { GiphyResult, GiphyRating } from '@/types/giphy';
 import { toast } from '@/components/ui/toast';
 import { getSimpleApiEndpoint } from '@/utils/api';
+import { handleAppError, createToastError } from '../lib/errorUtils'; // Import error utilities
 
 interface SearchFilters {
   rating: GiphyRating;
@@ -73,13 +74,12 @@ export const useGifSearch = () => {
           // Tenor API logic would go here
         }
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'An unknown error occurred';
-        setSearchError(message);
-        toast({
-          title: `GIF Search Error`,
-          description: message,
-          variant: 'destructive',
-        });
+        const errorMessage = handleAppError('GIF Search', error);
+        setSearchError(errorMessage);
+        toast(createToastError(
+          `GIF Search Error`,
+          errorMessage
+        ));
       } finally {
         setGifLoading(false);
       }

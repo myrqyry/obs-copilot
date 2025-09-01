@@ -9,9 +9,10 @@ interface TextInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement
   success?: string;
   hint?: string;
   accentColorName?: CatppuccinAccentColorName;
-  variant?: 'default' | 'glass' | 'outlined' | 'filled' | 'minimal';
+  variant?: 'default' | 'glass' | 'outlined' | 'filled' | 'minimal' | 'expressive';
   size?: 'sm' | 'md' | 'lg';
   withAnimation?: boolean;
+  floatLabel?: boolean; // New prop to control floating label behavior
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   loading?: boolean;
@@ -41,10 +42,14 @@ export const TextInput: React.FC<TextInputProps> = ({
   rounded = false,
   value,
   onChange,
+  floatLabel = false, // Default to false, enable for specific variants
   ...props
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const labelRef = useRef<HTMLLabelElement>(null);
+
+  const [isFocused, setIsFocused] = React.useState(false);
 
   // GSAP animations (restored)
   useEffect(() => {
@@ -67,24 +72,56 @@ export const TextInput: React.FC<TextInputProps> = ({
     };
   }, [withAnimation]);
 
-  const handleFocus = () => {
-    if (withAnimation && containerRef.current) {
+  // Floating label animation for 'outlined' and 'expressive' variants
+  useEffect(() => {
+    const shouldFloat = floatLabel || variant === 'expressive' || variant === 'outlined';
+
+    if (shouldFloat && labelRef.current && inputRef.current) {
+      const label = labelRef.current;
+      const isActive = isFocused || (value && String(value).length > 0);
+
+      if (isActive) {
+        gsap.to(label, {
+          top: '-0.75rem', // Adjust this value based on desired floating position
+          fontSize: '0.75rem', // Smaller font size when floating
+          duration: 0.2,
+          ease: 'power2.out',
+          color: error ? 'var(--destructive)' : success ? 'var(--green-600)' : 'var(--ring)'
+        });
+      } else {
+        gsap.to(label, {
+          top: '50%',
+          fontSize: '1rem', // Original font size
+          duration: 0.2,
+          ease: 'power2.out',
+          color: 'var(--muted-foreground)'
+        });
+      }
+    }
+  }, [isFocused, value, variant, error, success, floatLabel]);
+
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    setIsFocused(true);
+    if (withAnimation && containerRef.current && !floatLabel && variant !== 'expressive' && variant !== 'outlined') {
       gsap.to(containerRef.current, {
         scale: 1.02,
         duration: 0.2,
         ease: 'power2.out'
       });
     }
+    props.onFocus?.(e);
   };
 
-  const handleBlur = () => {
-    if (withAnimation && containerRef.current) {
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    setIsFocused(false);
+    if (withAnimation && containerRef.current && !floatLabel && variant !== 'expressive' && variant !== 'outlined') {
       gsap.to(containerRef.current, {
         scale: 1,
         duration: 0.2,
         ease: 'power2.out'
       });
     }
+    props.onBlur?.(e);
   };
 
   const handleClear = () => {
@@ -110,9 +147,10 @@ export const TextInput: React.FC<TextInputProps> = ({
     const variantStyles = {
       default: 'bg-input border-border text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-ring/20',
       glass: 'glass-input border-white/10 text-foreground placeholder:text-muted-foreground focus:border-white/20 focus:ring-white/20 backdrop-blur-md',
-      outlined: 'bg-transparent border-2 border-border text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-ring/20',
+      outlined: 'bg-transparent border-2 border-border text-foreground placeholder:text-transparent focus:border-ring focus:ring-ring/20 pt-6 pb-2', // Adjust padding for floating label
       filled: 'bg-muted border-transparent text-foreground placeholder:text-muted-foreground focus:bg-background focus:border-ring focus:ring-ring/20',
-      minimal: 'bg-transparent border-b border-border text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-ring/20 rounded-none'
+      minimal: 'bg-transparent border-b border-border text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-ring/20 rounded-none',
+      expressive: 'bg-muted border-b-2 border-muted-foreground/50 text-foreground placeholder:text-transparent focus:border-ring focus:ring-ring/20 pt-6 pb-2' // Adjust padding for floating label
     };
 
     const sizeStyles = {
@@ -140,6 +178,16 @@ export const TextInput: React.FC<TextInputProps> = ({
       : success
         ? 'text-green-600'
         : 'text-foreground';
+
+    const shouldFloat = floatLabel || variant === 'expressive' || variant === 'outlined';
+
+    if (shouldFloat) {
+      return cn(
+        'absolute left-3 -translate-y-1/2 pointer-events-none transform transition-all duration-200 ease-in-out',
+        isFocused || (value && String(value).length > 0) ? 'text-xs top-2.5' : 'text-base top-1/2',
+        error ? 'text-destructive' : success ? 'text-green-600' : 'text-muted-foreground'
+      );
+    }
 
     return cn(baseStyles, stateStyles);
   };
@@ -201,17 +249,32 @@ export const TextInput: React.FC<TextInputProps> = ({
     );
   };
 
+  const shouldFloatLabel = floatLabel || variant === 'expressive' || variant === 'outlined';
+
   return (
     <div ref={containerRef} className={cn('space-y-1', className)}>
-      {label && (
-        <label htmlFor={id} className={getLabelStyles()}>
-          {label}
-        </label>
-      )}
-
       <div className="relative">
+        {label && shouldFloatLabel ? (
+          <label
+            ref={labelRef}
+            htmlFor={id}
+            className={getLabelStyles()}
+          >
+            {label}
+          </label>
+        ) : (
+          label && (
+            <label htmlFor={id} className={getLabelStyles()}>
+              {label}
+            </label>
+          )
+        )}
+
         {leftIcon && (
-          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground transition-colors duration-200">
+          <div className={cn(
+            "absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground transition-colors duration-200",
+            shouldFloatLabel && (isFocused || (value && String(value).length > 0)) ? 'top-2/3' : ''
+          )}>
             {leftIcon}
           </div>
         )}

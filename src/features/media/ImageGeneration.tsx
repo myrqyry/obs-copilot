@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { useConnectionManagerStore } from '@/store/connectionManagerStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { toast } from '@/components/ui/toast';
-import { ObsClient } from '@/services/obsClient';
+import { ObsClientImpl as ObsClient } from '@/services/obsClient';
 import { catppuccinAccentColorsHexMap } from '@/types';
 import { generateSourceName } from '@/utils/obsSourceHelpers';
 import { copyToClipboard } from '@/utils/persistence';
 import { CardContent } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
-import { Button } from '@/components/ui/Button';
+import { CustomButton as Button } from '@/components/ui/CustomButton';
 import { CollapsibleCard } from '@/components/common/CollapsibleCard';
 import { TextInput } from '@/components/common/TextInput';
 import { ImageUpload } from '@/components/common/ImageUpload';
@@ -20,6 +20,7 @@ import {
   ImageUploadResult
 } from '@/types/audio';
 import { Settings, Sparkles } from 'lucide-react';
+import { handleAppError, createToastError } from '@/lib/errorUtils'; // Import error utilities
 
 const ImageGeneration: React.FC = () => {
     const [prompt, setPrompt] = useState('');
@@ -72,7 +73,7 @@ const ImageGeneration: React.FC = () => {
 
             if (useEnhancedMode && uploadedImage) {
                 // Use enhanced image generation with editing capabilities
-                generatedImageUrl = await (geminiService as any).generateEnhancedImage(prompt, {
+                generatedImageUrl = await geminiService.generateEnhancedImage(prompt, {
                     model,
                     responseModalities,
                     imageFormat,
@@ -83,7 +84,7 @@ const ImageGeneration: React.FC = () => {
                 });
             } else if (useEnhancedMode) {
                 // Use enhanced image generation for new images
-                generatedImageUrl = await (geminiService as any).generateEnhancedImage(prompt, {
+                generatedImageUrl = await geminiService.generateEnhancedImage(prompt, {
                     model,
                     responseModalities,
                     imageFormat,
@@ -98,11 +99,7 @@ const ImageGeneration: React.FC = () => {
             setImageUrl(generatedImageUrl);
             setModalOpen(true);
         } catch (err: unknown) {
-            if (err instanceof Error) {
-                setError(err.message);
-            } else {
-                setError('An unknown error occurred');
-            }
+            setError(handleAppError('Image generation', err));
         } finally {
             setLoading(false);
         }
@@ -110,11 +107,10 @@ const ImageGeneration: React.FC = () => {
 
     const handleAddAsBrowserSource = async () => {
         if (!obsServiceInstance || !isConnected || !currentProgramScene || !imageUrl) {
-            toast({
-                title: 'Error',
-                description: 'OBS not connected or no image generated.',
-                variant: 'destructive',
-            });
+            toast(createToastError(
+                'Error',
+                'OBS not connected or no image generated.'
+            ));
             return;
         }
         try {
@@ -125,23 +121,19 @@ const ImageGeneration: React.FC = () => {
                 variant: 'default',
             });
         } catch (error: unknown) {
-            if (error instanceof Error) {
-                toast({
-                    title: 'Error',
-                    description: `Failed to add source: ${error.message}`,
-                    variant: 'destructive',
-                });
-            }
+            toast(createToastError(
+                'Error',
+                handleAppError('Adding browser source', error)
+            ));
         }
     };
 
     const handleAddAsImageSource = async () => {
         if (!obsServiceInstance || !isConnected || !currentProgramScene || !imageUrl) {
-            toast({
-                title: 'Error',
-                description: 'OBS not connected or no image generated.',
-                variant: 'destructive',
-            });
+            toast(createToastError(
+                'Error',
+                'OBS not connected or no image generated.'
+            ));
             return;
         }
         try {
@@ -152,13 +144,10 @@ const ImageGeneration: React.FC = () => {
                 variant: 'default',
             });
         } catch (error: unknown) {
-            if (error instanceof Error) {
-                toast({
-                    title: 'Error',
-                    description: `Failed to add source: ${error.message}`,
-                    variant: 'destructive',
-                });
-            }
+            toast(createToastError(
+                'Error',
+                handleAppError('Adding image source', error)
+            ));
         }
     };
 

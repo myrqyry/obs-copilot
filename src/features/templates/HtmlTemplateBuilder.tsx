@@ -1,12 +1,13 @@
 import Tooltip from '@/components/ui/Tooltip';
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/Button';
+import { CustomButton as Button } from '@/components/ui/CustomButton';
 import { TextInput } from '@/components/common/TextInput';
 import { Modal } from '@/components/ui/Modal';
 import { useConnectionManagerStore } from '@/store/connectionManagerStore';
 import { HtmlTemplateService, TemplateConfig } from '@/services/htmlTemplateService';
 import { catppuccinAccentColorsHexMap, CatppuccinAccentColorName } from '@/types';
 import SecureHtmlRenderer from '@/components/ui/SecureHtmlRenderer';
+import { handleAppError } from '@/lib/errorUtils'; // Import error utilities
 
 interface HtmlTemplateBuilderProps {
     accentColorName: CatppuccinAccentColorName;
@@ -105,8 +106,7 @@ const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({ accentColorNa
             );
             setFeedbackMessage(`✅ Browser source "${sourceName}" created successfully!`);
         } catch (error: any) {
-            console.error('Failed to create browser source:', error);
-            setFeedbackMessage(`❌ Failed to create browser source: ${error.message}`);
+            setFeedbackMessage(handleAppError('Failed to create browser source', error));
         } finally {
             setIsCreating(false);
         }
@@ -127,8 +127,7 @@ const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({ accentColorNa
             );
             setFeedbackMessage(`✅ Browser source "${sourceName}" updated successfully!`);
         } catch (error: any) {
-            console.error('Failed to update browser source:', error);
-            setFeedbackMessage(`❌ Failed to update browser source: ${error.message}`);
+            setFeedbackMessage(handleAppError('Failed to update browser source', error));
         } finally {
             setIsCreating(false);
         }

@@ -1,6 +1,6 @@
 // src/features/connections/ConnectionForm.tsx
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/Button';
+import { CustomButton as Button } from '@/components/ui/CustomButton';
 import { TextInput } from '@/components/common/TextInput';
 import { CollapsibleCard } from '@/components/common/CollapsibleCard';
 import { loadConnectionSettings, saveConnectionSettings } from '@/utils/persistence';

@@ -1,7 +1,7 @@
 // src/features/asset-search/AssetSearch.tsx
 import React, { useState, useMemo } from 'react';
 import { useGenericApiSearch } from '@/hooks/useGenericApiSearch';
-import { Button } from '@/components/ui/Button';
+import { CustomButton as Button } from '@/components/ui/CustomButton';
 import { CardContent } from '@/components/ui/Card';
 import { CollapsibleCard } from '@/components/common/CollapsibleCard';
 import { FaviconDropdown } from '@/components/common/FaviconDropdown';
@@ -10,6 +10,12 @@ import { Modal } from '@/components/ui/Modal';
 import { TextInput } from '@/components/common/TextInput';
 import { StandardApiItem } from '@/types/api';
 import { apiConfigs as registeredApis } from '@/config/apis';
+import { handleAppError, createToastError } from '@/lib/errorUtils'; // Import error utilities
+import { toast } from '@/components/ui/toast'; // Import toast
+import { copyToClipboard } from '@/utils/persistence'; // Import copyToClipboard
+import { generateSourceName } from '@/utils/obsSourceHelpers'; // Import generateSourceName
+import { useConnectionManagerStore } from '@/store/connectionManagerStore'; // Import useConnectionManagerStore
+import { ObsClientImpl as ObsClient } from '@/services/obsClient'; // Import ObsClientImpl
 
 // Define the shape of the API configurations we'll pass in
 interface ApiConfig {
@@ -62,6 +68,63 @@ export const AssetSearch: React.FC<AssetSearchProps> = ({
         e.preventDefault();
         if (!query.trim()) return;
         search(query);
+    };
+
+    const handleAddAsBrowserSource = async (url: string, title: string) => {
+        const { obsServiceInstance, isConnected, currentProgramScene } = useConnectionManagerStore.getState();
+        if (!isConnected || !obsServiceInstance) {
+            toast(createToastError('Not Connected', 'Please connect to OBS first'));
+            return;
+        }
+        try {
+            const sourceName = generateSourceName(title);
+            await (obsServiceInstance as ObsClient).addBrowserSource(currentProgramScene, url, sourceName, 640, 360);
+            toast({ title: 'Success', description: `Added "${title}" as browser source` });
+        } catch (error: any) {
+            toast(createToastError('Failed to Add Source', handleAppError('Adding browser source', error)));
+        }
+    };
+
+    const handleAddAsImageSource = async (url: string, title: string) => {
+        const { obsServiceInstance, isConnected, currentProgramScene } = useConnectionManagerStore.getState();
+        if (!isConnected || !obsServiceInstance) {
+            toast(createToastError('Not Connected', 'Please connect to OBS first'));
+            return;
+        }
+        try {
+            const sourceName = generateSourceName(title);
+            await (obsServiceInstance as ObsClient).addImageSource(currentProgramScene, url, sourceName);
+            toast({ title: 'Success', description: `Added "${title}" as image source` });
+        } catch (error: any) {
+            toast(createToastError('Failed to Add Source', handleAppError('Adding image source', error)));
+        }
+    };
+
+    const getCommonModalActions = (item: StandardApiItem): {
+        label: string;
+        onClick: () => void;
+        variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'warning';
+    }[] => {
+        return [
+            {
+                label: 'Add as Browser Source',
+                onClick: () => handleAddAsBrowserSource(item.url, item.title),
+                variant: 'primary'
+            },
+            {
+                label: 'Add as Image Source',
+                onClick: () => handleAddAsImageSource(item.url, item.title),
+                variant: 'secondary'
+            },
+            {
+                label: 'Copy URL',
+                onClick: () => {
+                    copyToClipboard(item.url);
+                    toast({ title: 'Copied', description: 'URL copied to clipboard' });
+                },
+                variant: 'secondary'
+            }
+        ];
     };
 
     const mappedResults = useMemo<StandardApiItem[]>(() => {
@@ -118,7 +181,7 @@ export const AssetSearch: React.FC<AssetSearchProps> = ({
                         isOpen={!!modalContent}
                         onClose={() => setModalContent(null)}
                         title={modalContent.title || 'Asset Preview'}
-                        actions={getModalActions(modalContent)}
+                        actions={getModalActions(modalContent) || getCommonModalActions(modalContent)}
                     >
                         {renderModalContent(modalContent)}
                     </Modal>

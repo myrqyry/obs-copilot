@@ -1,6 +1,6 @@
 // src/features/asset-search/GifSearch.tsx
 import React, { useState, useMemo } from 'react';
-import { Button } from '@/components/ui/Button';
+import { CustomButton as Button } from '@/components/ui/CustomButton';
 import { CardContent } from '@/components/ui/Card';
 import { CollapsibleCard } from '@/components/common/CollapsibleCard';
 import { FaviconDropdown } from '@/components/common/FaviconDropdown';
@@ -13,6 +13,7 @@ import { copyToClipboard } from '@/utils/persistence';
 import { generateSourceName } from '@/utils/obsSourceHelpers';
 import axios from 'axios';
 import { SearchFilters } from './SearchFilters';
+import { handleAppError, createToastError } from '@/lib/errorUtils'; // Import error utilities
 
 // --- Configuration ---
 const GIF_APIS = [
@@ -68,7 +69,8 @@ const GifSearch: React.FC = () => {
             const data = response.data.results || response.data.data || [];
             setResults(data);
         } catch (error: any) {
-            toast({ title: 'Search Failed', description: error.message, variant: 'destructive' });
+            const errorMessage = handleAppError('GIF Search', error);
+            toast(createToastError('Search Failed', errorMessage));
         } finally {
             setLoading(false);
         }
@@ -86,7 +88,7 @@ const GifSearch: React.FC = () => {
 
     const handleAddAsBrowserSource = async (url: string, title: string) => {
         if (!isConnected || !obsServiceInstance) {
-            toast({ title: 'Not Connected', description: 'Please connect to OBS first', variant: 'destructive' });
+            toast(createToastError('Not Connected', 'Please connect to OBS first'));
             return;
         }
         try {
@@ -100,7 +102,7 @@ const GifSearch: React.FC = () => {
             });
             toast({ title: 'Success', description: `Added "${title}" as browser source` });
         } catch (error: any) {
-            toast({ title: 'Failed to Add Source', description: error.message, variant: 'destructive' });
+            toast(createToastError('Failed to Add Source', handleAppError('Adding browser source', error)));
         }
     };
 
