@@ -5,11 +5,15 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi_mcp import FastApiMCP  # Import FastApiMCP
+from dotenv import load_dotenv # Import load_dotenv
 
 from backend.auth import get_api_key
 from backend.api.routes import gemini
 from backend.api.routes import assets
 from backend.middleware import logging_middleware
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = FastAPI(
     title="Universal Backend Server",
@@ -22,7 +26,7 @@ app.middleware("http")(logging_middleware)
 # Load allowed origins from environment variable
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
 if not allowed_origins or allowed_origins == [""]:
-    allowed_origins = ["http://localhost:3000", "http://localhost:5173"]
+    allowed_origins = ["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:5173"]
 
 
 app.add_middleware(

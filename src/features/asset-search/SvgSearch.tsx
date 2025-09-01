@@ -2,7 +2,10 @@
 import React from 'react';
 import AssetSearch from './AssetSearch';
 import SecureHtmlRenderer from '@/components/ui/SecureHtmlRenderer';
-// ... (other imports will be needed for handlers)
+import { useConnectionManagerStore } from '@/store/connectionManagerStore';
+import { toast } from '@/components/ui/toast';
+import { copyToClipboard } from '@/utils/persistence';
+import { generateSourceName } from '@/utils/obsSourceHelpers';
 
 // Define your SVG APIs
 const SVG_APIS = [
@@ -23,7 +26,23 @@ const mapSvgToStandard = (item: any) => ({
 
 
 const SvgSearch: React.FC = () => {
-    // ... (Your handler functions like handleAddAsBrowserSource, getModalActions, etc.)
+    const { obsServiceInstance, isConnected, currentProgramScene } = useConnectionManagerStore();
+
+    const handleAddAsBrowserSource = async (url: string, title: string) => {
+        if (!isConnected || !currentProgramScene || !obsServiceInstance) {
+            toast({ title: 'OBS Not Connected', variant: 'destructive' });
+            return;
+        }
+        const sourceName = generateSourceName(`SVG-${title}`);
+        await (obsServiceInstance as any).addBrowserSource(currentProgramScene, url, sourceName);
+        toast({ title: 'Success', description: `Added "${sourceName}" to OBS.` });
+    };
+
+    const getModalActions = (item: any) => [
+        { label: 'Add as Browser Source', onClick: () => handleAddAsBrowserSource(item.url, item.title), variant: 'primary' },
+        { label: 'Copy URL', onClick: () => { copyToClipboard(item.url); toast({ title: 'Copied!' }); } },
+        { label: 'Copy SVG Content', onClick: () => { copyToClipboard(item.svgContent); toast({ title: 'Copied!' }); } },
+    ];
 
     const renderGridItem = (item: any, onClick: () => void) => (
         <div key={item.id} className="relative group cursor-pointer h-full bg-slate-800 rounded-md p-2" onClick={onClick}>
@@ -54,7 +73,7 @@ const SvgSearch: React.FC = () => {
             apiMapper={mapSvgToStandard}
             renderGridItem={renderGridItem}
             renderModalContent={renderModalContent}
-            getModalActions={() => [] /* Implement actions */}
+            getModalActions={getModalActions}
         />
     );
 };

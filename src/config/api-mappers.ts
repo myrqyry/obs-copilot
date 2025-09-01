@@ -52,6 +52,15 @@ export const mapArtStationToStandard = (item: any) => ({
   author: item.user?.full_name || 'Unknown',
 });
 
+export const mapGiphyToStandard = (item: any) => ({
+  id: String(item.id),
+  title: item.title || 'Untitled',
+  url: item.images?.original?.url || item.url || '',
+  thumbnail: item.images?.fixed_height_small?.url || item.thumbnail || '',
+  source: 'giphy',
+  author: item.user?.display_name || item.username || 'Unknown',
+});
+
 export const apiMappers: { [key: string]: (item: any) => any } = {
   wallhaven: mapWallhavenToStandard,
   unsplash: mapUnsplashToStandard,
@@ -59,4 +68,5 @@ export const apiMappers: { [key: string]: (item: any) => any } = {
   pixabay: mapPixabayToStandard,
   deviantart: mapDeviantArtToStandard,
   artstation: mapArtStationToStandard,
+  giphy: mapGiphyToStandard,
 };

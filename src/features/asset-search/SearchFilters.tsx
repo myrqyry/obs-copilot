@@ -13,6 +13,7 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({ filters, onFilterC
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         
         {/* Content Type (Giphy specific) */}
+        {/* Content Type (Giphy specific) */}
         {api === 'giphy' && (
           <div>
             <label className="text-xs font-medium text-muted-foreground">Content Type</label>
@@ -25,6 +26,37 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({ filters, onFilterC
               <option value="stickers">Stickers</option>
               <option value="text">Text</option>
             </select>
+          </div>
+        )}
+
+        {/* Orientation Filter (for image-based APIs like Unsplash, Pexels, Pixabay) */}
+        {(api === 'unsplash' || api === 'pexels' || api === 'pixabay') && (
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Orientation</label>
+            <select
+              value={filters.orientation || 'all'}
+              onChange={(e) => onFilterChange('orientation', e.target.value)}
+              className="w-full text-xs bg-background border border-border rounded px-2 py-1 mt-1"
+            >
+              <option value="all">All</option>
+              <option value="landscape">Landscape</option>
+              <option value="portrait">Portrait</option>
+              <option value="squarish">Squarish</option>
+            </select>
+          </div>
+        )}
+
+        {/* SVG Category Filter (for Iconfinder) */}
+        {api === 'iconfinder' && (
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Category</label>
+            <input
+              type="text"
+              value={filters.category || ''}
+              onChange={(e) => onFilterChange('category', e.target.value)}
+              className="w-full text-xs bg-background border border-border rounded px-2 py-1 mt-1"
+              placeholder="e.g., animals, food"
+            />
           </div>
         )}
 

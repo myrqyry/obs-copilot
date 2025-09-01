@@ -34,7 +34,17 @@ API_CONFIGS = {
         "key_env": "UNSPLASH_API_KEY",
         "auth_header": "Client-ID",
     },
-    # We can add Wallhaven, Iconfinder, etc. here later!
+    "wallhaven": {
+        "base_url": "https://wallhaven.cc/api/v1/search",
+        "key_env": None, # Wallhaven does not require an API key for basic search
+        "key_param": None,
+    },
+    "iconfinder": {
+        "base_url": "https://api.iconfinder.com/v4/icons/search",
+        "key_env": "ICONFINDER_API_KEY",
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+    },
 }
 
 
@@ -55,20 +65,16 @@ async def search_assets(api_name: str, request: Request):
 
     config = API_CONFIGS[api_name]
     key_env_variable = config.get("key_env")
+    api_key = None
 
-    if not key_env_variable:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Configuration for '{api_name}' is missing the 'key_env' setting.",
-        )
-
-    api_key = os.getenv(key_env_variable)
-
-    if not api_key:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"The '{key_env_variable}' API key is not set in the backend's .env file.",
-        )
+    # Only attempt to load API key if key_env_variable is specified
+    if key_env_variable:
+        api_key = os.getenv(key_env_variable)
+        if not api_key:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"The '{key_env_variable}' API key is not set in the backend's .env file.",
+            )
 
     # Forward all query parameters from the frontend request
     params = dict(request.query_params)
@@ -78,10 +84,11 @@ async def search_assets(api_name: str, request: Request):
         params["q"] = params.pop("query")
 
     headers = {}
-    if "auth_header" in config:
-        headers[config["auth_header"]] = api_key
-    else:
-        params[config["key_param"]] = api_key
+    if api_key: # Only add API key if it exists
+        if "auth_header" in config:
+            headers[config["auth_header"]] = api_key
+        elif "key_param" in config: # Ensure key_param exists before using
+            params[config["key_param"]] = api_key
 
     async with httpx.AsyncClient() as client:
         try:
@@ -100,4 +107,25 @@ async def search_assets(api_name: str, request: Request):
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"An unexpected error occurred: {str(e)}",
+            )
+
+@router.get("/proxy-image")
+async def proxy_image(image_url: str):
+    """
+    Proxies an image URL to bypass CORS issues.
+    """
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(image_url, timeout=10.0)
+            response.raise_for_status()
+            return response.content
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(
+                status_code=e.response.status_code,
+                detail=f"Error fetching image from {image_url}: {e.response.text}",
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"An unexpected error occurred while proxying image: {str(e)}",
             )

@@ -4,9 +4,9 @@ import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { useConnectionManagerStore } from '@/store/connectionManagerStore';
 import { useChatStore, ChatState } from '@/store/chatStore';
-import { useSettingsStore, SettingsState } from '@/store/settingsStore';
-import { ChatMessage, OBSSource } from '@/types';
-import { ConnectionState } from '@/store/connectionsStore';
+import { useSettingsStore, SettingsState } from '../../store/settingsStore'; // Corrected import path and named import
+import { ChatMessage } from '@/types'; // Removed unused OBSSource import
+import useConnectionsStore from '@/store/connectionsStore'; // Import the store directly
 
 interface GeminiChatProps {
     onRefreshData: () => Promise<void>;
@@ -26,10 +26,10 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
     onChatInputChange,
     onStreamerBotAction,
 }) => {
-    const isConnected = useConnectionManagerStore((state: ConnectionState) => state.isConnected);
-    const sources = useConnectionManagerStore((state: ConnectionState) => state.sources);
-    const currentProgramScene = useConnectionManagerStore(
-        (state: ConnectionState) => state.currentProgramScene
+    const isConnected = useConnectionsStore((state) => state.isConnected);
+    const sources = useConnectionsStore((state) => state.sources);
+    const currentProgramScene = useConnectionsStore(
+        (state) => state.currentProgramScene
     );
     const messages: ChatMessage[] = useChatStore((state: ChatState) => state.geminiMessages);
     const isGeminiClientInitialized = useChatStore(
@@ -40,6 +40,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
     const extraDarkMode = useSettingsStore((state: SettingsState) => state.extraDarkMode);
     const flipSides = useSettingsStore((state: SettingsState) => state.flipSides);
     const theme = useSettingsStore((state: SettingsState) => state.theme);
+    const geminiApiKey = useSettingsStore((state: SettingsState) => state.geminiApiKey); // Get geminiApiKey
 
     const onAddMessage = chatActions.addMessage;
     const accentColorName = theme.accent;
@@ -51,9 +52,10 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
         handleAddToContext,
         handleSend,
         handleObsAction,
-    } = useGeminiChat(onRefreshData, setErrorMessage, onStreamerBotAction);
+        handleRegenerate, // Destructure handleRegenerate
+    } = useGeminiChat(onRefreshData, setErrorMessage, onStreamerBotAction, geminiApiKey); // Pass geminiApiKey
 
-    const chatInputRef = useRef<HTMLInputElement>(null);
+    const chatInputRef = useRef<HTMLTextAreaElement>(null); // Changed to HTMLTextAreaElement
 
     useEffect(() => {
         if (isGeminiClientInitialized) {
@@ -105,10 +107,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
                 handleAddToContext={handleAddToContext}
                 extraDarkMode={extraDarkMode}
                 flipSides={flipSides}
-                handleRegenerate={(messageId: string) => {
-                    // TODO: Implement message regeneration logic
-                    console.log('Regenerate message:', messageId);
-                }}
+                handleRegenerate={(messageId: string) => handleRegenerate(messageId, onChatInputChange, handleSend)}
                 userChatBubbleColorName={theme.userChatBubble}
                 modelChatBubbleColorName={theme.modelChatBubble}
                 customChatBackground=""

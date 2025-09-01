@@ -37,6 +37,8 @@ interface AssetSearchProps {
     renderGridItem: (item: StandardApiItem, onClick: () => void) => React.ReactNode;
     renderModalContent: (item: StandardApiItem) => React.ReactNode;
     getModalActions: (item: StandardApiItem) => any[];
+    extraSearchParams?: Record<string, any>; // New prop for extra search parameters
+    onApiChange?: (api: string) => void; // New prop for handling API changes
 }
 
 export const AssetSearch: React.FC<AssetSearchProps> = ({
@@ -47,6 +49,8 @@ export const AssetSearch: React.FC<AssetSearchProps> = ({
     renderGridItem,
     renderModalContent,
     getModalActions,
+    extraSearchParams = {}, // Default to empty object
+    onApiChange, // Destructure onApiChange here
 }) => {
     // Determine initial selected API — prefer provided config if it matches the registry,
     // otherwise fall back to the first registered API key.
@@ -63,15 +67,15 @@ export const AssetSearch: React.FC<AssetSearchProps> = ({
     const [modalContent, setModalContent] = useState<StandardApiItem | null>(null);
 
     const { results, loading, searched, search } = useGenericApiSearch(selectedApi);
+    const { obsServiceInstance, isConnected, currentProgramScene } = useConnectionManagerStore(); // Get state directly from hook
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         if (!query.trim()) return;
-        search(query);
+        search(query, extraSearchParams); // Pass extraSearchParams here
     };
 
     const handleAddAsBrowserSource = async (url: string, title: string) => {
-        const { obsServiceInstance, isConnected, currentProgramScene } = useConnectionManagerStore.getState();
         if (!isConnected || !obsServiceInstance) {
             toast(createToastError('Not Connected', 'Please connect to OBS first'));
             return;
@@ -86,7 +90,6 @@ export const AssetSearch: React.FC<AssetSearchProps> = ({
     };
 
     const handleAddAsImageSource = async (url: string, title: string) => {
-        const { obsServiceInstance, isConnected, currentProgramScene } = useConnectionManagerStore.getState();
         if (!isConnected || !obsServiceInstance) {
             toast(createToastError('Not Connected', 'Please connect to OBS first'));
             return;
@@ -149,6 +152,10 @@ export const AssetSearch: React.FC<AssetSearchProps> = ({
                         onChange={(v: string) => {
                             if (v in registeredApis) {
                                 setSelectedApi(v as ApiServiceName);
+                                // Call onApiChange if provided
+                                if (onApiChange) {
+                                    onApiChange(v);
+                                }
                             }
                         }}
                         className="min-w-[120px]"

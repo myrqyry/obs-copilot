@@ -23,26 +23,14 @@ try {
   logger.warn('GSAP plugin registration failed:', error);
 }
 
-// Memoize tab order to prevent unnecessary re-renders
-const TAB_ORDER: AppTab[] = [
-    AppTab.CONNECTIONS,
-    AppTab.OBS_STUDIO,
-    AppTab.GEMINI,
-    AppTab.CREATE,
-    AppTab.STREAMING_ASSETS,
-    AppTab.SETTINGS,
-    AppTab.ADVANCED,
-];
-
 const App: React.FC = () => {
     useTheme(); // Call the useTheme hook here to apply theme globally
     const [activeTab, setActiveTab] = useState<AppTab>(AppTab.GEMINI);
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [chatInputValue, setChatInputValue] = useState('');
     const headerRef = useRef<HTMLDivElement>(null);
     const [headerHeight, setHeaderHeight] = useState(64); // State to store header height
     
-    const { actions } = useConnectionManagerStore();
+    // Removed unused 'actions' destructuring from useConnectionManagerStore();
 
     const handleTabChange = useCallback((tab: AppTab) => {
         setActiveTab(tab);
@@ -69,7 +57,7 @@ const App: React.FC = () => {
                 return (
                     <GeminiChat
                         onRefreshData={async () => { /* no-op as per new connection strategy */ }}
-                        setErrorMessage={setErrorMessage}
+                        setErrorMessage={() => {}} // Pass a no-op function as setErrorMessage is no longer used in App.tsx
                         chatInputValue={chatInputValue}
                         onChatInputChange={setChatInputValue}
                         onStreamerBotAction={handleStreamerBotAction}

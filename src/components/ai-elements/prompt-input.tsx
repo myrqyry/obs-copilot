@@ -17,7 +17,7 @@ import type {
   HTMLAttributes,
   KeyboardEventHandler,
 } from 'react';
-import { Children, useState, useCallback } from 'react';
+import { Children, useState, useCallback, forwardRef } from 'react';
 import { ImageUpload } from '@/components/common/ImageUpload';
 
 export type PromptInputProps = HTMLAttributes<HTMLFormElement>;
@@ -40,7 +40,10 @@ export type PromptInputTextareaProps = ComponentProps<typeof Textarea> & {
   onClearImage?: () => void;
 };
 
-export const PromptInputTextarea = ({
+export const PromptInputTextarea = forwardRef<HTMLTextAreaElement, PromptInputTextareaProps & {
+  onImageSelect?: (file: File, base64: string) => void;
+  onClearImage?: () => void;
+}>(({
   onChange,
   className,
   placeholder = 'What would you like to know?',
@@ -51,10 +54,7 @@ export const PromptInputTextarea = ({
   onImageSelect,
   onClearImage,
   ...props
-}: PromptInputTextareaProps & {
-  onImageSelect?: (file: File, base64: string) => void;
-  onClearImage?: () => void;
-}) => {
+}, ref) => {
   const [isImageUploadOpen, setIsImageUploadOpen] = useState(false);
   const [isImagePasted, setIsImagePasted] = useState(false);
 
@@ -129,6 +129,7 @@ export const PromptInputTextarea = ({
         placeholder={label ? '' : placeholder} // Conditionally set placeholder
         label={label} // Pass label to Textarea
         id={id} // Pass id to Textarea
+        ref={ref}
         {...props}
       />
       <div className="flex items-center gap-2 p-2">
@@ -188,7 +189,7 @@ export const PromptInputTextarea = ({
       )}
     </>
   );
-};
+});
 
 export type PromptInputToolbarProps = HTMLAttributes<HTMLDivElement>;
 

@@ -49,6 +49,10 @@ export interface OBSVideoSettings {
   fpsDenominator: number;
 }
 
+// OBS Client Implementation type
+import type { OBSWebSocket } from 'obs-websocket-js';
+export type ObsClientImpl = OBSWebSocket;
+
 // AI SDK 5 Data Parts types for streaming typed data
 export interface DataPart {
   type: string;

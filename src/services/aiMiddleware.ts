@@ -4,20 +4,20 @@ import { logger } from '../utils/logger';
 // AI Middleware
 // This middleware will be used to inject fallback prompts, failover retries, and custom formatting utilities.
 
-export const aiMiddleware = (service: AIService): any => {
+export const aiMiddleware = (service: AIService): AIService => {
   return {
     ...service,
-    generateContent: async (prompt: string, retries = 3) => {
+    generateContent: async (prompt: string, options?: any, retries = 3) => {
       try {
         // Pass retries down to the original service call
-        return await (service as any).generateContent(prompt, retries);
+        return await (service as any).generateContent(prompt, options, retries);
       } catch (error) {
         logger.error('AI Service Error:', error);
         if (retries > 0) {
           logger.warn(`Retrying... ${retries} attempts left.`);
           await new Promise((res) => setTimeout(res, 1000));
           // Correctly call the middleware-wrapped function for retry
-          return await (aiMiddleware(service) as any).generateContent(prompt, retries - 1);
+          return await (aiMiddleware(service) as any).generateContent(prompt, options, retries - 1);
         }
         // This is a fallback, but it doesn't match the expected return type.
         // For now, we will return a mock response that fits the type.
@@ -39,6 +39,21 @@ export const aiMiddleware = (service: AIService): any => {
           },
         };
       }
+    },
+    generateEnhancedImage: async (prompt: string, options?: any) => {
+      return await (service as any).generateEnhancedImage(prompt, options);
+    },
+    generateImage: async (prompt: string, options?: any) => {
+      return await (service as any).generateImage(prompt, options);
+    },
+    generateStructuredContent: async (prompt: string, schema: any, options?: any) => {
+      return await (service as any).generateStructuredContent(prompt, schema, options);
+    },
+    generateWithLongContext: async (prompt: string, context: string, options?: any) => {
+      return await (service as any).generateWithLongContext(prompt, context, options);
+    },
+    liveConnect: async (options?: any) => {
+      return await (service as any).liveConnect(options);
     },
   };
 };

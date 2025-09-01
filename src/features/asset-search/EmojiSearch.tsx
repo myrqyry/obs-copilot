@@ -1,7 +1,10 @@
 // src/features/asset-search/EmojiSearch.tsx
 import React from 'react';
 import AssetSearch from './AssetSearch';
-// ... (other imports will be needed for handlers)
+import { useConnectionManagerStore } from '@/store/connectionManagerStore';
+import { toast } from '@/components/ui/toast';
+import { copyToClipboard } from '@/utils/persistence';
+import { generateSourceName } from '@/utils/obsSourceHelpers';
 
 const EMOJI_APIS = [
     { value: 'emoji-api', label: 'Emoji API', domain: 'emoji-api.com' },
@@ -21,7 +24,23 @@ const mapEmojiToStandard = (item: any) => ({
 });
 
 const EmojiSearch: React.FC = () => {
-    // ... (Your handler functions like handleAddEmojiAsBrowserSource, getModalActions, etc.)
+    const { obsServiceInstance, isConnected, currentProgramScene } = useConnectionManagerStore();
+
+    const handleAddAsBrowserSource = async (url: string, title: string) => {
+        if (!isConnected || !currentProgramScene || !obsServiceInstance) {
+            toast({ title: 'OBS Not Connected', variant: 'destructive' });
+            return;
+        }
+        const sourceName = generateSourceName(`Emoji-${title}`);
+        await (obsServiceInstance as any).addBrowserSource(currentProgramScene, url, sourceName);
+        toast({ title: 'Success', description: `Added "${sourceName}" to OBS.` });
+    };
+
+    const getModalActions = (item: any) => [
+        { label: 'Add as Browser Source', onClick: () => handleAddAsBrowserSource(item.url, item.title), variant: 'primary' },
+        { label: 'Copy URL', onClick: () => { copyToClipboard(item.url); toast({ title: 'Copied!' }); } },
+        { label: 'Copy Emoji Character', onClick: () => { copyToClipboard(item.character); toast({ title: 'Copied!' }); } },
+    ];
 
     const renderGridItem = (item: any, onClick: () => void) => (
         <div key={item.id} className="text-4xl flex items-center justify-center cursor-pointer bg-slate-800 rounded-md h-full" onClick={onClick}>
@@ -41,7 +60,7 @@ const EmojiSearch: React.FC = () => {
             apiMapper={mapEmojiToStandard}
             renderGridItem={renderGridItem}
             renderModalContent={renderModalContent}
-            getModalActions={() => [] /* Implement actions */}
+            getModalActions={getModalActions}
         />
     );
 };

@@ -29,6 +29,17 @@ export const getApiEndpoint = (
   if (isLocal) {
     // Local development: use Vite proxy
     let url = `/api/${normalizedService}`;
+    if (normalizedService === 'image') {
+      url = `/api/assets/proxy-image`; // Use the new backend route for image proxy
+      if (params) {
+        // Change 'url' param to 'image_url' for the backend proxy-image endpoint
+        const imageUrlParam = params.get('url');
+        if (imageUrlParam) {
+          params.delete('url');
+          params.append('image_url', imageUrlParam);
+        }
+      }
+    }
     if (subPath) {
       url += `/${subPath}`;
     }
@@ -110,4 +121,3 @@ export const buildApiUrl = (
 
   return getApiEndpoint(service, subPath, params);
 };
-

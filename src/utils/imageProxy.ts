@@ -62,7 +62,8 @@ export const getProxiedFaviconUrl = (domain: string, size: number = 16): string 
   if (!domain) return '';
 
   // We use Google's public favicon service as a reliable source.
-  const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=${size}`;
+  // Changed to a more robust Google favicon service URL
+  const faviconUrl = `https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://${domain}`;
 
   // We then run that Google URL through our own proxy to avoid any potential CORS issues.
   return getProxiedImageUrl(faviconUrl);

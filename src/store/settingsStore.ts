@@ -17,6 +17,7 @@ export interface SettingsState {
   chatBubbleBlendMode: string;
   obsUrl: string;
   obsPassword?: string;
+  geminiApiKey?: string; // Added geminiApiKey
   theme: {
     name: string;
     accent: CatppuccinAccentColorName;
@@ -43,6 +44,7 @@ export interface SettingsState {
     setThemeName: (name: string) => void;
     setObsUrl: (url: string) => void;
     setObsPassword: (password: string) => void;
+    setGeminiApiKey: (key: string) => void; // Added setGeminiApiKey
   };
 }
 
@@ -57,6 +59,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   chatBubbleBlendMode: 'normal',
   obsUrl: '',
   obsPassword: '',
+  geminiApiKey: '', // Added geminiApiKey
   theme: {
     name: 'catppuccin-mocha',
     accent: 'mauve',
@@ -117,6 +120,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     setObsPassword: (password) => {
       set({ obsPassword: password });
       saveConnectionSettings({ obsPassword: password });
+    },
+    setGeminiApiKey: (key) => { // Added setGeminiApiKey action
+      set({ geminiApiKey: key });
+      saveUserSettings({ geminiApiKey: key });
     },
   },
 }));

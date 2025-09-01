@@ -6,6 +6,7 @@ import { useConnectionManagerStore } from '@/store/connectionManagerStore';
 import { toast } from '@/components/ui/toast';
 import { copyToClipboard } from '@/utils/persistence';
 import { generateSourceName } from '@/utils/obsSourceHelpers';
+import { useState } from 'react'; // Import useState
 
 // Define the APIs available for this search type
 const BACKGROUND_APIS = [
@@ -16,6 +17,7 @@ const BACKGROUND_APIS = [
 
 const BackgroundSearch: React.FC = () => {
     const { obsServiceInstance, isConnected, currentProgramScene } = useConnectionManagerStore();
+    const [selectedApi, setSelectedApi] = useState(BACKGROUND_APIS[0].value); // State to track selected API
 
     const handleAddAsBrowserSource = async (url: string, title: string) => {
         if (!isConnected || !currentProgramScene || !obsServiceInstance) {
@@ -50,10 +52,11 @@ const BackgroundSearch: React.FC = () => {
             title="Backgrounds"
             emoji="🖼️"
             apiConfigs={BACKGROUND_APIS}
-            apiMapper={apiMappers.unsplash} // We'll need to expand this mapper
+            apiMapper={apiMappers[selectedApi as keyof typeof apiMappers]} // Dynamically select mapper
             renderGridItem={renderGridItem}
             renderModalContent={renderModalContent}
             getModalActions={getModalActions}
+            onApiChange={setSelectedApi} // Pass a handler to update selectedApi
         />
     );
 };
