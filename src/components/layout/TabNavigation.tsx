@@ -16,7 +16,7 @@ interface TabNavigationProps {
     setActiveTab: (tab: AppTab) => void;
     headerRef: React.RefObject<HTMLDivElement>;
     headerHeight: number;
-    renderTabContent: () => React.ReactNode;
+    children: React.ReactNode;
 }
 
 const tabEmojis: Record<AppTab, string> = {
@@ -34,7 +34,7 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
     setActiveTab,
     headerRef,
     headerHeight,
-    renderTabContent,
+    children,
 }) => {
     // Corrected state retrieval from useConnectionManagerStore and useChatStore
     const isConnected = useConnectionManagerStore((state: any) => state.isConnected);
@@ -192,7 +192,7 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
             <main className="flex-grow overflow-y-auto px-1 pb-1 transition-all duration-300 ease-in-out">
                 {(() => {
                     try {
-                        return renderTabContent();
+                        return children;
                     } catch (e) {
                         console.error('Error rendering tab content:', e);
                         return <div className="p-4 text-destructive">Error rendering tab content</div>;

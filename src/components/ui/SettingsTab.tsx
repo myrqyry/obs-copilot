@@ -19,6 +19,7 @@ import { Switch } from '@/components/ui/switch';
 const blendModes = ['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion', 'hue', 'saturation', 'color', 'luminosity'];
 
 const SettingsTab: React.FC = () => {
+    // Get all state values and actions in a single call
     const {
         flipSides,
         autoApplySuggestions,
@@ -28,27 +29,25 @@ const SettingsTab: React.FC = () => {
         backgroundOpacity,
         chatBackgroundBlendMode,
         chatBubbleBlendMode,
-        obsUrl, // Corrected property name
-        obsPassword, // Corrected property name
-        currentTheme, // Destructure currentTheme
+        obsUrl,
+        obsPassword,
+        currentTheme,
         theme,
-        actions,
+        actions: {
+            toggleFlipSides,
+            toggleAutoApplySuggestions,
+            toggleExtraDarkMode,
+            setCustomChatBackground,
+            setBubbleFillOpacity,
+            setBackgroundOpacity,
+            setChatBackgroundBlendMode,
+            setChatBubbleBlendMode,
+            setObsUrl,
+            setObsPassword,
+            setThemeColor,
+            setCurrentTheme,
+        }
     } = useSettingsStore();
-
-    const {
-        toggleFlipSides,
-        toggleAutoApplySuggestions,
-        toggleExtraDarkMode,
-        setCustomChatBackground,
-        setBubbleFillOpacity,
-        setBackgroundOpacity,
-        setChatBackgroundBlendMode,
-        setChatBubbleBlendMode,
-        setObsUrl, // Corrected action name
-        setObsPassword, // Corrected action name
-        setThemeColor,
-        setCurrentTheme,
-    } = actions;
 
     const isCatppuccinAccentColorName = (name: string): name is CatppuccinAccentColorName => {
         return Object.keys(catppuccinAccentColorsHexMap).includes(name);
@@ -97,7 +96,7 @@ const SettingsTab: React.FC = () => {
                     colorsHexMap={catppuccinAccentColorsHexMap}
                     selectedColorName={theme.accent}
                     colorNameTypeGuard={isCatppuccinAccentColorName}
-                    onChange={(color) => setThemeColor('accent', color as CatppuccinAccentColorName)}
+                    onChange={(color) => { if (typeof setThemeColor === 'function') { setThemeColor('accent', color as CatppuccinAccentColorName); } }}
                 />
 
                 <ColorChooser
@@ -105,7 +104,7 @@ const SettingsTab: React.FC = () => {
                     colorsHexMap={catppuccinAccentColorsHexMap}
                     selectedColorName={theme.secondaryAccent}
                     colorNameTypeGuard={isCatppuccinAccentColorName}
-                    onChange={(color) => setThemeColor('secondaryAccent', color as CatppuccinAccentColorName)}
+                    onChange={(color) => { if (typeof setThemeColor === 'function') { setThemeColor('secondaryAccent', color as CatppuccinAccentColorName); } }}
                 />
 
                 <div className="flex items-center justify-between">
@@ -139,7 +138,7 @@ const SettingsTab: React.FC = () => {
                     colorsHexMap={catppuccinChatBubbleColorsHexMap}
                     selectedColorName={theme.userChatBubble}
                     colorNameTypeGuard={isCatppuccinChatBubbleColorName}
-                    onChange={(color) => setThemeColor('userChatBubble', color as CatppuccinChatBubbleColorName)}
+                    onChange={(color) => { if (typeof setThemeColor === 'function') { setThemeColor('userChatBubble', color as CatppuccinChatBubbleColorName); } }}
                 />
 
                 <ColorChooser
@@ -147,7 +146,7 @@ const SettingsTab: React.FC = () => {
                     colorsHexMap={catppuccinChatBubbleColorsHexMap}
                     selectedColorName={theme.modelChatBubble}
                     colorNameTypeGuard={isCatppuccinChatBubbleColorName}
-                    onChange={(color) => setThemeColor('modelChatBubble', color as CatppuccinChatBubbleColorName)}
+                    onChange={(color) => { if (typeof setThemeColor === 'function') { setThemeColor('modelChatBubble', color as CatppuccinChatBubbleColorName); } }}
                 />
 
                 <div className="space-y-2">
@@ -242,6 +241,31 @@ const SettingsTab: React.FC = () => {
                         id="auto-apply-suggestions"
                         checked={autoApplySuggestions}
                         onCheckedChange={toggleAutoApplySuggestions}
+                    />
+                </div>
+            </section>
+
+            {/* OBS Connection Settings */}
+            <section className="space-y-4">
+                <h3 className="text-xl font-semibold text-secondary-foreground">OBS Connection</h3>
+                <div className="space-y-2">
+                    <Label htmlFor="obs-url">OBS URL</Label>
+                    <Input
+                        id="obs-url"
+                        type="text"
+                        value={obsUrl}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setObsUrl(e.target.value)}
+                        placeholder="e.g., ws://localhost:4455"
+                    />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="obs-password">OBS Password</Label>
+                    <Input
+                        id="obs-password"
+                        type="password"
+                        value={obsPassword}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setObsPassword(e.target.value)}
+                        placeholder="Optional password"
                     />
                 </div>
             </section>

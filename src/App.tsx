@@ -86,12 +86,7 @@ const App: React.FC = () => {
         logger.info('Streamer.bot action:', action);
     };
 
-    const renderTabContent = useCallback(() => {
-        // For triage: render simple placeholders so we can identify which tab triggers the hook-mismatch.
-        // Replace tab components with lightweight placeholders temporarily.
-        // eslint-disable-next-line no-console
-        console.debug('[renderTabContent - placeholder] activeTab=', activeTab);
-
+    const currentTabContent = useCallback(() => {
         switch (activeTab) {
             case AppTab.CONNECTIONS:
                 return <div data-tab="connections"><ConnectionPanel /></div>;
@@ -119,7 +114,7 @@ const App: React.FC = () => {
             default:
                 return <div data-tab="unknown" className="p-6">Select a tab</div>;
         }
-    }, [activeTab]); // simplified dependencies for placeholder mode
+    }, [activeTab, chatInputValue, memoOnRefreshData, memoSetErrorMessage]);
 
     return (
         <ComprehensiveErrorBoundary>
@@ -131,8 +126,9 @@ const App: React.FC = () => {
                         setActiveTab={handleTabChange}
                         headerRef={headerRef}
                         headerHeight={headerHeight}
-                        renderTabContent={renderTabContent}
-                    />
+                    >
+                        {currentTabContent()}
+                    </TabNavigation>
                 </div>
             </ConnectionProvider>
         </ComprehensiveErrorBoundary>
