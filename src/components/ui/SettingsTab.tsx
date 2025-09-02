@@ -83,6 +83,12 @@ const SettingsTab: React.FC = () => {
                         >
                             Dark
                         </Button>
+                        <Button
+                            onClick={() => setCurrentTheme('system')}
+                            variant={currentTheme === 'system' ? 'default' : 'outline'}
+                        >
+                            System
+                        </Button>
                     </div>
                 </div>
 

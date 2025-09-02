@@ -32,6 +32,9 @@ const App: React.FC = () => {
     const [headerHeight, setHeaderHeight] = useState(64); // State to store header height
     
     const currentTheme = useSettingsStore((state) => state.currentTheme); // Get currentTheme from settingsStore
+    // Ensure theme tokens and CSS variables are applied on mount and when the selected theme changes.
+    // useTheme() reads the selected theme name from the store and applies the CSS vars via applyTheme().
+    useTheme();
 
     const handleTabChange = useCallback((tab: AppTab) => {
         setActiveTab(tab);
@@ -47,6 +50,37 @@ const App: React.FC = () => {
             setHeaderHeight(headerRef.current.offsetHeight);
         }
     }, []);
+
+    // Apply theme classes to the document root so Tailwind can react to 'dark' or 'light' mode.
+    useEffect(() => {
+      const root = window.document.documentElement;
+      // Remove any existing explicit theme classes before applying the current one
+      root.classList.remove('light', 'dark');
+
+      if (currentTheme === 'system') {
+        const mq = window.matchMedia('(prefers-color-scheme: dark)');
+        const applySystem = () => root.classList.add(mq.matches ? 'dark' : 'light');
+        applySystem();
+
+        // Listen for system theme changes while 'system' is selected
+        try {
+          mq.addEventListener?.('change', applySystem);
+        } catch {
+          // Fallback for older browsers (e.g. Safari)
+          mq.addListener?.(applySystem);
+        }
+
+        return () => {
+          try {
+            mq.removeEventListener?.('change', applySystem);
+          } catch {
+            mq.removeListener?.(applySystem);
+          }
+        };
+      } else {
+        root.classList.add(currentTheme === 'dark' ? 'dark' : 'light');
+      }
+    }, [currentTheme]);
 
     const handleStreamerBotAction = async (action: { type: string; args?: Record<string, unknown> }) => {
         logger.info('Streamer.bot action:', action);
@@ -91,7 +125,7 @@ const App: React.FC = () => {
         <ComprehensiveErrorBoundary>
             <ConnectionProvider>
 
-                <div className={`h-screen max-h-screen ${currentTheme === 'dark' ? 'dark bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'} flex flex-col overflow-hidden`}>
+                <div className={`h-screen max-h-screen bg-gradient-to-br from-background to-card text-foreground flex flex-col overflow-hidden transition-colors duration-500 ease-in-out`}>
                     <TabNavigation
                         activeTab={activeTab}
                         setActiveTab={handleTabChange}

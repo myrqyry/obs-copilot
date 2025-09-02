@@ -29,18 +29,21 @@ export const useGeminiChat = (
   const chatActions = useChatStore((state) => state.actions);
   const isGeminiClientInitialized = useChatStore((state) => state.isGeminiClientInitialized); // Get isGeminiClientInitialized
 
-  // Effect to initialize Gemini client status
+  // Effect to initialize Gemini client status (guarded, mount-only)
   useEffect(() => {
-    const shouldInitialize = geminiApiKey && !isGeminiClientInitialized;
-    const shouldDeinitialize = !geminiApiKey && isGeminiClientInitialized;
-
-    // Use getState() to avoid depending on changing action references from the selector
-    if (shouldInitialize) {
-      useChatStore.getState().actions.setGeminiClientInitialized(true);
-    } else if (shouldDeinitialize) {
-      useChatStore.getState().actions.setGeminiClientInitialized(false);
+    // On mount, set the initialized flag if an API key is present and the flag isn't already set.
+    // Avoid reacting to every geminiApiKey/isGeminiClientInitialized change to prevent update loops.
+    if (geminiApiKey) {
+      const current = useChatStore.getState().isGeminiClientInitialized;
+      if (!current) {
+        useChatStore.getState().actions.setGeminiClientInitialized(true);
+      }
     }
-  }, [geminiApiKey, isGeminiClientInitialized]);
+
+    // Intentionally do not auto-deinitialize on unmount here to avoid accidental toggling.
+    // If explicit deinitialization is required, handle it via a dedicated user action.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const obsData = {
     scenes,

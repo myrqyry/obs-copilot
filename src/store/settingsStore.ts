@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import {
   CatppuccinAccentColorName,
   CatppuccinSecondaryAccentColorName,
@@ -18,7 +19,7 @@ export interface SettingsState {
   obsUrl: string;
   obsPassword?: string;
   geminiApiKey?: string; // Added geminiApiKey
-  currentTheme: 'light' | 'dark'; // Added currentTheme
+  currentTheme: 'light' | 'dark' | 'system'; // Added currentTheme
   theme: {
     name: string;
     accent: CatppuccinAccentColorName;
@@ -43,94 +44,102 @@ export interface SettingsState {
         | CatppuccinChatBubbleColorName,
     ) => void;
     setThemeName: (name: string) => void;
-    setCurrentTheme: (theme: 'light' | 'dark') => void; // Added setCurrentTheme
+    setCurrentTheme: (theme: 'light' | 'dark' | 'system') => void; // Added setCurrentTheme
     setObsUrl: (url: string) => void;
     setObsPassword: (password: string) => void;
     setGeminiApiKey: (key: string) => void; // Added setGeminiApiKey
   };
 }
 
-export const useSettingsStore = create<SettingsState>((set, get) => ({
-  flipSides: false,
-  autoApplySuggestions: false,
-  extraDarkMode: false,
-  customChatBackground: '',
-  bubbleFillOpacity: 0.85,
-  backgroundOpacity: 0.7,
-  chatBackgroundBlendMode: 'normal',
-  chatBubbleBlendMode: 'normal',
-  obsUrl: '',
-  obsPassword: '',
-  geminiApiKey: '', // Added geminiApiKey
-  currentTheme: 'light', // Initial theme
-  theme: {
-    name: 'catppuccin-mocha',
-    accent: 'mauve',
-    secondaryAccent: 'flamingo',
-    userChatBubble: 'blue',
-    modelChatBubble: 'lavender',
-  },
-  actions: {
-    toggleFlipSides: () => {
-      const newValue = !get().flipSides;
-      set({ flipSides: newValue });
-      saveUserSettings({ flipSides: newValue });
-    },
-    toggleAutoApplySuggestions: () => {
-      const newValue = !get().autoApplySuggestions;
-      set({ autoApplySuggestions: newValue });
-      saveUserSettings({ autoApplySuggestions: newValue });
-    },
-    toggleExtraDarkMode: () => {
-      const newValue = !get().extraDarkMode;
-      set({ extraDarkMode: newValue });
-      saveUserSettings({ extraDarkMode: newValue });
-    },
-    setCustomChatBackground: (background) => {
-      set({ customChatBackground: background });
-      saveUserSettings({ customChatBackground: background });
-    },
-    setBubbleFillOpacity: (opacity) => {
-      set({ bubbleFillOpacity: opacity });
-      saveUserSettings({ bubbleFillOpacity: opacity });
-    },
-    setBackgroundOpacity: (opacity) => {
-      set({ backgroundOpacity: opacity });
-      saveUserSettings({ backgroundOpacity: opacity });
-    },
-    setChatBackgroundBlendMode: (mode) => {
-      set({ chatBackgroundBlendMode: mode });
-      saveUserSettings({ chatBackgroundBlendMode: mode });
-    },
-    setChatBubbleBlendMode: (mode) => {
-      set({ chatBubbleBlendMode: mode });
-      saveUserSettings({ chatBubbleBlendMode: mode });
-    },
-    setThemeColor: (type, color) => {
-      const newTheme = { ...get().theme, [type]: color };
-      set({ theme: newTheme });
-      saveUserSettings({ theme: newTheme });
-    },
-    setThemeName: (name) => {
-      const newTheme = { ...get().theme, name };
-      set({ theme: newTheme });
-      saveUserSettings({ theme: newTheme });
-    },
-    setCurrentTheme: (theme) => {
-      set({ currentTheme: theme });
-      saveUserSettings({ currentTheme: theme });
-    },
-    setObsUrl: (url) => {
-      set({ obsUrl: url });
-      saveConnectionSettings({ obsUrl: url });
-    },
-    setObsPassword: (password) => {
-      set({ obsPassword: password });
-      saveConnectionSettings({ obsPassword: password });
-    },
-    setGeminiApiKey: (key) => { // Added setGeminiApiKey action
-      set({ geminiApiKey: key });
-      saveUserSettings({ geminiApiKey: key });
-    },
-  },
-}));
+export const useSettingsStore = create<SettingsState>()(
+  persist(
+    (set, get) => ({
+      flipSides: false,
+      autoApplySuggestions: false,
+      extraDarkMode: false,
+      customChatBackground: '',
+      bubbleFillOpacity: 0.85,
+      backgroundOpacity: 0.7,
+      chatBackgroundBlendMode: 'normal',
+      chatBubbleBlendMode: 'normal',
+      obsUrl: '',
+      obsPassword: '',
+      geminiApiKey: '', // Added geminiApiKey
+      currentTheme: 'system', // Initial theme
+      theme: {
+        name: 'catppuccin-mocha',
+        accent: 'mauve',
+        secondaryAccent: 'flamingo',
+        userChatBubble: 'blue',
+        modelChatBubble: 'lavender',
+      },
+      actions: {
+        toggleFlipSides: () => {
+          const newValue = !get().flipSides;
+          set({ flipSides: newValue });
+          saveUserSettings({ flipSides: newValue });
+        },
+        toggleAutoApplySuggestions: () => {
+          const newValue = !get().autoApplySuggestions;
+          set({ autoApplySuggestions: newValue });
+          saveUserSettings({ autoApplySuggestions: newValue });
+        },
+        toggleExtraDarkMode: () => {
+          const newValue = !get().extraDarkMode;
+          set({ extraDarkMode: newValue });
+          saveUserSettings({ extraDarkMode: newValue });
+        },
+        setCustomChatBackground: (background) => {
+          set({ customChatBackground: background });
+          saveUserSettings({ customChatBackground: background });
+        },
+        setBubbleFillOpacity: (opacity) => {
+          set({ bubbleFillOpacity: opacity });
+          saveUserSettings({ bubbleFillOpacity: opacity });
+        },
+        setBackgroundOpacity: (opacity) => {
+          set({ backgroundOpacity: opacity });
+          saveUserSettings({ backgroundOpacity: opacity });
+        },
+        setChatBackgroundBlendMode: (mode) => {
+          set({ chatBackgroundBlendMode: mode });
+          saveUserSettings({ chatBackgroundBlendMode: mode });
+        },
+        setChatBubbleBlendMode: (mode) => {
+          set({ chatBubbleBlendMode: mode });
+          saveUserSettings({ chatBubbleBlendMode: mode });
+        },
+        setThemeColor: (type, color) => {
+          const newTheme = { ...get().theme, [type]: color };
+          set({ theme: newTheme });
+          saveUserSettings({ theme: newTheme });
+        },
+        setThemeName: (name) => {
+          const newTheme = { ...get().theme, name };
+          set({ theme: newTheme });
+          saveUserSettings({ theme: newTheme });
+        },
+        setCurrentTheme: (theme) => {
+          set({ currentTheme: theme });
+          saveUserSettings({ currentTheme: theme });
+        },
+        setObsUrl: (url) => {
+          set({ obsUrl: url });
+          saveConnectionSettings({ obsUrl: url });
+        },
+        setObsPassword: (password) => {
+          set({ obsPassword: password });
+          saveConnectionSettings({ obsPassword: password });
+        },
+        setGeminiApiKey: (key) => { // Added setGeminiApiKey action
+          set({ geminiApiKey: key });
+          saveUserSettings({ geminiApiKey: key });
+        },
+      },
+    }),
+    {
+      name: 'obs-copilot-settings',
+      storage: createJSONStorage(() => localStorage),
+    }
+  )
+);

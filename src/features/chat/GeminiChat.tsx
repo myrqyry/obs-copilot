@@ -1,19 +1,17 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react'; // Import useCallback
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useGeminiChat } from '@/hooks/useGeminiChat';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
-import { useConnectionManagerStore } from '@/store/connectionManagerStore';
 import { useChatStore, ChatState } from '@/store/chatStore';
-import { useSettingsStore, SettingsState } from '../../store/settingsStore'; // Corrected import path and named import
-import { ChatMessage } from '@/types'; // Removed unused OBSSource import
-import useConnectionsStore from '@/store/connectionsStore'; // Import the store directly
+import { useSettingsStore, SettingsState } from '@/store/settingsStore';
+import useConnectionsStore from '@/store/connectionsStore';
+import { ChatMessage } from '@/types';
 
 interface GeminiChatProps {
     onRefreshData: () => Promise<void>;
     setErrorMessage: (message: string | null) => void;
     chatInputValue: string;
     onChatInputChange: (value: string) => void;
-    // Removed onStreamerBotAction as it will be handled internally
 }
 
 export const GeminiChat: React.FC<GeminiChatProps> = ({
@@ -22,21 +20,48 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
     chatInputValue,
     onChatInputChange,
 }) => {
+    // All hooks must be called unconditionally at the top
     const obs = useConnectionsStore((state) => state.obs);
     const isConnected = useConnectionsStore((state) => state.isConnected);
     const sources = useConnectionsStore((state) => state.sources);
     const currentProgramScene = useConnectionsStore((state) => state.currentProgramScene);
+    const messages: ChatMessage[] = useChatStore((state: ChatState) => state.geminiMessages);
+    const isGeminiClientInitialized = useChatStore((state: ChatState) => state.isGeminiClientInitialized);
+    const chatActions = useChatStore((state: ChatState) => state.actions);
+    const geminiApiKey = useSettingsStore((state: SettingsState) => state.geminiApiKey);
+    const extraDarkMode = useSettingsStore((state: SettingsState) => state.extraDarkMode);
+    const flipSides = useSettingsStore((state: SettingsState) => state.flipSides);
+    const accentColorName = useSettingsStore((state: SettingsState) => state.theme.accent);
+    const userChatBubble = useSettingsStore((state: SettingsState) => state.theme.userChatBubble);
+    const modelChatBubble = useSettingsStore((state: SettingsState) => state.theme.modelChatBubble);
+    
+    // Now call your custom hook unconditionally
+    const {
+        isLoading,
+        useGoogleSearch,
+        setUseGoogleSearch,
+        handleAddToContext,
+        handleSend,
+        handleRegenerate,
+    } = useGeminiChat(onRefreshData, setErrorMessage, geminiApiKey);
+
+    const onAddMessage = chatActions.addMessage;
+    const chatInputRef = useRef<HTMLTextAreaElement>(null);
+    const [screenshotWidth] = useState<number>(1920);
+    const [screenshotHeight] = useState<number>(1080);
 
     // The function that will take an action and send it to OBS
     const handleObsAction = useCallback(async (action: { type: string; args?: Record<string, unknown> }) => {
         if (!isConnected) {
             console.error('Not connected to OBS.');
-            return;
+            onAddMessage({ role: 'system', text: "❌ Not connected to OBS." });
+            return undefined;
         }
 
         if (!obs || typeof obs.call !== 'function') {
             console.error('OBS client is not available or does not support .call().');
-            return;
+            onAddMessage({ role: 'system', text: "❌ OBS client is not initialized." });
+            return undefined;
         }
 
         try {
@@ -54,64 +79,27 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
                             sourceName: action.args.sourceName,
                             imageFormat: action.args.imageFormat,
                             imageWidth: action.args.imageWidth,
-                            imageHeight: action.args.imageHeight,
+                            imageHeight: action.args.imageHeight
                         });
                         return result;
                     }
                     break;
-                // Add more cases for other actions like 'SetSourceVisibility', etc.
                 default:
                     console.warn(`Unknown OBS action type: ${action.type}`);
+                    onAddMessage({ role: 'system', text: `🤷‍♂️ Unknown OBS action: ${action.type}` });
             }
         } catch (error) {
             console.error(`Error executing OBS action ${action.type}:`, error);
+            onAddMessage({ role: 'system', text: `❌ Error executing OBS action: ${error instanceof Error ? error.message : 'Unknown error'}` });
             throw error;
         }
         return undefined;
-    }, [obs, isConnected]); // Dependencies for useCallback
-
-    const messages: ChatMessage[] = useChatStore((state: ChatState) => state.geminiMessages);
-    const isGeminiClientInitialized = useChatStore(
-        (state: ChatState) => state.isGeminiClientInitialized
-    );
-    const chatActions = useChatStore((state: ChatState) => state.actions);
-
-    const extraDarkMode = useSettingsStore((state: SettingsState) => state.extraDarkMode);
-    const flipSides = useSettingsStore((state: SettingsState) => state.flipSides);
-    // Select theme properties individually to avoid returning a new object each render
-    const accentColorName = useSettingsStore((state: SettingsState) => state.theme.accent);
-    const userChatBubble = useSettingsStore((state: SettingsState) => state.theme.userChatBubble);
-    const modelChatBubble = useSettingsStore((state: SettingsState) => state.theme.modelChatBubble);
-    const geminiApiKey = useSettingsStore((state: SettingsState) => state.geminiApiKey); // Get geminiApiKey
-
-    const onAddMessage = chatActions.addMessage;
-
-    const {
-        isLoading,
-        useGoogleSearch,
-        setUseGoogleSearch,
-        handleAddToContext,
-        handleSend,
-        // handleObsAction is now defined locally in GeminiChat
-        handleRegenerate, // Destructure handleRegenerate
-    } = useGeminiChat(onRefreshData, setErrorMessage, geminiApiKey); // Removed handleObsAction from arguments
+    }, [obs, isConnected, onAddMessage]);
 
     // Memoize the regenerate callback to prevent infinite re-renders
     const memoizedHandleRegenerate = useCallback((messageId: string) => {
         handleRegenerate(messageId, onChatInputChange, handleSend);
     }, [handleRegenerate, onChatInputChange, handleSend]);
-
-    const chatInputRef = useRef<HTMLTextAreaElement>(null); // Changed to HTMLTextAreaElement
-
-    useEffect(() => {
-        if (isGeminiClientInitialized) {
-            // AI client state is initialized (hook now manages internal client)
-        }
-    }, [isGeminiClientInitialized]);
-
-    const [screenshotWidth] = useState<number>(1920);
-
-    const [screenshotHeight] = useState<number>(1080);
 
     const handleScreenshot = async () => {
         if (!isConnected || !currentProgramScene) {
@@ -128,9 +116,9 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
                     imageHeight: screenshotHeight
                 }
             });
-            if (screenshotResult && screenshotResult.imageData) {
+            if (screenshotResult && (screenshotResult as any).imageData) {
                 onAddMessage({ role: 'system', text: `📸 Screenshot of current scene \"${currentProgramScene}\" captured.` });
-                handleAddToContext(`Screenshot of current scene \"${currentProgramScene}\" has been captured and is available for analysis. Image data: ${screenshotResult.imageData.substring(0, 100)}...`);
+                handleAddToContext(`Screenshot of current scene \"${currentProgramScene}\" has been captured and is available for analysis. Image data: ${(screenshotResult as any).imageData.substring(0, 100)}...`);
             } else {
                 onAddMessage({ role: 'system', text: `📸 Screenshot failed: ${screenshotResult ? JSON.stringify(screenshotResult) : 'Unknown error'}` });
             }
@@ -142,6 +130,12 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
             }
         }
     };
+
+    useEffect(() => {
+        if (isGeminiClientInitialized) {
+            // AI client state is initialized (hook now manages internal client)
+        }
+    }, [isGeminiClientInitialized]);
 
 
     return (
