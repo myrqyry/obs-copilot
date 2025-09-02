@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { usePortal } from '@/lib/portalUtils'; // Import the new usePortal hook
-import { useSettingsStore } from '@/store/settingsStore';
+import useSettingsStore from '@/store/settingsStore';
 import { catppuccinAccentColorsHexMap, catppuccinMochaColors } from '@/types';
 
 // Extend window for global tooltip tracking
@@ -126,17 +126,18 @@ const Tooltip: React.FC<TooltipProps> = ({
     };
 
     // Theme and mode
-    const accentColorName = useSettingsStore(state => state.theme.accent);
-    const extraDarkMode = useSettingsStore(state => state.extraDarkMode);
+    const accentColorName = useSettingsStore(state => state.accent);
+    const themeFromStore = useSettingsStore(state => state.theme);
+    const isDarkModeActive = themeFromStore === 'dark' || (themeFromStore === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     const accentColor = catppuccinAccentColorsHexMap[accentColorName] || catppuccinMochaColors.mauve;
-    const textColor = extraDarkMode ? accentColor : catppuccinMochaColors.crust;
-    const tooltipBg = extraDarkMode
+    const textColor = isDarkModeActive ? accentColor : catppuccinMochaColors.crust;
+    const tooltipBg = isDarkModeActive
         ? `rgba(17, 17, 27, 0.98)`
         : accentColor + 'F2'; // add alpha for light mode
     const tooltipBorder = accentColor;
 
     // Glass effect (optional, can be tweaked)
-    const glassClass = extraDarkMode ? 'chat-bubble-glass-extra-dark' : 'chat-bubble-glass';
+    const glassClass = isDarkModeActive ? 'chat-bubble-glass-extra-dark' : 'chat-bubble-glass';
 
     const renderPortal = usePortal({
         isOpen: visible && (mouse !== null || childRef.current !== null),

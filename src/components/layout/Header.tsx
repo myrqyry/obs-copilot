@@ -1,6 +1,6 @@
 import React from 'react';
 import { AnimatedTitleLogos } from '@/components/common/AnimatedTitleLogos';
-import { useSettingsStore } from '@/store/settingsStore';
+import useSettingsStore from '@/store/settingsStore';
 import { catppuccinAccentColorsHexMap, catppuccinSecondaryAccentColorsHexMap } from '@/types';
 
 interface HeaderProps {
@@ -8,9 +8,11 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ headerRef }) => {
-    const theme = useSettingsStore(state => state.theme);
-    const accentColor = catppuccinAccentColorsHexMap[theme.accent];
-    const secondaryAccentColor = catppuccinSecondaryAccentColorsHexMap[theme.secondaryAccent];
+    const accent = useSettingsStore(state => state.accent);
+    const secondaryAccent = useSettingsStore(state => state.secondaryAccent);
+
+    const accentColor = catppuccinAccentColorsHexMap[accent];
+    const secondaryAccentColor = catppuccinSecondaryAccentColorsHexMap[secondaryAccent];
 
     return (
         <header ref={headerRef} className="sticky top-0 z-20 bg-background p-2 shadow-md h-12 flex justify-center items-center">

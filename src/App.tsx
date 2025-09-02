@@ -1,23 +1,35 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { ConnectionProvider } from './components/ConnectionProvider';
+import { Header } from './components/layout/Header';
+import { TabNavigation } from './components/layout/TabNavigation';
+import useSettingsStore from './store/settingsStore';
+import ObsStudioTab from './components/ui/ObsStudioTab';
+import StreamingAssetsTab from './components/ui/StreamingAssetsTab';
+import SettingsTab from './components/ui/SettingsTab';
+import CreateTab from './components/ui/CreateTab';
+import { AppTab } from './types'; // Correctly import AppTab
+import { useTheme } from './hooks/useTheme';
+import { logger } from './utils/logger';
 import { gsap } from 'gsap';
 import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
-import ComprehensiveErrorBoundary from './components/common/ComprehensiveErrorBoundary'; // Use ComprehensiveErrorBoundary
-import { TabNavigation } from './components/layout/TabNavigation';
-import { AppTab } from './types';
-import { ConnectionProvider } from './components/ConnectionProvider';
+import ComprehensiveErrorBoundary from './components/common/ComprehensiveErrorBoundary';
 import { useConnectionManagerStore } from './store/connectionManagerStore';
 import { GeminiChat } from './features/chat/GeminiChat';
 import { ConnectionPanel } from './features/connections/ConnectionPanel';
-import ObsStudioTab from './components/ui/ObsStudioTab';
-import CreateTab from './components/ui/CreateTab';
-import StreamingAssetsTab from './components/ui/StreamingAssetsTab';
-import SettingsTab from './components/ui/SettingsTab';
+import { useChatStore } from './store/chatStore';
 import AdvancedPanel from './components/ui/AdvancedPanel';
-import { useTheme } from './hooks/useTheme'; // Import useTheme hook
-import { logger } from './utils/logger'; // Import logger
-import { useSettingsStore } from './store/settingsStore'; // Import useSettingsStore
 
-// Register GSAP plugins
+
+const TAB_ORDER: AppTab[] = [
+    AppTab.GEMINI,
+    AppTab.OBS_STUDIO,
+    AppTab.STREAMING_ASSETS,
+    AppTab.CREATE,
+    AppTab.SETTINGS,
+    AppTab.CONNECTIONS,
+    AppTab.ADVANCED,
+];
+
 try {
   gsap.registerPlugin(MorphSVGPlugin);
 } catch (error) {
@@ -25,48 +37,40 @@ try {
 }
 
 const App: React.FC = () => {
-    // Theme application handled via CSS classes and settingsStore.currentTheme
-    const [activeTab, setActiveTab] = useState<AppTab>(AppTab.GEMINI);
-    const [chatInputValue, setChatInputValue] = useState('');
+    const { theme, flipSides } = useSettingsStore();
+
     const headerRef = useRef<HTMLDivElement>(null);
+    const [activeTab, setActiveTab] = useState<AppTab>(TAB_ORDER[0]);
     const [headerHeight, setHeaderHeight] = useState(64); // State to store header height
+    const [chatInputValue, setChatInputValue] = useState('');
     
-    const currentTheme = useSettingsStore((state) => state.currentTheme); // Get currentTheme from settingsStore
-    // Ensure theme tokens and CSS variables are applied on mount and when the selected theme changes.
-    // useTheme() reads the selected theme name from the store and applies the CSS vars via applyTheme().
     useTheme();
 
     const handleTabChange = useCallback((tab: AppTab) => {
         setActiveTab(tab);
     }, []);
-
-    // Memoize callbacks passed into tab content to avoid calling hooks inside renderTabContent
+    
     const memoOnRefreshData = useCallback(async () => { /* no-op as per new connection strategy */ }, []);
     const memoSetErrorMessage = useCallback((msg: string | null) => {}, []);
 
-    // Set header height on mount and resize
     useEffect(() => {
         if (headerRef.current) {
             setHeaderHeight(headerRef.current.offsetHeight);
         }
     }, []);
 
-    // Apply theme classes to the document root so Tailwind can react to 'dark' or 'light' mode.
     useEffect(() => {
       const root = window.document.documentElement;
-      // Remove any existing explicit theme classes before applying the current one
       root.classList.remove('light', 'dark');
 
-      if (currentTheme === 'system') {
+      if (theme === 'system') {
         const mq = window.matchMedia('(prefers-color-scheme: dark)');
         const applySystem = () => root.classList.add(mq.matches ? 'dark' : 'light');
         applySystem();
 
-        // Listen for system theme changes while 'system' is selected
         try {
           mq.addEventListener?.('change', applySystem);
         } catch {
-          // Fallback for older browsers (e.g. Safari)
           mq.addListener?.(applySystem);
         }
 
@@ -78,15 +82,15 @@ const App: React.FC = () => {
           }
         };
       } else {
-        root.classList.add(currentTheme === 'dark' ? 'dark' : 'light');
+        root.classList.add(theme === 'dark' ? 'dark' : 'light');
       }
-    }, [currentTheme]);
-
+    }, [theme]);
+    
     const handleStreamerBotAction = async (action: { type: string; args?: Record<string, unknown> }) => {
         logger.info('Streamer.bot action:', action);
     };
 
-    const currentTabContent = useCallback(() => {
+    const renderTabContent = useCallback(() => {
         switch (activeTab) {
             case AppTab.CONNECTIONS:
                 return <div data-tab="connections"><ConnectionPanel /></div>;
@@ -119,16 +123,21 @@ const App: React.FC = () => {
     return (
         <ComprehensiveErrorBoundary>
             <ConnectionProvider>
-
-                <div className={`h-screen max-h-screen bg-gradient-to-br from-background to-card text-foreground flex flex-col overflow-hidden transition-colors duration-500 ease-in-out`}>
-                    <TabNavigation
-                        activeTab={activeTab}
-                        setActiveTab={handleTabChange}
-                        headerRef={headerRef}
-                        headerHeight={headerHeight}
-                    >
-                        {currentTabContent()}
-                    </TabNavigation>
+                <div className={`h-screen max-h-screen bg-gradient-to-br from-background to-card text-foreground ${flipSides ? 'flex-row-reverse' : ''} flex flex-col overflow-hidden transition-colors duration-500 ease-in-out`}>
+                    <Header headerRef={headerRef} />
+                    <div className="sticky z-10 px-2 pt-2" style={{ top: '64px' }}>
+                        <TabNavigation
+                            activeTab={activeTab}
+                            setActiveTab={handleTabChange}
+                            headerRef={headerRef}
+                            headerHeight={headerHeight}
+                        >
+                            {renderTabContent()}
+                        </TabNavigation>
+                    </div>
+                    <main className="flex-grow overflow-y-auto px-1 sm:px-2 pb-1 transition-all duration-300 ease-in-out">
+                        {renderTabContent()}
+                    </main>
                 </div>
             </ConnectionProvider>
         </ComprehensiveErrorBoundary>

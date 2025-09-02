@@ -5,8 +5,6 @@ import Tooltip from '@/components/ui/Tooltip';
 import SecureHtmlRenderer from '@/components/ui/SecureHtmlRenderer';
 
 interface CollapsibleCardProps {
-    isOpen: boolean;
-    onToggle: () => void;
     title: string;
     emoji?: string;
     domain?: string;
@@ -17,8 +15,6 @@ interface CollapsibleCardProps {
 }
 
 export const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
-    isOpen,
-    onToggle,
     title,
     emoji,
     domain,
@@ -27,6 +23,9 @@ export const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
     accentColor = '#89b4fa',
     className = ''
 }) => {
+    const [isOpen, setIsOpen] = React.useState(true); // Default to open
+    const onToggle = () => setIsOpen(!isOpen);
+
     return (
         <Card
             className={
@@ -42,7 +41,6 @@ export const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
             >
                 {domain && (
                     <Tooltip content={domain}>
-                        {/* Ensure the span itself is not focusable if the button handles focus */}
                         <span className="flex items-center gap-1" aria-hidden="true">
                             <FaviconIcon domain={domain} size={24} />
                         </span>
@@ -51,7 +49,7 @@ export const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
 
                 {customSvg && (
                     <span className="w-6 h-6" style={{ color: accentColor }} aria-hidden="true">
-                        <SecureHtmlRenderer 
+                        <SecureHtmlRenderer
                             htmlContent={customSvg}
                             allowedTags={['svg','path','g','circle','rect','line','polygon','polyline','ellipse']}
                             allowedAttributes={['viewBox','d','fill','stroke','stroke-width','cx','cy','r','x','y','width','height','points']}
@@ -78,4 +76,4 @@ export const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
             )}
         </Card>
     );
-}; 
+};
