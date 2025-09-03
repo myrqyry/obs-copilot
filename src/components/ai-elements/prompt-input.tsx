@@ -17,7 +17,7 @@ import type {
   HTMLAttributes,
   KeyboardEventHandler,
 } from 'react';
-import { Children, useState, useCallback, forwardRef } from 'react';
+import React, { useState, useCallback, forwardRef } from 'react';
 import { ImageUpload } from '@/components/common/ImageUpload';
 
 export type PromptInputProps = HTMLAttributes<HTMLFormElement>;
@@ -225,24 +225,45 @@ export const PromptInputButton = ({
   variant = 'ghost',
   className,
   size,
+  children,
   ...props
 }: PromptInputButtonProps) => {
-  const newSize =
-    (size ?? Children.count(props.children) > 1) ? 'default' : 'icon';
+  const hasMultipleChildren = Array.isArray(children) && children.length > 1;
+  const newSize = size || (hasMultipleChildren || typeof children === 'string' ? 'default' : 'icon');
+
+  // Process children to ensure icons have proper sizing
+  const processedChildren = React.Children.map(children, child => {
+    if (React.isValidElement(child)) {
+      // Check if it's an icon component
+      const isIcon = typeof child.type === 'function' && 
+                   'name' in child.type && 
+                   typeof child.type.name === 'string' &&
+                   child.type.name.endsWith('Icon');
+      
+      if (isIcon) {
+        return React.cloneElement(child as React.ReactElement, {
+          className: cn('size-4', child.props?.className)
+        });
+      }
+    }
+    return child;
+  });
 
   return (
     <Button
       className={cn(
         'shrink-0 gap-1.5 rounded-lg',
         variant === 'ghost' && 'text-muted-foreground',
-        newSize === 'default' && 'px-3',
+        newSize === 'default' ? 'px-3' : 'p-2',
         className
       )}
       size={newSize}
       type="button"
       variant={variant}
       {...props}
-    />
+    >
+      {processedChildren}
+    </Button>
   );
 };
 
