@@ -1,5 +1,5 @@
 // src/components/ui/SettingsTab.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from './button.radix';
 import { Label } from './label';
 import { Input } from './input';
@@ -9,9 +9,13 @@ import { CollapsibleCard } from '../common/CollapsibleCard';
 const SettingsTab: React.FC = () => {
     const { obsUrl, obsPassword, geminiApiKey, setObsUrl, setObsPassword, setGeminiApiKey, flipSides, setFlipSides } = useSettingsStore();
 
+    const [openObsConnection, setOpenObsConnection] = useState(true);
+    const [openGeminiAI, setOpenGeminiAI] = useState(true);
+    const [openUIPreferences, setOpenUIPreferences] = useState(true);
+
     return (
         <div className="space-y-4 p-4">
-            <CollapsibleCard title="OBS Connection 📡">
+            <CollapsibleCard title="OBS Connection 📡" isOpen={openObsConnection} onToggle={() => setOpenObsConnection(!openObsConnection)}>
                 <div className="space-y-2">
                     <Label htmlFor="obs-url">WebSocket URL</Label>
                     <Input id="obs-url" value={obsUrl} onChange={(e) => setObsUrl(e.target.value)} placeholder="ws://localhost:4455" />
@@ -22,7 +26,7 @@ const SettingsTab: React.FC = () => {
                 </div>
             </CollapsibleCard>
 
-            <CollapsibleCard title="Gemini AI 🧠">
+            <CollapsibleCard title="Gemini AI 🧠" isOpen={openGeminiAI} onToggle={() => setOpenGeminiAI(!openGeminiAI)}>
                  <div className="space-y-2">
                     <Label htmlFor="gemini-api-key">API Key</Label>
                     <Input id="gemini-api-key" type="password" value={geminiApiKey ?? ''} onChange={(e) => setGeminiApiKey(e.target.value)} />
@@ -30,7 +34,7 @@ const SettingsTab: React.FC = () => {
             </CollapsibleCard>
 
             {/* Collapsible Card for UI Preferences */}
-            <CollapsibleCard title="UI Preferences 🎨">
+            <CollapsibleCard title="UI Preferences 🎨" isOpen={openUIPreferences} onToggle={() => setOpenUIPreferences(!openUIPreferences)}>
                 <div className="flex items-center justify-between">
                     <Label htmlFor="flip-sides">Swap Sides</Label>
                     <Button 

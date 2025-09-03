@@ -6,13 +6,14 @@ import { CardHeader } from './Card';
 import { CardTitle } from './Card';
 import { CardContent } from './Card';
 import useConnectionsStore from '../../store/connectionsStore';
-import { useSettingsStore } from '../../store/settingsStore';
+import useSettingsStore from '../../store/settingsStore';
 
 const ConnectionPanel: React.FC = () => {
     // Read connection status from the connections store
     const { isConnected, connectToObs, disconnectFromObs, connectionError } = useConnectionsStore();
     // Read connection settings from the settings store
-    const { obsUrl, obsPassword } = useSettingsStore();
+    const obsUrl = useSettingsStore((state) => state.obsUrl);
+    const obsPassword = useSettingsStore((state) => state.obsPassword);
 
     const handleConnect = () => {
         connectToObs(obsUrl, obsPassword);

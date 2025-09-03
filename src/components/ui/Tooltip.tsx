@@ -16,6 +16,7 @@ interface TooltipProps {
     children: React.ReactNode;
     className?: string;
     delay?: number;
+    side?: 'top' | 'right' | 'bottom' | 'left';
 }
 
 /**
@@ -126,8 +127,8 @@ const Tooltip: React.FC<TooltipProps> = ({
     };
 
     // Theme and mode
-    const accentColorName = useSettingsStore(state => state.accent);
-    const themeFromStore = useSettingsStore(state => state.theme);
+    const accentColorName = useSettingsStore(state => state.theme.accent);
+    const themeFromStore = useSettingsStore(state => state.theme.base);
     const isDarkModeActive = themeFromStore === 'dark' || (themeFromStore === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     const accentColor = catppuccinAccentColorsHexMap[accentColorName] || catppuccinMochaColors.mauve;
     const textColor = isDarkModeActive ? accentColor : catppuccinMochaColors.crust;

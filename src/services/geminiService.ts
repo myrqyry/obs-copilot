@@ -1,11 +1,10 @@
-import { logger } from '@/utils/logger';
+
 import { handleAppError } from '@/lib/errorUtils'; // Import handleAppError
 import { aiMiddleware } from './aiMiddleware';
-import { GeminiGenerateContentResponse, GeminiGenerateImagesResponse, GeminiGenerateImagesConfig, GeminiGenerateContentConfig, LiveAPIConfig } from '@/types/gemini';
+import { GeminiGenerateContentResponse, GeminiGenerateContentConfig, LiveAPIConfig } from '@/types/gemini';
 import { AIService } from '@/types/ai';
 import { dataUrlToBlobUrl } from '@/lib/utils';
-import { GoogleGenAI, Part, Content, Image } from '@google/genai';
-import { httpClient } from './httpClient';
+import { GoogleGenAI, Content } from '@google/genai';
 import { Buffer } from 'buffer';
 
 // Initialize the Google GenAI client
@@ -127,9 +126,9 @@ class GeminiService implements AIService {
       }));
 
       // Prepare image input if provided
-      let imagePart: Part | undefined;
+      
       if (imageInput && imageInputMimeType) {
-        imagePart = { inlineData: { data: imageInput, mimeType: imageInputMimeType } };
+        
       }
 
       // Use the new SDK's generateImages method

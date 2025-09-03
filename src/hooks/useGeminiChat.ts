@@ -5,14 +5,15 @@ import { useChatStore } from '@/store/chatStore';
 import { INITIAL_SYSTEM_PROMPT } from '@/constants';
 import { buildMarkdownStylingSystemMessage } from '@/utils/systemPrompts';
 import { detectChoiceQuestion } from '@/utils/choiceDetection';
-import type { GeminiActionResponse, ObsAction } from '@/types/obsActions';
 import { logger } from '@/utils/logger';
-import { OBSScene, OBSSource, SupportedDataPart, StreamingHandlers, ObsClientImpl } from '@/types'; // Import ObsClientImpl
+import type { GeminiActionResponse, ObsAction } from '@/types/obsActions';
+import { OBSScene, OBSSource, SupportedDataPart, StreamingHandlers } from '@/types';
+
 import { useObsActions } from './useObsActions';
 import { aiSdk5Config } from '@/config';
 
 export const useGeminiChat = (
-  onRefreshData: () => Promise<void>,
+  onRefreshData: (() => Promise<void>) | undefined,
   setErrorMessage: (message: string | null) => void,
   geminiApiKey: string | undefined, // Added geminiApiKey
 ) => {
@@ -27,7 +28,7 @@ export const useGeminiChat = (
 
   const userDefinedContext = useChatStore((state) => state.userDefinedContext);
   const chatActions = useChatStore((state) => state.actions);
-  const isGeminiClientInitialized = useChatStore((state) => state.isGeminiClientInitialized); // Get isGeminiClientInitialized
+  
 
   // Effect to initialize Gemini client status (guarded, mount-only)
   useEffect(() => {
@@ -57,7 +58,7 @@ export const useGeminiChat = (
   const { handleObsAction } = useObsActions({
     obsService: obs, // Corrected to use 'obs'
     obsData,
-    onRefreshData,
+    onRefreshData: onRefreshData || (() => Promise.resolve()),
     setErrorMessage,
   });
 
@@ -411,7 +412,9 @@ export const useGeminiChat = (
                 break;
               }
             }
-            await onRefreshData();
+            if (onRefreshData) {
+              await onRefreshData();
+            }
           }
           if (parsed.streamerBotAction) {
             streamerBotResult = await handleStreamerBotActionWithDataParts(parsed.streamerBotAction, streamingHandlers);

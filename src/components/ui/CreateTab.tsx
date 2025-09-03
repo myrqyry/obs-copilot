@@ -1,7 +1,7 @@
 // src/components/ui/CreateTab.tsx
 import React from 'react';
 import * as Collapsible from '@radix-ui/react-collapsible';
-import { Card, CardContent } from './Card';
+import { CardContent } from './Card';
 import { CustomButton as Button } from './CustomButton';
 import ImageGenerator from '../../features/media/ImageGeneration';
 import MusicGenerator from '../../features/media/MusicGeneration';

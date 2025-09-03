@@ -1,7 +1,8 @@
 // src/store/connectionsStore.ts
 import { create } from 'zustand';
 import OBSWebSocket from 'obs-websocket-js';
-import { OBSScene, OBSSource } from '@/types'; // Import ObsClientImpl removed
+import { OBSScene, OBSSource } from '@/types';
+import { StreamerBotService } from '@/services/streamerBotService';
 
 // Define a minimal OBSResponseTypes interface locally to unblock compilation
 interface OBSResponseTypes {
@@ -39,7 +40,7 @@ interface OBSResponseTypes {
 const obs = new (OBSWebSocket as any)();
 
 // Your existing state and functions
-interface ConnectionState {
+export interface ConnectionState {
   obs: any; // 👈 Add this line to make the OBS instance part of the state
   isConnected: boolean;
   connectionError: string | null;
@@ -50,6 +51,7 @@ interface ConnectionState {
   streamStatus: OBSResponseTypes['GetStreamStatus'] | null;
   recordStatus: OBSResponseTypes['GetRecordStatus'] | null;
   videoSettings: OBSResponseTypes['GetVideoSettings'] | null;
+  streamerBotServiceInstance: StreamerBotService | null;
   connectToObs: (url: string, password?: string) => void;
   disconnectFromObs: () => void;
   setScenes: (scenes: OBSScene[]) => void;
@@ -72,6 +74,7 @@ const useConnectionsStore = create<ConnectionState>((set) => {
     streamStatus: null,
     recordStatus: null,
     videoSettings: null,
+    streamerBotServiceInstance: null,
 
     connectToObs: async (url, password) => {
       set({ isLoading: true, connectionError: null });

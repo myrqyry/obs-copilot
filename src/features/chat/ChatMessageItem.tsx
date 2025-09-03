@@ -11,7 +11,7 @@ import {
 import { ChevronDownIcon, ChevronUpIcon, ClipboardDocumentIcon, ArrowPathIcon, ChatBubbleLeftEllipsisIcon } from '@heroicons/react/24/solid';
 import { gsap } from 'gsap';
 import { getRandomSuggestions } from '@/constants/chatSuggestions';
-import { useSettingsStore } from '@/store/settingsStore';
+import useSettingsStore from '@/store/settingsStore';
 import Tooltip from '@/components/ui/Tooltip';
 import SecureHtmlRenderer from '@/components/ui/SecureHtmlRenderer';
 
@@ -59,15 +59,12 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     const [isShrunk, setIsShrunk] = useState(false);
     const [forceExpand, setForceExpand] = useState(false);
     const [isScrolling, setIsScrolling] = useState(false);
-    const [isScrolledFromTop, setIsScrolledFromTop] = useState(false);
-    const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
+    
     const bubbleRef = useRef<HTMLDivElement>(null);
     // Track previous shrink state to avoid setting state unnecessarily (prevents nested updates)
     const prevShrunkRef = useRef<boolean | null>(null);
 
     // Get styling from store using individual selectors to prevent infinite re-renders
-    const bubbleFillOpacity = useSettingsStore(state => state.bubbleFillOpacity);
-    const chatBubbleBlendMode = useSettingsStore(state => state.chatBubbleBlendMode);
     const accentColorName = useSettingsStore(state => state.theme.accent);
     const secondaryAccentColorName = useSettingsStore(state => state.theme.secondaryAccent);
     // Use the passed-in bubble color names for user/model
@@ -132,11 +129,11 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     const handleBubbleScroll = (event: React.UIEvent<HTMLDivElement>) => {
         const target = event.currentTarget as HTMLDivElement;
         setIsScrolling(true);
-        setIsScrolledFromTop(target.scrollTop > 10);
+        
 
         const isAtBottom =
             target.scrollHeight - target.scrollTop - target.clientHeight < 5;
-        setIsScrolledToBottom(isAtBottom);
+        
 
         if (scrollTimeoutRef.current) {
             clearTimeout(scrollTimeoutRef.current);
@@ -353,18 +350,18 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
 
     if (extraDarkMode) {
         // Extra dark mode: dark fill, chosen color for text and border
-        backgroundColor = `rgba(${parseInt(catppuccinMochaColors.base.substring(1, 3), 16)}, ${parseInt(catppuccinMochaColors.base.substring(3, 5), 16)}, ${parseInt(catppuccinMochaColors.base.substring(5, 7), 16)}, ${bubbleFillOpacity})`;
+        backgroundColor = `rgba(${parseInt(catppuccinMochaColors.base.substring(1, 3), 16)}, ${parseInt(catppuccinMochaColors.base.substring(3, 5), 16)}, ${parseInt(catppuccinMochaColors.base.substring(5, 7), 16)}, 0.5)`;
         borderColor = bubbleColorHex;
         textColor = bubbleColorHex;
     } else {
         // Regular mode: chosen color fill, dark text and border
-        backgroundColor = `rgba(${parseInt(bubbleColorHex.substring(1, 3), 16)}, ${parseInt(bubbleColorHex.substring(3, 5), 16)}, ${parseInt(bubbleColorHex.substring(5, 7), 16)}, ${bubbleFillOpacity})`;
+        backgroundColor = `rgba(${parseInt(bubbleColorHex.substring(1, 3), 16)}, ${parseInt(bubbleColorHex.substring(3, 5), 16)}, ${parseInt(bubbleColorHex.substring(5, 7), 16)}, 0.5)`;
         borderColor = catppuccinMochaColors.base;
         textColor = catppuccinMochaColors.base;
     }
 
     // Apply glass effect classes if needed
-    const glassEffectClass = customChatBackground && customChatBackground !== 'none' && bubbleFillOpacity < 1
+    const glassEffectClass = customChatBackground && customChatBackground !== 'none' && 0.5 < 1
         ? extraDarkMode
             ? 'chat-bubble-glass-extra-dark'
             : 'chat-bubble-glass'
@@ -386,7 +383,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
         margin: '0.25rem 0',
         overflow: 'hidden',
         transition: 'background 0.3s, border-color 0.3s', // Remove box-shadow from transition
-        mixBlendMode: (chatBubbleBlendMode || 'normal') as React.CSSProperties['mixBlendMode'],
+        mixBlendMode: ('normal') as React.CSSProperties['mixBlendMode'],
     };
 
     return (

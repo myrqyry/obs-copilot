@@ -1,4 +1,4 @@
-import type { Pipeline } from '@xenova/transformers';
+type Pipeline = Awaited<ReturnType<typeof import('@xenova/transformers')['pipeline']>>;
 /**
  * Embeddings adapter supporting:
  *  - LOCAL: @xenova/transformers (all-MiniLM-L6-v2) via embeddings.js-style API

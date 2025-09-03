@@ -3,7 +3,7 @@ import { motion, HTMLMotionProps } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { VariantProps } from 'class-variance-authority'; // Import VariantProps
-import { buttonVariants, ButtonProps as RadixButtonProps } from './button.radix'; // Import Radix button variants and props
+import { buttonVariants } from './button.radix'; // Import Radix button variants and props
 
 interface CustomButtonProps extends HTMLMotionProps<'button'>, VariantProps<typeof buttonVariants> {
     isLoading?: boolean;

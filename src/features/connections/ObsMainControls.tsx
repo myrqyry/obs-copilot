@@ -7,7 +7,7 @@ import { TextInput } from '@/components/common/TextInput';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import useConnectionsStore from '@/store/connectionsStore';
 import { useLockStore } from '@/store/lockStore';
-import { useSettingsStore } from '@/store/settingsStore';
+import useSettingsStore from '@/store/settingsStore';
 import { useChatStore } from '@/store/chatStore';
 import { COMMON_RESOLUTIONS, COMMON_FPS } from '@/constants';
 import { CollapsibleCard } from '@/components/common/CollapsibleCard';
@@ -15,7 +15,29 @@ import { handleAppError } from '@/lib/errorUtils'; // Import error utilities
 // No need to import logger here, handleAppError uses it internally
 
 export const ObsMainControls: React.FC = () => {
-  const { obsServiceInstance: obsService, onRefreshData } = useConnectionsStore();
+  const obsService = useConnectionsStore((state) => state.obs);
+  const onRefreshData = async () => {
+    if (!obsService) return;
+    const { scenes } = await obsService.call('GetSceneList');
+    const { currentProgramSceneName } = await obsService.call('GetCurrentProgramScene');
+    const { sceneItems } = await obsService.call('GetSceneItemList', { sceneName: currentProgramSceneName });
+    const streamStatus = await obsService.call('GetStreamStatus');
+    const recordStatus = await obsService.call('GetRecordStatus');
+    const videoSettings = await obsService.call('GetVideoSettings');
+    useConnectionsStore.setState({
+      scenes: scenes.map((s: any) => ({ sceneName: s.sceneName, sceneIndex: s.sceneIndex })),
+      currentProgramScene: currentProgramSceneName,
+      sources: sceneItems.map((item: any) => ({
+        sourceName: item.sourceName,
+        typeName: item.inputKind,
+        sceneItemId: item.sceneItemId,
+        sceneItemEnabled: item.sceneItemEnabled,
+      })),
+      streamStatus: streamStatus,
+      recordStatus: recordStatus,
+      videoSettings: videoSettings,
+    });
+  };
   const { actions: { addSystemMessageToChat, setGlobalErrorMessage: setErrorMessage } } = useChatStore();
   const accentColorName = useSettingsStore((state: { theme: { accent: CatppuccinAccentColorName } }) => state.theme.accent);
   // Collapsible state for each section
@@ -32,7 +54,6 @@ export const ObsMainControls: React.FC = () => {
     streamStatus,
     recordStatus,
     videoSettings: initialVideoSettings,
-    obsStats,
   } = useConnectionsStore();
   const [isLoading, setIsLoading] = React.useState(false);
 
@@ -198,7 +219,7 @@ export const ObsMainControls: React.FC = () => {
     setIsVideoSettingsLoading(true);
     setErrorMessage(null);
     try {
-      await obsService.setVideoSettings(editableSettings);
+      await obsService.call('SetVideoSettings', editableSettings);
       await onRefreshData();
     } catch (error: unknown) {
       setErrorMessage(handleAppError('Failed to save video settings', error));
@@ -208,26 +229,26 @@ export const ObsMainControls: React.FC = () => {
   };
 
   const handleSetCurrentScene = (sceneName: string) => {
-    handleAction(() => obsService.setCurrentProgramScene(sceneName));
+    handleAction(() => obsService.call('SetCurrentProgramScene', { sceneName }));
   };
 
   const toggleSourceVisibility = (sceneName: string, sceneItemId: number, enabled: boolean) => {
-    handleAction(() => obsService.setSceneItemEnabled(sceneName, sceneItemId, !enabled));
+    handleAction(() => obsService.call('SetSceneItemEnabled', { sceneName, sceneItemId, sceneItemEnabled: !enabled }));
   };
 
   const toggleStream = () => {
     if (streamStatus?.outputActive) {
-      handleAction(() => obsService.stopStream());
+      handleAction(() => obsService.call('StopStream'));
     } else {
-      handleAction(() => obsService.startStream());
+      handleAction(() => obsService.call('StartStream'));
     }
   };
 
   const toggleRecord = () => {
     if (recordStatus?.outputActive) {
-      handleAction(() => obsService.stopRecord());
+      handleAction(() => obsService.call('StopRecord'));
     } else {
-      handleAction(() => obsService.startRecord());
+      handleAction(() => obsService.call('StartRecord'));
     }
   };
 
@@ -248,12 +269,12 @@ export const ObsMainControls: React.FC = () => {
     <div className="space-y-2 max-w-4xl mx-auto p-0 sm:p-1">
       {/* Stream & Record Section */}
       <CollapsibleCard
-        isOpen={openStream}
-        onToggle={() => setOpenStream(!openStream)}
         title="Stream & Record"
         emoji="📡"
         accentColor={accentColor}
         className="relative group"
+        isOpen={openStream}
+        onToggle={() => setOpenStream(!openStream)}
       >
         <div className="absolute top-1 right-1 sm:right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
           <LockToggle lockKey={STREAM_RECORD_LOCK} />
@@ -281,12 +302,12 @@ export const ObsMainControls: React.FC = () => {
 
       {/* Scenes Section */}
       <CollapsibleCard
-        isOpen={openScenes}
-        onToggle={() => setOpenScenes(!openScenes)}
         title="Scenes"
         emoji="🎬"
         accentColor={accentColor}
         className="relative group"
+        isOpen={openScenes}
+        onToggle={() => setOpenScenes(!openScenes)}
       >
         <div className="absolute top-1 right-1 sm:right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
           <LockToggle lockKey="scenes" />
@@ -318,12 +339,12 @@ export const ObsMainControls: React.FC = () => {
 
       {/* Sources Section */}
       <CollapsibleCard
-        isOpen={openSources}
-        onToggle={() => setOpenSources(!openSources)}
         title="Sources"
         emoji="🖼️"
         accentColor={accentColor}
         className="relative group"
+        isOpen={openSources}
+        onToggle={() => setOpenSources(!openSources)}
       >
         <div className="absolute top-1 right-1 sm:right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
           <LockToggle lockKey="sources" />
@@ -357,12 +378,12 @@ export const ObsMainControls: React.FC = () => {
 
       {/* Video Settings Section */}
       <CollapsibleCard
-        isOpen={openVideo}
-        onToggle={() => setOpenVideo(!openVideo)}
         title="Video Settings"
         emoji="🎥"
         accentColor={accentColor}
         className="relative group"
+        isOpen={openVideo}
+        onToggle={() => setOpenVideo(!openVideo)}
       >
         <div className="absolute top-1 right-1 sm:right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
           <LockToggle lockKey={VIDEO_SETTINGS_LOCK} />
@@ -468,23 +489,23 @@ export const ObsMainControls: React.FC = () => {
 
       {/* Stats Section */}
       <CollapsibleCard
-        isOpen={openStats}
-        onToggle={() => setOpenStats(!openStats)}
         title="OBS Statistics"
         emoji="📊"
         accentColor={accentColor}
         className="relative group"
+        isOpen={openStats}
+        onToggle={() => setOpenStats(!openStats)}
       >
         <div className="absolute top-1 right-1 sm:right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
           <LockToggle lockKey="stats" />
         </div>
-        {obsStats ? (
+        {streamStatus ? (
           <div className="text-xs space-y-0.5 sm:space-y-1">
-            <div>CPU Usage: {obsStats.cpuUsage?.toFixed(1)}%</div>
-            <div>Memory Usage: {(obsStats.memoryUsage / 1024 / 1024).toFixed(1)} MB</div>
-            <div>FPS: {obsStats.fps?.toFixed(1)}</div>
-            <div>Dropped Frames: {obsStats.droppedFrames || 0}</div>
-            <div>Stream Time: {obsStats.streamTimecode || '00:00:00'}</div>
+            <div>CPU Usage: Not Available</div>
+            <div>Memory Usage: Not Available</div>
+            <div>FPS: {streamStatus.renderTotalFrames > 0 ? (streamStatus.renderTotalFrames / (streamStatus.outputDuration / 1000)).toFixed(1) : '0.0'}</div>
+            <div>Dropped Frames: {streamStatus.outputSkippedFrames || 0}</div>
+            <div>Stream Time: {streamStatus.outputTimecode || '00:00:00'}</div>
           </div>
         ) : (
           <div className="text-xs text-muted-foreground">No stats available</div>

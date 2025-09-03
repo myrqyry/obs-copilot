@@ -3,12 +3,14 @@ import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from './Card';
 import { Label } from './label';
 import { Input } from './input';
-import { useSettingsStore } from '../../store/settingsStore'; // Changed to named import
+import useSettingsStore from '../../store/settingsStore';
 import { ObsMainControls } from '@/features/connections/ObsMainControls';
 
 const ObsStudioTab: React.FC = () => {
-  const { obsUrl, obsPassword, actions } = useSettingsStore();
-  const { setObsUrl, setObsPassword } = actions;
+  const obsUrl = useSettingsStore((state) => state.obsUrl);
+  const obsPassword = useSettingsStore((state) => state.obsPassword);
+  const setObsUrl = useSettingsStore((state) => state.setObsUrl);
+  const setObsPassword = useSettingsStore((state) => state.setObsPassword);
 
   return (
     <div className="space-y-4">

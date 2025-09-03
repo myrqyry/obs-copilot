@@ -12,6 +12,8 @@ interface CollapsibleCardProps {
     children: React.ReactNode;
     accentColor?: string;
     className?: string;
+    isOpen: boolean;
+    onToggle: () => void;
 }
 
 export const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
@@ -21,10 +23,11 @@ export const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
     customSvg,
     children,
     accentColor = '#89b4fa',
-    className = ''
+    className = '',
+    isOpen,
+    onToggle
 }) => {
-    const [isOpen, setIsOpen] = React.useState(true); // Default to open
-    const onToggle = () => setIsOpen(!isOpen);
+    
 
     return (
         <Card

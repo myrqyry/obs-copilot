@@ -22,6 +22,7 @@ const GifSearch: React.FC = () => {
         type: 'gifs', // 'gifs' or 'stickers'
         bundle: 'messaging_non_clips'
     });
+    const [openGifSearch, setOpenGifSearch] = useState(true);
 
     const handleFilterChange = (key: string, value: any) => {
         setFilters(prev => ({ ...prev, [key]: value }));
@@ -60,7 +61,7 @@ const GifSearch: React.FC = () => {
     };
 
     return (
-        <CollapsibleCard title="GIF Search" emoji="🎬" isOpen={true} onToggle={() => {}}>
+        <CollapsibleCard title="GIF Search" emoji="🎬" isOpen={openGifSearch} onToggle={() => setOpenGifSearch(!openGifSearch)}>
             <CardContent className="px-3 pb-3 pt-2">
                 <AssetSearch
                     title="GIF Search" // Title is redundant here, but required by AssetSearch

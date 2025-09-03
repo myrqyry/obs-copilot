@@ -1,8 +1,8 @@
-import { ObsClient } from '../services/obsClient';
+import { ObsClientImpl } from '../services/obsClient';
 import { logger } from './logger';
 
 export interface AddSourceOptions {
-  obsService: ObsClient;
+  obsService: ObsClientImpl;
   currentScene?: string | null;
   onSuccess?: (message: string) => void;
   onError?: (error: string) => void;

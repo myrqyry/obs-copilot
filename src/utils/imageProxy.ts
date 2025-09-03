@@ -58,7 +58,7 @@ export const getProxiedImageUrl = (imageUrl: string): string => {
  * @param size The desired size of the icon (e.g., 16).
  * @returns The proxied URL to fetch the favicon.
  */
-export const getProxiedFaviconUrl = (domain: string, size: number = 16): string => {
+export const getProxiedFaviconUrl = (domain: string): string => {
   if (!domain) return '';
 
   // We use Google's public favicon service as a reliable source.

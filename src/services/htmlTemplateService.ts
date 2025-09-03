@@ -1,4 +1,4 @@
-import { ObsClient } from './obsClient';
+import { ObsClientImpl } from './obsClient';
 export interface TemplateConfig {
   layout: 'overlay' | 'fullscreen' | 'sidebar' | 'corner';
   position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
@@ -182,7 +182,7 @@ export const HtmlTemplateService = {
   },
 
   async createBrowserSourceWithTemplate(
-    obsService: ObsClient,
+    obsService: ObsClientImpl,
     sourceName: string,
     sceneName: string,
     config: Partial<TemplateConfig>,
@@ -190,24 +190,20 @@ export const HtmlTemplateService = {
     height: number = 600,
   ): Promise<void> {
     const templateUrl = this.generateTemplateUrl(config);
-    await obsService.createInput(
-      sourceName,
-      'browser_source',
-      {
-        url: templateUrl,
-        width,
-        height,
-      },
+    await obsService.addBrowserSource(
       sceneName,
-      true,
+      templateUrl,
+      sourceName,
+      width,
+      height,
     );
   },
   async updateBrowserSourceTemplate(
-    obsService: ObsClient,
+    obsService: ObsClientImpl,
     sourceName: string,
     config: Partial<TemplateConfig>,
   ): Promise<void> {
     const templateUrl = this.generateTemplateUrl(config);
-    await obsService.setInputSettings(sourceName, { url: templateUrl });
+    await obsService.call('SetInputSettings', { inputName: sourceName, inputSettings: { url: templateUrl } });
   },
 };

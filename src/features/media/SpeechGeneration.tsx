@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { useSettingsStore } from '@/store/settingsStore';
+import useSettingsStore from '@/store/settingsStore';
 import useApiKeyStore, { ApiService } from '@/store/apiKeyStore';
 import { geminiService } from '@/services/geminiService';
 import { CardContent } from '@/components/ui/Card';
@@ -26,6 +26,7 @@ const SpeechGeneration: React.FC = () => {
     const [audioLoading, setAudioLoading] = useState(false);
     const [audioError, setAudioError] = useState<string | null>(null);
     const [audioProvider, setAudioProvider] = useState<'gemini' | 'groq'>('gemini');
+    const [openSpeechGeneration, setOpenSpeechGeneration] = useState(true);
 
     // Advanced TTS settings (applies to all speakers for now)
     const [speakingRate, setSpeakingRate] = useState<number>(1.0);
@@ -161,9 +162,9 @@ const SpeechGeneration: React.FC = () => {
         <CollapsibleCard
             title="Speech Generation"
             emoji="🗣️"
-            isOpen={true}
-            onToggle={() => {}}
             accentColor={accentColor}
+            isOpen={openSpeechGeneration}
+            onToggle={() => setOpenSpeechGeneration(!openSpeechGeneration)}
         >
             <CardContent className="px-3 pb-3 pt-2">
                 <div className="text-xs md:text-sm text-muted-foreground mb-2">

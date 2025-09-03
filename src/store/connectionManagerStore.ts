@@ -27,8 +27,8 @@ export const useConnectionManagerStore = (selector?: any) => {
     // Attempt to proxy to obsServiceInstance methods if available; otherwise no-op.
     async uploadLog() {
       try {
-        if (base.obsServiceInstance && typeof (base.obsServiceInstance as any).uploadLog === 'function') {
-          return await (base.obsServiceInstance as any).uploadLog();
+        if (base.obs && typeof (base.obs as any).uploadLog === 'function') {
+          return await (base.obs as any).uploadLog();
         }
       } catch (e) {
         // swallow - caller code already handles failures
@@ -36,8 +36,8 @@ export const useConnectionManagerStore = (selector?: any) => {
       return { success: false, message: 'upload not available' };
     },
     handleObsAction: async (...args: any[]) => {
-      if (base.obsServiceInstance && typeof (base.obsServiceInstance as any).handleObsAction === 'function') {
-        return (base.obsServiceInstance as any).handleObsAction(...args);
+      if (base.obs && typeof (base.obs as any).handleObsAction === 'function') {
+        return (base.obs as any).handleObsAction(...args);
       }
       return null;
     },

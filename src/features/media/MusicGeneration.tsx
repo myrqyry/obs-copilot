@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAudioStore } from '@/store/audioStore';
-import { useSettingsStore } from '@/store/settingsStore';
+import useSettingsStore from '@/store/settingsStore';
 import { toast } from '@/components/ui/toast';
 import useApiKeyStore, { ApiService } from '@/store/apiKeyStore';
 import { CardContent } from '@/components/ui/Card';
@@ -65,6 +65,7 @@ const MusicGeneration: React.FC = () => {
     const [muteBass, setMuteBass] = useState(false);
     const [muteDrums, setMuteDrums] = useState(false);
     const [onlyBassAndDrums, setOnlyBassAndDrums] = useState(false);
+    const [openMusicGeneration, setOpenMusicGeneration] = useState(true);
 
     const accentColorName = useSettingsStore(state => state.theme.accent);
     const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
@@ -101,9 +102,9 @@ const MusicGeneration: React.FC = () => {
         <CollapsibleCard
             title="Music Generation (Lyria RealTime)"
             emoji="🎶"
-            isOpen={true}
-            onToggle={() => {}}
             accentColor={accentColor}
+            isOpen={openMusicGeneration}
+            onToggle={() => setOpenMusicGeneration(!openMusicGeneration)}
         >
             <CardContent className="px-3 pb-3 pt-2">
                 <div className="text-xs md:text-sm text-muted-foreground mb-2">

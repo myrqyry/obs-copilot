@@ -8,6 +8,7 @@ interface ConnectionStatusIconProps {
   isConnecting: boolean;
   error: boolean;
   onClick: () => void;
+  className?: string;
 }
 
 export const ConnectionStatusIcon: React.FC<ConnectionStatusIconProps> = ({ isConnected, isConnecting, error, onClick }) => {

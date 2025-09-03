@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useConnectionManagerStore } from '@/store/connectionManagerStore';
-import { useSettingsStore } from '@/store/settingsStore';
+import useSettingsStore from '@/store/settingsStore';
 import { toast } from '@/components/ui/toast';
 import { ObsClientImpl as ObsClient } from '@/services/obsClient';
 import { catppuccinAccentColorsHexMap } from '@/types';
@@ -30,6 +30,7 @@ const ImageGeneration: React.FC = () => {
     const [modalOpen, setModalOpen] = useState(false);
     const [uploadedImage, setUploadedImage] = useState<ImageUploadResult | null>(null);
     const [showAdvanced, setShowAdvanced] = useState(false);
+    const [openImageGeneration, setOpenImageGeneration] = useState(true);
 
     // Enhanced parameters
     const [model] = useState('gemini-2.0-flash-exp-image-generation');
@@ -155,9 +156,9 @@ const ImageGeneration: React.FC = () => {
         <CollapsibleCard
             title="Image Generation (Gemini)"
             emoji="🎨"
-            isOpen={true}
-            onToggle={() => {}}
             accentColor={accentColor}
+            isOpen={openImageGeneration}
+            onToggle={() => setOpenImageGeneration(!openImageGeneration)}
         >
             <CardContent className="px-3 pb-3 pt-2">
                 <div className="space-y-4">

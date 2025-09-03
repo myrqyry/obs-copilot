@@ -1,9 +1,7 @@
 import { logger } from '../utils/logger';
 import { AxiosResponse } from 'axios';
 
-interface ApiResponse<T> {
-  data: T;
-}
+
 
 export async function handleServiceCall<T>(
   call: () => Promise<AxiosResponse<T>>,

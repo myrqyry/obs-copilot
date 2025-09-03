@@ -72,7 +72,7 @@ export const FaviconIcon: React.FC<FaviconIconProps> = ({ domain, alt, className
 
 
         // Use our favicon proxy to avoid CORS issues
-        const proxyUrl = getProxiedFaviconUrl(domain, size);
+        const proxyUrl = getProxiedFaviconUrl(domain);
         console.log(`[FaviconIcon] Setting src for ${domain} to ${proxyUrl}`);
         setSrc(proxyUrl);
     }, [domain, size, retryCount]);

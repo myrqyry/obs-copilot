@@ -8,8 +8,8 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ headerRef }) => {
-    const accent = useSettingsStore(state => state.accent);
-    const secondaryAccent = useSettingsStore(state => state.secondaryAccent);
+    const accent = useSettingsStore(state => state.theme.accent);
+    const secondaryAccent = useSettingsStore(state => state.theme.secondaryAccent);
 
     const accentColor = catppuccinAccentColorsHexMap[accent];
     const secondaryAccentColor = catppuccinSecondaryAccentColorsHexMap[secondaryAccent];

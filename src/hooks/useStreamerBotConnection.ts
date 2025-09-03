@@ -3,7 +3,7 @@ import { StreamerBotService } from '@/services/streamerBotService';
 import { useChatStore } from '@/store/chatStore';
 import { useAutomationStore } from '@/store/automationStore';
 import { toast } from '@/components/ui/toast';
-import { logger } from '../utils/logger'; // Import logger
+
 import { handleAppError, createToastError } from '../lib/errorUtils'; // Import error utilities
 
 export const useStreamerBotConnection = (streamerBotService: StreamerBotService) => {

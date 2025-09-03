@@ -3,12 +3,12 @@ import { useGeminiChat } from '@/hooks/useGeminiChat';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { useChatStore, ChatState } from '@/store/chatStore';
-import { useSettingsStore, SettingsState } from '@/store/settingsStore';
+import useSettingsStore from '@/store/settingsStore';
 import useConnectionsStore from '@/store/connectionsStore';
-import { ChatMessage } from '@/types';
+import { ChatMessage, CatppuccinAccentColorName } from '@/types';
 
 interface GeminiChatProps {
-    onRefreshData: () => Promise<void>;
+    onRefreshData?: () => Promise<void>;
     setErrorMessage: (message: string | null) => void;
     chatInputValue: string;
     onChatInputChange: (value: string) => void;
@@ -28,12 +28,15 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
     const messages: ChatMessage[] = useChatStore((state: ChatState) => state.geminiMessages);
     const isGeminiClientInitialized = useChatStore((state: ChatState) => state.isGeminiClientInitialized);
     const chatActions = useChatStore((state: ChatState) => state.actions);
-    const geminiApiKey = useSettingsStore((state: SettingsState) => state.geminiApiKey);
-    const extraDarkMode = useSettingsStore((state: SettingsState) => state.extraDarkMode);
-    const flipSides = useSettingsStore((state: SettingsState) => state.flipSides);
-    const accentColorName = useSettingsStore((state: SettingsState) => state.theme.accent);
-    const userChatBubble = useSettingsStore((state: SettingsState) => state.theme.userChatBubble);
-    const modelChatBubble = useSettingsStore((state: SettingsState) => state.theme.modelChatBubble);
+    const geminiApiKey = useSettingsStore((state) => state.geminiApiKey);
+    const extraDarkMode = useSettingsStore((state) => state.extraDarkMode);
+    const flipSides = useSettingsStore((state) => state.flipSides);
+    const accentColorName = useSettingsStore((state) => state.theme.accent);
+    const userChatBubble = useSettingsStore((state) => state.theme.userChatBubble);
+    const modelChatBubble = useSettingsStore((state) => state.theme.modelChatBubble);
+    // Add missing type
+    const userChatBubbleColorName = userChatBubble as CatppuccinAccentColorName;
+    const modelChatBubbleColorName = modelChatBubble as CatppuccinAccentColorName;
     
     // Now call your custom hook unconditionally
     const {
@@ -150,8 +153,8 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
                 extraDarkMode={extraDarkMode}
                 flipSides={flipSides}
                 handleRegenerate={memoizedHandleRegenerate}
-                userChatBubbleColorName={userChatBubble}
-                modelChatBubbleColorName={modelChatBubble}
+                userChatBubbleColorName={userChatBubbleColorName}
+                modelChatBubbleColorName={modelChatBubbleColorName}
                 customChatBackground=""
             />
             <ChatInput

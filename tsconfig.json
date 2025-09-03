@@ -61,7 +61,7 @@
   "exclude": [
     "node_modules",
     "node_modules/obs-websocket-js",
-    "node_modules/@types/d3-dispatch",
+    
     "dist",
     "build",
     "tmp",

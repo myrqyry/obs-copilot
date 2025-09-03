@@ -1,13 +1,13 @@
 import { useEffect } from 'react';
-import { useSettingsStore } from '@/store/settingsStore';
+import useSettingsStore from '@/store/settingsStore';
 import { getTheme, Theme } from '@/types/themes';
 
 export const useTheme = () => {
   // Use individual selectors to prevent re-renders
-  const themeName = useSettingsStore((state) => state.theme.name);
-  const setThemeName = useSettingsStore((state) => state.actions.setThemeName);
+  const themeBase = useSettingsStore((state) => state.theme.base);
+  const setThemeBase = useSettingsStore((state) => state.setTheme);
   
-  const selectedTheme = getTheme(themeName);
+  const selectedTheme = getTheme(themeBase);
 
   useEffect(() => {
     if (selectedTheme) {
@@ -15,10 +15,10 @@ export const useTheme = () => {
     }
   }, [selectedTheme]);
 
-  const setTheme = (themeName: string) => {
+  const setTheme = (themeName: 'light' | 'dark' | 'system') => {
     const newTheme = getTheme(themeName);
     if (newTheme) {
-      setThemeName(themeName);
+      setThemeBase(themeName);
       applyTheme(newTheme);
     }
   };

@@ -1,146 +1,112 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { ConnectionProvider } from './components/ConnectionProvider';
-import { Header } from './components/layout/Header';
-import { TabNavigation } from './components/layout/TabNavigation';
-import useSettingsStore from './store/settingsStore';
-import ObsStudioTab from './components/ui/ObsStudioTab';
-import StreamingAssetsTab from './components/ui/StreamingAssetsTab';
-import SettingsTab from './components/ui/SettingsTab';
-import CreateTab from './components/ui/CreateTab';
-import { AppTab } from './types'; // Correctly import AppTab
-import { useTheme } from './hooks/useTheme';
-import { logger } from './utils/logger';
+// src/App.tsx
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { gsap } from 'gsap';
 import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
-import ComprehensiveErrorBoundary from './components/common/ComprehensiveErrorBoundary';
-import { useConnectionManagerStore } from './store/connectionManagerStore';
+import ErrorBoundary from './components/common/ErrorBoundary';
+import { Header } from './components/layout/Header';
+import { TabNavigation } from './components/layout/TabNavigation';
+import { AppTab } from './types';
+import { ConnectionProvider } from './components/ConnectionProvider';
 import { GeminiChat } from './features/chat/GeminiChat';
-import { ConnectionPanel } from './features/connections/ConnectionPanel';
-import { useChatStore } from './store/chatStore';
+import ConnectionPanel from './components/ui/ConnectionPanel';
+import ObsStudioTab from './components/ui/ObsStudioTab';
+import CreateTab from './components/ui/CreateTab';
+import StreamingAssetsTab from './components/ui/StreamingAssetsTab';
+import SettingsTab from './components/ui/SettingsTab';
 import AdvancedPanel from './components/ui/AdvancedPanel';
+import useSettingsStore from './store/settingsStore';
 
-
-const TAB_ORDER: AppTab[] = [
-    AppTab.GEMINI,
-    AppTab.OBS_STUDIO,
-    AppTab.STREAMING_ASSETS,
-    AppTab.CREATE,
-    AppTab.SETTINGS,
-    AppTab.CONNECTIONS,
-    AppTab.ADVANCED,
-];
-
+// Register GSAP plugins for animations
 try {
   gsap.registerPlugin(MorphSVGPlugin);
 } catch (error) {
-  logger.warn('GSAP plugin registration failed:', error);
+  console.warn('GSAP plugin registration failed:', error);
 }
 
-const App: React.FC = () => {
-    const { theme, flipSides } = useSettingsStore();
+const TAB_ORDER: AppTab[] = [
+    AppTab.CONNECTIONS,
+    AppTab.OBS_STUDIO,
+    AppTab.GEMINI,
+    AppTab.CREATE,
+    AppTab.STREAMING_ASSETS,
+    AppTab.SETTINGS,
+    AppTab.ADVANCED,
+];
 
-    const headerRef = useRef<HTMLDivElement>(null);
-    const [activeTab, setActiveTab] = useState<AppTab>(TAB_ORDER[0]);
-    const [headerHeight, setHeaderHeight] = useState(64); // State to store header height
-    const [chatInputValue, setChatInputValue] = useState('');
+const App: React.FC = () => {
+    const [activeTab, setActiveTab] = useState<AppTab>(AppTab.GEMINI);
     
-    useTheme();
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [chatInputValue, setChatInputValue] = useState('');
+    const headerRef = useRef<HTMLDivElement>(null);
+    const { theme, flipSides } = useSettingsStore();
 
     const handleTabChange = useCallback((tab: AppTab) => {
         setActiveTab(tab);
     }, []);
-    
-    const memoOnRefreshData = useCallback(async () => { /* no-op as per new connection strategy */ }, []);
-    const memoSetErrorMessage = useCallback((msg: string | null) => {}, []);
 
-    useEffect(() => {
-        if (headerRef.current) {
-            setHeaderHeight(headerRef.current.offsetHeight);
-        }
-    }, []);
 
     useEffect(() => {
       const root = window.document.documentElement;
       root.classList.remove('light', 'dark');
 
-      if (theme === 'system') {
-        const mq = window.matchMedia('(prefers-color-scheme: dark)');
-        const applySystem = () => root.classList.add(mq.matches ? 'dark' : 'light');
-        applySystem();
-
-        try {
-          mq.addEventListener?.('change', applySystem);
-        } catch {
-          mq.addListener?.(applySystem);
-        }
-
-        return () => {
-          try {
-            mq.removeEventListener?.('change', applySystem);
-          } catch {
-            mq.removeListener?.(applySystem);
-          }
-        };
+      if (theme.base === 'system') {
+        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        root.classList.add(systemTheme);
       } else {
-        root.classList.add(theme === 'dark' ? 'dark' : 'light');
+        root.classList.add(theme.base);
       }
-    }, [theme]);
-    
-    const handleStreamerBotAction = async (action: { type: string; args?: Record<string, unknown> }) => {
-        logger.info('Streamer.bot action:', action);
-    };
+    }, [theme.base]);
 
-    const renderTabContent = useCallback(() => {
+    
+
+    const renderTabContent = () => {
         switch (activeTab) {
             case AppTab.CONNECTIONS:
-                return <div data-tab="connections"><ConnectionPanel /></div>;
+                return <ConnectionPanel />;
             case AppTab.OBS_STUDIO:
-                return <div data-tab="obs_studio"><ObsStudioTab /></div>;
+                return <ObsStudioTab />;
             case AppTab.GEMINI:
                 return (
-                    <div data-tab="gemini" className="p-6">
-                        <GeminiChat
-                            onRefreshData={memoOnRefreshData}
-                            setErrorMessage={memoSetErrorMessage}
-                            chatInputValue={chatInputValue}
-                            onChatInputChange={setChatInputValue}
-                        />
-                    </div>
+                    <GeminiChat
+                        setErrorMessage={setErrorMessage}
+                        chatInputValue={chatInputValue}
+                        onChatInputChange={setChatInputValue}
+                    />
                 );
             case AppTab.CREATE:
-                return <div data-tab="create"><CreateTab /></div>;
+                return <CreateTab />;
             case AppTab.STREAMING_ASSETS:
-                return <div data-tab="streaming_assets"><StreamingAssetsTab /></div>;
+                return <StreamingAssetsTab />;
             case AppTab.SETTINGS:
-                return <div data-tab="settings"><SettingsTab /></div>;
+                return <SettingsTab />;
             case AppTab.ADVANCED:
-                return <div data-tab="advanced"><AdvancedPanel /></div>;
+                return <AdvancedPanel />;
             default:
-                return <div data-tab="unknown" className="p-6">Select a tab</div>;
+                return <div>Select a tab</div>;
         }
-    }, [activeTab, chatInputValue, memoOnRefreshData, memoSetErrorMessage]);
+    };
 
     return (
-        <ComprehensiveErrorBoundary>
+        <ErrorBoundary>
             <ConnectionProvider>
-                <div className={`h-screen max-h-screen bg-gradient-to-br from-background to-card text-foreground ${flipSides ? 'flex-row-reverse' : ''} flex flex-col overflow-hidden transition-colors duration-500 ease-in-out`}>
+                <div className={`h-screen max-h-screen bg-gradient-to-br from-background to-card text-foreground flex flex-col overflow-hidden transition-colors duration-500 ease-in-out`}>
                     <Header headerRef={headerRef} />
-                    <div className="sticky z-10 px-2 pt-2" style={{ top: '64px' }}>
-                        <TabNavigation
-                            activeTab={activeTab}
-                            setActiveTab={handleTabChange}
-                            headerRef={headerRef}
-                            headerHeight={headerHeight}
-                        >
+                    <div className="flex flex-grow overflow-hidden">
+                        <div className={`flex-grow overflow-y-auto px-1 sm:px-2 pb-1 transition-all duration-300 ease-in-out ${flipSides ? 'order-last' : 'order-first'}`}>
                             {renderTabContent()}
-                        </TabNavigation>
+                        </div>
+                        <div className={`sticky z-10 px-2 pt-2 transition-all duration-300 ease-in-out ${flipSides ? 'order-first' : 'order-last'}`}>
+                            <TabNavigation
+                                activeTab={activeTab}
+                                setActiveTab={handleTabChange}
+                                tabOrder={TAB_ORDER}
+                            />
+                        </div>
                     </div>
-                    <main className="flex-grow overflow-y-auto px-1 sm:px-2 pb-1 transition-all duration-300 ease-in-out">
-                        {renderTabContent()}
-                    </main>
                 </div>
             </ConnectionProvider>
-        </ComprehensiveErrorBoundary>
+        </ErrorBoundary>
     );
 };
 
