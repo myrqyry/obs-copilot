@@ -29,6 +29,8 @@ export interface SettingsState extends Omit<ThemeState, 'theme'>, LayoutState {
   obsPassword?: string;
   geminiApiKey?: string;
   extraDarkMode: boolean;
+  streamerBotHost: string;
+  streamerBotPort: string;
   theme: {
     base: 'light' | 'dark' | 'system';
     accent: CatppuccinAccentColorName;
@@ -41,6 +43,8 @@ export interface SettingsState extends Omit<ThemeState, 'theme'>, LayoutState {
   setObsPassword: (password: string) => void;
   setGeminiApiKey: (key: string) => void;
   setExtraDarkMode: (value: boolean) => void;
+  setStreamerBotHost: (host: string) => void;
+  setStreamerBotPort: (port: string) => void;
   autoApplySuggestions: boolean;
   customChatBackground?: string;
   bubbleFillOpacity: number;
@@ -70,6 +74,8 @@ const useSettingsStore = create<SettingsState>()(
       obsUrl: 'ws://localhost:4455',
       obsPassword: '',
       geminiApiKey: '',
+      streamerBotHost: 'localhost',
+      streamerBotPort: '8080',
       setTheme: (base) => set((state) => ({ theme: { ...state.theme, base } })),
       setAccent: (accent) => set((state) => ({ theme: { ...state.theme, accent } })),
       setSecondaryAccent: (secondaryAccent) => set((state) => ({ theme: { ...state.theme, secondaryAccent } })),
@@ -80,6 +86,8 @@ const useSettingsStore = create<SettingsState>()(
       setObsPassword: (password) => set({ obsPassword: password }),
       setGeminiApiKey: (key) => set({ geminiApiKey: key }),
       setExtraDarkMode: (value) => set({ extraDarkMode: value }),
+      setStreamerBotHost: (host) => set({ streamerBotHost: host }),
+      setStreamerBotPort: (port) => set({ streamerBotPort: port }),
       autoApplySuggestions: true,
       customChatBackground: '',
       bubbleFillOpacity: 0.7,

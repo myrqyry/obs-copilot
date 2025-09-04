@@ -26,6 +26,16 @@ const DOMAIN_FAVICONS: Record<string, string> = {
     'reddit.com': '🤖',
     'linkedin.com': '💼',
     'stackoverflow.com': '💻',
+    'giphy.com': ' GIF',
+    'tenor.com': ' GIF',
+    'unsplash.com': '📷',
+    'wallhaven.cc': '🖼️',
+    'iconfinder.com': '🎨',
+    'iconify.design': '🎨',
+    'emoji-api.com': '😀',
+    'openmoji.org': '😀',
+    'artstation.com': '🎨',
+    'deviantart.com': '🎨',
 };
 
 const ERROR_SENTINEL = 'error';
@@ -45,40 +55,34 @@ export const FaviconIcon: React.FC<FaviconIconProps> = ({ domain, alt, className
     }, [domain, size]);
 
     useEffect(() => {
-        console.log(`[FaviconIcon] useEffect for ${domain}, retry: ${retryCount}`);
         if (!domain) return;
 
         // Try to get from cache first
         const cached = localStorage.getItem(`favicon_${domain}_${size}`);
         if (cached && cached !== ERROR_SENTINEL) {
-            console.log(`[FaviconIcon] Cache hit for ${domain}`);
             setSrc(cached);
+            setLoaded(true);
             return;
         }
 
         // If we've cached an error, don't retry
         if (cached === ERROR_SENTINEL) {
-            console.log(`[FaviconIcon] Cached error for ${domain}, using fallback`);
             setError(true);
             return;
         }
 
         // Check if we've already failed too many times
-        if (retryCount >= 1) { // Reduced from 2 to 1 to avoid excessive retries
-            console.log(`[FaviconIcon] Max retries reached for ${domain}`);
+        if (retryCount >= 2) {
             setError(true);
             return;
         }
 
-
         // Use our favicon proxy to avoid CORS issues
         const proxyUrl = getProxiedFaviconUrl(domain);
-        console.log(`[FaviconIcon] Setting src for ${domain} to ${proxyUrl}`);
         setSrc(proxyUrl);
     }, [domain, size, retryCount]);
 
     const handleLoad = () => {
-        console.log(`[FaviconIcon] handleLoad for ${domain}`);
         setLoaded(true);
         setError(false);
         // Cache successful loads
@@ -88,16 +92,17 @@ export const FaviconIcon: React.FC<FaviconIconProps> = ({ domain, alt, className
     };
 
     const handleError = () => {
-        console.log(`[FaviconIcon] handleError for ${domain}`);
         setError(true);
         setLoaded(false);
 
         // Cache error to prevent repeated requests
         localStorage.setItem(`favicon_${domain}_${size}`, ERROR_SENTINEL);
 
-        // Only retry once for non-localhost environments
-        if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && retryCount < 1) {
-            setRetryCount(prev => prev + 1);
+        // Retry up to 2 times
+        if (retryCount < 2) {
+            setTimeout(() => {
+                setRetryCount(prev => prev + 1);
+            }, 100 * (retryCount + 1)); // Exponential backoff
         }
     };
 
@@ -114,7 +119,7 @@ export const FaviconIcon: React.FC<FaviconIconProps> = ({ domain, alt, className
             <Tooltip content={alt || `${domain} favicon`}>
                 <div
                     className={`inline-flex items-center justify-center bg-gray-200 text-gray-600 text-xs font-bold rounded-sm ${className}`}
-                    style={{ width: size, height: size }}
+                    style={{ width: size, height: size, minWidth: size, minHeight: size }}
                 >
                     {getDomainEmoji()}
                 </div>

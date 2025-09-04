@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useConnectionManagerStore } from '@/store/connectionManagerStore';
 import useSettingsStore from '@/store/settingsStore';
+import useApiKeyStore, { ApiService } from '@/store/apiKeyStore';
 import { toast } from '@/components/ui/toast';
 import { ObsClientImpl as ObsClient } from '@/services/obsClient';
 import { catppuccinAccentColorsHexMap } from '@/types';
@@ -17,32 +18,33 @@ import {
   IMAGE_FORMATS,
   ASPECT_RATIOS,
   PERSON_GENERATION_OPTIONS,
-  ImageUploadResult
+  ImageUploadResult,
 } from '@/types/audio';
 import { Settings, Sparkles } from 'lucide-react';
 import { handleAppError, createToastError } from '@/lib/errorUtils'; // Import error utilities
 
 const ImageGeneration: React.FC = () => {
     const [prompt, setPrompt] = useState('');
+    const [negativePrompt, setNegativePrompt] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [imageUrl, setImageUrl] = useState<string | null>(null);
+    const [imageUrls, setImageUrls] = useState<string[]>([]);
     const [modalOpen, setModalOpen] = useState(false);
     const [uploadedImage, setUploadedImage] = useState<ImageUploadResult | null>(null);
     const [showAdvanced, setShowAdvanced] = useState(false);
     const [openImageGeneration, setOpenImageGeneration] = useState(true);
 
     // Enhanced parameters
-    const [model] = useState('gemini-2.0-flash-exp-image-generation');
+    const [model, setModel] = useState('gemini-2.5-flash-image-preview');
+    const [numberOfImages, setNumberOfImages] = useState(1);
     const [imageFormat, setImageFormat] = useState('png');
     const [aspectRatio, setAspectRatio] = useState('1:1');
     const [personGeneration, setPersonGeneration] = useState('allow_adult');
-    const [responseModalities] = useState<string[]>(['TEXT', 'IMAGE']);
-    const [useEnhancedMode, setUseEnhancedMode] = useState(true);
 
     const { obsServiceInstance, currentProgramScene, isConnected } = useConnectionManagerStore();
     const accentColorName = useSettingsStore(state => state.theme.accent);
     const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
+    const geminiApiKey = useApiKeyStore(state => state.getApiKeyOverride(ApiService.GEMINI));
 
     const handleImageUpload = (file: File, base64: string) => {
         setUploadedImage({
@@ -50,7 +52,7 @@ const ImageGeneration: React.FC = () => {
             mimeType: file.type,
             fileName: file.name,
             size: file.size,
-            width: undefined, // Could extract from image if needed
+            width: undefined,
             height: undefined
         });
     };
@@ -65,39 +67,27 @@ const ImageGeneration: React.FC = () => {
             return;
         }
 
+        if (!geminiApiKey) {
+            setError('Gemini API key is missing. Please set it in the Connections tab.');
+            return;
+        }
+
         setLoading(true);
         setError(null);
-        setImageUrl(null);
+        setImageUrls([]);
 
         try {
-            let generatedImageUrl: string;
+            const generatedImageUrls = await geminiService.generateImage(prompt, {
+                model,
+                numberOfImages,
+                outputMimeType: `image/${imageFormat}`,
+                aspectRatio,
+                personGeneration,
+                negativePrompt,
+                imageInput: uploadedImage ? { data: uploadedImage.data, mimeType: uploadedImage.mimeType } : undefined,
+            });
 
-            if (useEnhancedMode && uploadedImage) {
-                // Use enhanced image generation with editing capabilities
-                generatedImageUrl = await geminiService.generateEnhancedImage(prompt, {
-                    model,
-                    responseModalities,
-                    imageFormat,
-                    aspectRatio,
-                    personGeneration,
-                    imageInput: uploadedImage.data,
-                    imageInputMimeType: uploadedImage.mimeType
-                });
-            } else if (useEnhancedMode) {
-                // Use enhanced image generation for new images
-                generatedImageUrl = await geminiService.generateEnhancedImage(prompt, {
-                    model,
-                    responseModalities,
-                    imageFormat,
-                    aspectRatio,
-                    personGeneration
-                });
-            } else {
-                // Fallback to basic image generation
-                generatedImageUrl = await geminiService.generateImage(prompt);
-            }
-
-            setImageUrl(generatedImageUrl);
+            setImageUrls(generatedImageUrls);
             setModalOpen(true);
         } catch (err: unknown) {
             setError(handleAppError('Image generation', err));
@@ -106,49 +96,24 @@ const ImageGeneration: React.FC = () => {
         }
     };
 
-    const handleAddAsBrowserSource = async () => {
-        if (!obsServiceInstance || !isConnected || !currentProgramScene || !imageUrl) {
-            toast(createToastError(
-                'Error',
-                'OBS not connected or no image generated.'
-            ));
+    const handleAddAsSource = async (imageUrl: string, type: 'browser' | 'image') => {
+        if (!obsServiceInstance || !isConnected || !currentProgramScene) {
+            toast(createToastError('Error', 'OBS not connected or no image generated.'));
             return;
         }
         try {
-            await (obsServiceInstance as ObsClient).addBrowserSource(currentProgramScene, imageUrl, generateSourceName('Generated Image'));
+            if (type === 'browser') {
+                await (obsServiceInstance as ObsClient).addBrowserSource(currentProgramScene, imageUrl, generateSourceName('Generated Image'));
+            } else {
+                await (obsServiceInstance as ObsClient).addImageSource(currentProgramScene, imageUrl, generateSourceName('Generated Image'));
+            }
             toast({
                 title: 'Success',
-                description: 'Added generated image to OBS.',
+                description: `Added generated image to OBS as ${type} source.`,
                 variant: 'default',
             });
         } catch (error: unknown) {
-            toast(createToastError(
-                'Error',
-                handleAppError('Adding browser source', error)
-            ));
-        }
-    };
-
-    const handleAddAsImageSource = async () => {
-        if (!obsServiceInstance || !isConnected || !currentProgramScene || !imageUrl) {
-            toast(createToastError(
-                'Error',
-                'OBS not connected or no image generated.'
-            ));
-            return;
-        }
-        try {
-            await (obsServiceInstance as ObsClient).addImageSource(currentProgramScene, imageUrl, generateSourceName('Generated Image'));
-            toast({
-                title: 'Success',
-                description: 'Added generated image to OBS.',
-                variant: 'default',
-            });
-        } catch (error: unknown) {
-            toast(createToastError(
-                'Error',
-                handleAppError('Adding image source', error)
-            ));
+            toast(createToastError('Error', handleAppError(`Adding ${type} source`, error)));
         }
     };
 
@@ -191,89 +156,110 @@ const ImageGeneration: React.FC = () => {
                         }
                     />
 
-                    {/* Enhanced Mode Toggle */}
-                    <div className="flex items-center space-x-2">
-                        <input
-                            type="checkbox"
-                            id="enhanced-mode"
-                            checked={useEnhancedMode}
-                            onChange={(e) => setUseEnhancedMode(e.target.checked)}
-                        />
-                        <label htmlFor="enhanced-mode" className="text-sm">
-                            Use enhanced parameters
-                        </label>
-                        <Sparkles className="w-4 h-4" />
+                    {/* Model Selector */}
+                    <div>
+                        <label className="block text-sm font-medium mb-2">Model</label>
+                        <select
+                            value={model}
+                            onChange={(e) => setModel(e.target.value)}
+                            className="w-full p-2 border rounded text-sm"
+                        >
+                            <option value="gemini-2.5-flash-image-preview">Gemini 2.5 Flash (Fast, Good Quality)</option>
+                            <option value="imagen-4.0-fast-generate-001">Imagen 4.0 (High Quality)</option>
+                        </select>
                     </div>
 
+                    {/* Negative Prompt */}
+                    <TextInput
+                        label="Negative Prompt (optional)"
+                        value={negativePrompt}
+                        onChange={(e) => setNegativePrompt(e.target.value)}
+                        placeholder="e.g., 'blurry', 'disfigured', 'watermark'"
+                    />
+
                     {/* Advanced Parameters */}
-                    {useEnhancedMode && (
-                        <div className="space-y-3 border rounded-lg p-3 bg-muted/20">
-                            <div className="flex items-center justify-between">
-                                <h4 className="text-sm font-medium flex items-center gap-2">
-                                    <Settings className="w-4 h-4" />
-                                    Advanced Parameters
-                                </h4>
-                                <button
-                                    onClick={() => setShowAdvanced(!showAdvanced)}
-                                    className="text-xs text-muted-foreground hover:text-foreground"
-                                >
-                                    {showAdvanced ? 'Hide' : 'Show'}
-                                </button>
-                            </div>
-
-                            {showAdvanced && (
-                                <div className="space-y-3">
-                                    {/* Aspect Ratio */}
-                                    <div>
-                                        <label className="block text-xs font-medium mb-1">Aspect Ratio</label>
-                                        <select
-                                            value={aspectRatio}
-                                            onChange={(e) => setAspectRatio(e.target.value)}
-                                            className="w-full p-2 border rounded text-sm"
-                                        >
-                                            {ASPECT_RATIOS.map(ratio => (
-                                                <option key={ratio.value} value={ratio.value}>
-                                                    {ratio.label} - {ratio.description}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    {/* Image Format */}
-                                    <div>
-                                        <label className="block text-xs font-medium mb-1">Image Format</label>
-                                        <select
-                                            value={imageFormat}
-                                            onChange={(e) => setImageFormat(e.target.value)}
-                                            className="w-full p-2 border rounded text-sm"
-                                        >
-                                            {IMAGE_FORMATS.map(format => (
-                                                <option key={format.value} value={format.value}>
-                                                    {format.label} - {format.description}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    {/* Person Generation */}
-                                    <div>
-                                        <label className="block text-xs font-medium mb-1">Person Generation</label>
-                                        <select
-                                            value={personGeneration}
-                                            onChange={(e) => setPersonGeneration(e.target.value)}
-                                            className="w-full p-2 border rounded text-sm"
-                                        >
-                                            {PERSON_GENERATION_OPTIONS.map(option => (
-                                                <option key={option.value} value={option.value}>
-                                                    {option.label} - {option.description}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-                            )}
+                    <div className="space-y-3 border rounded-lg p-3 bg-muted/20">
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-medium flex items-center gap-2">
+                                <Settings className="w-4 h-4" />
+                                Advanced Parameters
+                            </h4>
+                            <button
+                                onClick={() => setShowAdvanced(!showAdvanced)}
+                                className="text-xs text-muted-foreground hover:text-foreground"
+                            >
+                                {showAdvanced ? 'Hide' : 'Show'}
+                            </button>
                         </div>
-                    )}
+
+                        {showAdvanced && (
+                            <div className="space-y-3">
+                                {/* Number of Images */}
+                                <div>
+                                    <label className="block text-xs font-medium mb-1">Number of Images</label>
+                                    <input
+                                        type="number"
+                                        value={numberOfImages}
+                                        onChange={(e) => setNumberOfImages(parseInt(e.target.value, 10))}
+                                        min="1"
+                                        max="4"
+                                        className="w-full p-2 border rounded text-sm"
+                                    />
+                                </div>
+
+                                {/* Aspect Ratio */}
+                                <div>
+                                    <label className="block text-xs font-medium mb-1">Aspect Ratio</label>
+                                    <select
+                                        value={aspectRatio}
+                                        onChange={(e) => setAspectRatio(e.target.value)}
+                                        className="w-full p-2 border rounded text-sm"
+                                        disabled={model.startsWith('gemini')}
+                                    >
+                                        {ASPECT_RATIOS.map(ratio => (
+                                            <option key={ratio.value} value={ratio.value}>
+                                                {ratio.label} - {ratio.description}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Image Format */}
+                                <div>
+                                    <label className="block text-xs font-medium mb-1">Image Format</label>
+                                    <select
+                                        value={imageFormat}
+                                        onChange={(e) => setImageFormat(e.target.value)}
+                                        className="w-full p-2 border rounded text-sm"
+                                        disabled={model.startsWith('gemini')}
+                                    >
+                                        {IMAGE_FORMATS.map(format => (
+                                            <option key={format.value} value={format.value}>
+                                                {format.label} - {format.description}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Person Generation */}
+                                <div>
+                                    <label className="block text-xs font-medium mb-1">Person Generation</label>
+                                    <select
+                                        value={personGeneration}
+                                        onChange={(e) => setPersonGeneration(e.target.value)}
+                                        className="w-full p-2 border rounded text-sm"
+                                        disabled={model.startsWith('gemini')}
+                                    >
+                                        {PERSON_GENERATION_OPTIONS.map(option => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label} - {option.description}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        )}
+                    </div>
 
                     {/* Generate Button */}
                     <Button onClick={handleGenerateImage} disabled={loading || !prompt}>
@@ -286,14 +272,20 @@ const ImageGeneration: React.FC = () => {
                     <Modal
                         isOpen={modalOpen}
                         onClose={() => setModalOpen(false)}
-                        title="Generated Image"
-                        actions={[
-                            { label: 'Add as Browser Source', onClick: handleAddAsBrowserSource, variant: 'primary' },
-                            { label: 'Add as Image Source', onClick: handleAddAsImageSource, variant: 'secondary' },
-                            { label: 'Copy URL', onClick: () => { copyToClipboard(imageUrl!); toast({ title: 'Info', description: 'Copied image URL!', variant: 'default' }); } },
-                        ]}
+                        title="Generated Images"
                     >
-                        {imageUrl && <img src={imageUrl} alt="Generated" className="max-w-full max-h-[70vh] mx-auto" />}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {imageUrls.map((url, index) => (
+                                <div key={index} className="space-y-2">
+                                    <img src={url} alt={`Generated ${index + 1}`} className="max-w-full max-h-[60vh] mx-auto" />
+                                    <div className="flex gap-2">
+                                        <Button onClick={() => handleAddAsSource(url, 'browser')} variant="default">Add as Browser Source</Button>
+                                        <Button onClick={() => handleAddAsSource(url, 'image')} variant="secondary">Add as Image Source</Button>
+                                        <Button onClick={() => { copyToClipboard(url); toast({ title: 'Info', description: 'Copied image URL!', variant: 'default' }); }}>Copy URL</Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </Modal>
                 )}
             </CardContent>

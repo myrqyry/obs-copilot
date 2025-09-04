@@ -228,26 +228,8 @@ export const PromptInputButton = ({
   children,
   ...props
 }: PromptInputButtonProps) => {
-  const hasMultipleChildren = Array.isArray(children) && children.length > 1;
+  const hasMultipleChildren = React.Children.count(children) > 1;
   const newSize = size || (hasMultipleChildren || typeof children === 'string' ? 'default' : 'icon');
-
-  // Process children to ensure icons have proper sizing
-  const processedChildren = React.Children.map(children, child => {
-    if (React.isValidElement(child)) {
-      // Check if it's an icon component
-      const isIcon = typeof child.type === 'function' && 
-                   'name' in child.type && 
-                   typeof child.type.name === 'string' &&
-                   child.type.name.endsWith('Icon');
-      
-      if (isIcon) {
-        return React.cloneElement(child as React.ReactElement, {
-          className: cn('size-4', child.props?.className)
-        });
-      }
-    }
-    return child;
-  });
 
   return (
     <Button
@@ -262,7 +244,7 @@ export const PromptInputButton = ({
       variant={variant}
       {...props}
     >
-      {processedChildren}
+      {children}
     </Button>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { GlobeAltIcon, CameraIcon } from '@heroicons/react/24/solid';
+import { Globe, Camera } from 'lucide-react';
 import Tooltip from '@/components/ui/Tooltip';
 import { ZodError } from 'zod';
 import { chatInputSchema } from '@/lib/validations';
@@ -83,7 +83,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                                 aria-label={useGoogleSearch ? "Disable web search" : "Enable web search"}
                                 aria-pressed={useGoogleSearch}
                             >
-                                <GlobeAltIcon className="w-4 h-4" />
+                                <Globe className="w-4 h-4" />
                             </PromptInputButton>
                         </Tooltip>
                         <Tooltip content={isConnected && currentProgramScene ? "Take screenshot of current scene" : "Connect to OBS to take screenshots"}>
@@ -96,7 +96,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                                     }`}
                                 aria-label="Take screenshot of current scene"
                             >
-                                <CameraIcon className="w-4 h-4" />
+                                <Camera className="w-4 h-4" />
                             </PromptInputButton>
                         </Tooltip>
                     </PromptInputTools>

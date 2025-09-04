@@ -24,6 +24,9 @@ export const shouldProxyImage = (url: string): boolean => {
       'cdnb.artstation.com',
       'cdna.artstation.com',
       'google.com', // For the favicon service
+      't1.gstatic.com',
+      'www.google.com',
+      'www.gstatic.com',
     ];
     // If the image's hostname is in our list, we should proxy it.
     return externalDomains.some((domain) => urlObj.hostname.includes(domain));
@@ -62,8 +65,7 @@ export const getProxiedFaviconUrl = (domain: string): string => {
   if (!domain) return '';
 
   // We use Google's public favicon service as a reliable source.
-  // Changed to a more robust Google favicon service URL
-  const faviconUrl = `https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://${domain}`;
+  const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
 
   // We then run that Google URL through our own proxy to avoid any potential CORS issues.
   return getProxiedImageUrl(faviconUrl);

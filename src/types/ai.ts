@@ -15,27 +15,36 @@ export interface AIService {
       history?: Array<{role: string, parts: Array<{text: string}>}>;
     }
   ): Promise<GeminiGenerateContentResponse>;
-  generateEnhancedImage(
-    prompt: string,
-    options?: {
-      model?: string;
-      responseModalities?: string[];
-      imageFormat?: string;
-      imageQuality?: number;
-      aspectRatio?: string;
-      personGeneration?: string;
-      safetySettings?: Array<{ category: string; threshold: string }>;
-      imageInput?: string;
-      imageInputMimeType?: string;
-    }
-  ): Promise<string>;
   generateImage(
     prompt: string,
     options?: {
       model?: string;
-      size?: string;
+      numberOfImages?: number;
+      outputMimeType?: string;
+      aspectRatio?: string;
+      personGeneration?: string;
+      negativePrompt?: string;
+      imageInput?: { data: string; mimeType: string };
+    }
+  ): Promise<string[]>;
+  generateSpeech(
+    prompt: string,
+    options?: {
+      model?: string;
+      voiceConfig?: any;
+      multiSpeakerVoiceConfig?: any;
     }
   ): Promise<string>;
+  generateVideo(
+    prompt: string,
+    options?: {
+      model?: string;
+      aspectRatio?: string;
+      durationSeconds?: number;
+      personGeneration?: string;
+      numberOfVideos?: number;
+    }
+  ): Promise<string[]>;
   generateStructuredContent(
     prompt: string,
     schema: any,

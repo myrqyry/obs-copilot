@@ -250,6 +250,157 @@ export interface GlobalVariableValue<T = unknown> {
 export type GlobalScope = 'global' | 'user' | 'channel' | 'session' | 'local';
 
 /**
+ * Event subscription structure
+ */
+export interface EventSubscription {
+  [category: string]: string[];
+}
+
+/**
+ * Response from GetEvents request
+ */
+export interface GetEventsResponse {
+  events: {
+    [category: string]: string[];
+  };
+  raw?: unknown;
+}
+
+/**
+ * Response from GetInfo request
+ */
+export interface GetInfoResponse {
+  id: string;
+  name: string;
+  version: string;
+  sessionId: string;
+  uptime: string;
+  raw?: unknown;
+}
+
+/**
+ * Response from GetBroadcaster request
+ */
+export interface GetBroadcasterResponse {
+  broadcasters: Array<{
+    id: string;
+    platform: string;
+    username: string;
+    displayName: string;
+  }>;
+  raw?: unknown;
+}
+
+/**
+ * Response from GetActiveViewers request
+ */
+export interface GetActiveViewersResponse {
+  viewers: Array<{
+    id: string;
+    username: string;
+    platform: string;
+    lastSeen: string;
+  }>;
+  raw?: unknown;
+}
+
+/**
+ * Response from GetCommands request
+ */
+export interface GetCommandsResponse {
+  commands: Array<{
+    id: string;
+    name: string;
+    description: string;
+    enabled: boolean;
+  }>;
+  raw?: unknown;
+}
+
+/**
+ * Response from GetGlobals request
+ */
+export interface GetGlobalsResponse {
+  globals: Record<string, unknown>;
+  raw?: unknown;
+}
+
+/**
+ * Response from GetGlobal request
+ */
+export interface GetGlobalResponse {
+  value: unknown;
+  raw?: unknown;
+}
+
+/**
+ * Response from TwitchGetUserGlobals request
+ */
+export interface TwitchGetUserGlobalsResponse {
+  users: Record<string, Record<string, unknown>>;
+  raw?: unknown;
+}
+
+/**
+ * Response from TwitchGetUserGlobal request
+ */
+export interface TwitchGetUserGlobalResponse {
+  userId: string;
+  variables: Record<string, unknown>;
+  raw?: unknown;
+}
+
+/**
+ * Response from TwitchGetEmotes request
+ */
+export interface TwitchGetEmotesResponse {
+  emotes: Array<{
+    id: string;
+    name: string;
+    images: Record<string, string>;
+  }>;
+  raw?: unknown;
+}
+
+/**
+ * Response from YouTubeGetEmotes request
+ */
+export interface YouTubeGetEmotesResponse {
+  emotes: Array<{
+    id: string;
+    name: string;
+    images: Record<string, string>;
+  }>;
+  raw?: unknown;
+}
+
+/**
+ * Response from GetCodeTriggers request
+ */
+export interface GetCodeTriggersResponse {
+  triggers: Array<{
+    name: string;
+    description: string;
+  }>;
+  raw?: unknown;
+}
+
+/**
+ * Response from GetCredits request
+ */
+export interface GetCreditsResponse {
+  credits: {
+    total: number;
+    topUsers: Array<{
+      userId: string;
+      username: string;
+      amount: number;
+    }>;
+  };
+  raw?: unknown;
+}
+
+/**
  * Structured error returned by Streamer.bot client operations
  */
 export interface StreamerBotError {

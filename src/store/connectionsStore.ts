@@ -1,7 +1,7 @@
 // src/store/connectionsStore.ts
 import { create } from 'zustand';
 import OBSWebSocket from 'obs-websocket-js';
-import { OBSScene, OBSSource } from '@/types';
+import type { OBSScene, OBSSource } from '@/types';
 import { StreamerBotService } from '@/services/streamerBotService';
 
 // Define a minimal OBSResponseTypes interface locally to unblock compilation
@@ -36,12 +36,8 @@ interface OBSResponseTypes {
   };
 }
 
-// Create a global instance of the OBS WebSocket client
-const obs = new (OBSWebSocket as any)();
-
-// Your existing state and functions
 export interface ConnectionState {
-  obs: any; // 👈 Add this line to make the OBS instance part of the state
+  obs: any | null;
   isConnected: boolean;
   connectionError: string | null;
   isLoading: boolean;
@@ -52,8 +48,8 @@ export interface ConnectionState {
   recordStatus: OBSResponseTypes['GetRecordStatus'] | null;
   videoSettings: OBSResponseTypes['GetVideoSettings'] | null;
   streamerBotServiceInstance: StreamerBotService | null;
-  connectToObs: (url: string, password?: string) => void;
-  disconnectFromObs: () => void;
+  connectToObs: (url: string, password?: string) => Promise<void>;
+  disconnectFromObs: () => Promise<void>;
   setScenes: (scenes: OBSScene[]) => void;
   setCurrentProgramScene: (sceneName: string | null) => void;
   setSources: (sources: OBSSource[]) => void;
@@ -62,95 +58,101 @@ export interface ConnectionState {
   setVideoSettings: (settings: OBSResponseTypes['GetVideoSettings'] | null) => void;
 }
 
-const useConnectionsStore = create<ConnectionState>((set) => {
-  return {
-    obs: obs, // 👈 Initialize the OBS instance in the store
-    isConnected: false,
-    connectionError: null,
-    isLoading: false,
-    scenes: [],
-    currentProgramScene: null,
-    sources: [],
-    streamStatus: null,
-    recordStatus: null,
-    videoSettings: null,
-    streamerBotServiceInstance: null,
+const useConnectionsStore = create<ConnectionState>((set, get) => ({
+  obs: null,
+  isConnected: false,
+  connectionError: null,
+  isLoading: false,
+  scenes: [],
+  currentProgramScene: null,
+  sources: [],
+  streamStatus: null,
+  recordStatus: null,
+  videoSettings: null,
+  streamerBotServiceInstance: null,
 
-    connectToObs: async (url, password) => {
-      set({ isLoading: true, connectionError: null });
+  connectToObs: async (url, password) => {
+    if (get().obs) {
+      await get().disconnectFromObs();
+    }
 
-      try {
-        // Connect to the OBS WebSocket server
-        const { obsWebSocketVersion, obsStudioVersion } = await obs.connect(url, password);
-        console.log(`Connected to OBS Studio ${obsStudioVersion} (using OBS WebSocket ${obsWebSocketVersion})`);
+    set({ isLoading: true, connectionError: null });
+    const obs = new OBSWebSocket();
 
-        // Fetch initial OBS data
-        const { scenes } = await obs.call('GetSceneList');
-        const { currentProgramSceneName } = await obs.call('GetCurrentProgramScene');
-        const { sceneItems } = await obs.call('GetSceneItemList', { sceneName: currentProgramSceneName });
-        const streamStatus = await obs.call('GetStreamStatus');
-        const recordStatus = await obs.call('GetRecordStatus');
-        const videoSettings = await obs.call('GetVideoSettings');
+    obs.on('ConnectionClosed', () => {
+      console.log('OBS WebSocket connection closed.');
+      set({ isConnected: false, connectionError: 'Connection closed.', isLoading: false, obs: null });
+    });
 
-        set({ 
-          isConnected: true, 
-          isLoading: false, 
-          connectionError: null,
-          obs: obs, // Set the obs instance in the store
-          scenes: scenes.map((s: any) => ({ sceneName: s.sceneName, sceneIndex: s.sceneIndex })),
-          currentProgramScene: currentProgramSceneName,
-          sources: sceneItems.map((item: any) => ({
-            sourceName: item.sourceName,
-            typeName: item.inputKind,
-            sceneItemId: item.sceneItemId,
-            sceneItemEnabled: item.sceneItemEnabled,
-          })),
-          streamStatus: streamStatus,
-          recordStatus: recordStatus,
-          videoSettings: videoSettings,
-        });
-        
-      } catch (error) {
-        console.error('Failed to connect to OBS:', error);
-        set({ 
-          isConnected: false, 
-          isLoading: false, 
-          connectionError: 'Failed to connect. Please check the URL and password.' 
-        });
+    try {
+      // Validate URL format
+      if (!url || !url.startsWith('ws://') && !url.startsWith('wss://')) {
+        throw new Error('Invalid WebSocket URL format. Must start with ws:// or wss://');
       }
-    },
 
-    disconnectFromObs: async () => {
+      const { obsWebSocketVersion, obsStudioVersion } = await obs.connect(url, password);
+      console.log(`Connected to OBS Studio ${obsStudioVersion} (using OBS WebSocket ${obsWebSocketVersion})`);
+
+      const { scenes } = await obs.call('GetSceneList');
+      const { currentProgramSceneName } = await obs.call('GetCurrentProgramScene');
+      const { sceneItems } = await obs.call('GetSceneItemList', { sceneName: currentProgramSceneName });
+      const streamStatus = await obs.call('GetStreamStatus');
+      const recordStatus = await obs.call('GetRecordStatus');
+      const videoSettings = await obs.call('GetVideoSettings');
+
+      set({
+        isConnected: true,
+        isLoading: false,
+        connectionError: null,
+        obs: obs,
+        scenes: scenes.map((s: any) => ({ sceneName: s.sceneName, sceneIndex: s.sceneIndex })),
+        currentProgramScene: currentProgramSceneName,
+        sources: sceneItems.map((item: any) => ({
+          sourceName: item.sourceName,
+          typeName: item.inputKind,
+          sceneItemId: item.sceneItemId,
+          sceneItemEnabled: item.sceneItemEnabled,
+        })),
+        streamStatus,
+        recordStatus,
+        videoSettings,
+      });
+    } catch (error: any) {
+      console.error('Failed to connect to OBS:', error);
+      const errorMessage = error?.message || 'Failed to connect. Please check the URL and password.';
+      set({
+        isConnected: false,
+        isLoading: false,
+        connectionError: errorMessage,
+        obs: null,
+      });
+    }
+  },
+
+  disconnectFromObs: async () => {
+    const obs = get().obs;
+    if (obs) {
       try {
-        if (obs) {
-          await obs.disconnect();
-        }
-        set({ 
-          isConnected: false, 
-          connectionError: null,
-          isLoading: false,
-        });
+        await obs.disconnect();
       } catch (error) {
         console.error('Failed to disconnect from OBS:', error);
-        set({ 
-          connectionError: 'Failed to disconnect.',
-          isLoading: false
+      } finally {
+        set({
+          isConnected: false,
+          connectionError: null,
+          isLoading: false,
+          obs: null,
         });
       }
-    },
-    setScenes: (scenes) => set({ scenes }),
-    setCurrentProgramScene: (sceneName) => set({ currentProgramScene: sceneName }),
-    setSources: (sources) => set({ sources }),
-    setStreamStatus: (status) => set({ streamStatus: status }),
-    setRecordStatus: (status) => set({ recordStatus: status }),
-    setVideoSettings: (settings) => set({ videoSettings: settings }),
-  };
-});
+    }
+  },
 
-// Add event listeners to handle disconnections
-obs.on('ConnectionClosed', () => {
-    console.log('OBS WebSocket connection closed.');
-    useConnectionsStore.setState({ isConnected: false, connectionError: 'Connection closed.', isLoading: false });
-});
+  setScenes: (scenes) => set({ scenes }),
+  setCurrentProgramScene: (sceneName) => set({ currentProgramScene: sceneName }),
+  setSources: (sources) => set({ sources }),
+  setStreamStatus: (status) => set({ streamStatus: status }),
+  setRecordStatus: (status) => set({ recordStatus: status }),
+  setVideoSettings: (settings) => set({ videoSettings: settings }),
+}));
 
 export default useConnectionsStore;

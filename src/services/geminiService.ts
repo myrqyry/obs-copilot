@@ -1,31 +1,36 @@
-
-import { handleAppError } from '@/lib/errorUtils'; // Import handleAppError
+import { handleAppError } from '@/lib/errorUtils';
 import { aiMiddleware } from './aiMiddleware';
-import { GeminiGenerateContentResponse, GeminiGenerateContentConfig, LiveAPIConfig } from '@/types/gemini';
+import {
+  GeminiGenerateContentResponse,
+  GeminiGenerateContentConfig,
+} from '@/types/gemini';
 import { AIService } from '@/types/ai';
 import { dataUrlToBlobUrl } from '@/lib/utils';
+import { LiveConnectParameters } from '@google/genai';
 import { GoogleGenAI, Content } from '@google/genai';
 import { Buffer } from 'buffer';
+import { pcm16ToWavUrl } from '@/lib/pcmToWavUrl';
 
-// Initialize the Google GenAI client
-// The new SDK handles token generation internally or via client initialization.
-// We need to ensure the client is initialized with the correct API key.
-// If using an ephemeral token, it should be handled during client creation.
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || ''; // Ensure GEMINI_API_KEY is set
-const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+// Initialize the Google GenAI client with a placeholder key
+// The actual key will be passed dynamically from the components
+let ai: GoogleGenAI;
+
+// Function to initialize or reinitialize the client with a specific API key
+export function initializeGeminiClient(apiKey: string) {
+  ai = new GoogleGenAI({ apiKey });
+}
+
+// Initialize with environment variable as fallback
+const initialApiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+if (initialApiKey) {
+  initializeGeminiClient(initialApiKey);
+}
 
 class GeminiService implements AIService {
   constructor() {
     // No-op
   }
 
-  /**
-   * Generates content using the Gemini API.
-   * @param prompt The prompt to send to the Gemini API.
-   * @param options Configuration options
-   * @returns A promise that resolves to the generated content.
-   * @throws Throws an error if the API call fails.
-   */
   async generateContent(
     prompt: string,
     options: {
@@ -38,7 +43,7 @@ class GeminiService implements AIService {
     } = {}
   ): Promise<GeminiGenerateContentResponse> {
     const {
-      model = 'gemini-1.5-flash-latest', // Updated model name to latest stable
+      model = 'gemini-2.5-flash',
       temperature = 0.7,
       maxOutputTokens = 1000,
       topP = 0.9,
@@ -47,13 +52,11 @@ class GeminiService implements AIService {
     } = options;
 
     try {
-      // Prepare history for the new SDK format
       const formattedHistory: Content[] = history.map(turn => ({
         role: turn.role,
         parts: turn.parts.map(part => ({ text: part.text }))
       }));
 
-      // Construct the config object for the new SDK
       const config: GeminiGenerateContentConfig = {
         temperature,
         maxOutputTokens,
@@ -61,7 +64,6 @@ class GeminiService implements AIService {
         topK,
       };
 
-      // Use the new SDK's generateContent method
       const response = await ai.models.generateContent({
         model: model,
         contents: [
@@ -74,7 +76,7 @@ class GeminiService implements AIService {
       const text = response.text || '';
       const candidates = response.candidates || [];
       const usageMetadata = response.usageMetadata || {};
-      const toolCalls = response.functionCalls || []; // Assuming functionCalls maps to toolCalls
+      const toolCalls = response.functionCalls || [];
 
       return {
         text,
@@ -88,129 +90,245 @@ class GeminiService implements AIService {
   }
 
   /**
-   * Generates an enhanced image using the Gemini API with comprehensive parameters.
-   * @param prompt The prompt to send to the Gemini API for image generation.
-   * @param options Configuration options for enhanced image generation
-   * @returns A promise that resolves to a blob URL of the generated image.
-   * @throws Throws an error if the API call fails.
+   * Generate content using Gemini's streaming API.
+   * Returns the full concatenated response text.
    */
-  async generateEnhancedImage(
+  async generateStreamingContent(
     prompt: string,
     options: {
       model?: string;
-      responseModalities?: string[];
-      imageFormat?: string;
-      imageQuality?: number;
-      aspectRatio?: string;
-      personGeneration?: string;
-      safetySettings?: Array<{ category: string; threshold: string }>;
-      imageInput?: string; // Base64 encoded image for editing
-      imageInputMimeType?: string;
+      temperature?: number;
+      maxOutputTokens?: number;
+      topP?: number;
+      topK?: number;
     } = {}
   ): Promise<string> {
     const {
-      model = 'imagen-3.0-generate-001', // Updated model name for image generation
-      imageFormat = 'png',
-      aspectRatio = '1:1',
-      personGeneration = 'allow_adult',
-      safetySettings,
-      imageInput,
-      imageInputMimeType
+      model = 'gemini-2.5-flash',
+      temperature = 0.7,
+      maxOutputTokens = 1000,
+      topP = 0.9,
+      topK = 40,
     } = options;
 
     try {
-      // Prepare safety settings for the new SDK
-      const formattedSafetySettings = safetySettings?.map(setting => ({
-        category: setting.category as any, // Type assertion might be needed
-        threshold: setting.threshold as any, // Type assertion might be needed
-      }));
+      const config: GeminiGenerateContentConfig = {
+        temperature,
+        maxOutputTokens,
+        topP,
+        topK,
+      };
 
-      // Prepare image input if provided
-      
-      if (imageInput && imageInputMimeType) {
-        
-      }
-
-      // Use the new SDK's generateImages method
-      const response = await ai.models.generateImages({
-        model: model,
-        prompt: prompt,
-        config: {
-          numberOfImages: 1,
-          outputMimeType: `image/${imageFormat}`,
-          safetyFilterLevel: formattedSafetySettings?.[0]?.threshold as any, // Assuming single safety setting for simplicity
-          personGeneration: personGeneration as any,
-          aspectRatio: aspectRatio as any,
-        },
+      // Use the streaming endpoint
+      const stream = await ai.models.generateContentStream({
+        model,
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        config,
       });
 
-      // Handle response format
-      if (response.generatedImages && response.generatedImages.length > 0) {
-        const firstImage = response.generatedImages[0];
-        if (firstImage.image?.imageBytes) {
-          const mimeType = firstImage.image.mimeType || `image/${imageFormat}`;
-          const dataUrl = `data:${mimeType};base64,${Buffer.from(firstImage.image.imageBytes).toString('base64')}`;
-          return dataUrlToBlobUrl(dataUrl);
+      let fullText = '';
+      for await (const chunk of stream) {
+        // Each chunk may contain partial text; concatenate safely
+        if (chunk?.text) {
+          fullText += chunk.text;
         }
       }
 
-      throw new Error('Image generation response did not contain expected image data.');
+      return fullText;
     } catch (error: any) {
-      throw new Error(handleAppError('Gemini API enhanced image generation', error, 'Image generation response did not contain expected image data or authentication failed.'));
+      // Preserve existing error handling style
+      throw new Error(
+        handleAppError(
+          'Gemini API streaming content generation',
+          error,
+          `Model '${model}' not found or authentication failed.`
+        )
+      );
     }
   }
 
-  /**
-   * Generates an image using the native Gemini 2.0 Flash capabilities.
-   * @param prompt The prompt to send to the Gemini API for image generation.
-   * @param options Configuration options for image generation
-   * @returns A promise that resolves to a blob URL of the generated image.
-   * @throws Throws an error if the API call fails.
-   */
   async generateImage(
     prompt: string,
     options: {
       model?: string;
-      size?: string;
+      numberOfImages?: number;
+      outputMimeType?: string;
+      aspectRatio?: string;
+      personGeneration?: string;
+      negativePrompt?: string;
+      imageInput?: { data: string; mimeType: string };
     } = {}
-  ): Promise<string> {
-    const { model = 'imagen-3.0-generate-001', size = 'IMAGE_SIZE_1024_1024' } = options; // Updated model name and default size to enum
+  ): Promise<string[]> {
+    const {
+      model = 'gemini-2.5-flash-image-preview',
+      numberOfImages = 1,
+      outputMimeType = 'image/png',
+      aspectRatio = '1:1',
+      personGeneration = 'allow_adult',
+      negativePrompt,
+      imageInput,
+    } = options;
 
     try {
-      // Use the new SDK's generateImages method
-      const response = await ai.models.generateImages({
-        model: model,
-        prompt: prompt,
-        config: {
-          numberOfImages: 1,
-          imageSize: size as any, // Map size to imageSize enum
-          outputMimeType: 'image/png',
-        },
-      });
+      if (model.startsWith('gemini')) {
+        const contents: Content[] = [{ role: 'user', parts: [{ text: prompt }] }];
+        if (imageInput) {
+          contents[0].parts.push({
+            inlineData: {
+              data: imageInput.data,
+              mimeType: imageInput.mimeType,
+            },
+          });
+        }
 
-      // Handle response format
-      if (response.generatedImages && response.generatedImages.length > 0) {
-        const firstImage = response.generatedImages[0];
-        if (firstImage.image?.imageBytes) {
-          const mimeType = firstImage.image.mimeType || 'image/png';
-          const dataUrl = `data:${mimeType};base64,${Buffer.from(firstImage.image.imageBytes).toString('base64')}`;
-          return dataUrlToBlobUrl(dataUrl);
+        const response = await ai.models.generateContent({
+          model,
+          contents,
+        });
+
+        const imageUrls = response.candidates?.[0]?.content?.parts
+          ?.filter(part => part.inlineData)
+          .map(part => {
+            const data = part.inlineData?.data;
+            const mimeType = part.inlineData?.mimeType;
+            const dataUrl = `data:${mimeType};base64,${data}`;
+            return dataUrlToBlobUrl(dataUrl);
+          });
+
+        if (imageUrls && imageUrls.length > 0) {
+          return await Promise.all(imageUrls);
+        }
+      } else if (model.startsWith('imagen')) {
+        const response = await ai.models.generateImages({
+          model,
+          prompt,
+          config: {
+            numberOfImages,
+            outputMimeType,
+            aspectRatio: aspectRatio as any,
+            personGeneration: personGeneration as any,
+            negativePrompt,
+          },
+        });
+
+        if (response.generatedImages && response.generatedImages.length > 0) {
+          const imageUrls = response.generatedImages.map(image => {
+            const mimeType = image.image?.mimeType || outputMimeType;
+            const dataUrl = `data:${mimeType};base64,${Buffer.from(image.image!.imageBytes!).toString('base64')}`;
+            return dataUrlToBlobUrl(dataUrl);
+          });
+          return await Promise.all(imageUrls);
         }
       }
 
       throw new Error('Image generation response did not contain expected image data.');
     } catch (error: any) {
-      throw new Error(handleAppError('Gemini API image generation', error, 'Image generation response did not contain expected image data or authentication failed.'));
+      throw new Error(handleAppError('Gemini API image generation', error, 'Image generation failed.'));
     }
   }
 
-  /**
-   * Generates content with structured output using JSON schema.
-   * @param prompt The prompt to send to the Gemini API.
-   * @param schema JSON schema for structured output
-   * @param options Configuration options
-   * @returns A promise that resolves to the generated content with structured data.
-   */
+  async generateSpeech(
+    prompt: string,
+    options: {
+      model?: string;
+      voiceConfig?: any;
+      multiSpeakerVoiceConfig?: any;
+    } = {}
+  ): Promise<string> {
+    const {
+      model = 'gemini-2.5-flash-preview-tts',
+      voiceConfig,
+      multiSpeakerVoiceConfig,
+    } = options;
+
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: [{ parts: [{ text: prompt }] }],
+        config: {
+          responseModalities: ['AUDIO'],
+          speechConfig: {
+            voiceConfig,
+            multiSpeakerVoiceConfig,
+          },
+        },
+      });
+
+      const data = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (data) {
+        const audioBuffer = Buffer.from(data, 'base64');
+        const wavUrl = await pcm16ToWavUrl(audioBuffer, 24000, 1);
+        return wavUrl;
+      }
+
+      throw new Error('Speech generation response did not contain expected audio data.');
+    } catch (error: any) {
+      throw new Error(handleAppError('Gemini API speech generation', error, 'Speech generation failed.'));
+    }
+  }
+
+  async generateVideo(
+    prompt: string,
+    options: {
+      model?: string;
+      aspectRatio?: string;
+      durationSeconds?: number;
+      personGeneration?: string;
+      numberOfVideos?: number;
+    } = {}
+  ): Promise<string[]> {
+    const {
+      model = 'veo-3.0-fast-generate-preview',
+      aspectRatio = '16:9',
+      durationSeconds = 8,
+      personGeneration = 'allow_adult',
+      numberOfVideos = 1,
+    } = options;
+
+    try {
+      // Generate videos using the Veo models
+      const response = await ai.models.generateVideos({
+        model,
+        prompt,
+        config: {
+          aspectRatio: aspectRatio as any,
+          durationSeconds,
+          personGeneration: personGeneration as any,
+          numberOfVideos,
+        },
+      });
+
+      // Handle the async operation
+      let operation = response;
+      
+      // Poll for completion
+      while (!operation.done) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        operation = await ai.operations.getVideosOperation({
+          operation: operation,
+        });
+      }
+
+      // Extract video URLs
+      const videoUrls: string[] = [];
+      if (operation.response?.generatedVideos) {
+        for (const generatedVideo of operation.response.generatedVideos) {
+          if (generatedVideo.video?.uri) {
+            // Download the video file
+            const videoResponse = await fetch(generatedVideo.video.uri);
+            const videoBlob = await videoResponse.blob();
+            const videoUrl = URL.createObjectURL(videoBlob);
+            videoUrls.push(videoUrl);
+          }
+        }
+      }
+
+      return videoUrls;
+    } catch (error: any) {
+      throw new Error(handleAppError('Gemini API video generation', error, 'Video generation failed.'));
+    }
+  }
+
   async generateStructuredContent(
     prompt: string,
     schema: any,
@@ -221,27 +339,24 @@ class GeminiService implements AIService {
     } = {}
   ): Promise<any> {
     const {
-      model = 'gemini-2.0-flash', // Updated model name
+      model = 'gemini-2.5-flash',
       temperature = 0.7,
       maxOutputTokens = 2000
     } = options;
 
     try {
-      // Use the new SDK's generateContent method with response_schema
       const response = await ai.models.generateContent({
         model: model,
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config: {
           temperature,
           maxOutputTokens,
-          responseSchema: schema, // Pass schema directly
-          responseMimeType: 'application/json', // Ensure JSON output
+          responseSchema: schema,
+          responseMimeType: 'application/json',
         },
       });
 
-      // The new SDK returns parsed data directly in `response.parsed` if a schema is provided.
-      // Explicitly cast to any to access the parsed property which is conditionally available.
-      const structuredData = (response as any).parsed || response.text;
+      const structuredData = JSON.parse(response.text || '{}');
       const rawContent = response.text;
       const usage = response.usageMetadata || {};
 
@@ -255,13 +370,6 @@ class GeminiService implements AIService {
     }
   }
 
-  /**
-   * Generates content with long context support for stream analysis.
-   * @param prompt The prompt to send to the Gemini API.
-   * @param context Large context data (can be up to million tokens)
-   * @param options Configuration options
-   * @returns A promise that resolves to the generated content.
-   */
   async generateWithLongContext(
     prompt: string,
     context: string,
@@ -272,16 +380,14 @@ class GeminiService implements AIService {
     } = {}
   ): Promise<GeminiGenerateContentResponse> {
     const {
-      model = 'gemini-2.5-flash', // Updated model name
+      model = 'gemini-2.5-flash',
       temperature = 0.7,
       maxOutputTokens = 4000
     } = options;
 
     try {
-      // Combine context and prompt for long context processing
       const fullPrompt = `Context:\n${context}\n\nBased on the above context, please respond to this request:\n${prompt}`;
 
-      // Use the new SDK's generateContent method
       const response = await ai.models.generateContent({
         model: model,
         contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
@@ -307,19 +413,8 @@ class GeminiService implements AIService {
     }
   }
 
-  /**
-   * Connects to the Gemini Live API for real-time streaming using an ephemeral token.
-   * @param options Configuration options for the Live API connection
-   * @returns A LiveSession instance for real-time communication
-   */
-  async liveConnect(options: LiveAPIConfig): Promise<any> {
+  async liveConnect(options: LiveConnectParameters): Promise<any> {
     try {
-      // The new SDK handles token generation internally or via client initialization.
-      // We need to ensure the client is initialized with the correct API key.
-      // If using an ephemeral token, it should be handled during client creation.
-
-      // Assuming the GoogleGenAI client is already initialized with a valid API key (or env var)
-      // The liveConnect method is called on the client instance.
       return await ai.live.connect(options);
     } catch (error: any) {
       throw new Error(handleAppError('Gemini Live API connection', error, 'Live API connection failed or authentication failed.'));

@@ -12,8 +12,12 @@ from backend.api.routes import gemini
 from backend.api.routes import assets
 from backend.middleware import logging_middleware
 
-# Load environment variables from .env file
-load_dotenv()
+# Get the directory of the current script
+current_dir = os.path.dirname(os.path.abspath(__file__))
+# Construct the path to the .env file
+dotenv_path = os.path.join(current_dir, ".env")
+# Load environment variables from the .env file
+load_dotenv(dotenv_path=dotenv_path)
 
 app = FastAPI(
     title="Universal Backend Server",
@@ -24,9 +28,21 @@ app = FastAPI(
 app.middleware("http")(logging_middleware)
 
 # Load allowed origins from environment variable
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
-if not allowed_origins or allowed_origins == [""]:
-    allowed_origins = ["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:5173"]
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
+allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin]
+
+# Add default origins if the environment variable is not set
+if not allowed_origins:
+    allowed_origins.extend([
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173"
+    ])
+
+# Ensure the frontend origin is always allowed
+frontend_origin = "http://127.0.0.1:5173"
+if frontend_origin not in allowed_origins:
+    allowed_origins.append(frontend_origin)
 
 
 app.add_middleware(

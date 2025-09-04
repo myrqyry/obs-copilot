@@ -16,7 +16,7 @@ router = APIRouter()
 # Define comprehensive Pydantic model for image generation
 class EnhancedImageGenerateRequest(BaseModel):
     prompt: str
-    model: str = "gemini-1.5-pro-latest"
+    model: str = "imagen-4.0-fast-generate-001"
     imageFormat: str = "png"
     aspectRatio: str = "1:1"
     personGeneration: str = "allow_adult"
@@ -49,113 +49,24 @@ async def generate_image_enhanced(
     Supports both text-to-image and image-to-image editing.
     """
     try:
-        # Build contents array
-        contents = []
-
-        # Add input image if provided (for image editing)
-        if request.imageInput and request.imageInputMimeType:
-            # Validate base64 image data
-            try:
-                base64.b64decode(request.imageInput)
-            except Exception:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid base64 image data provided.",
-                )
-            contents.append(
-                {
-                    "role": "user",
-                    "parts": [
-                        {
-                            "inline_data": {
-                                "mime_type": request.imageInputMimeType,
-                                "data": request.imageInput,
-                            }
-                        }
-                    ],
-                }
-            )
-
-        # Add text prompt
-        user_parts = [{"text": request.prompt}]
-
-        # Add image generation instruction if not editing
-        if not request.imageInput:
-            user_parts.append(
-                {
-                    "text": f"Generate an image with format: {request.imageFormat}, aspect ratio: {request.aspectRatio}"
-                }
-            )
-
-        contents.append({"role": "user", "parts": user_parts})
-
-        # Build generation config
-        generation_config = types.GenerateContentConfig(
-            response_mime_type=(
-                "application/json"
-                if "TEXT" in (request.responseModalities or [])
-                else None
-            ),
-            response_schema=(
-                {
-                    "type": "object",
-                    "properties": {
-                        "generated_images": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "image": {"type": "string"},
-                                    "mime_type": {"type": "string"},
-                                    "width": {"type": "integer"},
-                                    "height": {"type": "integer"},
-                                },
-                            },
-                        }
-                    },
-                }
-                if "TEXT" in (request.responseModalities or [])
-                else None
-            ),
-        )
-
-        # Add safety settings if provided
-        if request.safetySettings:
-            safety_settings = []
-            for setting in request.safetySettings:
-                safety_settings.append(
-                    {
-                        "category": setting.get("category"),
-                        "threshold": setting.get("threshold", "BLOCK_MEDIUM_AND_ABOVE"),
-                    }
-                )
-            generation_config.safety_settings = safety_settings
-
-        response = client.models.generate_content(
+        result = client.models.generate_images(
             model=request.model,
-            contents=contents, 
-            config=generation_config
+            prompt=request.prompt,
+            config=dict(
+                number_of_images=1,
+                output_mime_type=f"image/{request.imageFormat}",
+                person_generation=request.personGeneration,
+                aspect_ratio=request.aspectRatio,
+            ),
         )
 
-        # Extract image data from response
-        images = []
-        if response.candidates and response.candidates[0].content.parts:
-            for part in response.candidates[0].content.parts:
-                if hasattr(part, "inline_data") and part.inline_data:
-                    images.append(
-                        {
-                            "data": part.inline_data.data,
-                            "mime_type": part.inline_data.mime_type,
-                            "width": getattr(part.inline_data, "width", None),
-                            "height": getattr(part.inline_data, "height", None),
-                        }
-                    )
-
-        if not images:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="No image data generated",
-            )
+        images = [
+            {
+                "data": base64.b64encode(img.image.image_bytes).decode(),
+                "mime_type": f"image/{request.imageFormat}",
+            }
+            for img in result.generated_images
+        ]
 
         return {
             "images": images,
@@ -165,24 +76,6 @@ async def generate_image_enhanced(
                 "imageFormat": request.imageFormat,
                 "aspectRatio": request.aspectRatio,
                 "personGeneration": request.personGeneration,
-                "responseModalities": request.responseModalities,
-            },
-            "usage": {
-                "prompt_token_count": (
-                    response.usage_metadata.prompt_token_count
-                    if response.usage_metadata
-                    else None
-                ),
-                "candidates_token_count": (
-                    response.usage_metadata.candidates_token_count
-                    if response.usage_metadata
-                    else None
-                ),
-                "total_token_count": (
-                    response.usage_metadata.total_token_count
-                    if response.usage_metadata
-                    else None
-                ),
             },
         }
 

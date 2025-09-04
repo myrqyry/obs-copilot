@@ -11,6 +11,20 @@ import {
   ActionListResponse,
   RunActionResponse,
   StreamerBotInfo,
+  GetEventsResponse,
+  GetInfoResponse,
+  GetBroadcasterResponse,
+  GetActiveViewersResponse,
+  GetCommandsResponse,
+  GetGlobalsResponse,
+  GetGlobalResponse,
+  TwitchGetUserGlobalsResponse,
+  TwitchGetUserGlobalResponse,
+  TwitchGetEmotesResponse,
+  YouTubeGetEmotesResponse,
+  GetCodeTriggersResponse,
+  GetCreditsResponse,
+  EventSubscription,
 } from '../types/streamerbot';
 
 /**
@@ -21,6 +35,7 @@ import {
  * - Exposes lifecycle callbacks (onConnect, onDisconnect, onError, onEvent)
  * - Tracks connection state using the typed ConnectionState
  * - Preserves existing public method signatures for compatibility
+ * - Implements all Streamer.bot WebSocket API endpoints
  *
  * Notes:
  * - The connect() method accepts either (host, port, maxRetries?) for backward
@@ -259,43 +274,411 @@ export class StreamerBotService {
     logger.info('StreamerBotService: subscribed to all Streamer.bot events.');
   }
 
+  // ==================== STREAMER.BOT WEBSOCKET API METHODS ====================
+
   /**
-   * Fetches broadcaster information (if supported by client).
+   * Subscribe to a set of events from the connected Streamer.bot instance.
    */
-  async getBroadcaster(): Promise<unknown | undefined> {
+  async subscribe(events: EventSubscription): Promise<void> {
     if (!this.client) throw new Error('Streamer.bot client is not initialized.');
-    // Keep original behavior but typed as unknown
-    return (this.client.getBroadcaster && (await this.client.getBroadcaster())) || undefined;
+    
+    try {
+      // @ts-ignore - client may have subscribe method
+      if (typeof this.client.subscribe === 'function') {
+        // @ts-ignore
+        await this.client.subscribe(events);
+      } else {
+        // Fallback: send raw request
+        await this._sendRequest({ request: 'Subscribe', events });
+      }
+      logger.info('StreamerBotService: subscribed to events', events);
+    } catch (error) {
+      logger.error('StreamerBotService: subscribe failed', error);
+      throw error;
+    }
   }
 
   /**
-   * Fetches all available actions from Streamer.bot
+   * Unsubscribe from events you are currently subscribed to.
+   */
+  async unsubscribe(events: EventSubscription): Promise<void> {
+    if (!this.client) throw new Error('Streamer.bot client is not initialized.');
+    
+    try {
+      // @ts-ignore - client may have unsubscribe method
+      if (typeof this.client.unsubscribe === 'function') {
+        // @ts-ignore
+        await this.client.unsubscribe(events);
+      } else {
+        // Fallback: send raw request
+        await this._sendRequest({ request: 'UnSubscribe', events });
+      }
+      logger.info('StreamerBotService: unsubscribed from events', events);
+    } catch (error) {
+      logger.error('StreamerBotService: unsubscribe failed', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch a list of all events that can be subscribed to.
+   */
+  async getEvents(): Promise<GetEventsResponse> {
+    if (!this.client) throw new Error('Streamer.bot client is not initialized.');
+    
+    try {
+      // @ts-ignore - client may have getEvents method
+      if (typeof this.client.getEvents === 'function') {
+        // @ts-ignore
+        return await this.client.getEvents();
+      } else {
+        // Fallback: send raw request
+        const response = await this._sendRequest({ request: 'GetEvents' });
+        return response as GetEventsResponse;
+      }
+    } catch (error) {
+      logger.error('StreamerBotService: getEvents failed', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch a list of all actions in the connected Streamer.bot instance.
    */
   async getActions(): Promise<StreamerBotActionDescriptor[]> {
     if (!this.client) throw new Error('Streamer.bot client is not initialized.');
-    const response: ActionListResponse | any = await this.client.getActions();
-    if (response && Array.isArray(response.actions)) {
-      return response.actions as StreamerBotActionDescriptor[];
+    
+    try {
+      const response: ActionListResponse | any = await this.client.getActions();
+      if (response && Array.isArray(response.actions)) {
+        return response.actions as StreamerBotActionDescriptor[];
+      }
+      return [];
+    } catch (error) {
+      logger.error('StreamerBotService: getActions failed', error);
+      throw error;
     }
-    return [];
   }
 
   /**
-   * Triggers an action in Streamer.bot by its ID or name
+   * Execute an action on the connected Streamer.bot instance.
    */
-  async doAction(actionIdentifier: string, args: Record<string, unknown> = {}): Promise<RunActionResponse | void> {
+  async doAction(
+    action: { id?: string; name?: string }, 
+    args: Record<string, unknown> = {}
+  ): Promise<RunActionResponse | void> {
     if (!this.client) throw new Error('Streamer.bot client is not initialized.');
-
-    const identifier: { id?: string; name?: string } = {};
-    if (/^[0-9a-f-]{36}$/i.test(actionIdentifier)) {
-      identifier.id = actionIdentifier;
-    } else {
-      identifier.name = actionIdentifier;
+    
+    try {
+      const response = await this.client.doAction(action as any, args as any);
+      return response as RunActionResponse;
+    } catch (error) {
+      logger.error('StreamerBotService: doAction failed', error);
+      throw error;
     }
+  }
 
-    // Forward the call and return the client's response if available
-    const response = await this.client.doAction(identifier as any, args as any);
-    return response as RunActionResponse;
+  /**
+   * Fetch information about the connected broadcaster account(s).
+   */
+  async getBroadcaster(): Promise<GetBroadcasterResponse> {
+    if (!this.client) throw new Error('Streamer.bot client is not initialized.');
+    
+    try {
+      // @ts-ignore - client may have getBroadcaster method
+      if (typeof this.client.getBroadcaster === 'function') {
+        // @ts-ignore
+        return await this.client.getBroadcaster();
+      } else {
+        // Fallback: send raw request
+        const response = await this._sendRequest({ request: 'GetBroadcaster' });
+        return response as GetBroadcasterResponse;
+      }
+    } catch (error) {
+      logger.error('StreamerBotService: getBroadcaster failed', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch the current credits system data.
+   */
+  async getCredits(): Promise<GetCreditsResponse> {
+    if (!this.client) throw new Error('Streamer.bot client is not initialized.');
+    
+    try {
+      // Fallback: send raw request
+      const response = await this._sendRequest({ request: 'GetCredits' });
+      return response as GetCreditsResponse;
+    } catch (error) {
+      logger.error('StreamerBotService: getCredits failed', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fill credits system with test data for testing.
+   */
+  async testCredits(): Promise<void> {
+    if (!this.client) throw new Error('Streamer.bot client is not initialized.');
+    
+    try {
+      // Fallback: send raw request
+      await this._sendRequest({ request: 'TestCredits' });
+      logger.info('StreamerBotService: testCredits executed');
+    } catch (error) {
+      logger.error('StreamerBotService: testCredits failed', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Reset the current credits system data.
+   */
+  async clearCredits(): Promise<void> {
+    if (!this.client) throw new Error('Streamer.bot client is not initialized.');
+    
+    try {
+      // Fallback: send raw request
+      await this._sendRequest({ request: 'ClearCredits' });
+      logger.info('StreamerBotService: clearCredits executed');
+    } catch (error) {
+      logger.error('StreamerBotService: clearCredits failed', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch information about the connected Streamer.bot instance.
+   */
+  async getInfo(): Promise<GetInfoResponse> {
+    if (!this.client) throw new Error('Streamer.bot client is not initialized.');
+    
+    try {
+      // @ts-ignore - client may have getInfo method
+      if (typeof this.client.getInfo === 'function') {
+        // @ts-ignore
+        return await this.client.getInfo();
+      } else {
+        // Fallback: send raw request
+        const response = await this._sendRequest({ request: 'GetInfo' });
+        return response as GetInfoResponse;
+      }
+    } catch (error) {
+      logger.error('StreamerBotService: getInfo failed', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch a list of all active viewers for connected broadcaster accounts.
+   */
+  async getActiveViewers(): Promise<GetActiveViewersResponse> {
+    if (!this.client) throw new Error('Streamer.bot client is not initialized.');
+    
+    try {
+      // Fallback: send raw request
+      const response = await this._sendRequest({ request: 'GetActiveViewers' });
+      return response as GetActiveViewersResponse;
+    } catch (error) {
+      logger.error('StreamerBotService: getActiveViewers failed', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Returns the list of code triggers available to be invoked.
+   */
+  async getCodeTriggers(): Promise<GetCodeTriggersResponse> {
+    if (!this.client) throw new Error('Streamer.bot client is not initialized.');
+    
+    try {
+      // Fallback: send raw request
+      const response = await this._sendRequest({ request: 'GetCodeTriggers' });
+      return response as GetCodeTriggersResponse;
+    } catch (error) {
+      logger.error('StreamerBotService: getCodeTriggers failed', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Triggers a code trigger, causing any associated actions to be executed.
+   */
+  async executeCodeTrigger(triggerName: string, args: Record<string, unknown> = {}): Promise<void> {
+    if (!this.client) throw new Error('Streamer.bot client is not initialized.');
+    
+    try {
+      // Fallback: send raw request
+      await this._sendRequest({ request: 'ExecuteCodeTrigger', triggerName, args });
+      logger.info('StreamerBotService: executeCodeTrigger executed', { triggerName, args });
+    } catch (error) {
+      logger.error('StreamerBotService: executeCodeTrigger failed', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Returns the list of defined commands.
+   */
+  async getCommands(): Promise<GetCommandsResponse> {
+    if (!this.client) throw new Error('Streamer.bot client is not initialized.');
+    
+    try {
+      // Fallback: send raw request
+      const response = await this._sendRequest({ request: 'GetCommands' });
+      return response as GetCommandsResponse;
+    } catch (error) {
+      logger.error('StreamerBotService: getCommands failed', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches a list of emotes for Twitch.
+   */
+  async twitchGetEmotes(): Promise<TwitchGetEmotesResponse> {
+    if (!this.client) throw new Error('Streamer.bot client is not initialized.');
+    
+    try {
+      // Fallback: send raw request
+      const response = await this._sendRequest({ request: 'TwitchGetEmotes' });
+      return response as TwitchGetEmotesResponse;
+    } catch (error) {
+      logger.error('StreamerBotService: twitchGetEmotes failed', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches a list of emotes for YouTube.
+   */
+  async youtubeGetEmotes(): Promise<YouTubeGetEmotesResponse> {
+    if (!this.client) throw new Error('Streamer.bot client is not initialized.');
+    
+    try {
+      // Fallback: send raw request
+      const response = await this._sendRequest({ request: 'YouTubeGetEmotes' });
+      return response as YouTubeGetEmotesResponse;
+    } catch (error) {
+      logger.error('StreamerBotService: youtubeGetEmotes failed', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Returns all the global variables, either persisted or temporary.
+   */
+  async getGlobals(persisted: boolean = false): Promise<GetGlobalsResponse> {
+    if (!this.client) throw new Error('Streamer.bot client is not initialized.');
+    
+    try {
+      // Fallback: send raw request
+      const response = await this._sendRequest({ request: 'GetGlobals', persisted });
+      return response as GetGlobalsResponse;
+    } catch (error) {
+      logger.error('StreamerBotService: getGlobals failed', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Gets a single persisted or temporary global variable.
+   */
+  async getGlobal(variable: string, persisted: boolean = false): Promise<GetGlobalResponse> {
+    if (!this.client) throw new Error('Streamer.bot client is not initialized.');
+    
+    try {
+      // Fallback: send raw request
+      const response = await this._sendRequest({ request: 'GetGlobal', variable, persisted });
+      return response as GetGlobalResponse;
+    } catch (error) {
+      logger.error('StreamerBotService: getGlobal failed', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches the values of a given user variable across all Twitch users.
+   */
+  async twitchGetUserGlobals(variable: string, persisted: boolean = false): Promise<TwitchGetUserGlobalsResponse> {
+    if (!this.client) throw new Error('Streamer.bot client is not initialized.');
+    
+    try {
+      // Fallback: send raw request
+      const response = await this._sendRequest({ request: 'TwitchGetUserGlobals', variable, persisted });
+      return response as TwitchGetUserGlobalsResponse;
+    } catch (error) {
+      logger.error('StreamerBotService: twitchGetUserGlobals failed', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Gets either a single user variable for a given user, or all variables for that user.
+   */
+  async twitchGetUserGlobal(userId: string, variable?: string, persisted: boolean = false): Promise<TwitchGetUserGlobalResponse> {
+    if (!this.client) throw new Error('Streamer.bot client is not initialized.');
+    
+    try {
+      // Fallback: send raw request
+      const request: any = { request: 'TwitchGetUserGlobal', userId, persisted };
+      if (variable) {
+        request.variable = variable;
+      }
+      const response = await this._sendRequest(request);
+      return response as TwitchGetUserGlobalResponse;
+    } catch (error) {
+      logger.error('StreamerBotService: twitchGetUserGlobal failed', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Sends a message to the broadcaster's chat.
+   */
+  async sendMessage(
+    message: string, 
+    platform: 'twitch' | 'kick' | 'trovo' | 'youtube' = 'twitch',
+    bot: boolean = false,
+    internal: boolean = false
+  ): Promise<void> {
+    if (!this.client) throw new Error('Streamer.bot client is not initialized.');
+    
+    try {
+      // Fallback: send raw request
+      await this._sendRequest({ 
+        request: 'SendMessage', 
+        platform, 
+        bot, 
+        internal, 
+        message 
+      });
+      logger.info('StreamerBotService: sendMessage executed', { platform, message });
+    } catch (error) {
+      logger.error('StreamerBotService: sendMessage failed', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches the pronouns for a given user.
+   */
+  async getUserPronouns(platform: 'twitch', userLogin: string): Promise<unknown> {
+    if (!this.client) throw new Error('Streamer.bot client is not initialized.');
+    
+    try {
+      // Fallback: send raw request
+      const response = await this._sendRequest({ 
+        request: 'GetUserPronouns', 
+        platform, 
+        userLogin 
+      });
+      return response;
+    } catch (error) {
+      logger.error('StreamerBotService: getUserPronouns failed', error);
+      throw error;
+    }
   }
 
   /**
@@ -306,27 +689,120 @@ export class StreamerBotService {
 
     switch (action.type) {
       case 'GetActions': {
-        return await this.client.getActions();
+        return await this.getActions();
       }
       case 'DoAction': {
         if (!action.args?.action) throw new Error('DoAction requires an action identifier.');
-        return await this.client.doAction(action.args.action as any, (action.args.args || {}) as any);
+        return await this.doAction(action.args.action as any, (action.args.args || {}) as any);
       }
       case 'TwitchSendMessage': {
         if (!action.args?.message) throw new Error('TwitchSendMessage requires a message.');
-        return await this.client.doAction({ name: 'Send Twitch Message' }, { message: action.args.message });
+        return await this.sendMessage(action.args.message as string);
       }
       case 'TwitchCreatePoll': {
         if (!action.args?.title || !action.args?.choices) {
           throw new Error('TwitchCreatePoll requires title and choices.');
         }
-        return await this.client.doAction(
+        return await this.doAction(
           { name: 'Create Twitch Poll' },
           {
             title: action.args.title,
             choices: action.args.choices,
             duration: action.args.duration || 60,
           },
+        );
+      }
+      // Add new action types
+      case 'Subscribe': {
+        if (!action.args?.events) throw new Error('Subscribe requires events.');
+        return await this.subscribe(action.args.events as EventSubscription);
+      }
+      case 'UnSubscribe': {
+        if (!action.args?.events) throw new Error('UnSubscribe requires events.');
+        return await this.unsubscribe(action.args.events as EventSubscription);
+      }
+      case 'GetEvents': {
+        return await this.getEvents();
+      }
+      case 'GetBroadcaster': {
+        return await this.getBroadcaster();
+      }
+      case 'GetInfo': {
+        return await this.getInfo();
+      }
+      case 'GetActiveViewers': {
+        return await this.getActiveViewers();
+      }
+      case 'GetCommands': {
+        return await this.getCommands();
+      }
+      case 'GetGlobals': {
+        const persisted = action.args?.persisted as boolean || false;
+        return await this.getGlobals(persisted);
+      }
+      case 'GetGlobal': {
+        if (!action.args?.variable) throw new Error('GetGlobal requires a variable name.');
+        const persisted = action.args?.persisted as boolean || false;
+        return await this.getGlobal(action.args.variable as string, persisted);
+      }
+      case 'TwitchGetEmotes': {
+        return await this.twitchGetEmotes();
+      }
+      case 'YouTubeGetEmotes': {
+        return await this.youtubeGetEmotes();
+      }
+      case 'GetCodeTriggers': {
+        return await this.getCodeTriggers();
+      }
+      case 'ExecuteCodeTrigger': {
+        if (!action.args?.triggerName) throw new Error('ExecuteCodeTrigger requires a trigger name.');
+        return await this.executeCodeTrigger(
+          action.args.triggerName as string, 
+          (action.args.args || {}) as Record<string, unknown>
+        );
+      }
+      case 'GetCredits': {
+        return await this.getCredits();
+      }
+      case 'TestCredits': {
+        return await this.testCredits();
+      }
+      case 'ClearCredits': {
+        return await this.clearCredits();
+      }
+      case 'TwitchGetUserGlobals': {
+        if (!action.args?.variable) throw new Error('TwitchGetUserGlobals requires a variable name.');
+        const persisted = action.args?.persisted as boolean || false;
+        return await this.twitchGetUserGlobals(action.args.variable as string, persisted);
+      }
+      case 'TwitchGetUserGlobal': {
+        if (!action.args?.userId) throw new Error('TwitchGetUserGlobal requires a user ID.');
+        const persisted = action.args?.persisted as boolean || false;
+        return await this.twitchGetUserGlobal(
+          action.args.userId as string, 
+          action.args.variable as string | undefined, 
+          persisted
+        );
+      }
+      case 'SendMessage': {
+        if (!action.args?.message) throw new Error('SendMessage requires a message.');
+        const platform = (action.args.platform as 'twitch' | 'kick' | 'trovo' | 'youtube') || 'twitch';
+        const bot = action.args.bot as boolean || false;
+        const internal = action.args.internal as boolean || false;
+        return await this.sendMessage(
+          action.args.message as string, 
+          platform, 
+          bot, 
+          internal
+        );
+      }
+      case 'GetUserPronouns': {
+        if (!action.args?.platform || !action.args?.userLogin) {
+          throw new Error('GetUserPronouns requires platform and userLogin.');
+        }
+        return await this.getUserPronouns(
+          action.args.platform as 'twitch', 
+          action.args.userLogin as string
         );
       }
       case 'CreateAction':
@@ -341,6 +817,57 @@ export class StreamerBotService {
   // -------------------------
   // Internal helpers
   // -------------------------
+
+  /**
+   * Send a raw request to the Streamer.bot WebSocket server
+   */
+  private async _sendRequest(request: Record<string, unknown>): Promise<unknown> {
+    if (!this.client) {
+      throw new Error('Streamer.bot client is not initialized.');
+    }
+
+    // Generate a unique ID for the request
+    const requestId = `sb:req:${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    return new Promise((resolve, reject) => {
+      // Set up timeout
+      const timeout = setTimeout(() => {
+        reject(new Error('Streamer.bot request timeout'));
+      }, 10000);
+
+      // Listen for response
+      const responseHandler = (data: any) => {
+        if (data?.id === requestId) {
+          clearTimeout(timeout);
+          this.off('message', responseHandler);
+          
+          if (data.status === 'ok' || !data.error) {
+            resolve(data);
+          } else {
+            reject(new Error(data.error || 'Streamer.bot request failed'));
+          }
+        }
+      };
+
+      // Subscribe to responses
+      this.on('message', responseHandler);
+
+      // Send the request
+      const requestWithId = { ...request, id: requestId };
+      
+      // @ts-ignore - send raw message
+      if (typeof this.client.send === 'function') {
+        // @ts-ignore
+        this.client.send(JSON.stringify(requestWithId));
+      } else {
+        // Fallback: try to emit
+        // @ts-ignore
+        this.client.emit('message', JSON.stringify(requestWithId));
+      }
+
+      logger.debug('StreamerBotService: sent request', requestWithId);
+    });
+  }
 
   /**
    * Bind client-level event listeners and forward to lifecycle callbacks.
@@ -425,6 +952,7 @@ export class StreamerBotService {
         (this.client as any).on('error', this.boundOnError);
         // Catch-all event emission (previous code used '*')
         (this.client as any).on('*', this.boundOnAnyEvent);
+        (this.client as any).on('message', this.boundOnAnyEvent);
       }
     } catch (e) {
       logger.warn('StreamerBotService: failed to bind some client listeners', e);
@@ -460,6 +988,8 @@ export class StreamerBotService {
         if (this.boundOnAnyEvent) {
           // @ts-ignore
           this.client.off('*', this.boundOnAnyEvent);
+          // @ts-ignore
+          this.client.off('message', this.boundOnAnyEvent);
         }
       } else if (typeof (this.client as any).removeListener === 'function') {
         if (this.boundOnConnect) {
@@ -481,6 +1011,8 @@ export class StreamerBotService {
         if (this.boundOnAnyEvent) {
           // @ts-ignore
           this.client.removeListener('*', this.boundOnAnyEvent);
+          // @ts-ignore
+          this.client.removeListener('message', this.boundOnAnyEvent);
         }
       }
     } catch (e) {

@@ -7,9 +7,23 @@ export class ObsError extends Error {
   }
 }
 
+// Define an interface for the obs-websocket-js instance to ensure type safety.
+interface OBSWebSocketInstance {
+  connect(
+    address: string,
+    password?: string,
+    options?: { eventSubscriptions: number },
+  ): Promise<void>;
+  disconnect(): Promise<void>;
+  call<T = any>(method: string, params?: Record<string, any>): Promise<T>;
+  on(event: string, listener: (...args: any[]) => void): void;
+  off(event: string, listener: (...args: any[]) => void): void;
+  identified: boolean;
+}
+
 export class ObsClientImpl {
   private static instance: ObsClientImpl;
-  private obs: any; // Temporarily set to any due to typing issues with obs-websocket-js
+  private obs: OBSWebSocketInstance;
 
   private constructor() {
     // Temporary workaround for constructor typing
@@ -61,31 +75,37 @@ export class ObsClientImpl {
     return this.obs.identified;
   }
 
-  getSceneList(): Promise<{ scenes: any[] }> {
+  getSceneList() {
     return this.call('GetSceneList');
   }
 
-  getCurrentProgramScene(): Promise<any> {
+  getCurrentProgramScene() {
     return this.call('GetCurrentProgramScene');
   }
 
-  getStreamStatus(): Promise<any> {
+  getStreamStatus() {
     return this.call('GetStreamStatus');
   }
 
-  getRecordStatus(): Promise<any> {
+  getRecordStatus() {
     return this.call('GetRecordStatus');
   }
 
-  getVideoSettings(): Promise<any> {
+  getVideoSettings() {
     return this.call('GetVideoSettings');
   }
 
-  getSceneItemList(sceneName: string): Promise<{ sceneItems: any[] }> {
+  getSceneItemList(sceneName: string) {
     return this.call('GetSceneItemList', { sceneName });
   }
 
-  async addBrowserSource(sceneName: string, url: string, sourceName: string, width: number = 800, height: number = 600): Promise<void> {
+  async addBrowserSource(
+    sceneName: string,
+    url: string,
+    sourceName: string,
+    width: number = 800,
+    height: number = 600,
+  ) {
     await this.call('CreateInput', {
       sceneName,
       inputName: sourceName,
@@ -101,7 +121,11 @@ export class ObsClientImpl {
     });
   }
 
-  async addImageSource(sceneName: string, imageUrl: string, sourceName: string): Promise<void> {
+  async addImageSource(
+    sceneName: string,
+    imageUrl: string,
+    sourceName: string,
+  ) {
     await this.call('CreateInput', {
       sceneName,
       inputName: sourceName,
@@ -121,23 +145,23 @@ export class ObsClientImpl {
     baseHeight: number;
     outputWidth: number;
     outputHeight: number;
-  }): Promise<void> {
+  }) {
     await this.call('SetVideoSettings', settings);
   }
 
-  async startStream(): Promise<void> {
+  async startStream() {
     await this.call('StartStream');
   }
 
-  async stopStream(): Promise<void> {
+  async stopStream() {
     await this.call('StopStream');
   }
 
-  async startRecord(): Promise<void> {
+  async startRecord() {
     await this.call('StartRecord');
   }
 
-  async stopRecord(): Promise<void> {
+  async stopRecord() {
     await this.call('StopRecord');
   }
 }

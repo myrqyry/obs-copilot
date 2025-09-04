@@ -1,11 +1,15 @@
 import { create } from 'zustand';
+import { GoogleGenAI, LiveMusicGenerationConfig, LiveMusicSession } from '@google/genai';
 import { logger } from '../utils/logger';
-import { MusicSession, MusicGenerationConfig } from '../types/audio';
+import { MusicGenerationConfig } from '../types/audio';
+import { Buffer } from 'buffer';
+import { pcm16ToWavUrl } from '@/lib/pcmToWavUrl';
 
 export interface AudioState {
-  musicSession: MusicSession | null;
+  musicSession: LiveMusicSession | null;
   isMusicPlaying: boolean;
   currentMusicPrompt: string;
+  musicGenerationConfig: LiveMusicGenerationConfig | null;
   audioContext: AudioContext | null;
   audioQueue: AudioBuffer[];
   isQueuePlaying: boolean;
@@ -22,6 +26,7 @@ export interface AudioState {
     ) => void;
     initializeAudioContext: () => void;
     startMusicGeneration: (prompt: string, config: MusicGenerationConfig) => Promise<void>;
+    updateMusicGeneration: (config: Partial<LiveMusicGenerationConfig>) => Promise<void>;
     addAudioChunk: (pcm: ArrayBuffer) => void;
     playFromQueue: () => void;
     pauseMusic: () => void;
@@ -36,6 +41,7 @@ export const useAudioStore = create<AudioState>((set, get) => ({
   musicSession: null,
   isMusicPlaying: false,
   currentMusicPrompt: '',
+  musicGenerationConfig: null,
   audioContext: null,
   audioQueue: [],
   isQueuePlaying: false,
@@ -50,51 +56,113 @@ export const useAudioStore = create<AudioState>((set, get) => ({
     setActiveAudioSource: (source) => set({ activeAudioSource: source }),
     initializeAudioContext: () => {
       if (!get().audioContext) {
-        const context = new window.AudioContext({ sampleRate: 48000 });
-        set({ audioContext: context });
+        const context = new window.AudioContext({ sampleRate: 44100 });
+        const mediaStreamDest = context.createMediaStreamDestination();
+        set({ audioContext: context, mediaStreamDest });
       }
     },
     startMusicGeneration: async (prompt, config) => {
-      // This is a placeholder. The full implementation would require the Gemini API client
-      // and would be more complex.
-      logger.info('Starting music generation with prompt:', prompt, config);
-      get().actions.initializeAudioContext();
+      const { actions, musicSession } = get();
+      if (musicSession) {
+        actions.stopMusic();
+      }
+
+      actions.initializeAudioContext();
+      const ai = new GoogleGenAI({ apiKey: config.geminiApiKey, apiVersion: 'v1alpha' });
+
+      const session: LiveMusicSession = await ai.live.music.connect({
+        model: 'models/lyria-realtime-exp',
+        callbacks: {
+          onmessage: (message) => {
+            if (message.serverContent?.audioChunks) {
+              for (const chunk of message.serverContent.audioChunks) {
+                if (chunk.data) {
+                  const audioBuffer = Buffer.from(chunk.data, 'base64');
+                  actions.addAudioChunk(audioBuffer);
+                }
+              }
+            }
+          },
+          onerror: (error) => logger.error('Music session error:', error),
+          onclose: () => logger.info('Lyria RealTime stream closed.'),
+        },
+      });
+
+      await session.setWeightedPrompts({
+        weightedPrompts: [{ text: prompt, weight: 1.0 }],
+      });
+
+      const liveConfig: LiveMusicGenerationConfig = {
+        bpm: config.bpm,
+        temperature: config.temperature,
+        density: config.density,
+        brightness: config.brightness,
+        guidance: config.guidance,
+        scale: config.scale as any,
+        muteBass: config.muteBass,
+        muteDrums: config.muteDrums,
+        onlyBassAndDrums: config.onlyBassAndDrums,
+        musicGenerationMode: config.musicGenerationMode as any,
+      };
+
+      await session.setMusicGenerationConfig({
+        musicGenerationConfig: liveConfig,
+      });
+
+      await session.play();
+
       set({
+        musicSession: session,
+        musicGenerationConfig: liveConfig,
         isMusicPlaying: true,
         currentMusicPrompt: prompt,
         isPlayerVisible: true,
         activeAudioSource: { type: 'music', prompt },
       });
     },
+    updateMusicGeneration: async (config) => {
+      const { musicSession, musicGenerationConfig } = get();
+      if (!musicSession) return;
+
+      const newConfig = { ...musicGenerationConfig, ...config };
+
+      await musicSession.setMusicGenerationConfig({
+        musicGenerationConfig: newConfig as LiveMusicGenerationConfig,
+      });
+
+      set({ musicGenerationConfig: newConfig as LiveMusicGenerationConfig });
+
+      if (config.bpm || config.scale) {
+        await musicSession.resetContext();
+      }
+    },
     addAudioChunk: (pcm) => {
-      // Placeholder
-      logger.info('Adding audio chunk:', pcm);
+      const { audioContext } = get();
+      if (!audioContext) return;
+
+      const wavUrl = pcm16ToWavUrl(pcm, 44100, 2);
+      const audio = new Audio(wavUrl);
+      audio.play();
     },
     playFromQueue: () => {
-      // Placeholder
-      logger.info('Playing from queue');
+      // This is now handled by addAudioChunk directly
     },
     pauseMusic: () => {
-      const { audioContext } = get();
-      if (audioContext && audioContext.state === 'running') {
-        audioContext.suspend();
-      }
+      get().musicSession?.pause();
+      set({ isMusicPlaying: false });
     },
     resumeMusic: () => {
-      const { audioContext } = get();
-      if (audioContext && audioContext.state !== 'running') {
-        audioContext.resume();
-      }
+      get().musicSession?.play();
+      set({ isMusicPlaying: true });
     },
     stopMusic: () => {
+      get().musicSession?.stop();
       set({
-        audioQueue: [],
-        isQueuePlaying: false,
-        isMusicPlaying: false,
-        audioContext: null,
         musicSession: null,
+        isMusicPlaying: false,
         isPlayerVisible: false,
         activeAudioSource: null,
+        musicGenerationConfig: null,
       });
     },
     loadAudioDevices: async () => {

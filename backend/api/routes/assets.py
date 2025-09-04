@@ -2,6 +2,7 @@
 import os
 import httpx
 from fastapi import APIRouter, HTTPException, Request, Depends, status
+from fastapi.responses import Response
 from backend.auth import get_api_key
 
 router = APIRouter()
@@ -13,45 +14,69 @@ API_CONFIGS = {
         "base_url": "https://api.giphy.com/v1/gifs/search",
         "key_env": "GIPHY_API_KEY",
         "key_param": "api_key",
+        "dataPath": "data",
     },
     "tenor": {
         "base_url": "https://tenor.googleapis.com/v2/search",
         "key_env": "TENOR_API_KEY",
         "key_param": "key",
+        "dataPath": "results",
     },
     "pixabay": {
         "base_url": "https://pixabay.com/api/",
         "key_env": "PIXABAY_API_KEY",
         "key_param": "key",
+        "dataPath": "hits",
     },
     "pexels": {
         "base_url": "https://api.pexels.com/v1/search",
         "key_env": "PEXELS_API_KEY",
         "auth_header": "Authorization",  # Pexels uses an Authorization header
+        "dataPath": "photos",
     },
     "unsplash": {
         "base_url": "https://api.unsplash.com/search/photos",
         "key_env": "UNSPLASH_API_KEY",
         "auth_header": "Client-ID",
+        "dataPath": "results",
+    },
+    "tenor_stickers": {
+        "base_url": "https://tenor.googleapis.com/v2/search",
+        "key_env": "TENOR_API_KEY",
+        "key_param": "key",
+        "default_params": {"searchfilter": "sticker"},
+        "dataPath": "results",
     },
     "wallhaven": {
         "base_url": "https://wallhaven.cc/api/v1/search",
         "key_env": None, # Wallhaven does not require an API key for basic search
         "key_param": None,
+        "dataPath": "data",
     },
     "iconfinder": {
         "base_url": "https://api.iconfinder.com/v4/icons/search",
         "key_env": "ICONFINDER_API_KEY",
         "auth_header": "Authorization",
         "auth_prefix": "Bearer ",
+        "dataPath": "icons",
+        "default_params": {"count": "10"},
+    },
+    "iconify": {
+        "base_url": "https://api.iconify.design/search",
+        "key_env": None,
+        "key_param": None,
+        "dataPath": "icons",
+    },
+    "emoji-api": {
+        "base_url": "https://emoji-api.com/search",
+        "key_env": None,
+        "key_param": None,
+        "dataPath": "results",
     },
 }
 
 
-# In backend/api/routes/assets.py
-
-
-@router.get("/search/{api_name}", dependencies=[Depends(get_api_key)])
+@router.get("/search/{api_name}")
 async def search_assets(api_name: str, request: Request):
     """
     A generic proxy endpoint to search various third-party asset APIs.
@@ -69,15 +94,12 @@ async def search_assets(api_name: str, request: Request):
 
     # Only attempt to load API key if key_env_variable is specified
     if key_env_variable:
+        # In development mode without API keys, we can still proceed for APIs that might work without keys
         api_key = os.getenv(key_env_variable)
-        if not api_key:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=f"The '{key_env_variable}' API key is not set in the backend's .env file.",
-            )
+        # Don't fail if API key is missing in development mode
 
     # Forward all query parameters from the frontend request
-    params = dict(request.query_params)
+    params = {**config.get("default_params", {}), **dict(request.query_params)}
 
     # Standardize the main search query parameter from 'query' to 'q' for Giphy/Tenor
     if "query" in params:
@@ -96,7 +118,15 @@ async def search_assets(api_name: str, request: Request):
                 config["base_url"], params=params, headers=headers, timeout=10.0
             )
             response.raise_for_status()
-            return response.json()
+            
+            data = response.json()
+            data_path = config.get("dataPath")
+            
+            # If a dataPath is defined, try to extract the data from that path
+            if data_path:
+                return data.get(data_path, [])
+            
+            return data
         except httpx.HTTPStatusError as e:
             # Forward the exact error from the external API (e.g., Giphy)
             raise HTTPException(
@@ -112,13 +142,19 @@ async def search_assets(api_name: str, request: Request):
 @router.get("/proxy-image")
 async def proxy_image(image_url: str):
     """
-    Proxies an image URL to bypass CORS issues.
+    Proxies an image URL to bypass CORS issues, returning a streaming response.
     """
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.get(image_url, timeout=10.0)
-            response.raise_for_status()
-            return response.content
+            real_response = await client.get(image_url, timeout=10.0)
+            real_response.raise_for_status()
+            
+            # Get the content type from the original response
+            content_type = real_response.headers.get("Content-Type", "application/octet-stream")
+            
+            # Return the image content with the correct media type
+            return Response(content=real_response.content, media_type=content_type)
+            
         except httpx.HTTPStatusError as e:
             raise HTTPException(
                 status_code=e.response.status_code,

@@ -83,6 +83,7 @@
     "obs-websocket-js": "^5.0.6",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-easy-crop": "^5.5.0",
     "react-syntax-highlighter": "^15.6.6",
     "streamdown": "latest",
     "tailwind-merge": "^3.3.1",

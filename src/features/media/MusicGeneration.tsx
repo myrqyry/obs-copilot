@@ -65,6 +65,7 @@ const MusicGeneration: React.FC = () => {
     const [muteBass, setMuteBass] = useState(false);
     const [muteDrums, setMuteDrums] = useState(false);
     const [onlyBassAndDrums, setOnlyBassAndDrums] = useState(false);
+    const [musicGenerationMode, setMusicGenerationMode] = useState('QUALITY');
     const [openMusicGeneration, setOpenMusicGeneration] = useState(true);
 
     const accentColorName = useSettingsStore(state => state.theme.accent);
@@ -88,6 +89,7 @@ const MusicGeneration: React.FC = () => {
             muteBass,
             muteDrums,
             onlyBassAndDrums,
+            musicGenerationMode,
             geminiApiKey: currentGeminiApiKey,
         };
         startMusicGeneration(musicPrompt, config);
@@ -234,6 +236,20 @@ const MusicGeneration: React.FC = () => {
                         <Tooltip content="Only generate bass and drums, muting all other instruments.">
                             <span className="inline-flex items-center gap-1"><input type="checkbox" checked={onlyBassAndDrums} onChange={e => setOnlyBassAndDrums(e.target.checked)} />Only Bass & Drums <span className="text-primary cursor-help">ⓘ</span></span>
                         </Tooltip>
+                    </label>
+                    <label className="text-xs flex flex-col">
+                        <Tooltip content="Focus on quality, diversity, or vocalization.">
+                            <span className="inline-flex items-center gap-1">Mode <span className="text-primary cursor-help">ⓘ</span></span>
+                        </Tooltip>
+                        <select
+                            value={musicGenerationMode}
+                            onChange={e => setMusicGenerationMode(e.target.value)}
+                            className="rounded border px-2 py-1 w-36 text-xs bg-ctp-base border-ctp-surface1 text-ctp-text focus:ring-ctp-mauve focus:border-ctp-mauve transition-all duration-150"
+                        >
+                            <option value="QUALITY">Quality</option>
+                            <option value="DIVERSITY">Diversity</option>
+                            <option value="VOCALIZATION">Vocalization</option>
+                        </select>
                     </label>
                 </div>
                 {/* Music is streamed in real time; use the floating music controller for playback. */}

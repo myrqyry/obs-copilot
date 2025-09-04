@@ -90,6 +90,7 @@ const SpeechGeneration: React.FC = () => {
                 setAudioLoading(false);
                 return;
             }
+
             // Parse script into [{speaker, line}]
             const lines = script.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
             const parts: { speaker: string, text: string }[] = [];
@@ -99,37 +100,28 @@ const SpeechGeneration: React.FC = () => {
             }
             if (!parts.length) throw new Error('No valid speaker lines found. Use format: Speaker: line');
 
-            // Gather all PCM buffers
-            const pcmBuffers: ArrayBuffer[] = [];
-            for (const part of parts) {
-                const response = await geminiService.generateContent(part.text);
-                const data = (response as any).audioData;
-                if (!data) throw new Error(`No audio data for ${part.speaker}`);
-                const pcmBuffer = base64ToArrayBuffer(data);
-                pcmBuffers.push(pcmBuffer);
-            }
+            // Create multi-speaker voice config
+            const multiSpeakerVoiceConfig = {
+                speakerVoiceConfigs: speakers.map(speaker => ({
+                    speaker: speaker.name,
+                    voiceConfig: {
+                        prebuiltVoiceConfig: {
+                            voiceName: speaker.voice,
+                        },
+                    },
+                })),
+            };
 
-            // Concatenate all PCM buffers
-            let combinedPcm: ArrayBuffer;
-            if (pcmBuffers.length === 1) {
-                combinedPcm = pcmBuffers[0];
-            } else {
-                // Calculate total length
-                const totalLength = pcmBuffers.reduce((sum, buf) => sum + buf.byteLength, 0);
-                const combined = new Uint8Array(totalLength);
-                let offset = 0;
-                for (const buf of pcmBuffers) {
-                    combined.set(new Uint8Array(buf), offset);
-                    offset += buf.byteLength;
-                }
-                combinedPcm = combined.buffer;
-            }
+            // Create the conversation text with speaker names
+            const conversationText = parts.map(part => `${part.speaker}: ${part.text}`).join('\n');
 
-            // Create a single WAV from the combined PCM
-            const wavData = pcm16ToWavUrl(combinedPcm, 24000, 1);
-            const finalUrl = dataUrlToBlobUrl(wavData);
+            // Generate the audio using the new generateSpeech method
+            const wavUrl = await geminiService.generateSpeech(conversationText, {
+                model: 'gemini-2.5-flash-preview-tts',
+                multiSpeakerVoiceConfig,
+            });
 
-            setGeneratedAudio(finalUrl);
+            setGeneratedAudio(wavUrl);
         } catch (err: unknown) {
             if (err instanceof Error) {
                 setAudioError(err.message);
