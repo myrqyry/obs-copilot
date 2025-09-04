@@ -1,8 +1,8 @@
 import React from 'react';
-import { Button } from './Button';
-import { Card, CardHeader, CardTitle, CardContent } from './Card';
-import { Label } from './Label';
-import { Input } from './Input';
+import { CustomButton as Button } from '@/components/ui/CustomButton';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import useSettingsStore from '@/store/settingsStore';
 import useConnectionsStore from '@/store/connectionsStore';
 
@@ -39,7 +39,7 @@ const ObsSettingsPanel: React.FC = () => {
                         id="obs-password"
                         type="password"
                         placeholder="Enter your password"
-                        value={obsPassword}
+                        value={obsPassword || ''}
                         onChange={(e) => setObsPassword(e.target.value)}
                     />
                 </div>

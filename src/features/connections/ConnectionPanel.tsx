@@ -1,6 +1,6 @@
 // src/features/connections/ConnectionPanel.tsx
 import React from 'react';
-import { ConnectionForm } from './ConnectionForm';
+import ConnectionForm from './ConnectionForm';
 import { useConnectionServices } from '@/hooks/useConnectionServices';
 
 export const ConnectionPanel: React.FC = () => {

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { CustomButton as Button } from '@/components/ui/CustomButton';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import useSettingsStore from '@/store/settingsStore';
 import useConnectionsStore from '@/store/connectionsStore';
 
@@ -12,7 +14,7 @@ interface ConnectionFormProps {
 const ConnectionForm: React.FC<ConnectionFormProps> = ({ onObsConnect, onStreamerBotConnect }) => {
     // OBS connection state
     const { obsUrl, obsPassword, streamerBotHost, streamerBotPort, setObsUrl, setObsPassword, setStreamerBotHost, setStreamerBotPort } = useSettingsStore();
-    const { isConnected, isLoading, connectToObs, disconnectFromObs, connectionError } = useConnectionsStore();
+    const { isConnected, isLoading, disconnectFromObs, connectionError } = useConnectionsStore();
     
     // StreamerBot connection state
     const [isStreamerBotConnected, setIsStreamerBotConnected] = useState(false);
@@ -70,28 +72,26 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({ onObsConnect, onStreame
                 <CardContent className="space-y-4">
                     <form onSubmit={handleObsConnect} className="space-y-4">
                         <div className="space-y-2">
-                            <label htmlFor="obs-url" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                            <Label htmlFor="obs-url">
                                 OBS WebSocket URL
-                            </label>
-                            <input 
+                            </Label>
+                            <Input 
                                 id="obs-url"
                                 placeholder="ws://localhost:4455"
                                 value={obsUrl}
                                 onChange={(e) => setObsUrl(e.target.value)}
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                             />
                         </div>
                         <div className="space-y-2">
-                            <label htmlFor="obs-password" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                            <Label htmlFor="obs-password">
                                 OBS WebSocket Password
-                            </label>
-                            <input 
+                            </Label>
+                            <Input 
                                 id="obs-password"
                                 type="password"
                                 placeholder="Enter your password"
-                                value={obsPassword}
+                                value={obsPassword || ''}
                                 onChange={(e) => setObsPassword(e.target.value)}
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                             />
                         </div>
                         <div className="flex justify-between">
@@ -123,27 +123,25 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({ onObsConnect, onStreame
                     <form onSubmit={handleStreamerBotConnect} className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label htmlFor="streamerbot-host" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                <Label htmlFor="streamerbot-host">
                                     Host
-                                </label>
-                                <input 
+                                </Label>
+                                <Input 
                                     id="streamerbot-host"
                                     placeholder="localhost"
                                     value={streamerBotHost}
                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStreamerBotHost(e.target.value)}
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label htmlFor="streamerbot-port" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                <Label htmlFor="streamerbot-port">
                                     Port
-                                </label>
-                                <input 
+                                </Label>
+                                <Input 
                                     id="streamerbot-port"
                                     placeholder="8080"
                                     value={streamerBotPort}
                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStreamerBotPort(e.target.value)}
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                 />
                             </div>
                         </div>

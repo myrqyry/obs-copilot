@@ -1,6 +1,6 @@
 // src/hooks/useConnectionServices.ts
 import { useContext } from 'react';
-import { ConnectionContext } from '@/components/ConnectionProvider';
+import { ConnectionContext } from '@/features/connections/ConnectionProvider';
 
 export const useConnectionServices = () => {
     const context = useContext(ConnectionContext);
