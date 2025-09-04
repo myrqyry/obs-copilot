@@ -27,16 +27,28 @@ export interface AutomationCondition {
   description?: string; // Human-readable description
 }
 
+export interface StreamerBotActionData {
+  actionName?: string; // Make optional for new action types
+  args?: Record<string, unknown>;
+}
+
+export interface FileExistsActionData {
+  type: 'FileExists';
+  path: string;
+  variableName?: string;
+}
+
+export interface FolderExistsActionData {
+  type: 'FolderExists';
+  path: string;
+  variableName?: string;
+}
+
 export interface AutomationAction {
   id: string;
   type: 'obs' | 'streamerbot';
-  data: ObsAction | StreamerBotActionData;
+  data: ObsAction | StreamerBotActionData | FileExistsActionData | FolderExistsActionData;
   description?: string; // Human-readable description
-}
-
-export interface StreamerBotActionData {
-  actionName: string;
-  args?: Record<string, unknown>;
 }
 
 // Helper types for UI building

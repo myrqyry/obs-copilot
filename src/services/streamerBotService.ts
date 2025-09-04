@@ -25,6 +25,8 @@ import {
   GetCodeTriggersResponse,
   GetCreditsResponse,
   EventSubscription,
+  FileExistsResponse,
+  FolderExistsResponse,
 } from '../types/streamerbot';
 
 /**
@@ -264,7 +266,21 @@ export class StreamerBotService {
     this.client.on('*', (message: any) => {
       try {
         const evName = message?.event || message?.data?.event || 'unknown';
-        const payload = message?.data || message?.payload || message;
+        let payload = message?.data || message?.payload || message;
+
+        // Check for Kick message reply-to data
+        if (evName === 'ChatMessage' && payload?.platform === 'Kick' && payload?.replyTo) {
+          payload = {
+            ...payload,
+            replyTo: {
+              messageId: payload.replyTo.messageId,
+              userId: payload.replyTo.userId,
+              username: payload.replyTo.username,
+              displayName: payload.replyTo.displayName,
+              message: payload.replyTo.message,
+            },
+          };
+        }
         callback(evName, payload);
       } catch (e) {
         logger.warn('StreamerBotService: error processing incoming event', e);
@@ -641,20 +657,31 @@ export class StreamerBotService {
     message: string, 
     platform: 'twitch' | 'kick' | 'trovo' | 'youtube' = 'twitch',
     bot: boolean = false,
-    internal: boolean = false
+    internal: boolean = false,
+    replyTo?: {
+      messageId: string;
+      userId: string;
+      username: string;
+      displayName: string;
+      message: string;
+    }
   ): Promise<void> {
     if (!this.client) throw new Error('Streamer.bot client is not initialized.');
     
     try {
       // Fallback: send raw request
-      await this._sendRequest({ 
+      const requestPayload: Record<string, unknown> = { 
         request: 'SendMessage', 
         platform, 
         bot, 
         internal, 
         message 
-      });
-      logger.info('StreamerBotService: sendMessage executed', { platform, message });
+      };
+      if (replyTo) {
+        requestPayload.replyTo = replyTo;
+      }
+      await this._sendRequest(requestPayload);
+      logger.info('StreamerBotService: sendMessage executed', { platform, message, replyTo });
     } catch (error) {
       logger.error('StreamerBotService: sendMessage failed', error);
       throw error;
@@ -809,8 +836,56 @@ export class StreamerBotService {
       case 'UpdateAction':
       case 'DeleteAction':
         throw new Error(`${action.type} is not currently supported by the Streamer.bot client library.`);
+      case 'FileExists': {
+        if (!action.args?.path) throw new Error('FileExists requires a path.');
+        const variableName = action.args.variableName as string | undefined;
+        return await this.fileExists(action.args.path as string, variableName);
+      }
+      case 'FolderExists': {
+        if (!action.args?.path) throw new Error('FolderExists requires a path.');
+        const variableName = action.args.variableName as string | undefined;
+        return await this.folderExists(action.args.path as string, variableName);
+      }
       default:
         throw new Error(`Unsupported Streamer.bot action type: ${action.type}`);
+    }
+  }
+
+  /**
+   * Checks if a file exists at the specified path.
+   */
+  async fileExists(path: string, variableName?: string): Promise<FileExistsResponse> {
+    if (!this.client) throw new Error('Streamer.bot client is not initialized.');
+    
+    try {
+      const request: any = { request: 'FileExists', path };
+      if (variableName) {
+        request.variableName = variableName;
+      }
+      const response = await this._sendRequest(request);
+      return response as FileExistsResponse;
+    } catch (error) {
+      logger.error('StreamerBotService: fileExists failed', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Checks if a folder exists at the specified path.
+   */
+  async folderExists(path: string, variableName?: string): Promise<FolderExistsResponse> {
+    if (!this.client) throw new Error('Streamer.bot client is not initialized.');
+    
+    try {
+      const request: any = { request: 'FolderExists', path };
+      if (variableName) {
+        request.variableName = variableName;
+      }
+      const response = await this._sendRequest(request);
+      return response as FolderExistsResponse;
+    } catch (error) {
+      logger.error('StreamerBotService: folderExists failed', error);
+      throw error;
     }
   }
 

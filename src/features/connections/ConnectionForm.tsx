@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { CustomButton as Button } from '@/components/ui/CustomButton';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import useSettingsStore from '@/store/settingsStore';
 import useConnectionsStore from '@/store/connectionsStore';
+import { useToast } from '@/components/ui/toast';
+import { debounce } from 'lodash';
 
 interface ConnectionFormProps {
     onObsConnect: (url: string, password?: string) => Promise<void>;
@@ -15,16 +17,38 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({ onObsConnect, onStreame
     // OBS connection state
     const { obsUrl, obsPassword, streamerBotHost, streamerBotPort, setObsUrl, setObsPassword, setStreamerBotHost, setStreamerBotPort } = useSettingsStore();
     const { isConnected, isLoading, disconnectFromObs, connectionError } = useConnectionsStore();
-    
+
     // StreamerBot connection state
     const [isStreamerBotConnected, setIsStreamerBotConnected] = useState(false);
     const [isStreamerBotConnecting, setIsStreamerBotConnecting] = useState(false);
     const [streamerBotError, setStreamerBotError] = useState<string | null>(null);
 
+    // Toast notifications
+    const { toast } = useToast();
+
+    // Debounced toast for settings save
+    const debouncedSettingsToast = useCallback(
+        debounce(() => {
+            toast({
+                title: "Settings Saved",
+                description: "Your connection settings have been saved successfully.",
+            });
+        }, 1000),
+        [toast]
+    );
+
     // OBS connection handlers
-    const handleObsConnect = (e: React.FormEvent) => {
+    const handleObsConnect = async (e: React.FormEvent) => {
         e.preventDefault();
-        onObsConnect(obsUrl, obsPassword);
+        try {
+            await onObsConnect(obsUrl, obsPassword);
+            toast({
+                title: "Connection Saved",
+                description: `Successfully connected to OBS at ${obsUrl}`,
+            });
+        } catch (error: any) {
+            // Error handling is already done in the connection store
+        }
     };
 
     const handleObsDisconnect = () => {
@@ -39,6 +63,10 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({ onObsConnect, onStreame
         try {
             await onStreamerBotConnect(streamerBotHost, streamerBotPort);
             setIsStreamerBotConnected(true);
+            toast({
+                title: "Connection Saved",
+                description: `Successfully connected to Streamer.bot at ${streamerBotHost}:${streamerBotPort}`,
+            });
         } catch (error: any) {
             setStreamerBotError(error.message || 'Failed to connect to Streamer.bot');
             setIsStreamerBotConnected(false);
@@ -75,23 +103,29 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({ onObsConnect, onStreame
                             <Label htmlFor="obs-url">
                                 OBS WebSocket URL
                             </Label>
-                            <Input 
+                            <Input
                                 id="obs-url"
                                 placeholder="ws://localhost:4455"
                                 value={obsUrl}
-                                onChange={(e) => setObsUrl(e.target.value)}
+                                onChange={(e) => {
+                                    setObsUrl(e.target.value);
+                                    debouncedSettingsToast();
+                                }}
                             />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="obs-password">
                                 OBS WebSocket Password
                             </Label>
-                            <Input 
+                            <Input
                                 id="obs-password"
                                 type="password"
                                 placeholder="Enter your password"
                                 value={obsPassword || ''}
-                                onChange={(e) => setObsPassword(e.target.value)}
+                                onChange={(e) => {
+                                    setObsPassword(e.target.value);
+                                    debouncedSettingsToast();
+                                }}
                             />
                         </div>
                         <div className="flex justify-between">
@@ -126,22 +160,28 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({ onObsConnect, onStreame
                                 <Label htmlFor="streamerbot-host">
                                     Host
                                 </Label>
-                                <Input 
+                                <Input
                                     id="streamerbot-host"
                                     placeholder="localhost"
                                     value={streamerBotHost}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStreamerBotHost(e.target.value)}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                        setStreamerBotHost(e.target.value);
+                                        debouncedSettingsToast();
+                                    }}
                                 />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="streamerbot-port">
                                     Port
                                 </Label>
-                                <Input 
+                                <Input
                                     id="streamerbot-port"
                                     placeholder="8080"
                                     value={streamerBotPort}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStreamerBotPort(e.target.value)}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                        setStreamerBotPort(e.target.value);
+                                        debouncedSettingsToast();
+                                    }}
                                 />
                             </div>
                         </div>

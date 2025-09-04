@@ -4,6 +4,8 @@ import type {
   AutomationCondition,
   AutomationAction,
   StreamerBotActionData,
+  FileExistsActionData,
+  FolderExistsActionData,
 } from '../types/automation';
 import type { ObsAction } from '../types/obsActions';
 import { throttle } from 'lodash';
@@ -327,17 +329,45 @@ export class AutomationService {
             throw new Error('Streamer.bot service not available');
           }
 
-          // Type guard: when action.type is 'streamerbot', action.data is StreamerBotActionData
-          const streamerBotData = action.data as StreamerBotActionData;
-          await this.streamerBotService.doAction(
-            streamerBotData.actionName,
-            streamerBotData.args || {},
-          );
+          // Determine the specific Streamer.bot action type using type guards
+          if (action.data && typeof action.data === 'object') {
+            if ('actionName' in action.data) {
+              const streamerBotData = action.data as StreamerBotActionData;
+              await this.streamerBotService.doAction(
+                { name: streamerBotData.actionName }, // Pass as object with name
+                streamerBotData.args || {},
+              );
 
-          this.addMessage?.({
-            role: 'system',
-            text: `🤖 **Streamer.bot Action (Rule: ${ruleName})**\n\n✅ Executed action "${streamerBotData.actionName}"`,
-          });
+              this.addMessage?.({
+                role: 'system',
+                text: `🤖 **Streamer.bot Action (Rule: ${ruleName})**\n\n✅ Executed action "${streamerBotData.actionName}"`,
+              });
+            } else if ('type' in action.data && action.data.type === 'FileExists') {
+              const fileExistsData = action.data as FileExistsActionData;
+              const result = await this.streamerBotService.fileExists(
+                fileExistsData.path,
+                fileExistsData.variableName,
+              );
+              this.addMessage?.({
+                role: 'system',
+                text: `🤖 **Streamer.bot File Exists (Rule: ${ruleName})**\n\nFile "${fileExistsData.path}" exists: ${result.exists}`,
+              });
+            } else if ('type' in action.data && action.data.type === 'FolderExists') {
+              const folderExistsData = action.data as FolderExistsActionData;
+              const result = await this.streamerBotService.folderExists(
+                folderExistsData.path,
+                folderExistsData.variableName,
+              );
+              this.addMessage?.({
+                role: 'system',
+                text: `🤖 **Streamer.bot Folder Exists (Rule: ${ruleName})**\n\nFolder "${folderExistsData.path}" exists: ${result.exists}`,
+              });
+            } else {
+              throw new Error(`Unknown Streamer.bot action data type: ${(action.data as any).type}`);
+            }
+          } else {
+            throw new Error(`Invalid Streamer.bot action data: ${JSON.stringify(action.data)}`);
+          }
         } else {
           throw new Error(`Unknown action type: ${action.type}`);
         }

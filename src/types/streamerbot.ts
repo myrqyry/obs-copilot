@@ -116,6 +116,13 @@ export interface ChatMessageEvent {
   isSubscriber?: boolean;
   bits?: number;
   emotes?: Array<{ id: string; name: string; indices?: [number, number] }>;
+  replyTo?: {
+    messageId: string;
+    userId: string;
+    username: string;
+    displayName: string;
+    message: string;
+  };
   raw?: Record<string, unknown>;
 }
 
@@ -397,6 +404,22 @@ export interface GetCreditsResponse {
       amount: number;
     }>;
   };
+  raw?: unknown;
+}
+
+/**
+ * Response from FileExists request
+ */
+export interface FileExistsResponse {
+  exists: boolean;
+  raw?: unknown;
+}
+
+/**
+ * Response from FolderExists request
+ */
+export interface FolderExistsResponse {
+  exists: boolean;
   raw?: unknown;
 }
 
