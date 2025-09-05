@@ -167,14 +167,20 @@ async function startUvicorn(venvPath) {
     port = '8001';
   }
   
-  const uvicornArgs = [
+  const enableReload = (process.env.BACKEND_RELOAD || 'true').toLowerCase() !== 'false';
+
+  const uvicornArgsBase = [
     '-m', 'uvicorn',
     'backend.main:app',
-    '--reload',
     '--port', port,
     '--host', host,
-    '--app-dir', process.cwd()
+    '--app-dir', path.join(process.cwd(), 'backend')
   ];
+
+  // Conditionally add reload args to avoid consuming many file watchers when not desired
+  const uvicornArgs = enableReload
+    ? uvicornArgsBase.concat(['--reload', '--reload-dir', path.join(process.cwd(), 'backend')])
+    : uvicornArgsBase;
 
   logInfo(`Starting backend server at http://${host}:${port}`);
   logInfo(`Using Python: ${pythonExec}`);

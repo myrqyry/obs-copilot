@@ -27,6 +27,19 @@ export default defineConfig({
         secure: false,
       },
     },
+    // Reduce filesystem watchers by ignoring large or generated folders
+    watch: {
+      ignored: [
+        '**/node_modules/**',
+        '**/.git/**',
+        '**/dist/**',
+        '**/build/**',
+        '**/backend/venv/**',
+        '**/tmp/**',
+        '**/.cache/**',
+        '**/public/**'
+      ],
+    },
   },
   preview: {
     port: 4173,
