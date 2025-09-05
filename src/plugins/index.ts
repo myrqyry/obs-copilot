@@ -1,6 +1,6 @@
 import { TabPlugin } from '@/types/plugins';
 import ConnectionsTab from './core/ConnectionsTab';
-import ObsStudioTab from './core/ObsStudioTab';
+import NewObsStudioTab from './core/NewObsStudioTab';
 import GeminiTab from './core/GeminiTab';
 import CreateTab from './core/CreateTab';
 import StreamingAssetsTab from './core/StreamingAssetsTab';
@@ -22,7 +22,7 @@ export const corePlugins: TabPlugin[] = [
     id: 'obs-studio',
     name: 'OBS Studio',
     icon: createEmojiIcon('🎬'),
-    component: ObsStudioTab,
+    component: NewObsStudioTab,
   },
   {
     id: 'gemini',

@@ -41,4 +41,16 @@ export interface OBSVideoSettings {
   outputWidth: number;
 }
 
+export type ObsActionType = 'toggle_mute' | 'switch_scene';
+
+export interface ObsWidgetConfig {
+  id: string;
+  type: ObsActionType;
+  label: string;
+  icon?: string;
+  // Action-specific settings
+  sceneName?: string;
+  sourceName?: string;
+}
+
 // Any other OBS related interfaces needed globally
