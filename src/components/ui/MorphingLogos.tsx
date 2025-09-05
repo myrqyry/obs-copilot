@@ -1,5 +1,6 @@
 import React, { useLayoutEffect, useRef, useEffect } from 'react';
 import { gsap } from 'gsap';
+import { safeGsapTo, safeGsapSet } from '@/lib/utils';
 
 const paths = {
     gemini: "M22.0728 0H25.925L26.0394 1.88084C26.3598 7.10156 28.5784 12.0249 32.2773 15.7235C35.9762 19.422 40.9 21.6404 46.1212 21.9608L48 22.0752V25.9248L46.1212 26.0392C40.9 26.3596 35.9762 28.578 32.2773 32.2765C28.5784 35.9751 26.3598 40.8984 26.0394 46.1192L25.925 48H22.075L21.9606 46.1192C21.6402 40.8984 19.4216 35.9751 15.7227 32.2765C12.0238 28.578 7.10001 26.3596 1.87882 26.0392L0 25.927V22.0752L1.87882 21.9608C7.10001 21.6404 12.0238 19.422 15.7227 15.7235C19.4216 12.0249 21.6402 7.10156 21.9606 1.88084L22.0728 0Z M24 10.4711C21.4154 16.5647 16.564 21.4156 10.4699 24C16.564 26.5844 21.4154 31.4353 24 37.5289C26.5846 31.4353 31.436 26.5844 37.5301 24C31.436 21.4156 26.5846 16.5647 24 10.4711Z",
@@ -22,10 +23,10 @@ const MorphingLogos: React.FC<MorphingLogosProps> = ({ accentColor, secondaryAcc
         if (!morphingPath) return;
 
         // Set initial path
-        gsap.set(morphingPath, { attr: { d: paths.gemini } });
+        safeGsapSet(morphingPath, { attr: { d: paths.gemini } });
 
         // This will now work correctly!
-        gsap.to(morphingPath, {
+        safeGsapTo(morphingPath, {
             duration: 2.8,
             ease: "power2.inOut",
             morphSVG: {
@@ -38,7 +39,7 @@ const MorphingLogos: React.FC<MorphingLogosProps> = ({ accentColor, secondaryAcc
         });
 
         // Continuous slow rotation for polish
-        gsap.to(morphingPath, {
+        safeGsapTo(morphingPath, {
             duration: 12,
             ease: "none",
             rotation: 360,
@@ -58,11 +59,11 @@ const MorphingLogos: React.FC<MorphingLogosProps> = ({ accentColor, secondaryAcc
         }
 
         // Initialize stop colors
-        gsap.set(stop1, { attr: { 'stop-color': accentColor } });
-        gsap.set(stop2, { attr: { 'stop-color': secondaryAccentColor } });
+        safeGsapSet(stop1, { attr: { 'stop-color': accentColor } });
+        safeGsapSet(stop2, { attr: { 'stop-color': secondaryAccentColor } });
 
         // Animate gradient stop colors
-        colorAnimationRef.current = gsap.to([stop1, stop2], {
+        colorAnimationRef.current = safeGsapTo([stop1, stop2], {
             duration: 6,
             ease: "power2.inOut",
             attr: {

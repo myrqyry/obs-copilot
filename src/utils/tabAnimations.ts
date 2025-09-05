@@ -4,12 +4,17 @@
  */
 
 import { gsap } from 'gsap';
+import { prefersReducedMotion } from '../lib/utils';
 
 export const tabAnimations = {
   /**
    * Animate tab content entrance
    */
   animateTabEnter: (element: HTMLElement, direction: 'left' | 'right' = 'left') => {
+    if (prefersReducedMotion()) {
+      gsap.set(element, { opacity: 1, x: 0, scale: 1 });
+      return gsap.timeline();
+    }
     const timeline = gsap.timeline();
 
     // Set initial state
@@ -35,6 +40,10 @@ export const tabAnimations = {
    * Animate tab content exit
    */
   animateTabExit: (element: HTMLElement, direction: 'left' | 'right' = 'right') => {
+    if (prefersReducedMotion()) {
+      gsap.set(element, { opacity: 0 });
+      return gsap.timeline();
+    }
     const timeline = gsap.timeline();
 
     timeline.to(element, {
@@ -52,6 +61,10 @@ export const tabAnimations = {
    * Animate tab button state change
    */
   animateTabButton: (element: HTMLElement, isActive: boolean) => {
+    if (prefersReducedMotion()) {
+      gsap.set(element, { scale: 1 });
+      return gsap.timeline();
+    }
     const timeline = gsap.timeline();
 
     if (isActive) {
@@ -82,6 +95,10 @@ export const tabAnimations = {
    */
   animateTabChildren: (container: HTMLElement, delay: number = 0.1) => {
     const children = Array.from(container.children) as HTMLElement[];
+    if (prefersReducedMotion()) {
+      gsap.set(children, { opacity: 1, y: 0, scale: 1 });
+      return;
+    }
 
     gsap.set(children, {
       opacity: 0,
@@ -103,6 +120,10 @@ export const tabAnimations = {
    * Smooth height transition for collapsible content
    */
   animateHeight: (element: HTMLElement, expand: boolean) => {
+    if (prefersReducedMotion()) {
+      gsap.set(element, { height: expand ? 'auto' : 0 });
+      return gsap.timeline();
+    }
     const timeline = gsap.timeline();
 
     if (expand) {
@@ -131,6 +152,10 @@ export const tabAnimations = {
    * Glass card entrance animation
    */
   animateGlassCard: (element: HTMLElement) => {
+    if (prefersReducedMotion()) {
+      gsap.set(element, { opacity: 1, scale: 1, y: 0 });
+      return gsap.timeline();
+    }
     const timeline = gsap.timeline();
 
     gsap.set(element, {
@@ -154,6 +179,10 @@ export const tabAnimations = {
    * Connection status animation
    */
   animateConnectionStatus: (element: HTMLElement, isConnected: boolean) => {
+    if (prefersReducedMotion()) {
+      gsap.set(element, { scale: 1, opacity: isConnected ? 1 : 0.7 });
+      return gsap.timeline();
+    }
     const timeline = gsap.timeline();
 
     if (isConnected) {
@@ -184,6 +213,10 @@ export const tabAnimations = {
    * Message entrance animation for chat
    */
   animateMessage: (element: HTMLElement, fromUser: boolean = false) => {
+    if (prefersReducedMotion()) {
+      gsap.set(element, { opacity: 1, x: 0, scale: 1 });
+      return gsap.timeline();
+    }
     const timeline = gsap.timeline();
 
     gsap.set(element, {
@@ -207,6 +240,10 @@ export const tabAnimations = {
    * Notification pop-in animation
    */
   animateNotification: (element: HTMLElement) => {
+    if (prefersReducedMotion()) {
+      gsap.set(element, { opacity: 1, scale: 1, y: 0 });
+      return gsap.timeline();
+    }
     const timeline = gsap.timeline();
 
     gsap.set(element, {
@@ -236,6 +273,10 @@ export const tabAnimations = {
    * Status indicator pulse
    */
   animateStatusPulse: (element: HTMLElement, color: string = 'currentColor') => {
+    if (prefersReducedMotion()) {
+      gsap.set(element, { boxShadow: 'none', scale: 1 });
+      return gsap.timeline();
+    }
     return gsap.to(element, {
       boxShadow: `0 0 20px ${color}, 0 0 40px ${color}`,
       scale: 1.1,

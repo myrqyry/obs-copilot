@@ -2,6 +2,7 @@ import Tooltip from '@/components/ui/Tooltip';
 
 import React, { useRef, useEffect } from 'react';
 import { gsap } from 'gsap';
+import { prefersReducedMotion } from '@/lib/utils';
 
 interface ConnectionStatusIconProps {
   isConnected: boolean;
@@ -32,7 +33,7 @@ export const ConnectionStatusIcon: React.FC<ConnectionStatusIconProps> = ({ isCo
   useEffect(() => {
     const dot = statusDotRef.current;
     const button = statusBtnRef.current ?? null;
-    if (button) {
+    if (button && !prefersReducedMotion()) {
       // Entrance animation for the whole button for polish
       try {
         gsap.fromTo(
@@ -46,23 +47,29 @@ export const ConnectionStatusIcon: React.FC<ConnectionStatusIconProps> = ({ isCo
     }
 
     if (dot) {
-      if (isConnecting) {
-        gsap.to(dot, {
-          scale: 1.5,
-          opacity: 0.6,
-          repeat: -1,
-          yoyo: true,
-          duration: 0.7,
-          ease: 'power1.inOut',
-        });
+      if (isConnecting && !prefersReducedMotion()) {
+        try {
+            gsap.to(dot, {
+              scale: 1.5,
+              opacity: 0.6,
+              repeat: -1,
+              yoyo: true,
+              duration: 0.7,
+              ease: 'power1.inOut',
+            });
+        } catch (e) {}
       } else {
-        gsap.killTweensOf(dot);
-        gsap.set(dot, { scale: 1, opacity: 1 });
+        try {
+            gsap.killTweensOf(dot);
+            gsap.set(dot, { scale: 1, opacity: 1 });
+        } catch (e) {}
       }
     }
     return () => {
-      if (dot) gsap.killTweensOf(dot);
-      if (button) gsap.killTweensOf(button);
+        try {
+            if (dot) gsap.killTweensOf(dot);
+            if (button) gsap.killTweensOf(button);
+        } catch(e) {}
     };
   }, [isConnecting]);
 

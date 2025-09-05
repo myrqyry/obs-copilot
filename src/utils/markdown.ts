@@ -58,7 +58,7 @@ export function applyInlineMarkdown(text: string): string {
   );
   html = html.replace(
     /\{\{error:([^}]+)\}\}/g,
-    '<span class="text-red-600 font-medium bg-red-50 px-2 py-0.5 rounded-md border border-red-200">❌ $1</span>',
+    '<span class="text-destructive font-medium bg-destructive/10 px-2 py-0.5 rounded-md border border-destructive/20">❌ $1</span>',
   );
   html = html.replace(
     /\{\{warning:([^}]+)\}\}/g,
@@ -80,7 +80,7 @@ export function applyInlineMarkdown(text: string): string {
   );
   html = html.replace(
     /\{\{stream-live:([^}]+)\}\}/g,
-    '<span class="text-red-500 font-bold bg-red-100 px-2 py-1 rounded-md border border-red-300 animate-pulse">🔴 LIVE: $1</span>',
+    '<span class="text-destructive font-bold bg-destructive/10 px-2 py-1 rounded-md border border-destructive/20 animate-pulse">🔴 LIVE: $1</span>',
   );
   html = html.replace(
     /\{\{stream-offline:([^}]+)\}\}/g,

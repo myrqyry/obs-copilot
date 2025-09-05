@@ -67,7 +67,7 @@ const LiveAPIDemo: React.FC = () => {
         >
           {isConnecting ? 'Connecting...' : isConnected ? 'Disconnect' : 'Connect'}
         </Button>
-        {error && <p className="text-red-500">{error}</p>}
+        {error && <p className="text-destructive">{error}</p>}
       </div>
       
       <div className="mb-4">

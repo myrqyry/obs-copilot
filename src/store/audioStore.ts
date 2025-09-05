@@ -16,6 +16,7 @@ export interface AudioState {
   mediaStreamDest: MediaStreamAudioDestinationNode | null;
   audioDevices: MediaDeviceInfo[];
   selectedAudioOutputId: string;
+  selectedAudioOutputLabel: string | null;
   audioPermissionGranted: boolean;
   isPlayerVisible: boolean;
   activeAudioSource: { type: 'tts' | 'music'; prompt?: string; url?: string } | null;
@@ -37,7 +38,7 @@ export interface AudioState {
   };
 }
 
-export const useAudioStore = create<AudioState>((set, get) => ({
+const useAudioStoreImpl = create<AudioState>((set, get) => ({
   musicSession: null,
   isMusicPlaying: false,
   currentMusicPrompt: '',
@@ -48,6 +49,7 @@ export const useAudioStore = create<AudioState>((set, get) => ({
   mediaStreamDest: null,
   audioDevices: [],
   selectedAudioOutputId: 'default',
+  selectedAudioOutputLabel: null,
   audioPermissionGranted: false,
   isPlayerVisible: false,
   activeAudioSource: null,
@@ -177,7 +179,47 @@ export const useAudioStore = create<AudioState>((set, get) => ({
       }
     },
     setAudioOutputDevice: (deviceId) => {
-      set({ selectedAudioOutputId: deviceId });
+      const device = get().audioDevices.find((d) => d.deviceId === deviceId);
+      set({
+        selectedAudioOutputId: deviceId,
+        selectedAudioOutputLabel: device ? device.label : null,
+      });
     },
   },
 }));
+
+const handleDeviceChange = async () => {
+  logger.info('Audio devices changed, reloading and re-evaluating selection.');
+  const { selectedAudioOutputId, selectedAudioOutputLabel, actions } = useAudioStore.getState();
+
+  await actions.loadAudioDevices();
+  const { audioDevices } = useAudioStore.getState();
+
+  const deviceStillExists = audioDevices.some((d) => d.deviceId === selectedAudioOutputId);
+
+  if (deviceStillExists) {
+    logger.info('Selected audio device is still available.');
+    return;
+  }
+
+  logger.warn('Selected audio device is no longer available.');
+
+  if (selectedAudioOutputLabel) {
+    const fallbackDevice = audioDevices.find((d) => d.label === selectedAudioOutputLabel);
+    if (fallbackDevice) {
+      logger.info(`Found device with the same label, switching to: ${fallbackDevice.label}`);
+      actions.setAudioOutputDevice(fallbackDevice.deviceId);
+      return;
+    }
+  }
+
+  logger.info('No fallback device found, reverting to default.');
+  actions.setAudioOutputDevice('default');
+};
+
+if (typeof window !== 'undefined' && navigator.mediaDevices?.addEventListener) {
+  navigator.mediaDevices.addEventListener('devicechange', handleDeviceChange);
+}
+
+export const useAudioStore = useAudioStoreImpl;
+

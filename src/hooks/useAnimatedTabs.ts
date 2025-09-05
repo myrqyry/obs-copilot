@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
+import { prefersReducedMotion } from '../lib/utils';
 
 export const useAnimatedTabs = (activeTab: string) => {
   const tabBarRef = useRef<HTMLDivElement>(null);
@@ -77,31 +78,33 @@ export const useAnimatedTabs = (activeTab: string) => {
     return (event: React.MouseEvent<HTMLButtonElement>) => {
       const tabElement = event.currentTarget;
 
-      // Animate the click
-      gsap.fromTo(
-        tabElement,
-        { scale: 1 },
-        {
-          scale: 0.95,
-          duration: 0.1,
-          ease: 'power2.out',
-          yoyo: true,
-          repeat: 1,
-        },
-      );
+      if (!prefersReducedMotion()) {
+        // Animate the click
+        gsap.fromTo(
+          tabElement,
+          { scale: 1 },
+          {
+            scale: 0.95,
+            duration: 0.1,
+            ease: 'power2.out',
+            yoyo: true,
+            repeat: 1,
+          },
+        );
 
-      // Add a subtle glow effect
-      gsap.fromTo(
-        tabElement,
-        { boxShadow: '0 0 0 rgba(203, 166, 247, 0)' },
-        {
-          boxShadow: '0 0 20px rgba(203, 166, 247, 0.5)',
-          duration: 0.3,
-          ease: 'power2.out',
-          yoyo: true,
-          repeat: 1,
-        },
-      );
+        // Add a subtle glow effect
+        gsap.fromTo(
+          tabElement,
+          { boxShadow: '0 0 0 rgba(203, 166, 247, 0)' },
+          {
+            boxShadow: '0 0 20px rgba(203, 166, 247, 0.5)',
+            duration: 0.3,
+            ease: 'power2.out',
+            yoyo: true,
+            repeat: 1,
+          },
+        );
+      }
 
       // Call the original click handler
       onClick(tabKey);
@@ -114,37 +117,39 @@ export const useAnimatedTabs = (activeTab: string) => {
       const tabElement = event.currentTarget;
       const emoji = tabElement.querySelector('.tab-emoji');
 
-      if (isEntering) {
-        gsap.to(tabElement, {
-          y: -2,
-          scale: 1.02,
-          duration: 0.3,
-          ease: 'power2.out',
-        });
-
-        if (emoji) {
-          gsap.to(emoji, {
-            scale: 1.1,
-            rotation: 5,
-            duration: 0.3,
-            ease: 'back.out(1.7)',
-          });
-        }
-      } else {
-        gsap.to(tabElement, {
-          y: 0,
-          scale: 1,
-          duration: 0.3,
-          ease: 'power2.out',
-        });
-
-        if (emoji) {
-          gsap.to(emoji, {
-            scale: 1,
-            rotation: 0,
+      if (!prefersReducedMotion()) {
+        if (isEntering) {
+          gsap.to(tabElement, {
+            y: -2,
+            scale: 1.02,
             duration: 0.3,
             ease: 'power2.out',
           });
+
+          if (emoji) {
+            gsap.to(emoji, {
+              scale: 1.1,
+              rotation: 5,
+              duration: 0.3,
+              ease: 'back.out(1.7)',
+            });
+          }
+        } else {
+          gsap.to(tabElement, {
+            y: 0,
+            scale: 1,
+            duration: 0.3,
+            ease: 'power2.out',
+          });
+
+          if (emoji) {
+            gsap.to(emoji, {
+              scale: 1,
+              rotation: 0,
+              duration: 0.3,
+              ease: 'power2.out',
+            });
+          }
         }
       }
     };

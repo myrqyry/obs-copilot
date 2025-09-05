@@ -34,17 +34,19 @@
     --destructive: 340 82% 81%; /* ctp-red */
     --destructive-foreground: 240 20% 15%; /* ctp-base */
 
+    --info: 217 91% 76%; /* ctp-blue */
+    --info-foreground: 240 20% 15%; /* ctp-base */
+
     --border: 233 11% 39%; /* ctp-surface2 */
     --input: 237 13% 23%; /* ctp-surface0 */
     --ring: 270 80% 85%; /* ctp-mauve (Primary Accent) */
 
-    --radius: 0.75rem; /* 12px, matches original rounded-lg */
+    --radius: 0.75rem; /* 12px, matches original rounded-lg */ --component-inactive-color: var(--muted-foreground); --component-bg: var(--card); --component-shadow: var(--border); --component-active-bg: var(--secondary); --component-line-inactive-color: var(--border); --component-active-color-default: var(--accent-foreground);
   }
 
-  
   /* ============================================================
      Chat bubble / message CSS override strategy
-     
+
      Important background:
      - We avoid using !important on chat bubble backgrounds/borders so that
        inline styles (React's style={{}}) and dynamically computed colors
@@ -74,7 +76,7 @@
 
   /* Recommended: If you need defaults, use non-!important fallbacks so inline
      styles still work. Example:
-     
+
   .chat-message.bg-card {
     background-color: var(--card);
   }
@@ -83,7 +85,7 @@
     border-color: var(--border);
   }
   */
-  
+
   /* Global class for dynamic accent colors (used by MorphingLogos and AnimatedTitleLogos) */
   .dynamic-accent-gradient {
     background: radial-gradient(circle, var(--dynamic-accent), var(--dynamic-secondary-accent));
@@ -105,5 +107,48 @@
     background-clip: text;
     color: transparent;
     animation: gradient-shift 12s ease-in-out infinite;
+  }
+  .theme {
+    --color-chart-2: var(--color-chart-2);
+    --color-chart-3: var(--color-chart-3);
+    --color-chart-4: var(--color-chart-4);
+    --color-chart-5: var(--color-chart-5);
+  }
+  .dark {
+    --component-inactive-color: var(--muted-foreground);
+    --component-bg: var(--card);
+    --component-shadow: var(--border);
+    --component-active-bg: var(--secondary);
+    --component-line-inactive-color: var(--muted-foreground);
+    --component-active-color-default: var(--accent-foreground);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@theme inline {
+  @keyframes iconBounce {
+  0%, 100% {
+    transform: translateY(0);
+    }
+  20% {
+    transform: translateY(-0.3em);
+    }
+  40% {
+    transform: translateY(0);
+    }
+  60% {
+    transform: translateY(-0.1em);
+    }
+  80% {
+    transform: translateY(0);
+    }
   }
 }

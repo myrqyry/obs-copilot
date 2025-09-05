@@ -10,6 +10,7 @@ import { LiveConnectParameters } from '@google/genai';
 import { GoogleGenAI, Content } from '@google/genai';
 import { Buffer } from 'buffer';
 import { pcm16ToWavUrl } from '@/lib/pcmToWavUrl';
+import { httpClient } from './httpClient';
 
 // Initialize the Google GenAI client with a placeholder key
 // The actual key will be passed dynamically from the components
@@ -24,6 +25,11 @@ export function initializeGeminiClient(apiKey: string) {
 const initialApiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 if (initialApiKey) {
   initializeGeminiClient(initialApiKey);
+}
+
+export type StreamEvent = {
+    type: 'chunk' | 'usage' | 'error' | 'tool_call';
+    data: any;
 }
 
 class GeminiService implements AIService {
@@ -90,10 +96,77 @@ class GeminiService implements AIService {
   }
 
   /**
-   * Generate content using Gemini's streaming API.
-   * Returns the full concatenated response text.
+   * Generate content using Gemini's streaming API via backend.
+   * @param prompt The user's prompt.
+   * @param onStreamEvent A callback function to handle streaming events.
+   * @param options Additional options for the request.
    */
   async generateStreamingContent(
+    prompt: string,
+    onStreamEvent: (event: StreamEvent) => void,
+    options: {
+      model?: string;
+      history?: Array<{role: string, parts: Array<{text: string}>}>;
+    } = {}
+  ): Promise<void> {
+    const { model = 'gemini-1.5-flash', history = [] } = options;
+
+    try {
+      const response = await httpClient.post('/gemini/stream', {
+        prompt,
+        model,
+        history,
+      }, {
+        responseType: 'stream'
+      });
+
+      const reader = response.data.getReader();
+      const decoder = new TextDecoder();
+
+      let buffer = '';
+      const processBuffer = () => {
+          const events = buffer.split('\n\n');
+          buffer = events.pop() || ''; // Keep the last partial event in buffer
+          for (const eventStr of events) {
+              if (eventStr.startsWith('data: ')) {
+                  const jsonStr = eventStr.replace('data: ', '');
+                  try {
+                      const event = JSON.parse(jsonStr) as StreamEvent;
+                      onStreamEvent(event);
+                  } catch (e) {
+                      console.error("Failed to parse stream event:", jsonStr);
+                  }
+              }
+          }
+      };
+
+      const read = async () => {
+          const { done, value } = await reader.read();
+          if (done) {
+              if(buffer) { // process any remaining data
+                  processBuffer();
+              }
+              return;
+          }
+          buffer += decoder.decode(value, { stream: true });
+          processBuffer();
+          await read();
+      };
+
+      await read();
+
+    } catch (error: any) {
+      handleAppError('Gemini API streaming content generation', error, `Streaming failed.`);
+      onStreamEvent({ type: 'error', data: 'Streaming failed.' });
+    }
+  }
+
+
+  /**
+   * [DEPRECATED] Generate content using Gemini's streaming API directly on the client.
+   * Returns the full concatenated response text.
+   */
+  async generateStreamingContentFull(
     prompt: string,
     options: {
       model?: string;

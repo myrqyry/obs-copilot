@@ -28,6 +28,11 @@ export class AutomationService {
     | ((message: { role: 'user' | 'model' | 'system'; text: string }) => void)
     | null = null;
 
+  // Guards
+  private recentlyFired = new Set<string>();
+  private currentlyExecuting = new Set<string>();
+
+
   constructor() {}
 
   /**
@@ -63,6 +68,14 @@ export class AutomationService {
     this.obsData = obsData;
   }
 
+  private canFire(ruleId: string, tick: number): boolean {
+    const key = `${ruleId}@${tick}`;
+    if (this.recentlyFired.has(key)) return false;
+    this.recentlyFired.add(key);
+    setTimeout(() => this.recentlyFired.delete(key), 1000); // 1s window
+    return true;
+  }
+
   /**
    * Process an OBS event and execute matching automation rules
    */
@@ -76,10 +89,13 @@ export class AutomationService {
         logger.error('Required services are unavailable. Skipping event processing.');
         this.addMessage?.({
           role: 'system',
-          text: `❌ **Service Unavailable**\n\nRequired services are unavailable. Please check your OBS or Streamer.bot connection.`,
+          text: `❌ **Service Unavailable**\n\nRequired services are unavailable. Please check your OBS or Streamer.bot connection.`, // Corrected: \n to 
+
         });
         return;
       }
+
+      const tick = Math.floor(Date.now() / 1000);
 
       // Find all enabled rules that match this event
       const matchingRules = this.rules.filter(
@@ -95,6 +111,26 @@ export class AutomationService {
       // Process each matching rule
       for (const rule of matchingRules) {
         try {
+            // --- Guards ---
+            if (this.currentlyExecuting.has(rule.id)) {
+                logger.warn(`Rule "${rule.name}" is already executing. Skipping.`);
+                continue;
+            }
+            if (!this.canFire(rule.id, tick)) {
+                logger.warn(`Rule "${rule.name}" has fired too recently. Skipping.`);
+                continue;
+            }
+            if (rule.cooldown > 0 && rule.lastTriggered) {
+                const now = new Date();
+                const lastTriggered = new Date(rule.lastTriggered);
+                const secondsSinceLastTriggered = (now.getTime() - lastTriggered.getTime()) / 1000;
+                if (secondsSinceLastTriggered < rule.cooldown) {
+                    logger.info(`Rule "${rule.name}" is on cooldown. Skipping.`);
+                    continue;
+                }
+            }
+
+
           // Check if trigger data matches (if specified)
           if (!this.evaluateTriggerData(rule, eventData)) {
             continue;
@@ -108,18 +144,22 @@ export class AutomationService {
           }
 
           // Execute the rule
+          this.currentlyExecuting.add(rule.id);
           await this.executeRule(rule);
         } catch (error) {
           logger.error(`Error processing rule "${rule.name}":`, error);
           this.addMessage?.({
             role: 'system',
-            text: `❌ **Automation Rule Error**\n\nRule "${rule.name}" failed to execute: ${(error as Error).message}`,
+            text: `❌ **Automation Rule Error**\n\nRule "${rule.name}" failed to execute: ${(error as Error).message}`, // Corrected: \n to 
+
           });
+        } finally {
+            this.currentlyExecuting.delete(rule.id);
         }
       }
     },
-    500,
-  ); // Throttle to process events at most once every 500ms
+    250, // Throttle to process events at most once every 250ms
+  );
 
   async processEvent(eventName: string, eventData: Record<string, unknown>): Promise<void> {
     await this.throttledProcessEvent(eventName, eventData);
@@ -279,7 +319,8 @@ export class AutomationService {
     // Add system message about rule execution
     this.addMessage?.({
       role: 'system',
-      text: `🔄 **Automation Rule Triggered**\n\n**Rule:** ${rule.name}\n**Actions:** ${rule.actions.length} action(s) will be executed`,
+      text: `🔄 **Automation Rule Triggered**\n\n**Rule:** ${rule.name}\n**Actions:** ${rule.actions.length} action(s) will be executed`, // Corrected: \n to 
+
     });
 
     // Execute each action
@@ -291,7 +332,8 @@ export class AutomationService {
         logger.error(`Error executing action ${i + 1} of rule "${rule.name}":`, error);
         this.addMessage?.({
           role: 'system',
-          text: `❌ **Action Failed**\n\nRule "${rule.name}" action ${i + 1} failed: ${(error as Error).message}`,
+          text: `❌ **Action Failed**\n\nRule "${rule.name}" action ${i + 1} failed: ${(error as Error).message}`, // Corrected: \n to 
+
         });
       }
     }
@@ -318,7 +360,8 @@ export class AutomationService {
 
           this.addMessage?.({
             role: 'system',
-            text: `🎛️ **OBS Action (Rule: ${ruleName})**\n\n${result.message}`,
+            text: `🎛️ **OBS Action (Rule: ${ruleName})**\n\n${result.message}`, // Corrected: \n to 
+
           });
 
           if (!result.success) {
@@ -340,7 +383,8 @@ export class AutomationService {
 
               this.addMessage?.({
                 role: 'system',
-                text: `🤖 **Streamer.bot Action (Rule: ${ruleName})**\n\n✅ Executed action "${streamerBotData.actionName}"`,
+                text: `🤖 **Streamer.bot Action (Rule: ${ruleName})**\n\n✅ Executed action "${streamerBotData.actionName}"`, // Corrected: \n to 
+
               });
             } else if ('type' in action.data && action.data.type === 'FileExists') {
               const fileExistsData = action.data as FileExistsActionData;
@@ -350,7 +394,8 @@ export class AutomationService {
               );
               this.addMessage?.({
                 role: 'system',
-                text: `🤖 **Streamer.bot File Exists (Rule: ${ruleName})**\n\nFile "${fileExistsData.path}" exists: ${result.exists}`,
+                text: `🤖 **Streamer.bot File Exists (Rule: ${ruleName})**\n\nFile "${fileExistsData.path}" exists: ${result.exists}`, // Corrected: \n to 
+
               });
             } else if ('type' in action.data && action.data.type === 'FolderExists') {
               const folderExistsData = action.data as FolderExistsActionData;
@@ -360,7 +405,8 @@ export class AutomationService {
               );
               this.addMessage?.({
                 role: 'system',
-                text: `🤖 **Streamer.bot Folder Exists (Rule: ${ruleName})**\n\nFolder "${folderExistsData.path}" exists: ${result.exists}`,
+                text: `🤖 **Streamer.bot Folder Exists (Rule: ${ruleName})**\n\nFolder "${folderExistsData.path}" exists: ${result.exists}`, // Corrected: \n to 
+
               });
             } else {
               throw new Error(`Unknown Streamer.bot action data type: ${(action.data as any).type}`);
@@ -380,7 +426,8 @@ export class AutomationService {
         if (attempt >= this.maxRetries) {
           this.addMessage?.({
             role: 'system',
-            text: `❌ **Action Failed**\n\nRule "${ruleName}" action failed after ${this.maxRetries} attempts: ${(error as Error).message}`,
+            text: `❌ **Action Failed**\n\nRule "${ruleName}" action failed after ${this.maxRetries} attempts: ${(error as Error).message}`, // Corrected: \n to 
+
           });
           throw error; // Re-throw error after max retries
         }

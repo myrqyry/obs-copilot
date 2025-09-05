@@ -283,7 +283,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                                         {val.result.success ? (
                                             <span className="text-green-500">Success: {val.result.message || 'OK'}</span>
                                         ) : (
-                                            <span className="text-red-500">Error: {val.result.error || 'Failed'}</span>
+                                            <span className="text-destructive">Error: {val.result.error || 'Failed'}</span>
                                         )}
                                     </div>
                                 )}
@@ -569,7 +569,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                         <Tooltip content="Copy text">
                             <button
                                 onClick={handleCopyText}
-                                className="text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 p-1 rounded-full transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                className="text-muted-foreground hover:text-info hover:bg-info/10 p-1 rounded-full transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-info/50"
                                 aria-label="Copy message text"
                             >
                                 <ClipboardDocumentIcon className="w-3 h-3" />

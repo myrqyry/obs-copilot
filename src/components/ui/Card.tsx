@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { gsap } from 'gsap';
-import { cn } from '@/lib/utils';
+import { cn, safeGsapTo, safeGsapSet } from '@/lib/utils';
 
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: 'default' | 'glass' | 'elevated' | 'outlined' | 'gradient' | 'neon' | 'frosted' | 'minimal';
@@ -56,8 +56,8 @@ export const Card: React.FC<CardProps> = ({
     const card = cardRef.current;
 
     // Entrance animation
-    gsap.set(card, { opacity: 0, y: 20, scale: 0.95 });
-    gsap.to(card, {
+    safeGsapSet(card, { opacity: 0, y: 20, scale: 0.95 });
+    safeGsapTo(card, {
       opacity: 1,
       y: 0,
       scale: 1,
@@ -69,7 +69,7 @@ export const Card: React.FC<CardProps> = ({
     // Interactive hover animations
     if (interactive) {
       const handleMouseEnter = () => {
-        gsap.to(card, {
+        safeGsapTo(card, {
           y: -4,
           scale: 1.02,
           duration: 0.3,
@@ -78,7 +78,7 @@ export const Card: React.FC<CardProps> = ({
       };
 
       const handleMouseLeave = () => {
-        gsap.to(card, {
+        safeGsapTo(card, {
           y: 0,
           scale: 1,
           duration: 0.3,
@@ -177,7 +177,7 @@ export const CardBadge: React.FC<React.HTMLAttributes<HTMLSpanElement> & { varia
     success: 'bg-green-500/10 text-green-500 border border-green-500/20',
     warning: 'bg-orange-500/10 text-orange-500 border border-orange-500/20',
     error: 'bg-destructive/10 text-destructive border border-destructive/20',
-    info: 'bg-blue-500/10 text-blue-500 border border-blue-500/20'
+    info: 'bg-info/10 text-info border border-info/20'
   };
 
   return (

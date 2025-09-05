@@ -125,11 +125,11 @@ const ErrorViewer: React.FC<ErrorViewerProps> = ({ isOpen, onClose, className })
   const getLevelIcon = (level: LogEntry['level']) => {
     switch (level) {
       case 'error':
-        return <AlertTriangle className="w-4 h-4 text-red-500" />;
+        return <AlertTriangle className="w-4 h-4 text-destructive" />;
       case 'warning':
         return <AlertTriangle className="w-4 h-4 text-yellow-500" />;
       case 'info':
-        return <Info className="w-4 h-4 text-blue-500" />;
+        return <Info className="w-4 h-4 text-info" />;
       case 'debug':
         return <CheckCircle className="w-4 h-4 text-gray-500" />;
       default:
@@ -140,7 +140,7 @@ const ErrorViewer: React.FC<ErrorViewerProps> = ({ isOpen, onClose, className })
   const getLevelColor = (level: LogEntry['level']) => {
     switch (level) {
       case 'error':
-        return 'bg-red-50 border-red-200 text-red-900';
+        return 'bg-destructive/10 border-destructive/20 text-destructive';
       case 'warning':
         return 'bg-yellow-50 border-yellow-200 text-yellow-900';
       case 'info':

@@ -34,7 +34,7 @@ export const ConditionsStep: React.FC<ConditionsStepProps> = ({
                     <p>No conditions added. Rule will trigger for any matching event.</p>
                 </div>
             ) : (
-                <div className="space-y-3">
+                <div className="space-y-3 overflow-y-auto max-h-[300px] pr-2">
                     {conditions.map((condition, index) => (
                         <div key={condition.id} className="border rounded p-3 bg-muted/20">
                             <div className="flex items-center justify-between mb-2">

@@ -159,7 +159,7 @@ const SecureHtmlRenderer: React.FC<SecureHtmlRendererProps> = ({
 
     if (error) {
         return (
-            <div className={`p-4 border border-red-300 rounded-md bg-red-50 ${className}`}>
+            <div className={`p-4 border border-destructive/20 rounded-md bg-destructive/10 ${className}`}>
                 <div className="text-red-800 text-sm">
                     <strong>Error:</strong> {error}
                 </div>

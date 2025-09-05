@@ -25,17 +25,16 @@ export function prefersReducedMotion(): boolean {
  * @param vars The GSAP animation variables.
  * @returns True if the animation was attempted, false otherwise.
  */
-export function safeGsapTo(target: any, vars: any): boolean {
+export function safeGsapTo(target: any, vars: any): gsap.core.Tween | null {
   if (prefersReducedMotion()) {
-    return false;
+    return null;
   }
 
   try {
-    gsap.to(target, vars);
-    return true;
+    return gsap.to(target, vars);
   } catch (error) {
     logger.error('GSAP safeGsapTo error:', error);
-    return false;
+    return null;
   }
 }
 
@@ -45,15 +44,6 @@ export function safeGsapTo(target: any, vars: any): boolean {
  * @param vars The GSAP animation variables.
  */
 export function safeGsapSet(target: any, vars: any): void {
-  if (prefersReducedMotion()) {
-    return;
-  }
-
-  try {
-    gsap.to(target, vars);
-  } catch (error) {
-    logger.error('GSAP safeGsapTo error:', error);
-  }
   try {
     gsap.set(target, vars);
   } catch (error) {
@@ -137,4 +127,17 @@ export function dataUrlToBlobUrl(dataUrl: string): string {
     }
     const blob = new Blob([u8arr], {type: mime});
     return URL.createObjectURL(blob);
+}
+
+/**
+ * Calculates exponential backoff with full jitter.
+ * @param attempt The current retry attempt number.
+ * @param base The base backoff time in milliseconds.
+ * @param max The maximum backoff time in milliseconds.
+ * @returns The backoff time in milliseconds.
+ */
+export function backoff(attempt: number, base = 500, max = 15000): number {
+  const exp = Math.min(max, base * 2 ** attempt);
+  const jitter = Math.random() * exp; // Full jitter
+  return jitter;
 }

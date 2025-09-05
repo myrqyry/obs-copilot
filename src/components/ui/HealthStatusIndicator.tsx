@@ -31,8 +31,8 @@ const HealthStatusIndicator: React.FC<HealthStatusIndicatorProps> = ({ className
       icon: XCircle,
       label: 'Critical Systems Down',
       color: 'text-red-600',
-      bgColor: 'bg-red-100',
-      borderColor: 'border-red-200',
+      bgColor: 'bg-destructive/10',
+      borderColor: 'border-destructive/20',
       description: 'Critical services are unavailable'
     },
     unknown: {

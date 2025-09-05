@@ -61,6 +61,16 @@ export const catppuccinMochaColors = {
   base: '#1e1e2e',
   mantle: '#181825',
   crust: '#11111b',
+  gemini: {
+    blue: '#4285F4',
+    red: '#EA4335',
+    yellow: '#FBBC05',
+    green: '#34A853',
+  },
+  obs: {
+    dark: '#202020',
+    light: '#E6E6E6',
+  },
 };
 
 export type CatppuccinColorName = keyof typeof catppuccinMochaColors;

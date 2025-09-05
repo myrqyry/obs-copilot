@@ -8,6 +8,7 @@ import { CollapsibleCard } from '@/components/common/CollapsibleCard';
 import { catppuccinAccentColorsHexMap } from '@/types';
 import Tooltip from '@/components/ui/Tooltip';
 import { gsap } from 'gsap';
+import { prefersReducedMotion } from '@/lib/utils';
 
 const VideoGeneration: React.FC = () => {
     const [prompt, setPrompt] = useState('');
@@ -86,11 +87,13 @@ const VideoGeneration: React.FC = () => {
 
     React.useEffect(() => {
         if (downloadUrl && downloadAnchorRef.current) {
-            gsap.fromTo(
-                downloadAnchorRef.current,
-                { opacity: 0, y: 6, scale: 0.96 },
-                { opacity: 1, y: 0, scale: 1, duration: 0.45, ease: 'power2.out' }
-            );
+            if (!prefersReducedMotion()) {
+                gsap.fromTo(
+                    downloadAnchorRef.current,
+                    { opacity: 0, y: 6, scale: 0.96 },
+                    { opacity: 1, y: 0, scale: 1, duration: 0.45, ease: 'power2.out' }
+                );
+            }
         }
     }, [downloadUrl]);
 
@@ -257,17 +260,19 @@ const VideoGeneration: React.FC = () => {
                                 className="flex flex-col items-center"
                                 ref={el => {
                                     if (el && generatedVideoUrl) {
-                                        gsap.fromTo(
-                                            el,
-                                            { opacity: 0, scale: 0.8, y: 20 },
-                                            {
-                                                duration: 0.5,
-                                                opacity: 1,
-                                                scale: 1,
-                                                y: 0,
-                                                ease: 'back.out(1.7)',
-                                            }
-                                        );
+                                        if (!prefersReducedMotion()) {
+                                            gsap.fromTo(
+                                                el,
+                                                { opacity: 0, scale: 0.8, y: 20 },
+                                                {
+                                                    duration: 0.5,
+                                                    opacity: 1,
+                                                    scale: 1,
+                                                    y: 0,
+                                                    ease: 'back.out(1.7)',
+                                                }
+                                            );
+                                        }
                                     }
                                 }}
                             >

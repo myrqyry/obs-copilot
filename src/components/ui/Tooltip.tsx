@@ -175,7 +175,7 @@ const Tooltip: React.FC<TooltipProps> = ({
                         borderStyle: 'solid',
                         boxShadow: '0 2px 8px 0 rgba(0,0,0,0.12)',
                         fontStyle: 'normal',
-                        zIndex: 9999,
+                        zIndex: 20,
                     }}
                     role="tooltip"
                 >

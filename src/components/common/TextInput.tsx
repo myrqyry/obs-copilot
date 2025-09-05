@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { gsap } from 'gsap';
 import { CatppuccinAccentColorName } from '../../types';
-import { cn } from '../../lib/utils';
+import { cn, safeGsapTo, safeGsapSet } from '../../lib/utils';
 
 interface TextInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
   label?: string;
@@ -58,8 +58,8 @@ export const TextInput: React.FC<TextInputProps> = ({
     const container = containerRef.current;
 
     // Entrance animation
-    gsap.set(container, { opacity: 0, y: 20 });
-    gsap.to(container, {
+    safeGsapSet(container, { opacity: 0, y: 20 });
+    safeGsapTo(container, {
       opacity: 1,
       y: 0,
       duration: 0.4,
@@ -68,7 +68,9 @@ export const TextInput: React.FC<TextInputProps> = ({
     });
 
     return () => {
-      gsap.killTweensOf(container);
+        try {
+            gsap.killTweensOf(container);
+        } catch (e) {}
     };
   }, [withAnimation]);
 
@@ -81,7 +83,7 @@ export const TextInput: React.FC<TextInputProps> = ({
       const isActive = isFocused || (value && String(value).length > 0);
 
       if (isActive) {
-        gsap.to(label, {
+        safeGsapTo(label, {
           top: '-0.75rem', // Adjust this value based on desired floating position
           fontSize: '0.75rem', // Smaller font size when floating
           duration: 0.2,
@@ -89,7 +91,7 @@ export const TextInput: React.FC<TextInputProps> = ({
           color: error ? 'var(--destructive)' : success ? 'var(--green-600)' : 'var(--ring)'
         });
       } else {
-        gsap.to(label, {
+        safeGsapTo(label, {
           top: '50%',
           fontSize: '1rem', // Original font size
           duration: 0.2,
@@ -103,7 +105,7 @@ export const TextInput: React.FC<TextInputProps> = ({
   const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
     setIsFocused(true);
     if (withAnimation && containerRef.current && !floatLabel && variant !== 'expressive' && variant !== 'outlined') {
-      gsap.to(containerRef.current, {
+      safeGsapTo(containerRef.current, {
         scale: 1.02,
         duration: 0.2,
         ease: 'power2.out'
@@ -115,7 +117,7 @@ export const TextInput: React.FC<TextInputProps> = ({
   const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     setIsFocused(false);
     if (withAnimation && containerRef.current && !floatLabel && variant !== 'expressive' && variant !== 'outlined') {
-      gsap.to(containerRef.current, {
+      safeGsapTo(containerRef.current, {
         scale: 1,
         duration: 0.2,
         ease: 'power2.out'

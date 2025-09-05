@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useRef, useEffect, useState } from 'react';
 import { gsap } from 'gsap';
+import { safeGsapTo } from '@/lib/utils';
 
 import { cn } from "@/lib/utils";
 
@@ -29,7 +30,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         const isActive = isFocused || (value && String(value).length > 0);
 
         if (isActive) {
-          gsap.to(labelElement, {
+          safeGsapTo(labelElement, {
             top: '-0.75rem', // Adjust this value based on desired floating position
             fontSize: '0.75rem', // Smaller font size when floating
             duration: 0.2,
@@ -37,7 +38,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
             color: error ? 'var(--destructive)' : success ? 'var(--green-600)' : 'var(--ring)'
           });
         } else {
-          gsap.to(labelElement, {
+          safeGsapTo(labelElement, {
             top: '50%',
             fontSize: '1rem', // Original font size
             duration: 0.2,

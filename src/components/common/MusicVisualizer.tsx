@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
-import { prefersReducedMotion } from '../../lib/utils';
+import { prefersReducedMotion, safeGsapTo } from '../../lib/utils';
  
 interface MusicVisualizerProps {
     onClick?: () => void;
@@ -17,7 +17,7 @@ const MusicVisualizer: React.FC<MusicVisualizerProps> = ({ onClick }) => {
         if (prefersReducedMotion()) return;
         if (innerCircleRef.current) {
             // Refined pulse: slightly larger scale, subtle opacity shift, and smooth ease-in-out
-            gsap.to(innerCircleRef.current, {
+            safeGsapTo(innerCircleRef.current, {
                 scale: 1.12,
                 opacity: 0.75,
                 duration: 1.6,
@@ -29,7 +29,9 @@ const MusicVisualizer: React.FC<MusicVisualizerProps> = ({ onClick }) => {
 
         return () => {
             if (innerCircleRef.current) {
-                gsap.killTweensOf(innerCircleRef.current);
+                try {
+                    gsap.killTweensOf(innerCircleRef.current);
+                } catch (e) {}
             }
         };
     }, []);

@@ -11,6 +11,9 @@ load_dotenv()  # Load environment variables from .env file
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Get environment, default to 'development'
+ENV = os.getenv("ENV", "development")
+
 # Get comma-separated API keys from environment
 API_KEYS = os.getenv("API_KEYS", "")
 VALID_API_KEYS = (
@@ -18,15 +21,19 @@ VALID_API_KEYS = (
 )
 API_KEY_NAME = "X-API-KEY"
 
-# Security warning for development mode
-if not VALID_API_KEYS:
-    logger.warning("⚠️ SECURITY WARNING: Server running in INSECURE MODE - No API keys configured!")
-    logger.warning("This should only be used for development. Set API_KEYS environment variable for production.")
-    REQUIRE_API_KEYS = os.getenv("REQUIRE_API_KEYS", "false").lower() == "true"
-    if REQUIRE_API_KEYS:
-        raise RuntimeError(
-            "Server startup failed: API_KEYS environment variable is not set, but REQUIRE_API_KEYS is true."
-        )
+# Security checks for production
+if ENV == "production":
+    if not VALID_API_KEYS:
+        logger.error("FATAL: Server startup failed - API_KEYS environment variable must be set in production.")
+        raise RuntimeError("Server startup failed: API_KEYS environment variable is not set for production.")
+    if not os.getenv("GEMINI_API_KEY"):
+        logger.error("FATAL: Server startup failed - GEMINI_API_KEY environment variable must be set in production.")
+        raise RuntimeError("Server startup failed: GEMINI_API_KEY environment variable is not set for production.")
+else:
+    # Security warning for development mode
+    if not VALID_API_KEYS:
+        logger.warning("⚠️ SECURITY WARNING: Server running in INSECURE MODE - No API keys configured!")
+        logger.warning("This should only be used for development. Set API_KEYS environment variable for production.")
 
 
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=True)
@@ -38,6 +45,11 @@ async def get_api_key(api_key: str = Security(api_key_header)):
     Supports multiple comma-separated API keys in environment variable.
     """
     if not VALID_API_KEYS:
+        if ENV == "production":
+             raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Server is not configured with API keys.",
+            )
         # Allow all if no keys are configured (for development)
         return api_key
 

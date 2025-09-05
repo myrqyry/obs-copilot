@@ -1,6 +1,7 @@
 # main.py
 import os
 import uvicorn
+import logging
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -12,12 +13,19 @@ from backend.api.routes import gemini
 from backend.api.routes import assets
 from backend.middleware import logging_middleware
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Get the directory of the current script
 current_dir = os.path.dirname(os.path.abspath(__file__))
 # Construct the path to the .env file
 dotenv_path = os.path.join(current_dir, ".env")
 # Load environment variables from the .env file
 load_dotenv(dotenv_path=dotenv_path)
+
+# Get environment, default to 'development'
+ENV = os.getenv("ENV", "development")
 
 app = FastAPI(
     title="Universal Backend Server",
@@ -27,22 +35,23 @@ app = FastAPI(
 
 app.middleware("http")(logging_middleware)
 
-# Load allowed origins from environment variable
-allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
-allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin]
-
-# Add default origins if the environment variable is not set
-if not allowed_origins:
-    allowed_origins.extend([
+# CORS configuration
+if ENV == "production":
+    allowed_origins_env = os.getenv("ALLOWED_ORIGINS")
+    if not allowed_origins_env:
+        logger.error("FATAL: Server startup failed - ALLOWED_ORIGINS environment variable must be set in production.")
+        raise RuntimeError("Server startup failed: ALLOWED_ORIGINS environment variable must be set for production.")
+    allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin]
+    if not allowed_origins or any("*" in origin for origin in allowed_origins) or any("localhost" in origin for origin in allowed_origins):
+        logger.error("FATAL: Server startup failed - Invalid ALLOWED_ORIGINS configuration for production.")
+        raise RuntimeError("FATAL: Server startup failed - Invalid ALLOWED_ORIGINS configuration for production.")
+else:
+    # Development origins
+    allowed_origins = [
         "http://localhost:3000",
         "http://localhost:5173",
-        "http://127.0.0.1:5173"
-    ])
-
-# Ensure the frontend origin is always allowed
-frontend_origin = "http://127.0.0.1:5173"
-if frontend_origin not in allowed_origins:
-    allowed_origins.append(frontend_origin)
+        "http://127.0.0.1:5173",
+    ]
 
 
 app.add_middleware(

@@ -78,7 +78,7 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
                         if (tab === AppTab.CONNECTIONS) {
                             if (connectionIconStatus === 'connecting') iconColorClass = 'text-yellow-500';
                             else if (connectionIconStatus === 'connected-full') iconColorClass = 'text-green-500';
-                            else if (connectionIconStatus === 'connected-obs-only') iconColorClass = 'text-blue-500';
+                            else if (connectionIconStatus === 'connected-obs-only') iconColorClass = 'text-info';
                             else if (connectionIconStatus === 'disconnected') iconColorClass = 'text-destructive';
                         } else if (isActive) {
                             iconColorClass = 'text-primary';

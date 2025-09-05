@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useAudioStore } from '@/store/audioStore';
 import gsap from 'gsap';
 import AudioReactiveNote from './AudioReactiveNote';
+import { prefersReducedMotion } from '@/lib/utils';
 
 export const MiniPlayerIcons = {
     Play: () => (
@@ -45,7 +46,7 @@ const MiniPlayer = () => {
 
      // Attention animation and auto-collapse when music starts
      useEffect(() => {
-         if (activeAudioSource?.type === 'music' && isPlayerVisible && !minimized) {
+         if (activeAudioSource?.type === 'music' && isPlayerVisible && !minimized && !prefersReducedMotion()) {
              setAttention(true);
              if (attentionTimeoutRef.current) clearTimeout(attentionTimeoutRef.current);
              attentionTimeoutRef.current = setTimeout(() => {
@@ -61,7 +62,7 @@ const MiniPlayer = () => {
 
      // Entrance animation for the mini player container
      useEffect(() => {
-        if (!isPlayerVisible || !containerRef.current) return;
+        if (!isPlayerVisible || !containerRef.current || prefersReducedMotion()) return;
         gsapCtx.current?.add(() => {
             gsap.set(containerRef.current, { opacity: 0, y: -8, scale: 0.98 });
             gsap.to(containerRef.current, { opacity: 1, y: 0, scale: 1, duration: 0.45, ease: 'power2.out' });
@@ -73,6 +74,10 @@ const MiniPlayer = () => {
     }
 
     const handleExpand = () => {
+        if (prefersReducedMotion()) {
+            setMinimized(false);
+            return;
+        }
         if (!noteRef.current || !minimizedNoteRef.current) {
             setMinimized(false);
             return;
@@ -148,6 +153,10 @@ const MiniPlayer = () => {
     }
 
     const handleMinimize = () => {
+        if (prefersReducedMotion()) {
+            setMinimized(true);
+            return;
+        }
         if (!noteRef.current || !minimizedNoteRef.current) {
             setMinimized(true);
             return;
@@ -195,7 +204,7 @@ const MiniPlayer = () => {
     return (
         <>
             <div
-                className={`fixed top-2 right-2 z-[1000] bg-ctp-base/80 border border-ctp-mauve/30 shadow rounded-lg flex items-center gap-2 px-2 py-0.5 min-w-[90px] max-w-xs group${attention ? ' animate-glow' : ''}`}
+                className={`fixed top-2 right-2 z-30 bg-ctp-base/80 border border-ctp-mauve/30 shadow rounded-lg flex items-center gap-2 px-2 py-0.5 min-w-[90px] max-w-xs group${attention ? ' animate-glow' : ''}`}
                 ref={containerRef}
                 style={minimized ? { visibility: 'hidden', pointerEvents: 'none', position: 'absolute', backdropFilter: 'blur(6px)', height: '28px' } : { visibility: 'visible', pointerEvents: 'auto', backdropFilter: 'blur(6px)', height: '28px' }}
             >

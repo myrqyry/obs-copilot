@@ -165,8 +165,8 @@ class ComprehensiveErrorBoundary extends Component<Props, State> {
 
         // Default fallback UI
         const containerClass = isolate 
-            ? 'inline-block p-4 border border-red-300 rounded-md bg-red-50 text-red-800'
-            : 'flex flex-col items-center justify-center min-h-[200px] p-8 border border-red-300 rounded-lg bg-red-50 text-red-800';
+            ? 'inline-block p-4 border border-destructive/20 rounded-md bg-destructive/10 text-destructive'
+            : 'flex flex-col items-center justify-center min-h-[200px] p-8 border border-destructive/20 rounded-lg bg-destructive/10 text-destructive';
 
         return (
             <div className={containerClass}>
@@ -186,7 +186,7 @@ class ComprehensiveErrorBoundary extends Component<Props, State> {
                             <summary className="cursor-pointer font-medium">
                                 Error Details (Development)
                             </summary>
-                            <div className="mt-2 p-3 bg-red-100 rounded border text-xs font-mono">
+                            <div className="mt-2 p-3 bg-destructive/10 rounded border text-xs font-mono">
                                 <div><strong>Error:</strong> {error.message}</div>
                                 {errorId && (
                                     <div className="mt-1"><strong>ID:</strong> {errorId}</div>
@@ -206,7 +206,7 @@ class ComprehensiveErrorBoundary extends Component<Props, State> {
                     <div className="flex gap-2 justify-center">
                         <button
                             onClick={this.handleRetry}
-                            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-sm"
+                            className="px-4 py-2 bg-destructive text-destructive-foreground rounded hover:bg-destructive/90 transition-colors text-sm"
                         >
                             Try Again
                         </button>

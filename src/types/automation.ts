@@ -11,6 +11,7 @@ export interface AutomationRule {
   createdAt: Date;
   lastTriggered?: Date;
   triggerCount: number;
+  cooldown: number; // Cooldown in seconds
 }
 
 export interface AutomationTrigger {

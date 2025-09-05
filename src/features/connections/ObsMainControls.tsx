@@ -283,14 +283,14 @@ export const ObsMainControls: React.FC = () => {
           <Button
             onClick={toggleStream}
             disabled={isLocked(STREAM_RECORD_LOCK)}
-            className={`w-full sm:flex-1 ${streamStatus?.outputActive ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`}
+            className={`w-full sm:flex-1 ${streamStatus?.outputActive ? 'bg-destructive hover:bg-destructive/90' : 'bg-green-500 hover:bg-green-600'}`}
           >
             {streamStatus?.outputActive ? 'Stop Streaming' : 'Start Streaming'}
           </Button>
           <Button
             onClick={toggleRecord}
             disabled={isLocked(STREAM_RECORD_LOCK)}
-            className={`flex-1 ${recordStatus?.outputActive ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'}`}
+            className={`flex-1 ${recordStatus?.outputActive ? 'bg-destructive hover:bg-destructive/90' : 'bg-blue-500 hover:bg-blue-600'}`}
           >
             {recordStatus?.outputActive ? 'Stop Recording' : 'Start Recording'}
           </Button>

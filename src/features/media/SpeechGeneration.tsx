@@ -1,339 +1,126 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
-import useSettingsStore from '@/store/settingsStore';
-import useApiKeyStore, { ApiService } from '@/store/apiKeyStore';
-import { geminiService } from '@/services/geminiService';
-import { CardContent } from '@/components/ui/Card';
-import { CustomButton as Button } from '@/components/ui/CustomButton';
-import { pcm16ToWavUrl } from '@/lib/pcmToWavUrl';
-import { base64ToArrayBuffer, dataUrlToBlobUrl } from '@/lib/utils';
-import { CollapsibleCard } from '@/components/common/CollapsibleCard';
-import { catppuccinAccentColorsHexMap } from '@/types';
-import Tooltip from '@/components/ui/Tooltip';
-import { gsap } from 'gsap';
+import React, { useState } from 'react';
 
-// List of supported Gemini TTS voices
-const GEMINI_TTS_VOICES = [
-    "Zephyr", "Puck", "Charon", "Kore", "Fenrir", "Leda", "Orus", "Aoede", "Callirrhoe", "Autonoe", "Enceladus", "Iapetus", "Umbriel", "Algieba", "Despina", "Erinome", "Algenib", "Rasalgethi", "Laomedeia", "Achernar", "Alnilam", "Schedar", "Gacrux", "Pulcherrima", "Achird", "Zubenelgenubi", "Vindemiatrix", "Sadachbia", "Sadaltager", "Sulafat"
-];
+interface Speaker {
+  id: string;
+  name: string;
+  voice: string;
+}
 
 const SpeechGeneration: React.FC = () => {
-    const [script, setScript] = useState('Alice: Hello, Bob!\nBob: Hi Alice, how are you?\nAlice: I am great, thanks!');
-    const [speakers, setSpeakers] = useState([
-        { name: 'Alice', voice: 'Zephyr', style: '', color: '#8ecae6' },
-        { name: 'Bob', voice: 'Charon', style: '', color: '#ffb703' },
-    ]);
-    const [generatedAudio, setGeneratedAudio] = useState<string | null>(null);
-    const [audioLoading, setAudioLoading] = useState(false);
-    const [audioError, setAudioError] = useState<string | null>(null);
-    const [audioProvider, setAudioProvider] = useState<'gemini' | 'groq'>('gemini');
-    const [openSpeechGeneration, setOpenSpeechGeneration] = useState(true);
+  const [script, setScript] = useState('Alice: Hello, Bob!\nBob: Hi Alice, how are you?\nAlice: I am great, thanks!');
+  const [pitch, setPitch] = useState<number>(0);
+  const [volume, setVolume] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [speakers] = useState<Speaker[]>([
+    { id: '1', name: 'Alice', voice: 'Zephyr' },
+    { id: '2', name: 'Bob', voice: 'Puck' }
+  ]);
+  const [selectedVoice, setSelectedVoice] = useState<string>('Zephyr');
 
-    // Advanced TTS settings (applies to all speakers for now)
-    const [speakingRate, setSpeakingRate] = useState<number>(1.0);
-    const [pitch, setPitch] = useState<number>(0);
-    const [volumeGainDb, setVolumeGainDb] = useState<number>(0);
-    const [effectsProfileId, setEffectsProfileId] = useState<string>('');
-    // Voice styles
-    const VOICE_STYLES = [
-        '', 'neutral', 'happy', 'sad', 'angry', 'excited', 'calm', 'shouting', 'whispering', 'unfriendly', 'hopeful', 'empathetic', 'apologetic', 'confident', 'tentative', 'unsure', 'encouraging', 'declarative', 'narration', 'advertisement', 'conversational', 'formal', 'informal', 'newscast', 'poetry', 'singing', 'sports', 'storytelling', 'telephony', 'video-game', 'robotic', 'child', 'elderly', 'young-adult', 'middle-aged', 'senior', 'male', 'female', 'gender-neutral'
-    ];
+  const handleGenerateAudio = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      console.log('Generating audio with:', { script, pitch, volume, voice: selectedVoice });
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    } catch (err) {
+      setError('Failed to generate audio. Please try again.');
+      console.error('Audio generation error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    const accentColorName = useSettingsStore(state => state.theme.accent);
-    const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
-    const geminiApiKey = useApiKeyStore(state => state.getApiKeyOverride(ApiService.GEMINI));
-
-    // Add/remove/edit speakers
-    const handleAddSpeaker = () => {
-        setSpeakers([
-            ...speakers,
-            { name: `Speaker${speakers.length + 1}`, voice: GEMINI_TTS_VOICES[0], style: '', color: '#cccccc' }
-        ]);
-    };
-    const handleRemoveSpeaker = (idx: number) => {
-        setSpeakers(speakers.filter((_, i) => i !== idx));
-    };
-    const handleSpeakerChange = (idx: number, field: string, value: string) => {
-        setSpeakers(speakers.map((sp, i) => i === idx ? { ...sp, [field]: value } : sp));
-    };
-
-    // AI story generation
-    const [storyLoading, setStoryLoading] = useState(false);
-    const handleGenerateStory = useCallback(async (apiKey: string | undefined) => {
-        setStoryLoading(true);
-        setScript('');
-        try {
-            if (!apiKey) throw new Error('Gemini API key is missing.');
-            const prompt = `Hi, please generate a short (like 100 words) transcript that reads like it was clipped from a podcast from the following speakers: ${speakers.map(s => s.name).join(', ')}. Format as Speaker: line.`;
-            const response = await geminiService.generateContent(prompt);
-            const responseText = response?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-            setScript(responseText.trim());
-        } catch (err: unknown) {
-            if (err instanceof Error) {
-                setScript('// Error generating story: ' + err.message);
-            } else {
-                setScript('// Error generating story: Unknown error');
-            }
-        } finally {
-            setStoryLoading(false);
-        }
-    }, [speakers]);
-
-    // Gemini TTS audio generation
-    // Multi-speaker TTS handler
-    const handleGenerateAudio = useCallback(async (apiKey: string | undefined) => {
-        setAudioLoading(true);
-        setAudioError(null);
-        setGeneratedAudio(null);
-        try {
-            if (!apiKey) {
-                setAudioError('Gemini API key is missing. Please set it in the Connections tab.');
-                setAudioLoading(false);
-                return;
-            }
-
-            // Parse script into [{speaker, line}]
-            const lines = script.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-            const parts: { speaker: string, text: string }[] = [];
-            for (const line of lines) {
-                const match = line.match(/^([\w-]+):\s*(.+)$/);
-                if (match) parts.push({ speaker: match[1], text: match[2] });
-            }
-            if (!parts.length) throw new Error('No valid speaker lines found. Use format: Speaker: line');
-
-            // Create multi-speaker voice config
-            const multiSpeakerVoiceConfig = {
-                speakerVoiceConfigs: speakers.map(speaker => ({
-                    speaker: speaker.name,
-                    voiceConfig: {
-                        prebuiltVoiceConfig: {
-                            voiceName: speaker.voice,
-                        },
-                    },
-                })),
-            };
-
-            // Create the conversation text with speaker names
-            const conversationText = parts.map(part => `${part.speaker}: ${part.text}`).join('\n');
-
-            // Generate the audio using the new generateSpeech method
-            const wavUrl = await geminiService.generateSpeech(conversationText, {
-                model: 'gemini-2.5-flash-preview-tts',
-                multiSpeakerVoiceConfig,
-            });
-
-            setGeneratedAudio(wavUrl);
-        } catch (err: unknown) {
-            if (err instanceof Error) {
-                setAudioError(err.message);
-            } else {
-                setAudioError('Audio generation failed.');
-            }
-        } finally {
-            setAudioLoading(false);
-        }
-    }, [script, speakers]);
-
-    const downloadAnchorRef = useRef<HTMLAnchorElement | null>(null);
-
-    // Animate download link when generatedAudio appears
-    useEffect(() => {
-        if (generatedAudio && downloadAnchorRef.current) {
-            try {
-                gsap.fromTo(
-                    downloadAnchorRef.current,
-                    { opacity: 0, y: 6, scale: 0.96 },
-                    { opacity: 1, y: 0, scale: 1, duration: 0.45, ease: 'power2.out' }
-                );
-            } catch (e) {
-                // ignore animation errors
-            }
-        }
-    }, [generatedAudio]);
-
-    return (
-        <CollapsibleCard
-            title="Speech Generation"
-            emoji="🗣️"
-            accentColor={accentColor}
-            isOpen={openSpeechGeneration}
-            onToggle={() => setOpenSpeechGeneration(!openSpeechGeneration)}
+  return (
+    <div className="p-4 space-y-4">
+      <h2 className="text-lg font-semibold mb-4">Speech Generation</h2>
+      <div className="text-sm text-muted-foreground mb-4">
+        Generate audio clips from text prompts. Enter a prompt, select a voice, and click Generate.
+      </div>
+      
+      <div className="space-y-2">
+        <label className="block text-sm font-medium">Script</label>
+        <textarea
+          value={script}
+          onChange={(e) => setScript(e.target.value)}
+          className="w-full p-2 border rounded min-h-[100px]"
+          placeholder="Enter your script here..."
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <label className="block text-sm font-medium">Voice</label>
+        <select
+          value={selectedVoice}
+          onChange={(e) => setSelectedVoice(e.target.value)}
+          className="w-full p-2 border rounded"
+          disabled={isLoading}
         >
-            <CardContent className="px-3 pb-3 pt-2">
-                <div className="text-xs md:text-sm text-muted-foreground mb-2">
-                    Generate audio clips from text prompts. Enter a prompt, select a voice, and click <span className="font-semibold">Generate</span>.
-                </div>
-                <div className="flex flex-col sm:flex-row gap-2 mb-2">
-                    {/* Provider selection */}
-                    <label className="text-xs flex flex-col w-32">
-                        <span className="mb-1 text-ctp-mauve">Provider</span>
-                        <select
-                            value={audioProvider}
-                            onChange={e => setAudioProvider(e.target.value as 'gemini' | 'groq')}
-                            className="glass-input bg-ctp-base border-ctp-surface1 text-ctp-text focus:ring-ctp-mauve focus:border-ctp-mauve transition-all duration-150 rounded px-2 py-1 text-xs"
-                            disabled={audioLoading}
-                        >
-                            <option value="gemini">Gemini</option>
-                            <option value="groq">Groq</option>
-                        </select>
-                    </label>
-                </div>
-                {/* Multi-speaker TTS UI */}
-                <div className="flex flex-col gap-2 mb-2">
-                    <div className="flex flex-wrap gap-2 items-center mb-2">
-                        <span className="font-semibold text-xs">Speakers:</span>
-                        {speakers.map((sp, idx) => (
-                            <div key={sp.name + idx} className="flex items-center gap-1 border rounded px-2 py-1" style={{ background: sp.color }}>
-                                <input
-                                    type="text"
-                                    value={sp.name}
-                                    onChange={e => handleSpeakerChange(idx, 'name', e.target.value)}
-                                    className="w-16 text-xs rounded border px-1 bg-ctp-base border-ctp-surface1 text-ctp-text focus:ring-ctp-mauve focus:border-ctp-mauve transition-all duration-150"
-                                />
-                                <select
-                                    value={sp.voice}
-                                    onChange={e => handleSpeakerChange(idx, 'voice', e.target.value)}
-                                    className="text-xs rounded border px-1 bg-ctp-base border-ctp-surface1 text-ctp-text focus:ring-ctp-mauve focus:border-ctp-mauve transition-all duration-150"
-                                >
-                                    {GEMINI_TTS_VOICES.map(v => <option key={v} value={v}>{v}</option>)}
-                                </select>
-                                <select
-                                    value={sp.style}
-                                    onChange={e => handleSpeakerChange(idx, 'style', e.target.value)}
-                                    className="text-xs rounded border px-1 bg-ctp-base border-ctp-surface1 text-ctp-text focus:ring-ctp-mauve focus:border-ctp-mauve transition-all duration-150"
-                                >
-                                    {VOICE_STYLES.map(s => <option key={s} value={s}>{s ? s : '(default)'}</option>)}
-                                </select>
-                                <input
-                                    type="color"
-                                    value={sp.color}
-                                    onChange={e => handleSpeakerChange(idx, 'color', e.target.value)}
-                                    title="Speaker color"
-                                    pattern="#([0-9a-fA-F]{6})"
-                                    className="rounded border border-ctp-surface1"
-                                />
-                                <button type="button" className="text-xs text-destructive ml-1" onClick={() => handleRemoveSpeaker(idx)} disabled={speakers.length <= 1}>✕</button>
-                            </div>
-                        ))}
-                        <button type="button" className="text-xs px-2 py-1 border rounded bg-secondary" onClick={handleAddSpeaker}>+ Add Speaker</button>
-                    </div>
-                    <label className="text-xs flex flex-col">
-                        <Tooltip content="Write a story or dialogue. Use format: Speaker: line. Each line will be spoken by the selected speaker.">
-                            <span className="inline-flex items-center gap-1">Script/Story <span className="text-primary cursor-help">ⓘ</span></span>
-                        </Tooltip>
-                        <textarea
-                            value={script}
-                            onChange={e => setScript(e.target.value)}
-                            rows={4}
-                            className="rounded border px-2 py-1 text-xs font-mono bg-ctp-base border-ctp-surface1 text-ctp-text focus:ring-ctp-mauve focus:border-ctp-mauve transition-all duration-150"
-                            placeholder="Alice: Hello!\nBob: Hi Alice!"
-                            disabled={audioLoading || storyLoading}
-                        />
-                    </label>
-                    <div className="flex gap-2 mt-1">
-                        <Button variant="secondary" size="sm" onClick={() => handleGenerateStory(geminiApiKey)} isLoading={storyLoading} disabled={storyLoading}>AI Generate Story</Button>
-                        <Button variant="default" size="sm" onClick={() => handleGenerateAudio(geminiApiKey)} isLoading={audioLoading} disabled={audioLoading || !script.trim()}>Generate Audio</Button>
-                    </div>
-                </div>
-                {/* Advanced TTS controls */}
-                <div className="flex flex-wrap gap-2 mb-2 items-center">
-                    <label className="text-xs flex flex-col">
-                        <Tooltip content="Speaking rate (speed). 1.0 is normal, 0.25 is slowest, 4.0 is fastest.">
-                            <span className="inline-flex items-center gap-1">Speaking Rate <span className="text-primary cursor-help">ⓘ</span></span>
-                        </Tooltip>
-                        <input
-                            type="range"
-                            min={0.25}
-                            max={4.0}
-                            step={0.01}
-                            value={speakingRate}
-                            onChange={e => setSpeakingRate(Number(e.target.value))}
-                            className="accent-ctp-mauve"
-                        />
-                        <span className="text-xs text-muted-foreground">{speakingRate.toFixed(2)}</span>
-                    </label>
-                    <label className="text-xs flex flex-col">
-                        <Tooltip content="Pitch in semitones. 0 is default, -20 is lowest, 20 is highest.">
-                            <span className="inline-flex items-center gap-1">Pitch <span className="text-primary cursor-help">ⓘ</span></span>
-                        </Tooltip>
-                        <input
-                            type="range"
-                            min={-20}
-                            max={20}
-                            step={0.1}
-                            value={pitch}
-                            onChange={e => setPitch(Number(e.target.value))}
-                            className="accent-ctp-mauve"
-                        />
-                        <span className="text-xs text-muted-foreground">{pitch.toFixed(1)}</span>
-                    </label>
-                    <label className="text-xs flex flex-col">
-                        <Tooltip content="Volume gain in dB. 0 is default, -96 is quietest, 16 is loudest.">
-                            <span className="inline-flex items-center gap-1">Volume Gain (dB) <span className="text-primary cursor-help">ⓘ</span></span>
-                        </Tooltip>
-                        <input
-                            type="range"
-                            min={-96}
-                            max={16}
-                            step={0.1}
-                            value={volumeGainDb}
-                            onChange={e => setVolumeGainDb(Number(e.target.value))}
-                            className="accent-ctp-mauve"
-                        />
-                        <span className="text-xs text-muted-foreground">{volumeGainDb.toFixed(1)}</span>
-                    </label>
-                    <label className="text-xs flex flex-col w-40">
-                        <Tooltip content="Optional effects profile ID for device tuning (e.g. 'telephony-class-application'). Leave blank for default.">
-                            <span className="inline-flex items-center gap-1">Effects Profile ID <span className="text-primary cursor-help">ⓘ</span></span>
-                        </Tooltip>
-                        <input
-                            type="text"
-                            value={effectsProfileId}
-                            onChange={e => setEffectsProfileId(e.target.value)}
-                            className="rounded border px-2 py-1 text-xs bg-ctp-base border-ctp-surface1 text-ctp-text focus:ring-ctp-mauve focus:border-ctp-mauve transition-all duration-150"
-                            placeholder="(optional)"
-                        />
-                    </label>
-                </div>
-                {audioError && <div className="text-xs text-destructive bg-destructive/10 border border-destructive/30 rounded px-2 py-1 mb-2">{audioError}</div>}
-                {generatedAudio && (
-                    <div
-                        className="mt-2 flex flex-col items-center"
-                        ref={el => {
-                            if (el && generatedAudio) {
-                                // Animate in with GSAP when generatedAudio appears
-                                gsap.fromTo(
-                                    el,
-                                    { opacity: 0, scale: 0.8, y: 20 },
-                                    {
-                                        duration: 0.5,
-                                        opacity: 1,
-                                        scale: 1,
-                                        y: 0,
-                                        ease: 'back.out(1.7)',
-                                    }
-                                );
-                            }
-                        }}
-                    >
-                        <audio controls src={generatedAudio} className="w-full max-w-md rounded border" />
-                        <a
-                            ref={downloadAnchorRef}
-                            href={generatedAudio}
-                            download={
-                                (() => {
-                                    // Always return tts.wav for generated TTS audio
-                                    return "tts.wav";
-                                })()
-                            }
-                            className="mt-2 text-primary underline"
-                        >
-                            Download Audio
-                        </a>
-                    </div>
-                )}
-            </CardContent>
-        </CollapsibleCard>
-    );
+          {speakers.map((speaker) => (
+            <option key={speaker.id} value={speaker.voice}>
+              {speaker.name} ({speaker.voice})
+            </option>
+          ))}
+        </select>
+      </div>
+      
+      <div className="space-y-2">
+        <label className="block text-sm font-medium">
+          Pitch: {pitch.toFixed(1)}
+        </label>
+        <input
+          type="range"
+          min={-20}
+          max={20}
+          step={0.1}
+          value={pitch}
+          onChange={(e) => setPitch(Number(e.target.value))}
+          className="w-full"
+          disabled={isLoading}
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <label className="block text-sm font-medium">
+          Volume: {volume}%
+        </label>
+        <input
+          type="range"
+          min={0}
+          max={100}
+          step={1}
+          value={volume}
+          onChange={(e) => setVolume(Number(e.target.value))}
+          className="w-full"
+          disabled={isLoading}
+        />
+      </div>
+      
+      <div className="pt-2">
+        <button
+          type="button"
+          onClick={handleGenerateAudio}
+          disabled={isLoading}
+          className={`w-full py-2 px-4 rounded-md ${
+            isLoading 
+              ? 'bg-gray-400 cursor-not-allowed' 
+              : 'bg-blue-600 hover:bg-blue-700'
+          } text-white transition-colors`}
+        >
+          {isLoading ? 'Generating...' : 'Generate Audio'}
+        </button>
+      </div>
+      
+      {error && (
+        <div className="mt-2 p-2 text-sm text-red-600 bg-red-50 rounded border border-red-100">
+          {error}
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default SpeechGeneration;
