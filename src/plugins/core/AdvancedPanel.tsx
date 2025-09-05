@@ -1,6 +1,6 @@
 // src/components/ui/AdvancedPanel.tsx
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from './Card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 
 const AdvancedPanel: React.FC = () => {
   return (

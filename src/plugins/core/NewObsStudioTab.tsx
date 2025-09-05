@@ -3,19 +3,14 @@ import RGL, { WidthProvider } from 'react-grid-layout';
 import ObsWidget from './ObsWidget';
 import ObsWidgetConfigModal from './ObsWidgetConfigModal';
 import { ObsWidgetConfig } from '@/types/obs';
-import useObsStore from '@/store/obsStore';
+import useConnectionsStore from '@/store/connectionsStore';
 
 const ReactGridLayout = WidthProvider(RGL);
 
 const NewObsStudioTab: React.FC = () => {
   const [widgets, setWidgets] = useState<ObsWidgetConfig[]>([]);
   const [layout, setLayout] = useState<RGL.Layout[]>([]);
-  const { scenes, sources, getScenes, getSources } = useObsStore();
-
-  useEffect(() => {
-    getScenes();
-    getSources();
-  }, [getScenes, getSources]);
+  const { scenes, sources } = useConnectionsStore();
 
   const handleAddWidget = (config: ObsWidgetConfig) => {
     setWidgets([...widgets, config]);

@@ -1,10 +1,10 @@
 import React from 'react';
 import { ObsWidgetConfig } from '@/types/obs';
-import useObsStore from '@/store/obsStore';
+import useConnectionsStore from '@/store/connectionsStore';
 import { Button } from '@/components/ui/button';
 
 const ObsWidget: React.FC<ObsWidgetConfig> = ({ type, label, sceneName, sourceName }) => {
-  const { client } = useObsStore();
+  const { obs: client } = useConnectionsStore();
 
   const handleClick = async () => {
     if (!client) return;

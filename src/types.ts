@@ -151,14 +151,4 @@ export interface StreamingHandlers {
   onError?: (error: Error) => void;
 }
 
-export enum AppTab {
-  CONNECTIONS = 'Connections',
-  OBS_STUDIO = 'OBS Studio',
-  SETTINGS = 'Settings',
-  GEMINI = 'Gemini',
-  STREAMING_ASSETS = 'Streaming Assets',
-  CREATE = 'Create',
-  ADVANCED = 'Advanced',
-}
-
 export * from './types/themes';
