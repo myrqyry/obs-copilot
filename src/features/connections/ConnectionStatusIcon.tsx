@@ -8,7 +8,7 @@ interface ConnectionStatusIconProps {
   isConnected: boolean;
   isConnecting: boolean;
   error: boolean;
-  onClick: () => void;
+  onClick?: () => void; // Make onClick optional
   className?: string;
 }
 
@@ -77,9 +77,10 @@ export const ConnectionStatusIcon: React.FC<ConnectionStatusIconProps> = ({ isCo
     <Tooltip content={title}>
       <button
         ref={statusBtnRef}
-        onClick={onClick}
+        onClick={onClick} // Keep onClick, but allow it to be undefined
         className="relative p-2 rounded-full hover:bg-muted focus-ring enhanced-focus transition-all duration-150 ease-in-out"
-        aria-label="Open Connection Settings"
+        aria-label="Connection Status Icon" // Change label as it's not strictly for opening settings now
+        {...(onClick ? {} : {tabIndex: -1})} // Make it unfocusable if no onClick is provided
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-muted-foreground hover:text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
           <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />

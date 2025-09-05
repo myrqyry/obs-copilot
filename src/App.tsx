@@ -8,7 +8,8 @@ import { TabNavigation } from './components/layout/TabNavigation';
 import { AppTab } from './types';
 import { ConnectionProvider } from './features/connections/ConnectionProvider';
 import { GeminiChat } from './features/chat/GeminiChat';
-import { ConnectionPanel } from './features/connections/ConnectionPanel';
+import { ConnectionPanel } from './features/connections/ConnectionPanel'; // Keep for now as it might be used elsewhere
+import { ConnectionsTab } from './features/connections/ConnectionsTab';
 import ObsStudioTab from './components/ui/ObsStudioTab';
 import CreateTab from './components/ui/CreateTab';
 import StreamingAssetsTab from './components/ui/StreamingAssetsTab';
@@ -63,7 +64,7 @@ const App: React.FC = () => {
     const renderTabContent = () => {
         switch (activeTab) {
             case AppTab.CONNECTIONS:
-                return <ConnectionPanel />;
+                return <ConnectionsTab />;
             case AppTab.OBS_STUDIO:
                 return <ObsStudioTab />;
             case AppTab.GEMINI:

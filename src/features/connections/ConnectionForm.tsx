@@ -1,207 +1,181 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { CustomButton as Button } from '@/components/ui/CustomButton';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import useSettingsStore from '@/store/settingsStore';
-import useConnectionsStore from '@/store/connectionsStore';
 import { useToast } from '@/components/ui/toast';
-import { debounce } from 'lodash';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { ConnectionProfile, ObsConnectionProfile, StreamerbotConnectionProfile, ConnectionType } from '@/types/connections';
+import { nanoid } from 'nanoid';
 
 interface ConnectionFormProps {
-    onObsConnect: (url: string, password?: string) => Promise<void>;
-    onStreamerBotConnect: (address: string, port: string) => Promise<void>;
+  onSave: (profile: ConnectionProfile) => void; // Now accepts full ConnectionProfile
+  initialProfile?: ConnectionProfile;
 }
 
-const ConnectionForm: React.FC<ConnectionFormProps> = ({ onObsConnect, onStreamerBotConnect }) => {
-    // OBS connection state
-    const { obsUrl, obsPassword, streamerBotHost, streamerBotPort, setObsUrl, setObsPassword, setStreamerBotHost, setStreamerBotPort } = useSettingsStore();
-    const { isConnected, isLoading, disconnectFromObs, connectionError } = useConnectionsStore();
+const ConnectionForm: React.FC<ConnectionFormProps> = ({ onSave, initialProfile }) => {
+  const [name, setName] = useState(initialProfile?.name || '');
+  const [type, setType] = useState<ConnectionType>(initialProfile?.type || 'obs');
+  const [obsUrl, setObsUrl] = useState<string>('');
+  const [obsPassword, setObsPassword] = useState<string>('');
+  const [streamerBotHost, setStreamerBotHost] = useState<string>('');
+  const [streamerBotPort, setStreamerBotPort] = useState<string>('');
 
-    // StreamerBot connection state
-    const [isStreamerBotConnected, setIsStreamerBotConnected] = useState(false);
-    const [isStreamerBotConnecting, setIsStreamerBotConnecting] = useState(false);
-    const [streamerBotError, setStreamerBotError] = useState<string | null>(null);
+  const { toast } = useToast();
 
-    // Toast notifications
-    const { toast } = useToast();
+  useEffect(() => {
+    if (initialProfile) {
+      setName(initialProfile.name);
+      setType(initialProfile.type);
+      if (initialProfile.type === 'obs') {
+        setObsUrl((initialProfile as ObsConnectionProfile).url);
+        setObsPassword((initialProfile as ObsConnectionProfile).password || '');
+      } else {
+        setStreamerBotHost((initialProfile as StreamerbotConnectionProfile).host);
+        setStreamerBotPort((initialProfile as StreamerbotConnectionProfile).port.toString());
+      }
+    }
+  }, [initialProfile]);
 
-    // Debounced toast for settings save
-    const debouncedSettingsToast = useCallback(
-        debounce(() => {
-            toast({
-                title: "Settings Saved",
-                description: "Your connection settings have been saved successfully.",
-            });
-        }, 1000),
-        [toast]
-    );
 
-    // OBS connection handlers
-    const handleObsConnect = async (e: React.FormEvent) => {
-        e.preventDefault();
-        try {
-            await onObsConnect(obsUrl, obsPassword);
-            toast({
-                title: "Connection Saved",
-                description: `Successfully connected to OBS at ${obsUrl}`,
-            });
-        } catch (error: any) {
-            // Error handling is already done in the connection store
-        }
-    };
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
 
-    const handleObsDisconnect = () => {
-        disconnectFromObs();
-    };
+    let newProfile: ConnectionProfile | null = null;
+    const commonProps = { name, type, id: initialProfile?.id || nanoid() }; // Generate ID if new
 
-    // StreamerBot connection handlers
-    const handleStreamerBotConnect = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsStreamerBotConnecting(true);
-        setStreamerBotError(null);
-        try {
-            await onStreamerBotConnect(streamerBotHost, streamerBotPort);
-            setIsStreamerBotConnected(true);
-            toast({
-                title: "Connection Saved",
-                description: `Successfully connected to Streamer.bot at ${streamerBotHost}:${streamerBotPort}`,
-            });
-        } catch (error: any) {
-            setStreamerBotError(error.message || 'Failed to connect to Streamer.bot');
-            setIsStreamerBotConnected(false);
-        } finally {
-            setIsStreamerBotConnecting(false);
-        }
-    };
+    if (type === 'obs') {
+      newProfile = {
+        ...commonProps,
+        type: 'obs',
+        url: obsUrl,
+        password: obsPassword,
+      } as ObsConnectionProfile;
+    } else if (type === 'streamerbot') {
+      const portNumber = parseInt(streamerBotPort, 10);
+      if (isNaN(portNumber)) {
+        toast({
+          title: "Error",
+          description: "Streamer.bot port must be a number.",
+          variant: "destructive"
+        });
+        return;
+      }
+      newProfile = {
+        ...commonProps,
+        type: 'streamerbot',
+        host: streamerBotHost,
+        port: portNumber,
+      } as StreamerbotConnectionProfile;
+    }
 
-    const handleStreamerBotDisconnect = () => {
-        // For now, just update the UI state
-        // In a real implementation, this would call the StreamerBot service disconnect method
-        setIsStreamerBotConnected(false);
-        setStreamerBotError(null);
-    };
+    if (newProfile) {
+      onSave(newProfile);
+      toast({
+        title: initialProfile ? "Connection Updated" : "Connection Saved",
+        description: `${newProfile.name} has been ${initialProfile ? 'updated' : 'saved'}.`,
+      });
+      // Clear form after saving a new connection
+      if (!initialProfile) {
+        setName('');
+        setObsUrl('');
+        setObsPassword('');
+        setStreamerBotHost('');
+        setStreamerBotPort('');
+        setType('obs');
+      }
+    }
+  };
 
-    return (
-        <div className="space-y-6">
-            {/* OBS Connection Card */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>OBS Connection</CardTitle>
-                    <CardDescription>
-                        {isConnected ? (
-                            <span className="text-green-500">Connected to OBS!</span>
-                        ) : (
-                            <span className="text-destructive">Disconnected</span>
-                        )}
-                        {connectionError && <span className="ml-2 text-destructive">{connectionError}</span>}
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <form onSubmit={handleObsConnect} className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="obs-url">
-                                OBS WebSocket URL
-                            </Label>
-                            <Input
-                                id="obs-url"
-                                placeholder="ws://localhost:4455"
-                                value={obsUrl}
-                                onChange={(e) => {
-                                    setObsUrl(e.target.value);
-                                    debouncedSettingsToast();
-                                }}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="obs-password">
-                                OBS WebSocket Password
-                            </Label>
-                            <Input
-                                id="obs-password"
-                                type="password"
-                                placeholder="Enter your password"
-                                value={obsPassword || ''}
-                                onChange={(e) => {
-                                    setObsPassword(e.target.value);
-                                    debouncedSettingsToast();
-                                }}
-                            />
-                        </div>
-                        <div className="flex justify-between">
-                            <Button type="submit" disabled={isConnected || isLoading}>
-                                {isLoading ? 'Connecting...' : 'Connect'}
-                            </Button>
-                            <Button onClick={handleObsDisconnect} disabled={!isConnected} variant="destructive">
-                                Disconnect
-                            </Button>
-                        </div>
-                    </form>
-                </CardContent>
-            </Card>
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{initialProfile ? 'Edit Connection' : 'Add New Connection'}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="connection-name">Connection Name</Label>
+            <Input
+              id="connection-name"
+              placeholder="My Streaming PC"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </div>
 
-            {/* StreamerBot Connection Card */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>StreamerBot Connection</CardTitle>
-                    <CardDescription>
-                        {isStreamerBotConnected ? (
-                            <span className="text-green-500">Connected to StreamerBot!</span>
-                        ) : (
-                            <span className="text-destructive">Disconnected</span>
-                        )}
-                        {streamerBotError && <span className="ml-2 text-destructive">{streamerBotError}</span>}
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <form onSubmit={handleStreamerBotConnect} className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="streamerbot-host">
-                                    Host
-                                </Label>
-                                <Input
-                                    id="streamerbot-host"
-                                    placeholder="localhost"
-                                    value={streamerBotHost}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                        setStreamerBotHost(e.target.value);
-                                        debouncedSettingsToast();
-                                    }}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="streamerbot-port">
-                                    Port
-                                </Label>
-                                <Input
-                                    id="streamerbot-port"
-                                    placeholder="8080"
-                                    value={streamerBotPort}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                        setStreamerBotPort(e.target.value);
-                                        debouncedSettingsToast();
-                                    }}
-                                />
-                            </div>
-                        </div>
-                        <div className="flex justify-between">
-                            <Button type="submit" disabled={isStreamerBotConnected || isStreamerBotConnecting}>
-                                {isStreamerBotConnecting ? 'Connecting...' : 'Connect'}
-                            </Button>
-                            <Button 
-                                onClick={handleStreamerBotDisconnect} 
-                                disabled={!isStreamerBotConnected} 
-                                variant="destructive"
-                            >
-                                Disconnect
-                            </Button>
-                        </div>
-                    </form>
-                </CardContent>
-            </Card>
-        </div>
-    );
+          <div className="space-y-2">
+            <Label htmlFor="connection-type">Type</Label>
+            <Select onValueChange={(value: ConnectionType) => setType(value)} value={type}>
+              <SelectTrigger id="connection-type">
+                <SelectValue placeholder="Select connection type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="obs">OBS Studio</SelectItem>
+                <SelectItem value="streamerbot">Streamer.bot</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {type === 'obs' && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="obs-url">OBS WebSocket URL</Label>
+                <Input
+                  id="obs-url"
+                  placeholder="ws://localhost:4455"
+                  value={obsUrl}
+                  onChange={(e) => setObsUrl(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="obs-password">OBS WebSocket Password (optional)</Label>
+                <Input
+                  id="obs-password"
+                  type="password"
+                  placeholder="Enter your password"
+                  value={obsPassword}
+                  onChange={(e) => setObsPassword(e.target.value)}
+                />
+              </div>
+            </>
+          )}
+
+          {type === 'streamerbot' && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="streamerbot-host">Host</Label>
+                <Input
+                  id="streamerbot-host"
+                  placeholder="localhost"
+                  value={streamerBotHost}
+                  onChange={(e) => setStreamerBotHost(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="streamerbot-port">Port</Label>
+                <Input
+                  id="streamerbot-port"
+                  placeholder="8080"
+                  value={streamerBotPort}
+                  onChange={(e) => setStreamerBotPort(e.target.value)}
+                  type="number"
+                  required
+                />
+              </div>
+            </div>
+          )}
+
+          <Button type="submit">
+            {initialProfile ? 'Save Changes' : 'Add Connection'}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  );
 };
 
 export default ConnectionForm;
