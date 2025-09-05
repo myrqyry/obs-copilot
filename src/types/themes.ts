@@ -265,3 +265,108 @@ export const rosePineDawnColors = {
   highlightMed: '#dfdad9',
   highlightHigh: '#cecacd',
 };
+
+export const draculaColors = {
+  background: '#282a36',
+  currentLine: '#44475a',
+  foreground: '#f8f8f2',
+  comment: '#6272a4',
+  cyan: '#8be9fd',
+  green: '#50fa7b',
+  orange: '#ffb86c',
+  pink: '#ff79c6',
+  purple: '#bd93f9',
+  red: '#ff5555',
+  yellow: '#f1fa8c',
+};
+
+export const nordColors = {
+  polarNight: {
+    nord0: '#2E3440',
+    nord1: '#3B4252',
+    nord2: '#434C5E',
+    nord3: '#4C566A',
+  },
+  snowStorm: {
+    nord4: '#D8DEE9',
+    nord5: '#E5E9F0',
+    nord6: '#ECEFF4',
+  },
+  frost: {
+    nord7: '#8FBCBB',
+    nord8: '#88C0D0',
+    nord9: '#81A1C1',
+    nord10: '#5E81AC',
+  },
+  aurora: {
+    nord11: '#BF616A',
+    nord12: '#D08770',
+    nord13: '#EBCB8B',
+    nord14: '#A3BE8C',
+    nord15: '#B48EAD',
+  },
+};
+
+export const solarizedDarkColors = {
+  base03: '#002b36',
+  base02: '#073642',
+  base01: '#586e75',
+  base00: '#657b83',
+  base0: '#839496',
+  base1: '#93a1a1',
+  base2: '#eee8d5',
+  base3: '#fdf6e3',
+  yellow: '#b58900',
+  orange: '#cb4b16',
+  red: '#dc322f',
+  magenta: '#d33682',
+  violet: '#6c71c4',
+  blue: '#268bd2',
+  cyan: '#2aa198',
+  green: '#859900',
+};
+
+export const solarizedLightColors = {
+  base03: '#fdf6e3',
+  base02: '#eee8d5',
+  base01: '#93a1a1',
+  base00: '#839496',
+  base0: '#657b83',
+  base1: '#586e75',
+  base2: '#073642',
+  base3: '#002b36',
+  yellow: '#b58900',
+  orange: '#cb4b16',
+  red: '#dc322f',
+  magenta: '#d33682',
+  violet: '#6c71c4',
+  blue: '#268bd2',
+  cyan: '#2aa198',
+  green: '#859900',
+};
+
+export const gruvboxDarkColors = {
+  bg: '#282828',
+  fg: '#ebdbb2',
+  red: '#cc241d',
+  green: '#98971a',
+  yellow: '#d79921',
+  blue: '#458588',
+  purple: '#b16286',
+  aqua: '#689d6a',
+  gray: '#a89984',
+  orange: '#d65d0e',
+};
+
+export const gruvboxLightColors = {
+  bg: '#fbf1c7',
+  fg: '#3c3836',
+  red: '#cc241d',
+  green: '#98971a',
+  yellow: '#d79921',
+  blue: '#458588',
+  purple: '#b16286',
+  aqua: '#689d6a',
+  gray: '#7c6f64',
+  orange: '#d65d0e',
+};
