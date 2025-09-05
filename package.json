@@ -100,6 +100,7 @@
     "tailwind-merge": "^3.3.1",
     "tailwind-scrollbar": "^2.1.0",
     "tailwindcss-animate": "^1.0.7",
+    "tmi.js": "^1.8.5",
     "use-stick-to-bottom": "^1.1.1",
     "zustand": "^5.0.8"
   }

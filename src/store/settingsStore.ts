@@ -57,6 +57,16 @@ export interface SettingsState extends Omit<ThemeState, 'theme'>, LayoutState {
   setChatBubbleBlendMode: (value: string) => void;
   setBackgroundOpacity: (value: number) => void;
   setChatBackgroundBlendMode: (value: string) => void;
+  twitchClientId?: string;
+  twitchClientSecret?: string;
+  twitchAccessToken?: string;
+  twitchRefreshToken?: string;
+  setTwitchClientId: (id: string) => void;
+  setTwitchClientSecret: (secret: string) => void;
+  setTwitchAccessToken: (token: string) => void;
+  setTwitchRefreshToken: (token: string) => void;
+  twitchChatPluginEnabled: boolean;
+  setTwitchChatPluginEnabled: (enabled: boolean) => void;
 }
 
 const useSettingsStore = create<SettingsState>()(
@@ -76,6 +86,11 @@ const useSettingsStore = create<SettingsState>()(
       geminiApiKey: '',
       streamerBotHost: 'localhost',
       streamerBotPort: '8080',
+      twitchClientId: '',
+      twitchClientSecret: '',
+      twitchAccessToken: '',
+      twitchRefreshToken: '',
+      twitchChatPluginEnabled: true,
       setTheme: (base) => set((state) => ({ theme: { ...state.theme, base } })),
       setAccent: (accent) => set((state) => ({ theme: { ...state.theme, accent } })),
       setSecondaryAccent: (secondaryAccent) => set((state) => ({ theme: { ...state.theme, secondaryAccent } })),
@@ -88,6 +103,11 @@ const useSettingsStore = create<SettingsState>()(
       setExtraDarkMode: (value) => set({ extraDarkMode: value }),
       setStreamerBotHost: (host) => set({ streamerBotHost: host }),
       setStreamerBotPort: (port) => set({ streamerBotPort: port }),
+      setTwitchClientId: (id) => set({ twitchClientId: id }),
+      setTwitchClientSecret: (secret) => set({ twitchClientSecret: secret }),
+      setTwitchAccessToken: (token) => set({ twitchAccessToken: token }),
+      setTwitchRefreshToken: (token) => set({ twitchRefreshToken: token }),
+      setTwitchChatPluginEnabled: (enabled) => set({ twitchChatPluginEnabled: enabled }),
       autoApplySuggestions: true,
       customChatBackground: '',
       bubbleFillOpacity: 0.7,

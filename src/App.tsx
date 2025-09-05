@@ -7,7 +7,7 @@ import { Header } from './components/layout/Header';
 import { TabNavigation } from './components/layout/TabNavigation';
 import { ConnectionProvider } from './features/connections/ConnectionProvider';
 import useSettingsStore from './store/settingsStore';
-import { allPlugins } from './plugins';
+import { usePlugins } from './hooks/usePlugins';
 
 // Register GSAP plugins for animations
 try {
@@ -16,7 +16,10 @@ try {
   console.warn('GSAP plugin registration failed:', error);
 }
 
+import TwitchCallback from './features/auth/TwitchCallback';
+
 const App: React.FC = () => {
+    const plugins = usePlugins();
     const [activeTab, setActiveTab] = useState<string>('gemini');
     
     const headerRef = useRef<HTMLDivElement>(null);
@@ -42,13 +45,17 @@ const App: React.FC = () => {
     
 
     const renderTabContent = () => {
-        const activePlugin = allPlugins.find(p => p.id === activeTab);
+        const activePlugin = plugins.find(p => p.id === activeTab);
         if (activePlugin) {
             const TabComponent = activePlugin.component;
             return <TabComponent />;
         }
         return <div>Select a tab</div>;
     };
+
+    if (window.location.pathname === '/auth/twitch/callback') {
+        return <TwitchCallback />;
+    }
 
     return (
         <ErrorBoundary>
@@ -63,7 +70,7 @@ const App: React.FC = () => {
                             <TabNavigation
                                 activeTab={activeTab}
                                 setActiveTab={handleTabChange}
-                                tabs={allPlugins}
+                                tabs={plugins}
                             />
                         </div>
                     </div>

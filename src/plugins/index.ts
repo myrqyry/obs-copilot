@@ -56,4 +56,6 @@ export const corePlugins: TabPlugin[] = [
   },
 ];
 
-export const allPlugins = [...corePlugins];
+import { twitchChatPlugin } from './twitch-chat';
+
+export const allPlugins = [...corePlugins, twitchChatPlugin];

@@ -9,14 +9,16 @@ import { ThemeChooser } from '../common/ThemeChooser';
 import { ColorChooser } from '../common/ColorChooser';
 import { useTheme } from '@/hooks/useTheme';
 import { CatppuccinAccentColorName } from '@/types';
+import { Switch } from '@/components/ui/switch';
 
 const SettingsTab: React.FC = () => {
-    const { obsUrl, obsPassword, geminiApiKey, setObsUrl, setObsPassword, setGeminiApiKey, flipSides, setFlipSides, theme: currentTheme, setTheme } = useSettingsStore();
+    const { obsUrl, obsPassword, geminiApiKey, setObsUrl, setObsPassword, setGeminiApiKey, flipSides, setFlipSides, theme: currentTheme, setTheme, twitchChatPluginEnabled, setTwitchChatPluginEnabled } = useSettingsStore();
     const { theme } = useTheme();
 
     const [openObsConnection, setOpenObsConnection] = useState(true);
     const [openGeminiAI, setOpenGeminiAI] = useState(true);
     const [openUIPreferences, setOpenUIPreferences] = useState(true);
+    const [openPlugins, setOpenPlugins] = useState(true);
 
     const handlePrimaryColorChange = (color: string) => {
         setTheme({ ...currentTheme, primary: color });
@@ -69,13 +71,24 @@ const SettingsTab: React.FC = () => {
                 )}
                 <div className="flex items-center justify-between">
                     <Label htmlFor="flip-sides">Swap Sides</Label>
-                    <Button 
+                    <Button
                         id="flip-sides"
                         onClick={() => setFlipSides(!flipSides)}
                         variant="outline"
                     >
                         {flipSides ? 'Left' : 'Right'}
                     </Button>
+                </div>
+            </CollapsibleCard>
+
+            <CollapsibleCard title="Plugins 🧩" isOpen={openPlugins} onToggle={() => setOpenPlugins(!openPlugins)}>
+                <div className="flex items-center justify-between">
+                    <Label htmlFor="twitch-chat-plugin">Twitch Chat</Label>
+                    <Switch
+                        id="twitch-chat-plugin"
+                        checked={twitchChatPluginEnabled}
+                        onCheckedChange={setTwitchChatPluginEnabled}
+                    />
                 </div>
             </CollapsibleCard>
         </div>
