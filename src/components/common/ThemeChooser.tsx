@@ -11,24 +11,21 @@ export const ThemeChooser: React.FC = () => {
         Theme
       </label>
       <select
-        value={theme?.name}
-        onChange={(e) => {
-          const selectedOption = e.target.selectedOptions[0];
-          const themeType = selectedOption.dataset.type as 'light' | 'dark' | 'system';
-          setTheme(themeType);
-        }}
+        value={theme?.name || 'system'}
+        onChange={(e) => setTheme(e.target.value as 'light' | 'dark' | 'system')}
         className="w-full p-2 rounded-md bg-input border border-border"
       >
+        <option value="system">System</option>
         <optgroup label="Dark Themes">
           {darkThemes.map((theme) => (
-            <option key={theme.name} value={theme.name} data-type={theme.type}>
+            <option key={theme.name} value={theme.name}>
               {theme.displayName}
             </option>
           ))}
         </optgroup>
         <optgroup label="Light Themes">
           {lightThemes.map((theme) => (
-            <option key={theme.name} value={theme.name} data-type={theme.type}>
+            <option key={theme.name} value={theme.name}>
               {theme.displayName}
             </option>
           ))}

@@ -5,17 +5,9 @@ import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import { Header } from './components/layout/Header';
 import { TabNavigation } from './components/layout/TabNavigation';
-import { AppTab } from './types';
 import { ConnectionProvider } from './features/connections/ConnectionProvider';
-import { GeminiChat } from './features/chat/GeminiChat';
-import { ConnectionPanel } from './features/connections/ConnectionPanel'; // Keep for now as it might be used elsewhere
-import { ConnectionsTab } from './features/connections/ConnectionsTab';
-import ObsStudioTab from './components/ui/ObsStudioTab';
-import CreateTab from './components/ui/CreateTab';
-import StreamingAssetsTab from './components/ui/StreamingAssetsTab';
-import SettingsTab from './components/ui/SettingsTab';
-import AdvancedPanel from './components/ui/AdvancedPanel';
 import useSettingsStore from './store/settingsStore';
+import { allPlugins } from './plugins';
 
 // Register GSAP plugins for animations
 try {
@@ -24,26 +16,14 @@ try {
   console.warn('GSAP plugin registration failed:', error);
 }
 
-const TAB_ORDER: AppTab[] = [
-    AppTab.CONNECTIONS,
-    AppTab.OBS_STUDIO,
-    AppTab.GEMINI,
-    AppTab.CREATE,
-    AppTab.STREAMING_ASSETS,
-    AppTab.SETTINGS,
-    AppTab.ADVANCED,
-];
-
 const App: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<AppTab>(AppTab.GEMINI);
+    const [activeTab, setActiveTab] = useState<string>('gemini');
     
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
-    const [chatInputValue, setChatInputValue] = useState('');
     const headerRef = useRef<HTMLDivElement>(null);
     const { theme, flipSides } = useSettingsStore();
 
-    const handleTabChange = useCallback((tab: AppTab) => {
-        setActiveTab(tab);
+    const handleTabChange = useCallback((tabId: string) => {
+        setActiveTab(tabId);
     }, []);
 
 
@@ -62,30 +42,12 @@ const App: React.FC = () => {
     
 
     const renderTabContent = () => {
-        switch (activeTab) {
-            case AppTab.CONNECTIONS:
-                return <ConnectionsTab />;
-            case AppTab.OBS_STUDIO:
-                return <ObsStudioTab />;
-            case AppTab.GEMINI:
-                return (
-                    <GeminiChat
-                        setErrorMessage={setErrorMessage}
-                        chatInputValue={chatInputValue}
-                        onChatInputChange={setChatInputValue}
-                    />
-                );
-            case AppTab.CREATE:
-                return <CreateTab />;
-            case AppTab.STREAMING_ASSETS:
-                return <StreamingAssetsTab />;
-            case AppTab.SETTINGS:
-                return <SettingsTab />;
-            case AppTab.ADVANCED:
-                return <AdvancedPanel />;
-            default:
-                return <div>Select a tab</div>;
+        const activePlugin = allPlugins.find(p => p.id === activeTab);
+        if (activePlugin) {
+            const TabComponent = activePlugin.component;
+            return <TabComponent />;
         }
+        return <div>Select a tab</div>;
     };
 
     return (
@@ -101,7 +63,7 @@ const App: React.FC = () => {
                             <TabNavigation
                                 activeTab={activeTab}
                                 setActiveTab={handleTabChange}
-                                tabOrder={TAB_ORDER}
+                                tabs={allPlugins}
                             />
                         </div>
                     </div>

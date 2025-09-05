@@ -1,17 +1,30 @@
 // src/components/ui/SettingsTab.tsx
 import React, { useState } from 'react';
-import { Button } from './button.radix';
-import { Label } from './label';
-import { Input } from './input';
+import { Button } from '@/components/ui/button.radix';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import useSettingsStore from '../../store/settingsStore';
 import { CollapsibleCard } from '../common/CollapsibleCard';
+import { ThemeChooser } from '../common/ThemeChooser';
+import { ColorChooser } from '../common/ColorChooser';
+import { useTheme } from '@/hooks/useTheme';
+import { CatppuccinAccentColorName } from '@/types';
 
 const SettingsTab: React.FC = () => {
-    const { obsUrl, obsPassword, geminiApiKey, setObsUrl, setObsPassword, setGeminiApiKey, flipSides, setFlipSides } = useSettingsStore();
+    const { obsUrl, obsPassword, geminiApiKey, setObsUrl, setObsPassword, setGeminiApiKey, flipSides, setFlipSides, theme: currentTheme, setTheme } = useSettingsStore();
+    const { theme } = useTheme();
 
     const [openObsConnection, setOpenObsConnection] = useState(true);
     const [openGeminiAI, setOpenGeminiAI] = useState(true);
     const [openUIPreferences, setOpenUIPreferences] = useState(true);
+
+    const handlePrimaryColorChange = (color: string) => {
+        setTheme({ ...currentTheme, primary: color });
+    };
+
+    const handleSecondaryColorChange = (color: string) => {
+        setTheme({ ...currentTheme, secondary: color });
+    };
 
     return (
         <div className="space-y-4 p-4">
@@ -35,6 +48,25 @@ const SettingsTab: React.FC = () => {
 
             {/* Collapsible Card for UI Preferences */}
             <CollapsibleCard title="UI Preferences 🎨" isOpen={openUIPreferences} onToggle={() => setOpenUIPreferences(!openUIPreferences)}>
+                <ThemeChooser />
+                {theme?.accentColors && (
+                    <>
+                        <ColorChooser
+                            label="Primary Accent"
+                            colorsHexMap={theme.accentColors}
+                            selectedColorName={currentTheme.primary}
+                            colorNameTypeGuard={(name: string): name is CatppuccinAccentColorName => Object.keys(theme.accentColors || {}).includes(name)}
+                            onChange={handlePrimaryColorChange}
+                        />
+                        <ColorChooser
+                            label="Secondary Accent"
+                            colorsHexMap={theme.accentColors}
+                            selectedColorName={currentTheme.secondary}
+                            colorNameTypeGuard={(name:string): name is CatppuccinAccentColorName => Object.keys(theme.accentColors || {}).includes(name)}
+                            onChange={handleSecondaryColorChange}
+                        />
+                    </>
+                )}
                 <div className="flex items-center justify-between">
                     <Label htmlFor="flip-sides">Swap Sides</Label>
                     <Button 
