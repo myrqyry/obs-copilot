@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import RGL, { WidthProvider } from 'react-grid-layout';
+import React, { useState } from 'react';
+// react-grid-layout provides a default export (GridLayout) and named WidthProvider.
+// Some bundlers can mis-handle a renamed default import; use semantic name for clarity.
+import GridLayout, { WidthProvider, type Layout } from 'react-grid-layout';
 import ObsWidget from './ObsWidget';
 import ObsWidgetConfigModal from './ObsWidgetConfigModal';
 import { ObsWidgetConfig } from '@/types/obs';
 import useConnectionsStore from '@/store/connectionsStore';
 
-const ReactGridLayout = WidthProvider(RGL);
+const ReactGridLayout = WidthProvider(GridLayout as any);
 
 const NewObsStudioTab: React.FC = () => {
   const [widgets, setWidgets] = useState<ObsWidgetConfig[]>([]);
-  const [layout, setLayout] = useState<RGL.Layout[]>([]);
+  const [layout, setLayout] = useState<Layout[]>([]);
   const { scenes, sources } = useConnectionsStore();
 
   const handleAddWidget = (config: ObsWidgetConfig) => {
@@ -41,7 +43,7 @@ const NewObsStudioTab: React.FC = () => {
         layout={layout}
         cols={12}
         rowHeight={30}
-        onLayoutChange={(newLayout) => setLayout(newLayout)}
+  onLayoutChange={(newLayout: Layout[]) => setLayout(newLayout)}
       >
         {widgets.map((widget) => (
           <div key={widget.id}>

@@ -60,18 +60,16 @@ const App: React.FC = () => {
     return (
         <ErrorBoundary>
             <ConnectionProvider>
-                <div className={`h-screen max-h-screen bg-gradient-to-br from-background to-card text-foreground flex flex-col overflow-hidden transition-colors duration-500 ease-in-out`}>
+                <div className={`h-screen max-h-screen bg-gradient-to-br from-background to-card text-foreground flex flex-col transition-colors duration-500 ease-in-out`}>
                     <Header headerRef={headerRef} />
+                    <TabNavigation
+                        activeTab={activeTab}
+                        setActiveTab={handleTabChange}
+                        tabs={plugins}
+                    />
                     <div className="flex flex-grow overflow-hidden">
                         <div className={`flex-grow overflow-y-auto px-1 sm:px-2 pb-1 transition-all duration-300 ease-in-out ${flipSides ? 'order-last' : 'order-first'}`}>
                             {renderTabContent()}
-                        </div>
-                        <div className={`sticky z-10 px-2 pt-2 transition-all duration-300 ease-in-out ${flipSides ? 'order-first' : 'order-last'}`}>
-                            <TabNavigation
-                                activeTab={activeTab}
-                                setActiveTab={handleTabChange}
-                                tabs={plugins}
-                            />
                         </div>
                     </div>
                 </div>

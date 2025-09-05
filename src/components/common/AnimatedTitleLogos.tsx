@@ -30,9 +30,10 @@ export const AnimatedTitleLogos: React.FC<AnimatedTitleLogosProps> = ({
         </div>
       </div>
       <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight relative">
+        {/* Glow backdrop behind the text */}
         <span
           className={cn(
-            "absolute opacity-25 blur-md -inset-1.5"
+            "pointer-events-none absolute opacity-25 blur-md -inset-1.5"
           )}
           style={{
             background: `radial-gradient(ellipse 120% 80%,
@@ -42,10 +43,11 @@ export const AnimatedTitleLogos: React.FC<AnimatedTitleLogosProps> = ({
               transparent 85%)`,
             zIndex: -1
           }}
-        >
-        </span>
+          aria-hidden="true"
+        />
+        {/* Foreground text above glow */}
         <span
-          className="relative animated-title-gradient"
+          className="relative animated-title-gradient z-1 drop-shadow-[0_0_6px_rgba(0,0,0,0.35)]"
         >
           obs-copilot gemini
         </span>

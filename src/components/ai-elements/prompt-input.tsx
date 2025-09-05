@@ -17,7 +17,7 @@ import type {
   HTMLAttributes,
   KeyboardEventHandler,
 } from 'react';
-import { Children } from 'react';
+import { Children, forwardRef } from 'react';
 
 export type PromptInputProps = HTMLAttributes<HTMLDivElement>;
 
@@ -36,14 +36,14 @@ export type PromptInputTextareaProps = ComponentProps<typeof Textarea> & {
   maxHeight?: number;
 };
 
-export const PromptInputTextarea = ({
+export const PromptInputTextarea = forwardRef<HTMLTextAreaElement, PromptInputTextareaProps>(({
   onChange,
   className,
   placeholder = 'What would you like to know?',
   minHeight = 48,
   maxHeight = 164,
   ...props
-}: PromptInputTextareaProps) => {
+}, ref) => {
   const handleKeyDown: KeyboardEventHandler = (e) => {
     if (e.key === 'Enter') {
       // Don't submit if IME composition is in progress
@@ -58,15 +58,15 @@ export const PromptInputTextarea = ({
 
       // Submit on Enter (without Shift)
       e.preventDefault();
-      const form = e.currentTarget.form;
-      if (form) {
-        form.requestSubmit();
-      }
+      const target = e.target as HTMLTextAreaElement | null;
+      const form = target?.form;
+      form?.requestSubmit();
     }
   };
 
   return (
     <Textarea
+      ref={ref}
       className={cn(
         'min-h-[48px] resize-none border-0 shadow-none focus-visible:ring-0',
         className
@@ -79,7 +79,8 @@ export const PromptInputTextarea = ({
       {...props}
     />
   );
-};
+});
+PromptInputTextarea.displayName = 'PromptInputTextarea';
 
 export type PromptInputToolbarProps = HTMLAttributes<HTMLDivElement>;
 

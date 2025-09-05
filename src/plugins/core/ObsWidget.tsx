@@ -2,9 +2,23 @@ import React from 'react';
 import { ObsWidgetConfig } from '@/types/obs';
 import useConnectionsStore from '@/store/connectionsStore';
 import { Button } from '@/components/ui/button';
+import SliderWidget from '@/features/obs-control/SliderWidget';
+import KnobWidget from '@/features/obs-control/KnobWidget';
 
-const ObsWidget: React.FC<ObsWidgetConfig> = ({ type, label, sceneName, sourceName }) => {
+const ObsWidget: React.FC<ObsWidgetConfig> = (config) => {
+  const { type, label, sceneName, sourceName } = config;
   const { obs: client } = useConnectionsStore();
+
+  if (config.control) {
+    switch (config.control.kind) {
+      case 'slider':
+        return <SliderWidget config={config} />;
+      case 'knob':
+        return <KnobWidget config={config} />;
+      default:
+        return <div className="text-red-500">Unsupported control type: {config.control.kind}</div>;
+    }
+  }
 
   const handleClick = async () => {
     if (!client) return;

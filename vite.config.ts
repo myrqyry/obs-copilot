@@ -1,7 +1,6 @@
 // vite.config.ts
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { Buffer } from 'buffer';
 import { fileURLToPath, URL } from 'node:url';
 
 // https://vitejs.dev/config/
@@ -45,7 +44,11 @@ export default defineConfig({
   preview: {
     port: 4173,
   },
+  optimizeDeps: {
+    include: ['buffer'],
+  },
   define: {
-    'global.Buffer': 'Buffer',
+    // Some libraries reference global or globalThis.Buffer; we ensure references don't crash before polyfills load.
+    'globalThis.Buffer': 'globalThis.Buffer',
   },
 });

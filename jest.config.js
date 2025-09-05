@@ -3,18 +3,23 @@ export default {
   preset: 'ts-jest',
   testEnvironment: 'jest-environment-jsdom',
   transform: {
-    // '^.+\\.[tj]sx?$' to process js/ts with `ts-jest`
-    // '^.+\\.m?[tj]sx?$' to process js/ts/mjs/mts with `ts-jest`
-    '^.+\\.tsx?$': [
+    '^.+\\.(ts|tsx|js|jsx|mjs|cjs)$': [
       'ts-jest',
       {
         useESM: true,
       },
     ],
   },
+  transformIgnorePatterns: [
+    'node_modules/(?!(?:@testing-library/jest-dom|gsap)/)',
+  ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^store/(.*)$': '<rootDir>/src/store/$1',
+    '^services/(.*)$': '<rootDir>/src/services/$1',
+    '^types/(.*)$': '<rootDir>/src/types/$1',
   },
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   moduleFileExtensions: [
     "ts",
     "tsx",

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CustomButton as Button } from '@/components/ui/CustomButton';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Label } from '@/components/ui/label';
@@ -135,6 +135,7 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({ onSave, initialProfile 
                 <Input
                   id="obs-password"
                   type="password"
+                  autoComplete="current-password"
                   placeholder="Enter your password"
                   value={obsPassword}
                   onChange={(e) => setObsPassword(e.target.value)}

@@ -35,21 +35,23 @@ export const useAnimatedTabs = (activeTab: string) => {
     tabBar.style.setProperty('--indicator-opacity', '1');
     tabBar.style.setProperty('--indicator-scale', '1');
 
-    // Add interacting class for enhanced glow
-    tabBar.classList.add('interacting');
-    setTimeout(() => tabBar.classList.remove('interacting'), 600);
+    // Add interacting class to the indicator for enhanced glow
+    // This class will be applied to the pseudo-element ::before in TabNavigation.tsx
+    const indicator = tabBar.querySelector('.tab-indicator');
+    if (indicator) {
+      indicator.classList.add('interacting');
+      setTimeout(() => indicator.classList.remove('interacting'), 600);
+    }
 
-    // Update tab states
+    // Update tab states using data-active attribute
     tabRefs.current.forEach((tabElement, tabKey) => {
       const isActive = tabKey === activeTab;
+      tabElement.dataset.active = isActive ? 'true' : 'false';
 
       if (isActive) {
-        tabElement.classList.add('active');
         // Add ripple effect
         tabElement.classList.add('ripple');
         setTimeout(() => tabElement.classList.remove('ripple'), 600);
-      } else {
-        tabElement.classList.remove('active');
       }
     });
   }, [activeTab]);

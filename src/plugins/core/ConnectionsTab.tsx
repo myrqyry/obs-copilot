@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import ConnectionForm from './ConnectionForm';
 import { ConnectionPanel } from './ConnectionPanel';
-import { ConnectionStatusIcon } from './ConnectionStatusIcon';
 import useConnectionsStore from '@/store/connectionsStore';
 import { ConnectionProfile } from '@/types/connections';
 import {
@@ -10,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { CustomButton as Button } from '@/components/ui/CustomButton';
 import useSettingsStore from '@/store/settingsStore';
@@ -22,7 +22,6 @@ export const ConnectionsTab: React.FC = () => {
     addConnectionProfile,
     updateConnectionProfile,
     removeConnectionProfile,
-    setActiveConnectionId,
   } = useConnectionsStore();
 
   const {
@@ -92,6 +91,7 @@ export const ConnectionsTab: React.FC = () => {
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                   <DialogTitle>{editingProfile ? 'Edit Connection' : 'Add New Connection'}</DialogTitle>
+                  <DialogDescription>Define credentials and endpoints for OBS or Streamer.bot.</DialogDescription>
                 </DialogHeader>
                 <ConnectionForm
                   onSave={handleSaveConnection}

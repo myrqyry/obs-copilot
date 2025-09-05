@@ -38,6 +38,7 @@ const ObsSettingsPanel: React.FC = () => {
                     <Input 
                         id="obs-password"
                         type="password"
+                        autoComplete="current-password"
                         placeholder="Enter your password"
                         value={obsPassword || ''}
                         onChange={(e) => setObsPassword(e.target.value)}

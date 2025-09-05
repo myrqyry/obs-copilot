@@ -1,17 +1,18 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from '@jest/globals';
+import { jest } from '@jest/globals';
 import HealthStatusIndicator from '../HealthStatusIndicator';
 import useHealthStatus from '@/hooks/useHealthStatus';
 
 // Mock the health status hook
-vi.mock('@/hooks/useHealthStatus');
+jest.mock('@/hooks/useHealthStatus');
 
 describe('HealthStatusIndicator', () => {
-  const mockUseHealthStatus = useHealthStatus as jest.MockedFunction<typeof useHealthStatus>;
+  const mockUseHealthStatus = useHealthStatus as jest.MockedFunction<typeof useHealthStatus>; // Keep this line as is
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   it('displays healthy status correctly', () => {
@@ -22,7 +23,7 @@ describe('HealthStatusIndicator', () => {
       overall: 'healthy',
       lastChecked: Date.now(),
       isChecking: false,
-      refreshHealth: vi.fn(),
+      refreshHealth: jest.fn(),
     });
 
     render(<HealthStatusIndicator />);
@@ -40,7 +41,7 @@ describe('HealthStatusIndicator', () => {
       overall: 'degraded',
       lastChecked: Date.now(),
       isChecking: false,
-      refreshHealth: vi.fn(),
+      refreshHealth: jest.fn(),
     });
 
     render(<HealthStatusIndicator />);
@@ -57,7 +58,7 @@ describe('HealthStatusIndicator', () => {
       overall: 'critical',
       lastChecked: Date.now(),
       isChecking: false,
-      refreshHealth: vi.fn(),
+      refreshHealth: jest.fn(),
     });
 
     render(<HealthStatusIndicator />);
@@ -74,7 +75,7 @@ describe('HealthStatusIndicator', () => {
       overall: 'healthy',
       lastChecked: Date.now(),
       isChecking: true,
-      refreshHealth: vi.fn(),
+      refreshHealth: jest.fn(),
     });
 
     render(<HealthStatusIndicator />);
@@ -83,7 +84,7 @@ describe('HealthStatusIndicator', () => {
   });
 
   it('refreshes health status when refresh button is clicked', async () => {
-    const mockRefreshHealth = vi.fn();
+    const mockRefreshHealth = jest.fn();
     mockUseHealthStatus.mockReturnValue({
       gemini: 'healthy',
       obs: 'healthy',
@@ -113,7 +114,7 @@ describe('HealthStatusIndicator', () => {
       overall: 'healthy',
       lastChecked,
       isChecking: false,
-      refreshHealth: vi.fn(),
+      refreshHealth: jest.fn(),
     });
 
     render(<HealthStatusIndicator />);
@@ -129,7 +130,7 @@ describe('HealthStatusIndicator', () => {
       overall: 'degraded',
       lastChecked: Date.now(),
       isChecking: false,
-      refreshHealth: vi.fn(),
+      refreshHealth: jest.fn(),
     });
 
     render(<HealthStatusIndicator />);
@@ -151,7 +152,7 @@ describe('HealthStatusIndicator', () => {
       overall: 'healthy',
       lastChecked: Date.now(),
       isChecking: false,
-      refreshHealth: vi.fn(),
+      refreshHealth: jest.fn(),
     });
 
     render(<HealthStatusIndicator />);

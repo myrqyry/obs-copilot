@@ -1,10 +1,9 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { nanoid } from 'nanoid';
 import { ObsClientImpl, ConnectionStatus } from '@/services/obsClient';
 import type { OBSScene, OBSSource, OBSVideoSettings, OBSStreamStatus, OBSRecordStatus } from '@/types/obs';
 import { StreamerBotService } from '@/services/streamerBotService';
-import type { ConnectionProfile, ObsConnectionProfile, StreamerbotConnectionProfile, ConnectionType } from '@/types/connections';
+import type { ConnectionProfile } from '@/types/connections';
 import { StreamerBotError } from '@/types/streamerbot'; // Import StreamerBotError
 
 // Combined state for live connections and saved profiles
@@ -56,7 +55,7 @@ export interface ConnectionState {
 
 const useConnectionsStore = create<ConnectionState>()(
   persist(
-    (set, get) => {
+  (set) => {
       const obsClient = ObsClientImpl.getInstance();
       const streamerBotService = StreamerBotService.getInstance(); 
       
@@ -137,13 +136,73 @@ const useConnectionsStore = create<ConnectionState>()(
         // Actions related to live connections
         connectToObs: async (url, password) => {
           set({ isLoading: true, connectionError: null });
-          try {
-            await obsClient.connect(url, password);
-            // After successful connection, potentially update activeConnectionId if linked to a saved profile
-            set({ isLoading: false, isConnected: true /* activeConnectionId: ... */ });
-          } catch (error: any) {
-            set({ connectionError: error.message, isLoading: false, isConnected: false });
+
+          const sanitize = (raw: string): { url: string | null; reason?: string } => {
+            let input = raw.trim();
+            if (!input) return { url: null, reason: 'Empty URL' };
+
+            // If user pasted something like current page location + path (dev server), strip everything
+            // Examples of bad inputs seen: ws://localhost:5173/myrqyry , ws://localhost:5173/192.1....
+            // Strategy: parse, keep only scheme, host, port; enforce port != 5173; default port 4455 if host is localhost and no port.
+            // Accept forms: ws(s)://host[:port] , http(s)://host[:port] , host[:port]
+            try {
+              if (/^localhost$/i.test(input)) input = 'ws://localhost:4455';
+              else if (/^[^/:]+:\d+$/.test(input)) input = 'ws://' + input; // bare host:port
+              else if (/^[\w.-]+$/.test(input)) input = 'ws://' + input; // bare hostname
+
+              if (input.startsWith('http://')) input = 'ws://' + input.slice(7);
+              else if (input.startsWith('https://')) input = 'wss://' + input.slice(8);
+
+              if (!input.startsWith('ws://') && !input.startsWith('wss://')) {
+                // Fallback: assume ws://
+                input = 'ws://' + input.replace(/^\/*/, '');
+              }
+
+              const u = new URL(input);
+
+              // If dev server port or page origin port used -> replace with 4455 (OBS default)
+              if (u.port === '5173') {
+                u.port = '4455';
+              }
+
+              // Remove any path/query/hash (OBS websocket root only)
+              if (u.pathname !== '/') u.pathname = '/';
+              u.search = '';
+              u.hash = '';
+
+              // If no explicit port, set default 4455 for localhost or 4455 if host looks local (ends with .local or is 127.*)
+              if (!u.port) {
+                if (u.hostname === 'localhost' || /^127\./.test(u.hostname)) {
+                  u.port = '4455';
+                }
+              }
+
+              // Basic validation: host must be valid hostname or IPv4
+              const ipv4Re = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/;
+              const hostOk = ipv4Re.test(u.hostname) || /^[a-zA-Z0-9.-]+$/.test(u.hostname);
+              if (!hostOk) return { url: null, reason: 'Invalid host' };
+
+              return { url: u.toString() };
+            } catch (e) {
+              return { url: null, reason: 'Malformed URL' };
+            }
+          };
+
+          const { url: sanitized, reason } = sanitize(url);
+          if (!sanitized) {
+            set({ isLoading: false, connectionError: reason || 'Invalid OBS URL', isConnected: false });
+            return;
           }
+          if (sanitized !== url.trim()) {
+            console.info(`[OBS] Sanitized URL from '${url}' to '${sanitized}'`);
+          }
+
+            try {
+              await obsClient.connect(sanitized, password);
+              set({ isLoading: false, isConnected: true });
+            } catch (error: any) {
+              set({ connectionError: error.message, isLoading: false, isConnected: false });
+            }
         },
 
         disconnectFromObs: async () => {

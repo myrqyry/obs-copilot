@@ -43,6 +43,21 @@ export interface OBSVideoSettings {
 
 export type ObsActionType = 'toggle_mute' | 'switch_scene';
 
+export type ControlKind = 'slider' | 'knob';
+
+export interface ObsControlConfig {
+  kind: ControlKind;
+  min?: number;
+  max?: number;
+  step?: number;
+  unit?: string;
+  sourceName?: string;
+  property?: string; // OBS property to control (e.g., 'volume_db', 'gain')
+  sendMethod?: string; // OBS method to call (e.g., 'SetInputVolume', 'SetInputSettings')
+  debounceMs?: number; // Debounce time for onChangeEnd calls
+  throttleMs?: number; // Throttle time for onChange calls
+}
+
 export interface ObsWidgetConfig {
   id: string;
   type: ObsActionType;
@@ -51,6 +66,8 @@ export interface ObsWidgetConfig {
   // Action-specific settings
   sceneName?: string;
   sourceName?: string;
+  // Control-specific settings
+  control?: ObsControlConfig;
 }
 
 // Any other OBS related interfaces needed globally

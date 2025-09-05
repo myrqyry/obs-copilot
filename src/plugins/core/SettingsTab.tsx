@@ -37,14 +37,14 @@ const SettingsTab: React.FC = () => {
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="obs-password">Password</Label>
-                    <Input id="obs-password" type="password" value={obsPassword ?? ''} onChange={(e) => setObsPassword(e.target.value)} />
+                    <Input id="obs-password" type="password" autoComplete="current-password" value={obsPassword ?? ''} onChange={(e) => setObsPassword(e.target.value)} />
                 </div>
             </CollapsibleCard>
 
             <CollapsibleCard title="Gemini AI 🧠" isOpen={openGeminiAI} onToggle={() => setOpenGeminiAI(!openGeminiAI)}>
                  <div className="space-y-2">
                     <Label htmlFor="gemini-api-key">API Key</Label>
-                    <Input id="gemini-api-key" type="password" value={geminiApiKey ?? ''} onChange={(e) => setGeminiApiKey(e.target.value)} />
+                    <Input id="gemini-api-key" type="password" autoComplete="off" value={geminiApiKey ?? ''} onChange={(e) => setGeminiApiKey(e.target.value)} />
                 </div>
             </CollapsibleCard>
 

@@ -58,7 +58,7 @@ describe('useApiSearch', () => {
     expect(result.current.loading).toBe(false);
     expect(result.current.searched).toBe(true);
     expect(result.current.results).toEqual([]);
-    expect(result.current.error).toBe('Network error');
+    expect(result.current.error).toBe('API Search failed: Network error');
     expect(mockFetcher).toHaveBeenCalledTimes(1);
     expect(mockOnError).toHaveBeenCalledWith('Network error');
     expect(logger.error).toHaveBeenCalledWith(
