@@ -12,6 +12,7 @@ import {
     PromptInputToolbar,
 } from '@/components/ai-elements/prompt-input';
 import type { ChatStatus } from 'ai'; // Import ChatStatus from 'ai'
+import { VoiceInput } from '@/components/ui/voice-input';
 
 interface ChatInputProps {
     chatInputValue: string;
@@ -24,6 +25,7 @@ interface ChatInputProps {
     isConnected: boolean;
     currentProgramScene: string | null;
     onScreenshot: () => void;
+    onAudio: (audioBlob: Blob) => void;
     chatInputRef: React.RefObject<HTMLTextAreaElement>;
 }
 
@@ -38,6 +40,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     isConnected,
     currentProgramScene,
     onScreenshot,
+    onAudio,
     chatInputRef,
 }) => {
     const [error, setError] = useState<string | undefined>(undefined);
@@ -98,6 +101,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                             >
                                 <Camera className="w-4 h-4" />
                             </PromptInputButton>
+                        </Tooltip>
+                        <Tooltip content="Use voice input">
+                            <VoiceInput onRecordStop={onAudio} />
                         </Tooltip>
                     </PromptInputTools>
                     <PromptInputSubmit

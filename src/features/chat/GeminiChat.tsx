@@ -6,6 +6,8 @@ import { useChatStore, ChatState } from '@/store/chatStore';
 import useSettingsStore from '@/store/settingsStore';
 import useConnectionsStore from '@/store/connectionsStore';
 import { ChatMessage, CatppuccinAccentColorName } from '@/types';
+import { geminiService } from '@/services/geminiService';
+import { Session } from '@google/genai';
 
 interface GeminiChatProps {
     onRefreshData?: () => Promise<void>;
@@ -52,6 +54,39 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
     const chatInputRef = useRef<HTMLTextAreaElement>(null);
     const [screenshotWidth] = useState<number>(1920);
     const [screenshotHeight] = useState<number>(1080);
+    const [liveSession, setLiveSession] = useState<Session | null>(null);
+
+    const handleAudioInput = async (audioBlob: Blob) => {
+        let session = liveSession;
+        if (!session) {
+            session = await geminiService.liveConnect({
+                model: 'gemini-1.5-flash',
+                config: {
+                    inputAudioTranscription: {
+                        model: 'chirp-2.0-us',
+                    },
+                },
+                callbacks: {
+                    onmessage: (message) => {
+                        if (message.transcription) {
+                            onChatInputChange(chatInputValue + message.transcription.text);
+                        }
+                    },
+                    onerror: (error) => {
+                        console.error('Live session error:', error);
+                    },
+                },
+            });
+            setLiveSession(session);
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            const base64Audio = (reader.result as string).split(',')[1];
+            session?.sendAudio(base64Audio);
+        };
+        reader.readAsDataURL(audioBlob);
+    };
 
     // The function that will take an action and send it to OBS
     const handleObsAction = useCallback(async (action: { type: string; args?: Record<string, unknown> }) => {
@@ -168,6 +203,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
                 isConnected={isConnected}
                 currentProgramScene={currentProgramScene}
                 onScreenshot={handleScreenshot}
+                onAudio={handleAudioInput}
                 chatInputRef={chatInputRef}
             />
         </div>

@@ -3,7 +3,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button.radix";
-import { Camera, X } from "lucide-react";
+import { Mic, X } from "lucide-react";
 
 interface VoiceInputProps extends React.HTMLAttributes<HTMLButtonElement> {
   onRecordStart?: () => void;
@@ -77,7 +77,7 @@ const VoiceInput = React.forwardRef<HTMLButtonElement, VoiceInputProps>(
           </>
         ) : (
           <>
-            <Camera className="size-4" />
+            <Mic className="size-4" />
             <span>Record</span>
           </>
         )}
