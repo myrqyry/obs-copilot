@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { BaseWidget } from './BaseWidget';
 import { Knob } from '@/components/ui/Knob';
-import { ObsWidgetConfig, ObsControlConfig } from '@/types/obs';
+import { UniversalWidgetConfig } from '@/types/universalWidget';
 import useConnectionsStore from '@/store/connectionsStore';
 import { logger } from '@/utils/logger';
 import { debounce } from '@/lib/utils';
 
 interface KnobWidgetProps {
-  config: ObsWidgetConfig;
+  config: UniversalWidgetConfig;
 }
 
 const KnobWidget: React.FC<KnobWidgetProps> = ({ config }) => {
   const { obs: obsClient, isConnected: isObsConnected } = useConnectionsStore();
-  const controlConfig = config.control as ObsControlConfig;
+  const valueMapping = config.valueMapping || { min: 0, max: 100, step: 1, unit: '' };
 
   const [currentValue, setCurrentValue] = useState(controlConfig.min || 0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -26,7 +27,9 @@ const KnobWidget: React.FC<KnobWidgetProps> = ({ config }) => {
 
       setErrorMessage(null);
 
-      const { sourceName, property, sendMethod } = controlConfig;
+      const sourceName = config.targetName;
+      const property = valueMapping.property || 'volume_db';
+      const sendMethod = config.sendMethod || 'SetInputVolume';
 
       if (!sourceName || !property || !sendMethod) {
         logger.error('Missing control configuration for OBS command.');
@@ -58,12 +61,13 @@ const KnobWidget: React.FC<KnobWidgetProps> = ({ config }) => {
     const fetchInitialValue = async () => {
       if (!isObsConnected || !obsClient) return;
 
-      const { sourceName, property } = controlConfig;
+      const sourceName = config.targetName;
+      const property = valueMapping.property || 'volume_db';
       if (!sourceName || !property) return;
 
       try {
         // TODO: Implement proper initial value fetching based on OBS API.
-        setCurrentValue(controlConfig.min || 0);
+        setCurrentValue(valueMapping.min || 0);
       } catch (error: any) {
         logger.error(`Failed to fetch initial value for ${sourceName}.${property}: ${error.message}`);
         setErrorMessage(`Failed to fetch initial value: ${error.message}`);
@@ -86,22 +90,24 @@ const KnobWidget: React.FC<KnobWidgetProps> = ({ config }) => {
   }
 
   return (
-    <div className={`flex flex-col gap-2 p-2 rounded-md border ${!isObsConnected ? 'opacity-50' : ''}`}>
-      <Knob
-        id={config.id}
-        label={config.label}
-        min={controlConfig.min || 0}
-        max={controlConfig.max || 100}
-        step={controlConfig.step || 1}
-        value={currentValue}
-        onChange={handleKnobChange}
-        onChangeEnd={handleKnobChangeEnd}
-        disabled={!isObsConnected}
-        className={config.className}
-        unit={controlConfig.unit}
-      />
-      {errorMessage && <p className="text-red-500 text-xs mt-1">{errorMessage}</p>}
-    </div>
+    <BaseWidget config={config}>
+      <div className={`flex flex-col gap-2 p-2 rounded-md border ${!isObsConnected ? 'opacity-50' : ''}`}>
+        <Knob
+          id={config.id}
+          label={config.name || config.label}
+          min={valueMapping.min || 0}
+          max={valueMapping.max || 100}
+          step={valueMapping.step || 1}
+          value={currentValue}
+          onChange={handleKnobChange}
+          onChangeEnd={handleKnobChangeEnd}
+          disabled={!isObsConnected}
+          className={config.className}
+          unit={valueMapping.unit || ''}
+        />
+        {errorMessage && <p className="text-red-500 text-xs mt-1">{errorMessage}</p>}
+      </div>
+    </BaseWidget>
   );
 };
 

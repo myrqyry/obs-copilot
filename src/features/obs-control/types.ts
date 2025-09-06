@@ -3,11 +3,23 @@
  */
 
 // Base error type for widget operations
+export interface WidgetError {
+  code: string;
+  message: string;
+  recoverable: boolean;
+  details?: Record<string, any>;
+  timestamp: number;
+  retryable: boolean;
+}
+
 export class WidgetError extends Error {
   constructor(
     message: string,
     public code: string = 'WIDGET_ERROR',
-    public recoverable: boolean = false
+    public recoverable: boolean = false,
+    public details?: Record<string, any>,
+    public timestamp: number = Date.now(),
+    public retryable: boolean = false
   ) {
     super(message);
     this.name = 'WidgetError';
@@ -18,24 +30,20 @@ export class WidgetError extends Error {
 export interface ActionResult<T = any> {
   success: boolean;
   data?: T;
-  error?: WidgetError;
+  error?: WidgetError | string;
   retryable?: boolean;
 }
 
 // Action execution context
 export interface ActionExecutionContext {
   widgetId: string;
-  action: string;
+  action?: string;
+  actionType?: string;
+  parameters?: Record<string, any>;
   value?: any;
   timestamp: number;
   retryCount: number;
 }
-
-// Action handler function signature
-export type ActionHandler<T = any> = (
-  context: ActionExecutionContext,
-  params?: Record<string, any>
-) => Promise<ActionResult<T>>;
 
 // Validation result for actions
 export interface ValidationResult {
@@ -44,6 +52,26 @@ export interface ValidationResult {
   warnings?: string[];
 }
 
+// Action handler interfaces
+export type ActionHandlerFunc<T = any> = (
+  context: ActionExecutionContext,
+  params?: Record<string, any>
+) => Promise<ActionResult<T>>;
+
+/**
+ * ActionHandler may be provided either as:
+ *  - a plain function (ActionHandlerFunc), or
+ *  - an object with an optional `validate` helper and `execute` function.
+ *
+ * This union keeps compatibility with existing code that registers both shapes.
+ */
+export type ActionHandler<T = any> =
+  | ActionHandlerFunc<T>
+  | {
+      validate?: (params?: Record<string, any>) => ValidationResult | Promise<ValidationResult>;
+      execute: ActionHandlerFunc<T>;
+    };
+
 // Widget configuration
 export interface UniversalWidgetConfig {
   id: string;
@@ -51,16 +79,25 @@ export interface UniversalWidgetConfig {
   name: string;
   description?: string;
   icon?: string;
-  actions: WidgetAction[];
+  actions?: WidgetAction[];
+  // legacy alias
   events?: string[];
+  eventSubscriptions?: string[];
   defaultState?: Partial<WidgetState>;
   validation?: WidgetValidation;
   performance?: PerformanceConfig;
   ui?: UIConfig;
+  // Engine-specific fields
+  controlType?: WidgetControlType | string;
+  actionType?: string;
+  targetType?: string;
+  targetName?: string;
+  valueMapping?: ValueMappingConfig;
+  reactionConfig?: ReactionConfig;
 }
 
-// Widget types
-export type WidgetType = 
+// Widget control types
+export type WidgetControlType =
   | 'button'
   | 'switch'
   | 'knob'
@@ -75,39 +112,86 @@ export type WidgetType =
   | 'chart'
   | 'custom';
 
+// Widget types (alias)
+export type WidgetType = WidgetControlType;
+
 // Widget action definition
 export interface WidgetAction {
   id: string;
   name: string;
   description?: string;
-  method: string; // OBS WebSocket method
-  params?: Record<string, any>;
+  method?: string; // OBS WebSocket method
+  actionType?: string;
+  parameters?: Record<string, any>;
+  params?: Record<string, any>; // legacy
   validation?: ActionValidation;
   retryConfig?: RetryConfig;
   requiresConnection?: boolean;
 }
 
+// Lightweight ActionConfig used by engine and for action sequences
+export interface ActionConfig {
+  actionType: string;
+  parameters?: Record<string, any>;
+  delay?: number;
+  sequence?: ActionConfig[];
+  condition?: string;
+  fallback?: ActionConfig;
+}
+
+// Value mapping config
+export interface ValueMappingConfig {
+  min?: number;
+  max?: number;
+  step?: number;
+  scale?: 'linear' | 'logarithmic' | 'exponential';
+  invert?: boolean;
+  customMapping?: Record<string, any>;
+  defaultValue?: any;
+  unit?: string;
+  precision?: number;
+}
+
+// Reaction config for event-driven behavior
+export interface ReactionConfig {
+  onObsEvent?: (eventType: string, data: any) => void;
+  onValueChange?: (oldValue: any, newValue: any) => void;
+  debounceMs?: number;
+  throttleMs?: number;
+}
+
 // Widget state
 export interface WidgetState {
   id: string;
-  type: WidgetType;
-  name: string;
-  enabled: boolean;
-  visible: boolean;
+  type?: WidgetType;
+  name?: string;
+  enabled?: boolean;
+  visible?: boolean;
   value?: any;
   metadata?: Record<string, any>;
   lastUpdated: number;
-  error?: WidgetError;
-  loading: boolean;
+  error?: WidgetError | string;
+  // engine-friendly flags
+  isActive?: boolean;
+  isLoading?: boolean;
+  loading?: boolean; // legacy
+}
+
+// OBS connection state for widget context
+export interface ObsConnectionState {
+  isConnected: boolean;
+  connectionState: 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'error' | string;
+  lastError?: WidgetError;
 }
 
 // Widget context for execution
 export interface WidgetContext {
-  widgetId: string;
+  widgetId?: string;
   config: UniversalWidgetConfig;
   state: WidgetState;
+  obsConnection?: ObsConnectionState;
   updateState: (updates: Partial<WidgetState>) => void;
-  executeAction: (action: string, value?: any) => Promise<ActionResult>;
+  executeAction: (action: string | WidgetAction | ActionConfig, value?: any, options?: ActionExecutionOptions) => Promise<ActionResult>;
   subscribeToEvents: (events: string[]) => void;
   unsubscribeFromEvents: (events: string[]) => void;
 }
@@ -163,18 +247,21 @@ export interface EventSubscription {
   active: boolean;
 }
 
-// Performance metrics
-export interface PerformanceMetrics {
+// Widget metrics (engine)
+export interface WidgetMetrics {
   widgetId: string;
+  renderCount: number;
   actionExecutions: number;
-  successfulExecutions: number;
-  failedExecutions: number;
-  averageExecutionTime: number;
-  lastExecutionTime?: number;
-  cacheHits: number;
-  cacheMisses: number;
-  eventCount: number;
+  eventReceived: number;
+  errors: number;
+  averageRenderTime: number;
+  averageActionTime: number;
+  memoryUsage: number;
+  lastUpdated: number;
 }
+
+// Performance metrics (legacy alias)
+export type PerformanceMetrics = WidgetMetrics;
 
 // Widget registration
 export interface WidgetRegistration {
@@ -182,7 +269,7 @@ export interface WidgetRegistration {
   config: UniversalWidgetConfig;
   context: WidgetContext;
   subscriptions: EventSubscription[];
-  metrics: PerformanceMetrics;
+  metrics: WidgetMetrics;
   createdAt: number;
   lastActivity: number;
 }
@@ -198,9 +285,9 @@ export interface EngineConfig {
 }
 
 // Action handler map
-export interface ActionHandlerMap {
-  [actionId: string]: ActionHandler;
-}
+export type ActionHandlerMap = {
+  [actionId: string]: ActionHandler | ActionHandlerFunc;
+};
 
 // Event handler map
 export interface EventHandlerMap {
@@ -258,7 +345,7 @@ export type StateChangeCallback = (widgetId: string, newState: WidgetState, oldS
 export type ErrorCallback = (widgetId: string, error: WidgetError, context: ActionExecutionContext) => void;
 
 // Performance callback
-export type PerformanceCallback = (widgetId: string, metrics: PerformanceMetrics) => void;
+export type PerformanceCallback = (widgetId: string, metrics: WidgetMetrics) => void;
 
 // Widget lifecycle callbacks
 export interface WidgetLifecycleCallbacks {

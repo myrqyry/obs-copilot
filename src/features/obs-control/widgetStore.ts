@@ -175,15 +175,15 @@ export const useWidgetStore = create<WidgetStoreState>()(
         },
 
         // Update widget state
-        updateWidgetState: (widgetId: string, state: Partial<WidgetState>) => {
+        updateWidgetState: (widgetId: string, updates: Partial<WidgetState>) => {
           set(
             (state) => {
               const context = state.widgets.get(widgetId);
               if (context) {
                 const newWidgets = new Map(state.widgets);
-                const updatedContext = {
+                const updatedContext: WidgetContext = {
                   ...context,
-                  state: { ...context.state, ...state }
+                  state: { ...context.state, ...updates }
                 };
                 newWidgets.set(widgetId, updatedContext);
                 return {
@@ -253,20 +253,26 @@ export const useWidgetStore = create<WidgetStoreState>()(
           set({ isLoading: true, error: null });
           
           try {
-            const context = get().widgets.get(widgetId);
-            if (!context) {
-              throw new Error(`Widget not found: ${widgetId}`);
+            // Prefer authoritative state from the engine if available
+            const engineContext = widgetEngine.getWidgetContext(widgetId);
+            if (!engineContext) {
+              // Fall back to local store context for better error message
+              const localContext = get().widgets.get(widgetId);
+              if (!localContext) {
+                throw new Error(`Widget not found: ${widgetId}`);
+              }
+              throw new Error(`Widget not registered in engine: ${widgetId}`);
             }
             
-            // Trigger actual state refresh through widget engine
-            const updatedState = await widgetEngine.refreshWidgetState(widgetId);
+            const updatedState = engineContext.state;
             
             set(
               (state) => {
                 const newWidgets = new Map(state.widgets);
-                const updatedContext = {
-                  ...context,
-                  state: { ...context.state, ...updatedState }
+                const existingContext = state.widgets.get(widgetId) || engineContext;
+                const updatedContext: WidgetContext = {
+                  ...existingContext,
+                  state: { ...existingContext.state, ...updatedState }
                 };
                 newWidgets.set(widgetId, updatedContext);
                 
@@ -352,6 +358,21 @@ export const useWidgetStore = create<WidgetStoreState>()(
           set({ error: null });
         },
 
+        // Add action to cache
+        addToCache: (widgetId: string, action: ActionConfig, success: boolean) => {
+          set((state) => {
+            const existing = state.recentActions[widgetId] || [];
+            const history = [...existing, { action, timestamp: Date.now(), success }].slice(-10); // Keep last 10
+            return {
+              ...state,
+              recentActions: { ...state.recentActions, [widgetId]: history }
+            };
+          });
+        },
+
+        // Get cached actions for a widget
+        getCachedActions: (widgetId: string) => get().recentActions[widgetId] || [],
+
         // Getters
         getWidget: (widgetId: string) => {
           return get().widgets.get(widgetId);
@@ -390,7 +411,7 @@ export const useWidgetStore = create<WidgetStoreState>()(
         exportWidgetConfigs: () => {
           const state = get();
           return Array.from(state.widgetConfigs.entries()).map(([id, config]) => ({
-            id,
+            // Prefer the config's fields; avoid duplicating `id` key when spreading
             ...config,
             groupId: state.widgetGroups.find(g => g.widgetIds.includes(id))?.id || null
           }));
@@ -522,6 +543,3 @@ export const useWidgetMetrics = (widgetId: string) => {
 
 // Export the store and types
 export default useWidgetStore;
-
-// Export types for external use
-export type { WidgetStoreState, WidgetGroup, WidgetLayout, WidgetTheme };

@@ -6,11 +6,11 @@ import {
   WidgetError, 
   ValidationResult,
   ActionValidation,
-  RetryConfig 
+  RetryConfig,
+  ActionHandlerFunc
 } from './types';
 import { logger } from '@/utils/logger';
 
-// Singleton OBS client instance
 const obsClient = ObsClientImpl.getInstance();
 
 /**
@@ -86,7 +86,6 @@ export class ActionHandlerSystem {
       maxDelay: 10000
     };
 
-    // Apply to all handlers
     this.handlers.forEach((_, actionId) => {
       this.retryConfigs.set(actionId, defaultRetryConfig);
     });
@@ -122,7 +121,7 @@ export class ActionHandlerSystem {
   public async validateAction(actionId: string, params?: Record<string, any>): Promise<ValidationResult> {
     const validation = this.validators.get(actionId);
     if (!validation) {
-      return { valid: true }; // No validation defined
+      return { valid: true };
     }
 
     const errors: string[] = [];
@@ -180,7 +179,7 @@ export class ActionHandlerSystem {
     context: ActionExecutionContext,
     params?: Record<string, any>
   ): Promise<ActionResult> {
-    const handler = this.handlers.get(actionId);
+    const handler = this.getHandler(actionId);
     if (!handler) {
       return {
         success: false,
@@ -189,8 +188,11 @@ export class ActionHandlerSystem {
       };
     }
 
+    // Map parameters dynamically
+    const mappedParams = this.mapParameters(actionId, params || {});
+
     // Validate action parameters
-    const validation = await this.validateAction(actionId, params);
+    const validation = await this.validateAction(actionId, mappedParams);
     if (!validation.valid) {
       return {
         success: false,
@@ -215,14 +217,30 @@ export class ActionHandlerSystem {
 
     while (retryCount <= retryConfig.maxRetries) {
       try {
-        const result = await handler({ ...context, retryCount }, params);
+        let result: ActionResult;
+        
+        // Handle both ActionHandlerFunc and object types
+        if (typeof handler === 'function') {
+          // Direct function call (ActionHandlerFunc)
+          result = await (handler as ActionHandlerFunc)(context, mappedParams);
+        } else {
+          // Object with optional validate and required execute
+          if (handler.validate) {
+            const valResult = await handler.validate(mappedParams);
+            if (!valResult.valid) {
+              throw new WidgetError(`Handler validation failed: ${valResult.errors?.join(', ')}`, 'HANDLER_VALIDATION_FAILED');
+            }
+          }
+          result = await handler.execute(context, mappedParams);
+        }
+
         if (result.success) {
           logger.info(`Action ${actionId} executed successfully`);
           return result;
         } else if (!result.retryable || retryCount >= retryConfig.maxRetries) {
           return result;
         }
-        lastError = result.error;
+        lastError = result.error as WidgetError;
       } catch (error) {
         lastError = new WidgetError(
           `Action execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`,

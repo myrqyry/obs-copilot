@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { BaseWidget } from './BaseWidget';
 import { Slider } from '@/components/ui/slider';
-import { ObsWidgetConfig, ObsControlConfig } from '@/types/obs';
+import { UniversalWidgetConfig } from '@/types/universalWidget';
 import useConnectionsStore from '@/store/connectionsStore';
 import { logger } from '@/utils/logger';
 import { debounce } from '@/lib/utils'; // Assuming a debounce utility exists or will be created
 
 interface SliderWidgetProps {
-  config: ObsWidgetConfig;
+  config: UniversalWidgetConfig;
 }
 
 const SliderWidget: React.FC<SliderWidgetProps> = ({ config }) => {
@@ -27,7 +28,9 @@ const SliderWidget: React.FC<SliderWidgetProps> = ({ config }) => {
 
       setErrorMessage(null); // Clear previous errors
 
-      const { sourceName, property, sendMethod } = controlConfig;
+      const sourceName = config.targetName;
+      const property = valueMapping.property || 'volume_db';
+      const sendMethod = config.sendMethod || 'SetInputVolume';
 
       if (!sourceName || !property || !sendMethod) {
         logger.error('Missing control configuration for OBS command.');
@@ -62,7 +65,8 @@ const SliderWidget: React.FC<SliderWidgetProps> = ({ config }) => {
     const fetchInitialValue = async () => {
       if (!isObsConnected || !obsClient) return;
 
-      const { sourceName, property } = controlConfig;
+      const sourceName = config.targetName;
+      const property = valueMapping.property || 'volume_db';
       if (!sourceName || !property) return;
 
       try {
@@ -73,7 +77,7 @@ const SliderWidget: React.FC<SliderWidgetProps> = ({ config }) => {
         // For now, we'll assume a dummy initial value or rely on user setting it.
         // TODO: Implement proper initial value fetching based on OBS API.
         // For demonstration, setting to min value.
-        setCurrentValue(controlConfig.min || 0);
+        setCurrentValue(valueMapping.min || 0);
 
         // Example for GetInputVolume:
         /*

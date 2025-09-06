@@ -7,7 +7,9 @@
         "@playwright/mcp@latest",
         "--port=",
         "--extension"
-      ]
+      ],
+      "disabled": true,
+      "alwaysAllow": []
     }
   }
 }

@@ -10,6 +10,7 @@ export interface OBSSource {
   sceneItemIndex: number;
   sourceName: string;
   sourceType: string;
+  sceneItemEnabled: boolean;
 }
 
 export interface OBSStreamStatus {
@@ -56,6 +57,12 @@ export interface ObsControlConfig {
   sendMethod: string; // OBS method to call (e.g., 'SetInputVolume', 'SetInputSettings')
   debounceMs: number; // Debounce time for onChangeEnd calls
   throttleMs: number; // Throttle time for onChange calls
+  // Phase 3 Advanced
+  multiChannel?: boolean;
+  preview?: boolean;
+  animation?: { duration: number; easing: string };
+  templates?: string[];
+  addableFilters?: string[];
 }
 
 export interface ObsWidgetConfig {
@@ -69,6 +76,32 @@ export interface ObsWidgetConfig {
   className?: string; // Added for styling customization
   // Control-specific settings
   control?: ObsControlConfig;
+}
+
+export interface OBSAudioSource extends OBSSource {
+  channels?: number[];
+  audioType?: 'input' | 'output';
+}
+
+export interface OBSFilter {
+  name: string;
+  type: string;
+  params: Record<string, any>;
+}
+
+export interface OBSSceneItemTransform {
+  position: { x: number; y: number };
+  scale: { x: number; y: number };
+  rotation: number;
+  crop: { left: number; right: number; top: number; bottom: number };
+  bounds: { width: number; height: number };
+}
+
+export interface OBSTemplate {
+  category: 'audio' | 'scene' | 'source';
+  name: string;
+  params: Record<string, any>;
+  preview?: boolean;
 }
 
 // Any other OBS related interfaces needed globally
