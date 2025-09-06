@@ -179,7 +179,27 @@ async function startUvicorn(venvPath) {
 
   // Conditionally add reload args to avoid consuming many file watchers when not desired
   const uvicornArgs = enableReload
-    ? uvicornArgsBase.concat(['--reload', '--reload-dir', path.join(process.cwd(), 'backend')])
+    ? uvicornArgsBase.concat([
+        '--reload',
+        '--reload-dir', path.join(process.cwd(), 'backend'),
+        '--reload-exclude', '**/venv/**',
+        '--reload-exclude', '**/__pycache__/**',
+        '--reload-exclude', '**/*.pyc',
+        '--reload-exclude', '**/*.pyo',
+        '--reload-exclude', '**/.pytest_cache/**',
+        '--reload-exclude', '**/.mypy_cache/**',
+        '--reload-exclude', '**/.coverage',
+        '--reload-exclude', '**/htmlcov/**',
+        '--reload-exclude', '**/.tox/**',
+        '--reload-exclude', '**/tests/**',
+        '--reload-exclude', '**/.env*',
+        '--reload-exclude', '**/*.log',
+        '--reload-exclude', '**/.DS_Store',
+        '--reload-exclude', '**/Thumbs.db',
+        '--reload-exclude', '**/*.swp',
+        '--reload-exclude', '**/*.swo',
+        '--reload-exclude', '**/*~'
+      ])
     : uvicornArgsBase;
 
   logInfo(`Starting backend server at http://${host}:${port}`);

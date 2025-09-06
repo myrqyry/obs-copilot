@@ -30,15 +30,83 @@ export default defineConfig({
     // Reduce filesystem watchers by ignoring large or generated folders
     watch: {
       ignored: [
+        // Core directories to ignore
         '**/node_modules/**',
         '**/.git/**',
         '**/dist/**',
         '**/build/**',
-        '**/backend/venv/**',
+        '**/backend/**',
         '**/tmp/**',
         '**/.cache/**',
-        '**/public/**'
+        '**/public/**',
+        
+        // Environment and config files
+        '**/.env*',
+        '**/*.log',
+        
+        // Python artifacts
+        '**/__pycache__/**',
+        '**/.pytest_cache/**',
+        '**/.mypy_cache/**',
+        '**/.coverage',
+        '**/htmlcov/**',
+        '**/.tox/**',
+        '**/coverage/**',
+        '**/*.pyc',
+        '**/*.pyo',
+        
+        // System files
+        '**/.DS_Store',
+        '**/Thumbs.db',
+        '**/*.swp',
+        '**/*.swo',
+        '**/*~',
+        
+        // Build and tool directories
+        '**/tailwind/**',
+        '**/.vscode/**',
+        '**/.idea/**',
+        '**/.cursor/**',
+        
+        // Additional aggressive ignores for large projects
+        '**/coverage/**',
+        '**/docs/**',
+        '**/stories/**',
+        '**/.storybook/**',
+        '**/.next/**',
+        '**/.nuxt/**',
+        '**/.svelte-kit/**',
+        '**/out/**',
+        '**/.output/**',
+        
+        // Test files (if not needed for development)
+        '**/*.test.*',
+        '**/*.spec.*',
+        '**/__tests__/**',
+        '**/test/**',
+        '**/tests/**',
+        
+        // Documentation
+        '**/*.md',
+        '**/README*',
+        '**/CHANGELOG*',
+        '**/LICENSE*',
+        
+        // Package manager files
+        '**/package-lock.json',
+        '**/yarn.lock',
+        '**/pnpm-lock.yaml',
+        '**/bun.lockb',
+        
+        // TypeScript build artifacts
+        '**/*.d.ts.map',
+        '**/*.js.map',
+        '**/*.tsbuildinfo',
       ],
+      // Use polling instead of native watchers for better reliability
+      usePolling: false,
+      // Increase the interval to reduce CPU usage
+      interval: 1000,
     },
   },
   preview: {
