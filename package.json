@@ -22,10 +22,10 @@
   "scripts": {
     "frontend": "vite",
     "frontend:dev": "vite",
-    "backend:setup": "cd backend && pipenv install -r requirements.txt",
+  "backend:setup": "node ./scripts/backend-preflight.js || (cd backend && pipenv install -r requirements.txt)",
     "backend:dev": "cd backend && ./venv/bin/uvicorn main:app --reload --host 0.0.0.0 --port 8000",
     "dev": "concurrently \"npm:frontend:dev\" \"npm:backend:dev\"",
-    "setup": "npm install && npm run backend:setup",
+  "setup": "npm install --legacy-peer-deps && npm run backend:setup",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint src --ext .ts,.tsx",
@@ -49,7 +49,6 @@
     "dotenv": "^17.2.1",
     "eslint": "^9.35.0",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-config-standard-with-typescript": "^43.0.1",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.3.4",
@@ -58,7 +57,7 @@
     "tailwindcss": "^3.2.4",
     "ts-jest": "^29.4.1",
     "typescript": "^5.9.2",
-    "typescript-eslint": "^8.42.0",
+    
     "vite": "^7.1.4"
   },
   "dependencies": {
