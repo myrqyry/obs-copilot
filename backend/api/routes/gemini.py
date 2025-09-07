@@ -72,7 +72,13 @@ async def stream_content(
     try:
         model = client.GenerativeModel(request.model)
         
-        response = await model.generate_content(
+        # Start a chat session with the provided history
+        chat = model.start_chat(
+            history=request.history if request.history else []
+        )
+
+        # Send the new prompt and get a streaming response
+        response = await chat.send_message(
             request.prompt,
             stream=True,
         )

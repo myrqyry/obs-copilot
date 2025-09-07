@@ -7,7 +7,7 @@ export interface ChatState {
   isGeminiClientInitialized: boolean;
   userDefinedContext: string[];
   actions: {
-    addMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
+    addMessage: (message: Partial<ChatMessage>) => void;
     replaceMessage: (messageId: string, newMessage: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
     setGeminiClientInitialized: (initialized: boolean) => void;
     addToUserDefinedContext: (context: string) => void;
@@ -22,15 +22,17 @@ export interface ChatState {
 
 export const useChatStore = create<ChatState>((set, get) => {
   const actions = {
-    addMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) =>
+    addMessage: (message: Partial<ChatMessage>) =>
       set((state) => ({
         geminiMessages: [
           ...state.geminiMessages,
           {
+            role: 'user',
+            text: '',
             ...message,
-            id: Date.now().toString() + Math.random(),
-            timestamp: new Date(),
-          },
+            id: message.id || Date.now().toString() + Math.random(),
+            timestamp: message.timestamp || new Date(),
+          } as ChatMessage,
         ],
       })),
     replaceMessage: (messageId: string, newMessage: Omit<ChatMessage, 'id' | 'timestamp'>) =>

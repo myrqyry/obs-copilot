@@ -11,6 +11,7 @@ import { GoogleGenAI, Content } from '@google/genai';
 import { Buffer } from 'buffer';
 import { pcm16ToWavUrl } from '@/lib/pcmToWavUrl';
 import { httpClient } from './httpClient';
+import { MODEL_CONFIG } from '@/config/modelConfig';
 
 // Initialize the Google GenAI client with a placeholder key
 // The actual key will be passed dynamically from the components
@@ -49,7 +50,7 @@ class GeminiService implements AIService {
     } = {}
   ): Promise<GeminiGenerateContentResponse> {
     const {
-      model = 'gemini-2.5-flash',
+      model = MODEL_CONFIG.chat,
       temperature = 0.7,
       maxOutputTokens = 1000,
       topP = 0.9,
@@ -109,7 +110,7 @@ class GeminiService implements AIService {
       history?: Array<{role: string, parts: Array<{text: string}>}>;
     } = {}
   ): Promise<void> {
-    const { model = 'gemini-1.5-flash', history = [] } = options;
+    const { model = MODEL_CONFIG.chat, history = [] } = options;
 
     try {
       const response = await httpClient.post('/gemini/stream', {
@@ -162,64 +163,6 @@ class GeminiService implements AIService {
   }
 
 
-  /**
-   * [DEPRECATED] Generate content using Gemini's streaming API directly on the client.
-   * Returns the full concatenated response text.
-   */
-  async generateStreamingContentFull(
-    prompt: string,
-    options: {
-      model?: string;
-      temperature?: number;
-      maxOutputTokens?: number;
-      topP?: number;
-      topK?: number;
-    } = {}
-  ): Promise<string> {
-    const {
-      model = 'gemini-2.5-flash',
-      temperature = 0.7,
-      maxOutputTokens = 1000,
-      topP = 0.9,
-      topK = 40,
-    } = options;
-
-    try {
-      const config: GeminiGenerateContentConfig = {
-        temperature,
-        maxOutputTokens,
-        topP,
-        topK,
-      };
-
-      // Use the streaming endpoint
-      const stream = await ai.models.generateContentStream({
-        model,
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        config,
-      });
-
-      let fullText = '';
-      for await (const chunk of stream) {
-        // Each chunk may contain partial text; concatenate safely
-        if (chunk?.text) {
-          fullText += chunk.text;
-        }
-      }
-
-      return fullText;
-    } catch (error: any) {
-      // Preserve existing error handling style
-      throw new Error(
-        handleAppError(
-          'Gemini API streaming content generation',
-          error,
-          `Model '${model}' not found or authentication failed.`
-        )
-      );
-    }
-  }
-
   async generateImage(
     prompt: string,
     options: {
@@ -233,7 +176,7 @@ class GeminiService implements AIService {
     } = {}
   ): Promise<string[]> {
     const {
-      model = 'gemini-2.5-flash-image-preview',
+      model = MODEL_CONFIG.image,
       numberOfImages = 1,
       outputMimeType = 'image/png',
       aspectRatio = '1:1',
@@ -309,7 +252,7 @@ class GeminiService implements AIService {
     } = {}
   ): Promise<string> {
     const {
-      model = 'gemini-2.5-flash-preview-tts',
+      model = MODEL_CONFIG.speech,
       voiceConfig,
       multiSpeakerVoiceConfig,
     } = options;
@@ -351,7 +294,7 @@ class GeminiService implements AIService {
     } = {}
   ): Promise<string[]> {
     const {
-      model = 'veo-3.0-fast-generate-preview',
+      model = MODEL_CONFIG.video,
       aspectRatio = '16:9',
       durationSeconds = 8,
       personGeneration = 'allow_adult',
@@ -412,7 +355,7 @@ class GeminiService implements AIService {
     } = {}
   ): Promise<any> {
     const {
-      model = 'gemini-2.5-flash',
+      model = MODEL_CONFIG.structured,
       temperature = 0.7,
       maxOutputTokens = 2000
     } = options;
@@ -453,7 +396,7 @@ class GeminiService implements AIService {
     } = {}
   ): Promise<GeminiGenerateContentResponse> {
     const {
-      model = 'gemini-2.5-flash',
+      model = MODEL_CONFIG.longContext,
       temperature = 0.7,
       maxOutputTokens = 4000
     } = options;

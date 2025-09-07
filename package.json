@@ -22,10 +22,10 @@
   "scripts": {
     "frontend": "vite",
     "frontend:dev": "vite",
-    "backend:setup": "./scripts/setup_backend.sh",
-    "backend:dev": "node scripts/backend-dev.js",
-    "dev": "concurrently \"npm run frontend:dev\" \"npm run backend:dev\"",
-    "setup": "./scripts/setup_dev.sh",
+    "backend:setup": "cd backend && pipenv install -r requirements.txt",
+    "backend:dev": "cd backend && pipenv run uvicorn main:app --reload --host 0.0.0.0 --port 8000",
+    "dev": "concurrently \"npm:frontend:dev\" \"npm:backend:dev\"",
+    "setup": "npm install && npm run backend:setup",
     "build": "vite build",
     "preview": "vite preview"
   },

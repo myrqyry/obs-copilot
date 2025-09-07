@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
 import { UniversalWidgetConfig } from '@/types/universalWidget';
 import { useWidgetStore } from './widgetStore';
-import { obsClient } from '@/services/obsClient';
-import { ErrorBoundary } from '@/components/common/ErrorBoundary';
+import { ObsClientImpl } from '@/services/obsClient';
+import ErrorBoundary from '@/components/common/ErrorBoundary';
 import { Button } from '@/components/ui/button'; // Example primitive, adjust as needed
+
+const obsClient = ObsClientImpl.getInstance();
 
 interface BaseWidgetProps {
   config: UniversalWidgetConfig;
@@ -35,7 +37,7 @@ export const BaseWidget: React.FC<BaseWidgetProps> = ({ config, children }) => {
 
   // Subscribe to events on mount
   useEffect(() => {
-    if (!isMounted || !obsClient || !eventSubscriptions?.length) return;
+    if (!isMounted || !eventSubscriptions?.length) return;
 
     const subscriptionIds = eventSubscriptions.map((event) => 
       subscribeToEvents(event, handleEvent)
