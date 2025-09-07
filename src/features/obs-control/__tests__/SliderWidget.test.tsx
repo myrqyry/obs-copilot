@@ -19,6 +19,7 @@ const mockObsClient = {
 
 describe('SliderWidget', () => {
   beforeEach(() => {
+    jest.useFakeTimers();
     // Reset mocks before each test
     mockObsClient.call.mockClear();
     mockObsClient.isConnected.mockClear();
@@ -29,6 +30,11 @@ describe('SliderWidget', () => {
       isConnected: true,
     });
     mockObsClient.isConnected.mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
   });
 
   const baseConfig: ObsWidgetConfig = {

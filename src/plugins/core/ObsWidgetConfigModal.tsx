@@ -83,7 +83,7 @@ const ObsWidgetConfigModal: React.FC<ObsWidgetConfigModalProps> = ({ onSave, sce
           <DialogTitle>Add OBS Widget</DialogTitle>
           <DialogDescription>Configure an OBS widget you can trigger quickly.</DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
+        <div className="space-y-4 max-h-full overflow-y-auto">
           <div>
             <Label htmlFor="widget-label">Label</Label>
             <Input

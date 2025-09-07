@@ -57,9 +57,9 @@ export const useApiSearch = <T>(options?: UseApiSearchOptions<T>): UseApiSearchR
         setError(errorMessage);
         toast(createToastError(
           'Search Error',
-          errorMessage
+          (err as Error).message
         ));
-        options?.onError?.(errorMessage);
+        options?.onError?.((err as Error).message);
       } finally {
         setLoading(false);
       }

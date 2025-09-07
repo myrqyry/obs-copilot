@@ -4,16 +4,16 @@ import { obsClient } from '@/services/obsClient';
 import type { UniversalWidgetConfig } from '@/types/universalWidget';
 
 interface AudioFilterWidgetProps extends UniversalWidgetConfig {
-  config: { filterType: string; params?: Record<string, any> };
+  config: { filterType: string; params?: Record<string, unknown> };
   id: string;
   className?: string;
 }
 
 const AudioFilterWidget: React.FC<AudioFilterWidgetProps> = ({ config, id }) => {
-  const { updateWidgetState } from useUniversalWidgetStore();
-  const [filters, setFilters] = useState<Record<string, any>[]>([]);
+  const { updateWidgetState } = useUniversalWidgetStore();
+  const [filters, setFilters] = useState<Record<string, unknown>[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<string>('');
-  const [filterParams, setFilterParams] = useState<Record<string, any>>({});
+  const [filterParams, setFilterParams] = useState<Record<string, unknown>>({});
   const sourceName = config.targetName || '';
 
   // Fetch initial filters
@@ -56,7 +56,7 @@ const AudioFilterWidget: React.FC<AudioFilterWidgetProps> = ({ config, id }) => 
   }, [filters, sourceName, id]);
 
   // Update filter params
-  const updateFilterParams = useCallback(async (params: Record<string, any>) => {
+  const updateFilterParams = useCallback(async (params: Record<string, unknown>) => {
     if (!obsClient.isConnected() || !selectedFilter) return;
 
     try {

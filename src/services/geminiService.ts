@@ -7,7 +7,9 @@ import {
 import { AIService } from '@/types/ai';
 import { dataUrlToBlobUrl } from '@/lib/utils';
 import { LiveConnectParameters } from '@google/genai';
-import { GoogleGenAI, Content } from '@google/genai';
+import { GoogleGenAI, Content, Type } from '@google/genai';
+import { UniversalWidgetConfig } from '@/types/universalWidget';
+import { readFileSync } from 'fs';
 import { Buffer } from 'buffer';
 import { pcm16ToWavUrl } from '@/lib/pcmToWavUrl';
 import { httpClient } from './httpClient';
@@ -437,5 +439,184 @@ class GeminiService implements AIService {
     }
   }
 }
+
+  // Widget-specific methods
+  async generateWidgetConfigFromPrompt(
+    description: string,
+    options: { temperature?: number; maxOutputTokens?: number } = {}
+  ): Promise<UniversalWidgetConfig> {
+    const {
+      temperature = 0.1, // Low temperature for consistent structured output
+      maxOutputTokens = 2000
+    } = options;
+
+    try {
+      // Read the system prompt
+      const promptPath = './src/constants/prompts/widgetGenerationPrompt.md';
+      const systemInstruction = readFileSync(promptPath, 'utf8');
+
+      // Define response schema based on UniversalWidgetConfig
+      const responseSchema = {
+        type: Type.OBJECT,
+        properties: {
+          id: { type: Type.STRING, description: 'Unique widget ID (generate if not provided)' },
+          name: { type: Type.STRING, description: 'Widget display name' },
+          controlType: {
+            type: Type.STRING,
+            enum: ['button', 'switch', 'slider', 'picker', 'stepper', 'color', 'text', 'multi', 'status', 'progress', 'meter', 'chart'],
+            description: 'Widget control type'
+          },
+          actionType: { type: Type.STRING, description: 'OBS WebSocket action (e.g., SetInputVolume)' },
+          targetType: {
+            type: Type.STRING,
+            enum: ['input', 'scene', 'source', 'filter', 'transition', 'global'],
+            description: 'Target type for the action'
+          },
+          targetName: { type: Type.STRING, description: 'Specific target name (e.g., Mic)' },
+          property: { type: Type.STRING, description: 'Property to modify (if applicable)' },
+          valueMapping: {
+            type: Type.OBJECT,
+            properties: {
+              min: { type: Type.NUMBER },
+              max: { type: Type.NUMBER },
+              step: { type: Type.NUMBER },
+              unit: { type: Type.STRING }
+            },
+            description: 'Value constraints and scaling'
+          },
+          eventSubscriptions: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+            description: 'Events to subscribe for real-time updates'
+          },
+          visualConfig: {
+            type: Type.OBJECT,
+            properties: {
+              color: { type: Type.STRING },
+              size: { type: Type.STRING }
+            },
+            description: 'Visual styling options'
+          },
+          reactionConfig: {
+            type: Type.OBJECT,
+            properties: {
+              onChange: {
+                type: Type.ARRAY,
+                items: { type: Type.OBJECT }
+              }
+            },
+            description: 'Reaction chain configurations'
+          },
+          validation: {
+            type: Type.OBJECT,
+            properties: {
+              min: { type: Type.NUMBER },
+              max: { type: Type.NUMBER }
+            },
+            description: 'Input validation rules'
+          },
+          performance: {
+            type: Type.OBJECT,
+            properties: {
+              debounce: { type: Type.NUMBER }
+            },
+            description: 'Performance optimization settings'
+          }
+        },
+        required: ['name', 'controlType', 'actionType', 'targetType'],
+        description: 'Complete UniversalWidgetConfig object'
+      };
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-pro',
+        contents: [{
+          role: 'user',
+          parts: [{
+            text: `Generate an OBS widget configuration based on this description: "${description}". Use the project mappings and ensure all required fields are present.`
+          }]
+        }],
+        config: {
+          systemInstruction,
+          temperature,
+          maxOutputTokens,
+          responseMimeType: 'application/json',
+          responseSchema
+        },
+      });
+
+      if (!response.text) {
+        throw new Error('No response generated from Gemini');
+      }
+
+      // Parse and validate the JSON response
+      let config: UniversalWidgetConfig;
+      try {
+        config = JSON.parse(response.text);
+      } catch (parseError) {
+        throw new Error(`Failed to parse JSON response: ${parseError instanceof Error ? parseError.message : 'Unknown parsing error'}`);
+      }
+
+      // Basic validation
+      if (!config.name || !config.controlType || !config.actionType || !config.targetType) {
+        throw new Error('Generated config missing required fields');
+      }
+
+      // Generate ID if not present
+      if (!config.id) {
+        config.id = `widget_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      }
+
+      return config;
+    } catch (error: any) {
+      throw new Error(handleAppError('Gemini widget config generation', error, 'Failed to generate widget configuration from description.'));
+    }
+  }
+
+  async createWidgetChatSession(): Promise<any> {
+    try {
+      // Create a chat session for iterative refinement
+      const chat = ai.chats.create({ model: 'gemini-2.5-pro' });
+      
+      // Initialize with the system prompt
+      const promptPath = './src/constants/prompts/widgetGenerationPrompt.md';
+      const systemInstruction = readFileSync(promptPath, 'utf8');
+      
+      // Send initial system message to set context
+      await chat.sendMessage({
+        message: `System: ${systemInstruction}\n\nReady to help configure OBS widgets. Please describe your desired widget.`
+      });
+
+      return chat;
+    } catch (error: any) {
+      throw new Error(handleAppError('Gemini chat session creation', error, 'Failed to create chat session for widget configuration.'));
+    }
+  }
+
+  // Method for follow-up refinements in chat session
+  async refineWidgetConfig(chatSession: any, refinementPrompt: string): Promise<UniversalWidgetConfig> {
+    try {
+      const response = await chatSession.sendMessage({ message: refinementPrompt });
+      
+      if (!response.text) {
+        throw new Error('No response from chat refinement');
+      }
+
+      let config: UniversalWidgetConfig;
+      try {
+        config = JSON.parse(response.text);
+      } catch (parseError) {
+        throw new Error(`Failed to parse refinement JSON: ${parseError instanceof Error ? parseError.message : 'Unknown parsing error'}`);
+      }
+
+      // Validate required fields
+      if (!config.name || !config.controlType || !config.actionType || !config.targetType) {
+        throw new Error('Refined config missing required fields');
+      }
+
+      return config;
+    } catch (error: any) {
+      throw new Error(handleAppError('Gemini widget refinement', error, 'Failed to refine widget configuration.'));
+    }
+  }
 
 export const geminiService = aiMiddleware(new GeminiService());

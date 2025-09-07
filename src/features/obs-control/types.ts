@@ -2,7 +2,7 @@
  * Core type definitions for the Universal Widget System
  */
 
-// Base error type for widget operations
+ // Base error type for widget operations
 export interface WidgetError {
   code: string;
   message: string;
@@ -93,7 +93,14 @@ export interface UniversalWidgetConfig {
   targetType?: string;
   targetName?: string;
   valueMapping?: ValueMappingConfig;
+  controlProps?: SliderProps;
   reactionConfig?: ReactionConfig;
+  // AI configuration for Gemini-assisted setup
+  aiConfig?: {
+    prompt?: string;
+    generated?: boolean;
+    suggestions?: string[];
+  };
 }
 
 // Widget control types
@@ -152,6 +159,8 @@ export interface ValueMappingConfig {
   precision?: number;
 }
 
+export interface SliderProps extends ValueMappingConfig {}
+
 // Reaction config for event-driven behavior
 export interface ReactionConfig {
   onObsEvent?: (eventType: string, data: any) => void;
@@ -161,13 +170,13 @@ export interface ReactionConfig {
 }
 
 // Widget state
-export interface WidgetState {
+export interface WidgetState<T = any> {
   id: string;
   type?: WidgetType;
   name?: string;
   enabled?: boolean;
   visible?: boolean;
-  value?: any;
+  value?: T;
   metadata?: Record<string, any>;
   lastUpdated: number;
   error?: WidgetError | string;

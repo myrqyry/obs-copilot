@@ -19,6 +19,7 @@ const mockObsClient = {
 
 describe('KnobWidget', () => {
   beforeEach(() => {
+    jest.useFakeTimers();
     // Reset mocks before each test
     mockObsClient.call.mockClear();
     mockObsClient.isConnected.mockClear();
@@ -29,6 +30,11 @@ describe('KnobWidget', () => {
       isConnected: true,
     });
     mockObsClient.isConnected.mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
   });
 
   const baseConfig: ObsWidgetConfig = {

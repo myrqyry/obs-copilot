@@ -3,15 +3,10 @@ export default {
   preset: 'ts-jest',
   testEnvironment: 'jest-environment-jsdom',
   transform: {
-    '^.+\\.(ts|tsx|js|jsx|mjs|cjs)$': [
-      'ts-jest',
-      {
-        useESM: true,
-      },
-    ],
+    '^.+\\.(ts|tsx|js|jsx|mjs|cjs)$': 'ts-jest',
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(?:@testing-library/jest-dom|gsap)/)',
+    '/node_modules/(?!gsap)/'
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',

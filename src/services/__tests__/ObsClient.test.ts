@@ -24,6 +24,10 @@ describe('ObsClientImpl', () => {
     mockObs = obsClient.obs as jest.Mocked<OBSWebSocket>;
   });
 
+  afterEach(() => {
+    obsClient.disconnect();
+  });
+
   it('should connect to OBS', async () => {
     const address = 'localhost:4455';
     const password = 'password';

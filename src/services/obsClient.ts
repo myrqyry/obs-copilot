@@ -72,7 +72,12 @@ export class ObsClientImpl {
 
   private setupEventListeners() {
     this.obs.on('ConnectionOpened', () => {
-      logger.info('OBS connection opened.');
+      logger.info('OBS connection opened. Awaiting identification...');
+      // Do not set to 'connected' yet; wait for 'Identified'
+    });
+
+    this.obs.on('Identified', () => {
+      logger.info('OBS Identified: Socket ready for API calls.');
       this.setStatus('connected');
       this.connEpoch++;
       this.retryCount = 0;
@@ -153,8 +158,9 @@ export class ObsClientImpl {
   call<T = any>(method: string, params?: Record<string, any>): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       const requestId = `${method}-${Date.now()}`;
-      if (this.status !== 'connected') {
-        logger.warn(`OBS not connected. Queuing command: ${method}`);
+      const obsInstance = this.obs as any; // To access identified property
+      if (this.status !== 'connected' || !obsInstance.identified) {
+        logger.warn(`OBS not ready (status: ${this.status}, identified: ${obsInstance.identified}). Queuing command: ${method}`);
         this.commandQueue.push({ id: requestId, method, params, resolve, reject, connEpoch: this.connEpoch });
         return;
       }
@@ -171,7 +177,7 @@ export class ObsClientImpl {
         })
         .catch(error => {
           logger.error(`OBS call failed for method ${method}:`, error);
-          if (this.status !== 'connected') {
+          if (this.status !== 'connected' || !obsInstance.identified) {
             logger.warn(`Re-queuing command ${method} due to connection issue.`);
             this.commandQueue.push({ id: requestId, method, params, resolve, reject, connEpoch: this.connEpoch });
           } else {
@@ -285,5 +291,43 @@ export class ObsClientImpl {
 
   async stopRecord() {
     await this.call('StopRecord');
+  }
+
+  // Widget-specific methods
+  async getAvailableTargets(type: TargetType): Promise<string[]> {
+    switch (type) {
+      case TargetType.INPUT:
+        const inputs = await this.call('GetInputList');
+        return inputs.inputs.map((input: any) => input.inputName);
+      case TargetType.SCENE:
+        const scenes = await this.call('GetSceneList');
+        return scenes.scenes.map((scene: any) => scene.sceneName);
+      case TargetType.TRANSITION:
+        const transitions = await this.call('GetTransitionList');
+        return transitions.transitions.map((t: any) => t.transitionName);
+      default:
+        return [];
+    }
+  }
+
+  async executeWidgetAction(config: UniversalWidgetConfig, value: any): Promise<void> {
+    const params: Record<string, any> = {};
+    if (config.targetName) params.inputName = config.targetName;
+    if (config.targetType === TargetType.SCENE && config.targetName) params.sceneName = config.targetName;
+
+    switch (config.actionType) {
+      case 'SetVolume':
+        await this.call('SetInputVolume', { ...params, inputVolumeDb: value });
+        break;
+      case 'SetInputMute':
+        await this.call('SetInputMute', { ...params, inputMuted: value });
+        break;
+      case 'SetCurrentScene':
+        await this.call('SetCurrentScene', { sceneName: value });
+        break;
+      // Add more cases as needed
+      default:
+        throw new ObsError(`Unsupported action: ${config.actionType}`);
+    }
   }
 }

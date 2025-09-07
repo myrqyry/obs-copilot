@@ -11,7 +11,7 @@ import {
   ObsConnectionState
 } from './types';
 import { actionHandlers } from './ActionHandler';
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'eventemitter3';
 
 const obsClient = ObsClientImpl.getInstance();
 
@@ -20,6 +20,17 @@ const obsClient = ObsClientImpl.getInstance();
  * Handles action execution, event subscriptions, state synchronization, and performance optimization
  */
 export class UniversalWidgetEngine extends EventEmitter {
+  private static _instance: UniversalWidgetEngine | null = null;
+
+  /**
+   * Get or create the singleton instance of the engine
+   */
+  public static getInstance(): UniversalWidgetEngine {
+    if (!this._instance) {
+      this._instance = new UniversalWidgetEngine();
+    }
+    return this._instance;
+  }
   private widgets: Map<string, WidgetContext> = new Map();
   private eventSubscriptions: Map<string, Set<string>> = new Map();
   private actionCache: Map<string, ActionResult> = new Map();
@@ -824,7 +835,6 @@ export interface WidgetMetrics {
   lastUpdated: number;
 }
 
-// Create singleton instance
-export const widgetEngine = new UniversalWidgetEngine();
+export const widgetEngine = UniversalWidgetEngine.getInstance();
 
 export default widgetEngine;

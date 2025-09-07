@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+
 # Define comprehensive Pydantic model for image generation
 class EnhancedImageGenerateRequest(BaseModel):
     prompt: str

@@ -81,7 +81,7 @@ export function FaviconDropdown({ options, value, onChange, className = '', plac
             
             // Ensure dropdown doesn't go outside viewport horizontally
             let left = rect.left;
-            let width = rect.width;
+            const width = rect.width;
             if (left + width > viewportWidth) {
                 left = viewportWidth - width - 8; // 8px padding from right edge
             }

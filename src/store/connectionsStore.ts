@@ -82,9 +82,9 @@ const useConnectionsStore = create<ConnectionState>()(
           isLoading: status === 'connecting' || status === 'reconnecting',
           connectionError: status === 'error' ? 'Connection failed' : null,
         });
-
+    
         if (status === 'connected') {
-          // When connected, fetch initial data
+          // When connected (post-Identified), fetch initial data
           obsClient.getSceneList().then(({ scenes }) => set({ scenes }));
           obsClient.getCurrentProgramScene().then(({ currentProgramSceneName }) => set({ currentProgramScene: currentProgramSceneName }));
           obsClient.getStreamStatus().then((status) => set({ streamStatus: status as OBSStreamStatus }));

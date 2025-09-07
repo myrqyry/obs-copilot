@@ -98,7 +98,7 @@ export const ImageEditor: React.FC = () => {
             await new Promise(resolve => image.onload = resolve);
 
             const canvas = document.createElement('canvas');
-            let ctx = canvas.getContext('2d');
+            const ctx = canvas.getContext('2d');
             if (!ctx) throw new Error("Could not get canvas context");
 
             let currentWidth = image.naturalWidth;

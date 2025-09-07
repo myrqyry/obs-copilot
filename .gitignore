@@ -63,8 +63,9 @@ yarn-error.log*
 .netlify
 netlify/edge-functions
 netlify/functions
-.kilocode/
+.kilocode/*
 .cursorignore
+**/__pycache__/**
 
 # AppMap
 /tmp/appmap/

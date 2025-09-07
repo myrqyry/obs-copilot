@@ -8,10 +8,13 @@ from fastapi.responses import JSONResponse
 from fastapi_mcp import FastApiMCP  # Import FastApiMCP
 from dotenv import load_dotenv # Import load_dotenv
 
-from backend.auth import get_api_key
-from backend.api.routes import gemini
-from backend.api.routes import assets
-from backend.middleware import logging_middleware
+from .auth import get_api_key
+from .api.routes import gemini
+from .api.routes import assets
+from .api.routes import overlays
+from .api.routes import proxy_7tv
+from .api.routes import proxy_emotes
+from .middleware import logging_middleware
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -93,6 +96,9 @@ def health_check():
 
 app.include_router(gemini.router, prefix="/api/gemini", tags=["gemini"])
 app.include_router(assets.router, prefix="/api/assets", tags=["assets"])
+app.include_router(overlays.router, prefix="/api/overlays", tags=["overlays"])
+app.include_router(proxy_7tv.router, prefix="/api/proxy", tags=["proxy"])
+app.include_router(proxy_emotes.router, prefix="/api/proxy/emotes", tags=["proxy_emotes"])
 
 
 @app.get("/secure", operation_id="get_secure_data")

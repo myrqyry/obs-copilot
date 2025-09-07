@@ -22,6 +22,7 @@ export default defineConfig({
     host: true, // bind on all interfaces for LAN testing
     proxy: {
       '/api': {
+        // Backend dev helper usually listens on 8000 in this environment.
         target: 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
