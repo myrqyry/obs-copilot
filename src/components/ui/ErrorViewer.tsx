@@ -127,13 +127,13 @@ const ErrorViewer: React.FC<ErrorViewerProps> = ({ isOpen, onClose, className })
       case 'error':
         return <AlertTriangle className="w-4 h-4 text-destructive" />;
       case 'warning':
-        return <AlertTriangle className="w-4 h-4 text-yellow-500" />;
+        return <AlertTriangle className="w-4 h-4 text-warning" />;
       case 'info':
         return <Info className="w-4 h-4 text-info" />;
       case 'debug':
-        return <CheckCircle className="w-4 h-4 text-gray-500" />;
+        return <CheckCircle className="w-4 h-4 text-muted-foreground" />;
       default:
-        return <Info className="w-4 h-4 text-gray-500" />;
+        return <Info className="w-4 h-4 text-muted-foreground" />;
     }
   };
 
@@ -142,13 +142,13 @@ const ErrorViewer: React.FC<ErrorViewerProps> = ({ isOpen, onClose, className })
       case 'error':
         return 'bg-destructive/10 border-destructive/20 text-destructive';
       case 'warning':
-        return 'bg-yellow-50 border-yellow-200 text-yellow-900';
+        return 'bg-warning/10 border-warning/20 text-warning';
       case 'info':
-        return 'bg-blue-50 border-blue-200 text-blue-900';
+        return 'bg-info/10 border-info/20 text-info';
       case 'debug':
-        return 'bg-gray-50 border-gray-200 text-gray-900';
+        return 'bg-muted/10 border-muted/20 text-muted-foreground';
       default:
-        return 'bg-gray-50 border-gray-200 text-gray-900';
+        return 'bg-muted/10 border-muted/20 text-muted-foreground';
     }
   };
 
@@ -226,7 +226,7 @@ const ErrorViewer: React.FC<ErrorViewerProps> = ({ isOpen, onClose, className })
               <button
                 onClick={() => fetchLogs()}
                 disabled={isLoading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
               >
                 {isLoading ? 'Loading...' : 'Refresh'}
               </button>
@@ -237,8 +237,8 @@ const ErrorViewer: React.FC<ErrorViewerProps> = ({ isOpen, onClose, className })
           <div className="overflow-y-auto max-h-96">
             {isLoading ? (
               <div className="flex items-center justify-center p-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <span className="ml-3 text-gray-600">Loading logs...</span>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <span className="ml-3 text-muted-foreground">Loading logs...</span>
               </div>
             ) : filteredLogs.length === 0 ? (
               <div className="text-center p-8 text-gray-500">

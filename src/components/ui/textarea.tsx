@@ -63,7 +63,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
       return cn(
         'absolute left-3 -translate-y-1/2 pointer-events-none transform transition-all duration-200 ease-in-out',
         isFocused || (value && String(value).length > 0) ? 'text-xs top-2.5' : 'text-base top-1/2',
-        error ? 'text-destructive' : success ? 'text-green-600' : 'text-muted-foreground'
+        error ? 'text-destructive' : success ? 'text-accent' : 'text-muted-foreground'
       );
     };
 

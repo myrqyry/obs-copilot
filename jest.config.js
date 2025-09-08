@@ -3,10 +3,11 @@ export default {
   preset: 'ts-jest',
   testEnvironment: 'jest-environment-jsdom',
   transform: {
-    '^.+\\.(ts|tsx|js|jsx|mjs|cjs)$': 'ts-jest',
+    '^.+\\.(ts|tsx|js|jsx|cjs)$': 'ts-jest',
+    '^.+\\.mjs$': 'babel-jest',
   },
   transformIgnorePatterns: [
-    '/node_modules/(?!gsap)/'
+    '/node_modules/(?!gsap|@streamerbot/client|uncrypto)/'
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
@@ -21,6 +22,7 @@ export default {
     "js",
     "jsx",
     "json",
-    "node"
+    "node",
+    "mjs"
   ],
 };

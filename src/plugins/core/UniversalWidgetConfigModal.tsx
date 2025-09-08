@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CollapsibleSection } from '@/components/common/CollapsibleSection';
-import { WidgetTemplateSelector } from '@/features/obs-control/WidgetTemplateSelector';
-import { ActionParameterMapper } from '@/features/obs-control/ActionParameterMapper';
+import WidgetTemplateSelector from '@/features/obs-control/WidgetTemplateSelector';
 import { useUniversalWidgetStore } from '@/store/widgetsStore';
 import { useObsWidget } from '@/hooks/useObsWidget';
 import type { UniversalWidgetConfig } from '@/types/universalWidget';
@@ -82,7 +81,9 @@ const UniversalWidgetConfigModal: React.FC<UniversalWidgetConfigModalProps> = ({
         {selectedTemplate && (
           <CollapsibleSection title="Parameters" defaultOpen={true}>
             <div className="mb-2">
-              <ActionParameterMapper parameters={parameters} onChange={handleParameterChange} id={id} />
+              {/* TODO: ActionParameterMapper component is missing */}
+              {/* <ActionParameterMapper parameters={parameters} onChange={handleParameterChange} id={id} /> */}
+              <p className="text-gray-400 text-sm">Parameter mapping will be available once ActionParameterMapper is implemented.</p>
             </div>
           </CollapsibleSection>
         )}

@@ -153,7 +153,7 @@ const AudioVolumeWidget: React.FC<AudioVolumeWidgetProps> = ({ config, id }) => 
       <div className="mb-4">
         <button
           onClick={handleMuteToggle}
-          className={`px-4 py-2 rounded ${isMuted ? 'bg-red-500' : 'bg-green-500'} text-white`}
+          className={`px-4 py-2 rounded ${isMuted ? 'bg-destructive hover:bg-destructive/90' : 'bg-accent hover:bg-accent/90'} text-white transition-colors`}
         >
           {isMuted ? 'Unmute' : 'Mute'}
         </button>
@@ -161,7 +161,7 @@ const AudioVolumeWidget: React.FC<AudioVolumeWidgetProps> = ({ config, id }) => 
 
       {/* Balance Slider */}
       <div className="mb-4">
-        <label className="text-gray-300 mb-1 block">Balance ({balance})</label>
+        <label className="text-muted-foreground mb-1 block">Balance ({balance})</label>
         <input
           type="range"
           min="-100"

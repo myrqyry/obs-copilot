@@ -14,23 +14,23 @@ const HealthStatusIndicator: React.FC<HealthStatusIndicatorProps> = ({ className
     healthy: {
       icon: CheckCircle,
       label: 'All Systems Operational',
-      color: 'text-green-600',
-      bgColor: 'bg-green-100',
-      borderColor: 'border-green-200',
+      color: 'text-accent',
+      bgColor: 'bg-accent/10',
+      borderColor: 'border-accent/20',
       description: 'All services are running normally'
     },
     degraded: {
       icon: AlertTriangle,
       label: 'Some Systems Degraded',
-      color: 'text-yellow-600',
-      bgColor: 'bg-yellow-100',
-      borderColor: 'border-yellow-200',
+      color: 'text-warning',
+      bgColor: 'bg-warning/10',
+      borderColor: 'border-warning/20',
       description: 'Some services are experiencing issues'
     },
     critical: {
       icon: XCircle,
       label: 'Critical Systems Down',
-      color: 'text-red-600',
+      color: 'text-destructive',
       bgColor: 'bg-destructive/10',
       borderColor: 'border-destructive/20',
       description: 'Critical services are unavailable'
@@ -38,9 +38,9 @@ const HealthStatusIndicator: React.FC<HealthStatusIndicatorProps> = ({ className
     unknown: {
       icon: Activity,
       label: 'Status Unknown',
-      color: 'text-gray-600',
-      bgColor: 'bg-gray-100',
-      borderColor: 'border-gray-200',
+      color: 'text-muted-foreground',
+      bgColor: 'bg-muted/10',
+      borderColor: 'border-muted/20',
       description: 'Unable to determine system status'
     }
   };
@@ -139,20 +139,20 @@ const HealthStatusIndicator: React.FC<HealthStatusIndicatorProps> = ({ className
           className={`ml-2 p-1 rounded transition-colors ${
             isChecking
               ? 'opacity-50 cursor-not-allowed'
-              : 'hover:bg-opacity-75 hover:bg-gray-200'
+              : 'hover:bg-opacity-75 hover:bg-muted/20'
           }`}
           aria-label={isChecking ? 'Refreshing health status' : 'Refresh health status'}
         >
           {isChecking ? (
-            <RefreshCw className="w-4 h-4 animate-spin text-gray-600" />
+            <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
           ) : (
-            <RefreshCw className="w-4 h-4 text-gray-600" />
+            <RefreshCw className="w-4 h-4 text-muted-foreground" />
           )}
         </button>
       </div>
 
       {/* Time Since Last Check */}
-      <span className="text-xs text-gray-500">
+      <span className="text-xs text-muted-foreground">
         Last checked {timeAgo}
       </span>
 

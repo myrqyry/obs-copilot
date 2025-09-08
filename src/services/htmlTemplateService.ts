@@ -1,4 +1,28 @@
 import { ObsClientImpl } from './obsClient';
+
+// Helper function to get current theme colors from CSS custom properties
+function getCurrentThemeColors() {
+  const root = document.documentElement;
+  const style = getComputedStyle(root);
+  
+  // Helper to convert HSL values to usable colors
+  const getHslColor = (property: string, fallback: string) => {
+    const hslValue = style.getPropertyValue(property).trim();
+    return hslValue ? `hsl(${hslValue})` : fallback;
+  };
+  
+  return {
+    primary: getHslColor('--primary', '#a6e3a1'),
+    secondary: getHslColor('--secondary', '#94e2d5'), 
+    accent: getHslColor('--accent', '#89dceb'),
+    background: getHslColor('--background-overlay', 'rgba(30, 30, 46, 0.9)'),
+    text: getHslColor('--foreground', '#cdd6f4'),
+    border: getHslColor('--border', '#45475a'),
+    destructive: getHslColor('--destructive', '#f38ba8'),
+    warning: getHslColor('--warning', '#f9e2af'),
+    info: getHslColor('--info', '#89b4fa'),
+  };
+}
 export interface TemplateConfig {
   layout: 'overlay' | 'fullscreen' | 'sidebar' | 'corner';
   position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
@@ -37,37 +61,34 @@ export interface TemplateConfig {
 }
 
 export const HtmlTemplateService = {
-  getPresetTemplates(): Record<string, Partial<TemplateConfig>> {
+  getPresetTemplates(): Record<string, any> {
+    const themeColors = getCurrentThemeColors();
+    
     return {
       'assets-showcase': {
         layout: 'overlay',
         content: {
           title: '🌈 Stream Assets',
-          subtitle: 'Fresh content for your stream',
-          body: 'Check out these cool assets!',
+          subtitle: 'Amazing graphics and animations',
+          body: 'Check out these awesome assets for your stream!',
         },
         animations: {
           enabled: true,
-          speed: 0.3,
+          speed: 0.5,
           effects: {
-            glow: 1,
+            glow: 3,
             rainbow: false,
             pulse: true,
           },
         },
         colors: {
-          primary: '#a6e3a1',
-          secondary: '#94e2d5',
-          accent: '#89dceb',
-          background: 'rgba(30, 30, 46, 0.9)',
-          text: '#cdd6f4',
-          border: '#45475a',
+          primary: themeColors.accent,
+          secondary: themeColors.secondary,
+          accent: themeColors.primary,
+          background: themeColors.background,
+          text: themeColors.text,
+          border: themeColors.border,
         },
-        assets: [
-          { type: 'image', name: 'Logo', url: '/assets/logo.png' },
-          { type: 'gif', name: 'Celebration', url: '/assets/celebration.gif' },
-        ],
-      },
       'stream-starting': {
         layout: 'overlay',
         content: {
@@ -92,7 +113,36 @@ export const HtmlTemplateService = {
           text: '#cdd6f4',
           border: '#f38ba8',
         },
-        assets: [{ type: 'svg', name: 'Countdown', url: '/assets/countdown.svg' }],
+        },
+        assets: [
+          { type: 'image', name: 'Logo', url: '/assets/logo.png' },
+          { type: 'gif', name: 'Celebration', url: '/assets/celebration.gif' },
+        ],
+      },
+      'stream-starting': {
+        layout: 'overlay',
+        content: {
+          title: '🔴 STREAM STARTING',
+          subtitle: 'Get ready for an amazing stream!',
+          body: "We'll be live in just a moment...",
+        },
+        animations: {
+          enabled: true,
+          speed: 0.3,
+          effects: {
+            glow: 2,
+            rainbow: true,
+            pulse: true,
+          },
+        },
+        colors: {
+          primary: themeColors.destructive,
+          secondary: themeColors.warning,
+          accent: themeColors.accent,
+          background: themeColors.background,
+          text: themeColors.text,
+          border: themeColors.destructive,
+        },
       },
       'be-right-back': {
         layout: 'fullscreen',

@@ -1,1 +1,1 @@
-export { default as CardStack } from './CardStack';
+export { CardStack } from './CardStack';

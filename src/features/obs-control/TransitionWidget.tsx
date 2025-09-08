@@ -75,7 +75,7 @@ const TransitionWidget: React.FC<TransitionWidgetProps> = ({ config, id }) => {
         <button
           onClick={() => setTransition(selectedTransition, duration)}
           disabled={loading || !selectedTransition}
-          className="w-full p-2 bg-blue-500 text-white rounded disabled:bg-gray-500"
+          className="w-full p-2 bg-primary hover:bg-primary/90 text-white rounded disabled:bg-muted disabled:text-muted-foreground transition-colors"
         >
           {loading ? 'Applying...' : 'Apply Transition'}
         </button>

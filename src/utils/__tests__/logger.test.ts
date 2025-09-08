@@ -1,24 +1,42 @@
-import { logger } from '../logger';
+// Mock global console before any tests run
+jest.doMock('console', () => ({
+  log: jest.fn(),
+  debug: jest.fn(),
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+}));
+
+let logger: typeof import('../logger').logger;
+let consoleDebug: any;
+let consoleInfo: any;
+let consoleWarn: any;
+let consoleError: any;
 
 describe('Logger', () => {
-  let consoleSpy: jest.SpyInstance;
-
   beforeEach(() => {
-    // Spy on all console methods to prevent actual console output during tests
-    consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-    jest.spyOn(console, 'debug').mockImplementation(() => {});
-    jest.spyOn(console, 'info').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.resetModules(); // Reset module registry so require('../logger') yields a fresh module
+
+    // Get the mocked console methods
+    const mockConsole = require('console');
+    consoleDebug = mockConsole.debug;
+    consoleInfo = mockConsole.info;
+    consoleWarn = mockConsole.warn;
+    consoleError = mockConsole.error;
+
+    // Import the logger after mocking console
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const mod = require('../logger');
+    logger = mod.logger;
   });
 
   afterEach(() => {
-    jest.restoreAllMocks(); // Restore original console methods
+    jest.clearAllMocks(); // Clear mock calls between tests
   });
 
   it('should log debug messages', () => {
     logger.debug('Debug message', { key: 'value' });
-    expect(console.debug).toHaveBeenCalledWith(
+    expect(consoleDebug).toHaveBeenCalledWith(
       expect.stringContaining('[DEBUG]'),
       'Debug message',
       { key: 'value' },
@@ -27,7 +45,7 @@ describe('Logger', () => {
 
   it('should log info messages', () => {
     logger.info('Info message', 123);
-    expect(console.info).toHaveBeenCalledWith(
+    expect(consoleInfo).toHaveBeenCalledWith(
       expect.stringContaining('[INFO]'),
       'Info message',
       123,
@@ -36,18 +54,21 @@ describe('Logger', () => {
 
   it('should log warn messages', () => {
     logger.warn('Warning message');
-    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('[WARN]'), 'Warning message');
+    expect(consoleWarn).toHaveBeenCalledWith(
+      expect.stringContaining('[WARN]'),
+      'Warning message',
+    );
   });
 
   it('should log error messages and capture error details', () => {
     const testError = new Error('Something went wrong');
     logger.error('Error occurred', testError);
-    expect(console.error).toHaveBeenCalledWith(
+    expect(consoleError).toHaveBeenCalledWith(
       expect.stringContaining('[ERROR]'),
       'Error occurred',
       testError,
     );
-    expect(console.error).toHaveBeenCalledWith(
+    expect(consoleError).toHaveBeenCalledWith(
       'Error details:',
       testError.message,
       testError.stack,
@@ -56,12 +77,12 @@ describe('Logger', () => {
 
   it('should log error messages without error details if not an Error object', () => {
     logger.error('Another error', 'just a string');
-    expect(console.error).toHaveBeenCalledWith(
+    expect(consoleError).toHaveBeenCalledWith(
       expect.stringContaining('[ERROR]'),
       'Another error',
       'just a string',
     );
-    expect(console.error).not.toHaveBeenCalledWith(
+    expect(consoleError).not.toHaveBeenCalledWith(
       'Error details:',
       expect.any(String),
       expect.any(String),

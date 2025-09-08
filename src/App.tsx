@@ -1,15 +1,16 @@
  // src/App.tsx
- import React, { useEffect, useRef, useState, useCallback } from 'react';
- import { gsap } from 'gsap';
- import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
- import ComprehensiveErrorBoundary from './components/common/ComprehensiveErrorBoundary';
- import { Header } from './components/layout/Header';
- import { TabNavigation } from './components/layout/TabNavigation';
- import { ConnectionProvider } from './features/connections/ConnectionProvider';
- import useSettingsStore from './store/settingsStore';
- import { usePlugins } from './hooks/usePlugins';
-
- // Register GSAP plugins for animations
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { gsap } from 'gsap';
+import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
+// Import GSAP test for development verification
+import './utils/gsapTest';
+import ComprehensiveErrorBoundary from './components/common/ComprehensiveErrorBoundary';
+import { Header } from './components/layout/Header';
+import { TabNavigation } from './components/layout/TabNavigation';
+import { ConnectionProvider } from './features/connections/ConnectionProvider';
+import useSettingsStore from './store/settingsStore';
+import { usePlugins } from './hooks/usePlugins';
+import { useTheme } from './hooks/useTheme'; // Register GSAP plugins for animations
  try {
    gsap.registerPlugin(MorphSVGPlugin);
  } catch (error) {
@@ -18,18 +19,20 @@
 
  import TwitchCallback from './features/auth/TwitchCallback';
 
- const App: React.FC = () => {
-     const plugins = usePlugins();
-     const [activeTab, setActiveTab] = useState<string>('gemini');
-     
-     const headerRef = useRef<HTMLDivElement>(null);
-     const { theme, flipSides } = useSettingsStore();
+const App: React.FC = () => {
+    const plugins = usePlugins();
+    const [activeTab, setActiveTab] = useState<string>('gemini');
+    
+    const headerRef = useRef<HTMLDivElement>(null);
+    const theme = useSettingsStore((state) => state.theme);
+    const flipSides = useSettingsStore((state) => state.flipSides);
+    
+    // Initialize and apply themes
+    useTheme();
 
-     const handleTabChange = useCallback((tabId: string) => {
-         setActiveTab(tabId);
-     }, []);
-
-
+    const handleTabChange = useCallback((tabId: string) => {
+        setActiveTab(tabId);
+    }, []);
      useEffect(() => {
        const root = window.document.documentElement;
        root.classList.remove('light', 'dark');
@@ -38,7 +41,10 @@
          const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
          root.classList.add(systemTheme);
        } else {
-         root.classList.add(theme.base);
+         // Ensure theme.base is a string before adding it
+         if (typeof theme.base === 'string') {
+           root.classList.add(theme.base);
+         }
        }
      }, [theme.base]);
 

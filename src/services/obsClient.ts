@@ -96,6 +96,19 @@ export class ObsClientImpl {
         this.setStatus('reconnecting');
         this.handleReconnect();
     });
+
+    // Catch general errors to prevent uncaught exceptions in connection/retry logic
+    this.obs.on('error', (err: any) => {
+      logger.error('Uncaught OBS error:', err);
+      if (err instanceof ObsError) {
+        logger.error(`ObsError details: ${err.message}`);
+        this.setStatus('error');
+        // Optionally trigger reconnect for non-fatal errors
+        if (this.status === 'reconnecting' || this.status === 'connecting') {
+          this.handleReconnect();
+        }
+      }
+    });
   }
 
   private async handleReconnect() {
@@ -133,6 +146,7 @@ export class ObsClientImpl {
 
   async disconnect(): Promise<void> {
     this.connectOptions = null; // Prevent reconnecting after manual disconnect
+    this.commandQueue = []; // Clear any pending commands to prevent stale processing
     this.setStatus('disconnected');
     try {
       await this.obs.disconnect();
@@ -142,42 +156,45 @@ export class ObsClientImpl {
   }
 
   private processCommandQueue() {
-    const queue = this.commandQueue;
-    this.commandQueue = [];
-    logger.info(`Processing ${queue.length} queued OBS commands.`);
-    queue.forEach(command => {
-        if (command.connEpoch < this.connEpoch) {
-            command.reject(new ObsError('Stale command from previous connection.'));
-            return;
-        }
-      this.call(command.method, command.params)
-        .then(command.resolve)
-        .catch(command.reject);
-    });
-  }
+      const queue = this.commandQueue;
+      this.commandQueue = [];
+      console.log(`[DEBUG] Processing ${queue.length} queued OBS commands, current connEpoch: ${this.connEpoch}`); // Queue processing log
+      queue.forEach(command => {
+          if (command.connEpoch < this.connEpoch) {
+              console.log(`[DEBUG] Rejecting stale command ${command.method} from epoch ${command.connEpoch}`); // Stale rejection log
+              command.reject(new ObsError('Stale command from previous connection.'));
+              return;
+          }
+        this.call(command.method, command.params)
+          .then(command.resolve)
+          .catch(command.reject);
+      });
+    }
 
   call<T = any>(method: string, params?: Record<string, any>): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       const requestId = `${method}-${Date.now()}`;
       const obsInstance = this.obs as any; // To access identified property
       if (this.status !== 'connected' || !obsInstance.identified) {
-        logger.warn(`OBS not ready (status: ${this.status}, identified: ${obsInstance.identified}). Queuing command: ${method}`);
+        console.log(`[DEBUG] OBS not ready (status: ${this.status}, identified: ${obsInstance.identified}). Queuing command: ${method}`); // Queue log
         this.commandQueue.push({ id: requestId, method, params, resolve, reject, connEpoch: this.connEpoch });
         return;
       }
 
       const currentEpoch = this.connEpoch;
+      console.log(`[DEBUG] OBS call ${method}, current connEpoch: ${currentEpoch}, status: ${this.status}`); // Call start log
 
       this.obs.call<T>(method, params)
         .then(response => {
             if (this.connEpoch !== currentEpoch) {
+                console.log(`[DEBUG] Rejecting stale response for ${method}, epoch mismatch: ${this.connEpoch} != ${currentEpoch}`); // Stale response log
                 reject(new ObsError('Stale response from previous connection.'));
             } else {
                 resolve(response);
             }
         })
         .catch(error => {
-          logger.error(`OBS call failed for method ${method}:`, error);
+          console.error(`[DEBUG] OBS call failed for method ${method}:`, error); // Call failure log
           if (this.status !== 'connected' || !obsInstance.identified) {
             logger.warn(`Re-queuing command ${method} due to connection issue.`);
             this.commandQueue.push({ id: requestId, method, params, resolve, reject, connEpoch: this.connEpoch });

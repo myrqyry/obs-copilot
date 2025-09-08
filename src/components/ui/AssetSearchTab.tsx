@@ -61,12 +61,12 @@ const AssetSearchTab: React.FC = () => {
         )}
       </div>
       <div className="text-center">
-        <h3 className="text-xl font-bold text-gray-800">{item.title}</h3>
-        <p className="text-gray-600">by {item.author}</p>
+        <h3 className="text-xl font-bold text-foreground">{item.title}</h3>
+        <p className="text-muted-foreground">by {item.author}</p>
         {item.tags && item.tags.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-3 justify-center">
             {item.tags.slice(0, 8).map(tag => (
-              <span key={tag} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+              <span key={tag} className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium border border-primary/20">
                 {tag}
               </span>
             ))}

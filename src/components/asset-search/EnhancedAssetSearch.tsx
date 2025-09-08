@@ -365,7 +365,7 @@ export const EnhancedAssetSearch: React.FC<EnhancedAssetSearchProps> = ({
                 {showAdvancedFilters ? 'Hide' : 'Show'} Advanced Filters
               </button>
               {selectedConfig.requiresAuth && (
-                <span className="text-xs text-yellow-600 bg-yellow-100 px-2 py-1 rounded">
+                <span className="text-xs text-warning bg-warning/10 px-2 py-1 rounded border border-warning/20">
                   🔑 API Key Required
                 </span>
               )}

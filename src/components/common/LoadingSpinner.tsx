@@ -27,9 +27,9 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
       case 'accent':
         return 'text-accent';
       case 'success':
-        return 'text-green-500';
+        return 'text-accent';
       case 'warning':
-        return 'text-orange-500';
+        return 'text-warning';
       case 'destructive':
         return 'text-destructive';
       case 'muted':

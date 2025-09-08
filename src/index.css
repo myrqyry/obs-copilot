@@ -49,6 +49,29 @@
     --component-active-bg: var(--secondary);
     --component-line-inactive-color: var(--border);
     --component-active-color-default: var(--accent-foreground);
+
+    /* Enhanced accent color variables for better integration */
+    --accent-glow: hsl(var(--accent) / 0.3);
+    --primary-glow: hsl(var(--primary) / 0.3);
+    --accent-subtle: hsl(var(--accent) / 0.1);
+    --primary-subtle: hsl(var(--primary) / 0.1);
+    --gradient-primary-accent: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+    --gradient-accent-primary: linear-gradient(135deg, hsl(var(--accent)), hsl(var(--primary)));
+    --shadow-accent: 0 4px 20px hsl(var(--accent) / 0.2);
+    --shadow-primary: 0 4px 20px hsl(var(--primary) / 0.2);
+    
+    /* Overlay and warning variables for template support */
+    --warning: 43 74% 66%; /* ctp-yellow */
+    --warning-foreground: 240 20% 15%; /* ctp-base */
+    --warning-glow: hsl(var(--warning) / 0.3);
+    --destructive-glow: hsl(var(--destructive) / 0.3);
+    --destructive-subtle: hsl(var(--destructive) / 0.1);
+    --background-overlay: hsl(var(--background) / 0.8);
+    --shadow-lg: hsl(var(--foreground) / 0.4);
+    
+    /* Dynamic accent variables with fallbacks to prevent theme transition issues */
+    --dynamic-accent: #94e2d5; /* fallback to ctp-teal */
+    --dynamic-secondary-accent: #cba6f7; /* fallback to ctp-mauve */
   }
 
   /* ============================================================

@@ -75,16 +75,15 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 />
                 <PromptInputToolbar className="!p-0 !pr-2">
                     <PromptInputTools>
-                        <Tooltip content={useGoogleSearch ? "Web search enabled" : "Click to enable web search"}>
+                                                <Tooltip content={useGoogleSearch ? "Disable web search" : "Enable web search"}>
                             <PromptInputButton
                                 onClick={() => setUseGoogleSearch(!useGoogleSearch)}
                                 disabled={!isGeminiClientInitialized}
-                                className={`${useGoogleSearch
-                                    ? 'text-primary bg-primary/10 hover:bg-primary/20'
-                                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                                    }`}
+                                className={`transition-all duration-200 ${useGoogleSearch 
+                                    ? 'text-accent bg-accent/20 hover:bg-accent/30 border border-accent/40 shadow-glow-accent' 
+                                    : 'text-muted-foreground hover:text-accent hover:bg-accent/10 border border-transparent'
+                                }`}
                                 aria-label={useGoogleSearch ? "Disable web search" : "Enable web search"}
-                                aria-pressed={useGoogleSearch}
                             >
                                 <Globe className="w-4 h-4" />
                             </PromptInputButton>
@@ -93,9 +92,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                             <PromptInputButton
                                 onClick={onScreenshot}
                                 disabled={!isGeminiClientInitialized || !isConnected || !currentProgramScene}
-                                className={`${isConnected && currentProgramScene
-                                    ? 'text-orange-500 hover:text-orange-600 hover:bg-orange-500/10'
-                                    : 'text-muted-foreground cursor-not-allowed opacity-50'
+                                className={`transition-all duration-200 ${isConnected && currentProgramScene
+                                    ? 'text-primary bg-primary/20 hover:bg-primary/30 border border-primary/40 hover:text-primary-foreground hover:shadow-glow'
+                                    : 'text-muted-foreground cursor-not-allowed opacity-50 border border-transparent'
                                     }`}
                                 aria-label="Take screenshot of current scene"
                             >

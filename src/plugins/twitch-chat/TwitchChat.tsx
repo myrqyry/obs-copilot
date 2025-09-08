@@ -336,7 +336,7 @@ const TwitchChat: React.FC = () => {
       <h3 className="text-lg font-semibold mb-3">Twitch Chat</h3>
       <div className="flex gap-2 mb-3">
         <input value={channel} onChange={(e) => setChannel(e.target.value)} placeholder="channel" className="p-2 rounded border" />
-        {connected ? <button onClick={handleDisconnect} className="p-2 bg-red-600 text-white rounded">Disconnect</button> : <button onClick={handleConnect} className="p-2 bg-green-600 text-white rounded">Connect</button>}
+        {connected ? <button onClick={handleDisconnect} className="p-2 bg-destructive hover:bg-destructive/90 text-white rounded transition-colors">Disconnect</button> : <button onClick={handleConnect} className="p-2 bg-accent hover:bg-accent/90 text-white rounded transition-colors">Connect</button>}
       </div>
 
       <div className="mb-3 flex items-center gap-3">

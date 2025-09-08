@@ -58,7 +58,7 @@ const VoiceInput = React.forwardRef<HTMLButtonElement, VoiceInputProps>(
         ref={ref}
         className={cn(
           "relative flex items-center justify-center gap-2 rounded-full p-2",
-          isRecording ? "bg-red-500 text-white" : "bg-gray-200 text-gray-800",
+          isRecording ? "bg-destructive text-destructive-foreground" : "bg-muted text-muted-foreground",
           className
         )}
         onClick={() => {

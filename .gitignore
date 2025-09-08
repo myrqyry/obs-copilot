@@ -65,7 +65,7 @@ netlify/edge-functions
 netlify/functions
 .kilocode/*
 .cursorignore
-**/__pycache__/**
+*/__pycache__/*
 
 # AppMap
 /tmp/appmap/
@@ -97,3 +97,5 @@ AGENTS.md
 /backend/__pycache__/*
 .github/copilot-instructions.md
 .clinerules/obscopilotrules.md
+.github/copilot-instructions.md
+backend/api/routes/__pycache__/*

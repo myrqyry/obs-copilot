@@ -6,13 +6,15 @@ import { CatppuccinAccentColorName } from '@/types/themes';
 
 interface ThemeState {
   theme: {
+    name: string;
     base: 'light' | 'dark' | 'system';
     accent: CatppuccinAccentColorName;
     secondaryAccent: CatppuccinAccentColorName;
     userChatBubble: string;
     modelChatBubble: string;
   };
-  setTheme: (theme: 'light' | 'dark' | 'system') => void;
+  setTheme: (themeName: string) => void;
+  setThemeBase: (base: 'light' | 'dark' | 'system') => void;
   setAccent: (accent: CatppuccinAccentColorName) => void;
   setSecondaryAccent: (secondaryAccent: CatppuccinAccentColorName) => void;
   setUserChatBubble: (color: string) => void;
@@ -32,6 +34,7 @@ export interface SettingsState extends Omit<ThemeState, 'theme'>, LayoutState {
   streamerBotHost: string;
   streamerBotPort: string;
   theme: {
+    name: string;
     base: 'light' | 'dark' | 'system';
     accent: CatppuccinAccentColorName;
     secondaryAccent: CatppuccinAccentColorName;
@@ -73,11 +76,12 @@ const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
       theme: {
-        base: 'system',
+        name: 'catppuccin-mocha',
+        base: 'dark',
         accent: 'sky',
         secondaryAccent: 'mauve',
-        userChatBubble: '#ADD8E6', // Light blue
-        modelChatBubble: '#D3D3D3', // Light grey
+        userChatBubble: 'sky', // Use color name instead of hex
+        modelChatBubble: 'mauve', // Use color name instead of hex
       },
       extraDarkMode: false,
       flipSides: false,
@@ -91,7 +95,8 @@ const useSettingsStore = create<SettingsState>()(
       twitchAccessToken: '',
       twitchRefreshToken: '',
       twitchChatPluginEnabled: true,
-      setTheme: (base) => set((state) => ({ theme: { ...state.theme, base } })),
+      setTheme: (name) => set((state) => ({ theme: { ...state.theme, name } })),
+      setThemeBase: (base) => set((state) => ({ theme: { ...state.theme, base } })),
       setAccent: (accent) => set((state) => ({ theme: { ...state.theme, accent } })),
       setSecondaryAccent: (secondaryAccent) => set((state) => ({ theme: { ...state.theme, secondaryAccent } })),
       setUserChatBubble: (userChatBubble) => set((state) => ({ theme: { ...state.theme, userChatBubble } })),

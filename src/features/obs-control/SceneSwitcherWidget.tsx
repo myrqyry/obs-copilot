@@ -57,13 +57,13 @@ const SceneSwitcherWidget: React.FC<SceneSwitcherWidgetProps> = ({ config, id })
 
   return (
     <div className="p-4 bg-gray-800 rounded-lg shadow-lg max-w-sm mx-auto">
-      <h3 className="text-white text-lg font-bold mb-2">Scene Switcher</h3>
+      <h3 className="text-foreground text-lg font-bold mb-2">Scene Switcher</h3>
       <div className="space-y-2 mb-4">
         {scenes.map((scene) => (
           <button
             key={scene.sceneName}
             onClick={() => switchScene(scene.sceneName)}
-            className={`w-full p-2 rounded text-white ${currentScene === scene.sceneName ? 'bg-blue-500' : 'bg-gray-700'}`}
+            className={`w-full p-2 rounded transition-colors ${currentScene === scene.sceneName ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80 text-foreground'}`}
           >
             {scene.sceneName}
           </button>

@@ -1,16 +1,16 @@
 import React from 'react';
-import { CatppuccinChatBubbleColorName, catppuccinChatBubbleColorsHexMap, catppuccinMochaColors } from '../../types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface ChatBubblePreviewProps {
-    userColor: CatppuccinChatBubbleColorName;
-    modelColor: CatppuccinChatBubbleColorName;
+    userColor: string; // Color name from current theme
+    modelColor: string; // Color name from current theme
     flipSides: boolean;
     extraDarkMode: boolean;
     customBackground?: string;
     bubbleFillOpacity?: number;
     backgroundOpacity?: number;
     chatBackgroundBlendMode?: React.CSSProperties['mixBlendMode'];
-    chatBubbleBlendMode?: React.CSSProperties['mixBlendMode']; // New: blend mode for chat bubble fills
+    chatBubbleBlendMode?: React.CSSProperties['mixBlendMode'];
 }
 
 export const ChatBubblePreview: React.FC<ChatBubblePreviewProps> = ({
@@ -24,8 +24,15 @@ export const ChatBubblePreview: React.FC<ChatBubblePreviewProps> = ({
     chatBackgroundBlendMode = 'normal',
     chatBubbleBlendMode = 'normal',
 }) => {
+    const { theme } = useTheme();
+    
+    // Resolve color names to hex values
+    const userHex = theme?.accentColors?.[userColor] || '#89dceb'; // fallback to sky
+    const modelHex = theme?.accentColors?.[modelColor] || '#cba6f7'; // fallback to mauve
+    
     // Helper to convert hex to rgba
     function hexToRgba(hex: string, alpha: number) {
+        if (!hex) return `rgba(137, 220, 235, ${alpha})`; // fallback rgba
         let c = hex.replace('#', '');
         if (c.length === 3) {
             c = c[0] + c[0] + c[1] + c[1] + c[2] + c[2];
@@ -40,11 +47,11 @@ export const ChatBubblePreview: React.FC<ChatBubblePreviewProps> = ({
     const shouldUseGlassEffect = customBackground && bubbleFillOpacity < 1;
 
     // Dark base color for outlines and dark fills
-    const darkColor = catppuccinMochaColors.base; // #1e1e2e
+    const darkColor = (typeof theme?.colors?.base === 'string' ? theme.colors.base : '#1e1e2e');
 
-    // Get colors
-    const userColorHex = catppuccinChatBubbleColorsHexMap[userColor];
-    const modelColorHex = catppuccinChatBubbleColorsHexMap[modelColor];
+    // Get colors from theme
+    const userColorHex = userHex;
+    const modelColorHex = modelHex;
 
     // Apply color logic based on mode for user bubble
     let userBgColor: string;

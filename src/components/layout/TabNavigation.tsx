@@ -35,13 +35,15 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
             ref={tabBarRef}
             className={cn(
                 'relative z-40 flex h-12 w-full items-center justify-between border-b bg-card/80 px-4 shadow-md backdrop-blur-md',
-                // This will create a pseudo-element for the indicator
-                'before:absolute before:bottom-0 before:left-[var(--indicator-left,0px)] before:h-[3px] before:w-[var(--indicator-width,0px)] before:rounded-full before:bg-primary before:opacity-[var(--indicator-opacity,0)] before:transition-[width,transform,opacity] before:duration-300 before:ease-in-out',
-                // Glow effect for the indicator
-                'before:shadow-[0_0_8px_var(--primary)] before:transition-shadow before:duration-300',
-                'before:hover:shadow-[0_0_12px_var(--primary),0_0_24px_var(--primary)]',
-                // Interacting state for more prominent glow
-                '[&.interacting::before]:shadow-[0_0_12px_var(--primary),0_0_24px_var(--primary),0_0_36px_var(--primary)]',
+                // Enhanced gradient border on top for visual appeal
+                'before:absolute before:top-0 before:left-0 before:w-full before:h-[2px] before:bg-gradient-to-r before:from-primary/60 before:via-accent/40 before:to-primary/60',
+                // Active tab indicator with enhanced styling
+                'after:absolute after:bottom-0 after:left-[var(--indicator-left,0px)] after:h-[3px] after:w-[var(--indicator-width,0px)] after:rounded-full after:bg-gradient-to-r after:from-primary after:to-accent after:opacity-[var(--indicator-opacity,0)] after:transition-[width,transform,opacity] after:duration-300 after:ease-in-out',
+                // Enhanced glow effect for the indicator
+                'after:shadow-[0_0_12px_var(--primary),0_0_6px_var(--accent)] after:transition-shadow after:duration-300',
+                'after:hover:shadow-[0_0_16px_var(--primary),0_0_8px_var(--accent),0_0_24px_var(--primary)]',
+                // Interacting state with more prominent dual-color glow
+                '[&.interacting::after]:shadow-[0_0_20px_var(--primary),0_0_12px_var(--accent),0_0_36px_var(--primary)]',
             )}
             aria-label="Primary"
         >
@@ -49,8 +51,8 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
                 const isActive = activeTab === tab.id;
                 let iconColorClass = isActive ? 'text-primary' : 'text-muted-foreground';
                 if (tab.id === 'connections') {
-                    if (connectionIconStatus === 'connecting') iconColorClass = 'text-yellow-500';
-                    else if (connectionIconStatus === 'connected-full') iconColorClass = 'text-green-500';
+                    if (connectionIconStatus === 'connecting') iconColorClass = 'text-warning';
+                    else if (connectionIconStatus === 'connected-full') iconColorClass = 'text-accent';
                     else if (connectionIconStatus === 'connected-obs-only') iconColorClass = 'text-info';
                     else if (connectionIconStatus === 'disconnected') iconColorClass = 'text-destructive';
                 }
@@ -67,18 +69,21 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
                         id={`mobile-tab-${tab.id}`}
                         aria-controls={`panel-${tab.id}`}
                         className={cn(
-                            'tab-item flex-1 flex flex-col items-center justify-center gap-0 p-1 rounded-lg transition-colors duration-200 relative z-10',
-                            'text-muted-foreground data-[active=true]:text-primary', // Use data-active for text color
-                            'hover:bg-muted/30',
-                            // Active state styles, not relying on class
-                            'data-[active=true]:bg-primary/10',
-                            // Ripple effect on click
+                            'tab-item flex-1 flex flex-col items-center justify-center gap-0 p-1 rounded-lg transition-all duration-200 relative z-10',
+                            // Enhanced text colors with secondary accent for subtle contrast
+                            'text-muted-foreground data-[active=true]:text-primary hover:text-accent',
+                            // Enhanced hover state with gradient background
+                            'hover:bg-gradient-to-br hover:from-muted/20 hover:to-accent/10 hover:shadow-sm',
+                            // Enhanced active state with primary and accent colors
+                            'data-[active=true]:bg-gradient-to-br data-[active=true]:from-primary/15 data-[active=true]:to-accent/10',
+                            'data-[active=true]:shadow-inner data-[active=true]:border data-[active=true]:border-primary/20',
+                            // Enhanced ripple effect with accent color
                             'ripple-effect overflow-hidden',
-                            '[&.ripple]:before:content-[""] [&.ripple]:before:block [&.ripple]:before:absolute [&.ripple]:before:w-full [&.ripple]:before:h-full [&.ripple]:before:rounded-full [&.ripple]:before:bg-primary [&.ripple]:before:scale-0 [&.ripple]:before:animate-ripple [&.ripple]:before:opacity-0',
+                            '[&.ripple]:before:content-[""] [&.ripple]:before:block [&.ripple]:before:absolute [&.ripple]:before:w-full [&.ripple]:before:h-full [&.ripple]:before:rounded-full [&.ripple]:before:bg-gradient-to-r [&.ripple]:before:from-primary [&.ripple]:before:to-accent [&.ripple]:before:scale-0 [&.ripple]:before:animate-ripple [&.ripple]:before:opacity-0',
                         )}
                     >
                         <Icon className={cn(`${iconColorClass} text-2xl`)} />
-                        <span className="mt-1 text-[10px] text-muted-foreground data-[active=true]:text-primary data-[active=true]:text-xs">
+                        <span className="mt-1 text-[10px] text-muted-foreground data-[active=true]:text-primary data-[active=true]:text-xs hover:text-accent transition-colors duration-200 font-medium">
                             {tab.name.split(' ')[0]}
                         </span>
                     </button>

@@ -1,6 +1,43 @@
 import '@testing-library/jest-dom';
 
-import { widgetEngine } from '@/features/obs-control/UniversalWidgetEngine';
+/**
+ * Stub UniversalWidgetEngine before any code imports it so the real engine
+ * never initializes during tests (prevents console noise and memory use).
+ */
+jest.mock('@/features/obs-control/UniversalWidgetEngine', () => {
+  const EventEmitter = require('eventemitter3');
+  class MockEngine extends EventEmitter {
+    initialize() {}
+    async registerWidget() { return null; }
+    async unregisterWidget() {}
+    async destroy() {}
+    getInstance() { return this; }
+  }
+  const engine = new MockEngine();
+  return {
+    __esModule: true,
+    default: engine,
+    UniversalWidgetEngine: MockEngine,
+    widgetEngine: engine,
+  };
+});
+
+// Require the mocked engine (ensures we reference the stub above)
+const { widgetEngine } = require('@/features/obs-control/UniversalWidgetEngine');
+
+/**
+ * Mock the app logger to silence global console output emitted via the logger.
+ * Tests that assert logging behavior can still spy on these jest.fn()s.
+ */
+jest.mock('@/utils/logger', () => ({
+  logger: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    log: jest.fn(),
+  },
+}));
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -46,10 +83,8 @@ jest.mock('gsap/ScrollTrigger', () => ({
 
 // Cleanup UniversalWidgetEngine after each test to prevent memory leaks
 afterEach(async () => {
-  await widgetEngine.destroy();
-});
-
-// Cleanup UniversalWidgetEngine after each test to prevent memory leaks
-afterEach(async () => {
-  await widgetEngine.destroy();
+  if (widgetEngine && typeof widgetEngine.destroy === 'function') {
+    // ensure silent cleanup (some mocks return sync destroy)
+    await widgetEngine.destroy();
+  }
 });

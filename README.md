@@ -1,3 +1,4 @@
+
 # 🎬 obs-copilot gemini++
 
 <div align="center">
@@ -143,6 +144,41 @@ This guide helps you get OBS Copilot running quickly to explore its core feature
 - OBS Studio 29+ with WebSocket server enabled
 - All required API keys and configuration values (see `.env.example` for a list)
 
+#### OBS WebSocket Setup Guide
+
+To connect obs-copilot to OBS Studio, you must enable the WebSocket server plugin:
+
+1. **Enable WebSocket Plugin in OBS**:
+   - Open OBS Studio.
+   - Go to **Tools > WebSocket Server Settings**.
+   - Check **Enable WebSocket server**.
+   - Set **Server Port** to `4455` (default; change if needed but update the URL accordingly).
+   - **Server Password**: Set a secure password (optional but recommended for production). Leave blank for no password.
+   - Click **Show Auth Required** if using a password to verify settings.
+   - Click **OK** to save.
+
+2. **Connection URL Format**:
+   - Use `ws://localhost:4455` for local connections (no password).
+   - Use `ws://localhost:4455?password=YOUR_PASSWORD` if a password is set.
+   - For remote connections: `ws://YOUR_OBS_IP:4455` (ensure firewall allows port 4455).
+   - Secure connections (if enabled): `wss://` instead of `ws://`.
+
+3. **UI Connection in obs-copilot**:
+   - In the **Connections** tab, enter the full WebSocket URL in the OBS field.
+   - If using a password, append `?password=yourpassword` to the URL.
+   - Click **Connect**. The app validates the URL format and handles connection errors gracefully.
+   - Status indicators show connection state (connected, loading, error). Toasts provide feedback on failures.
+
+4. **Troubleshooting**:
+   - **Connection Failed**: Verify OBS WebSocket is enabled and port 4455 is open (use `netstat -tuln | grep 4455` on Linux/Mac or `netstat -an | findstr 4455` on Windows).
+   - **Invalid URL**: Ensure format is `ws://host:port` or `ws://host:port?password=...`. The UI now sanitizes and validates inputs.
+   - **Password Issues**: Append `?password=` parameter correctly; avoid special characters in passwords.
+   - **Firewall/Remote**: Allow inbound TCP 4455 in firewall; test with `telnet localhost 4455`.
+   - **Reconnection**: The app auto-reconnects on disconnects with exponential backoff.
+   - **Logs**: Check browser console or app logs for detailed errors (e.g., ObsError details).
+
+For advanced usage, see the [ConnectionsTab.tsx](src/plugins/core/ConnectionsTab.tsx) and [ConnectionForm.tsx](src/plugins/core/ConnectionForm.tsx) for UI implementation details.
+
 ### Installation
 
 1. Clone the repository:
@@ -168,119 +204,4 @@ This guide helps you get OBS Copilot running quickly to explore its core feature
 
 We've included several scripts to help maintain the project:
 
-- `npm run clean`: Cleans up build artifacts, cache, and temporary files
-- `npm run check-deps`: Checks for unused dependencies
-- `npm run lint`: Runs ESLint to check code quality
-
-#### Updating Dependencies
-
-To update dependencies:
-
-```bash
-# Check for outdated packages
-npm outdated
-
-# Update packages (be cautious with major version updates)
-npm update
-```
-
-#### Environment Variables
-
-This project uses environment variables for sensitive information and configuration.
-
-- `.env.local`: Used for local development. This file should contain your actual API keys and specific local configurations. It is ignored by Git and should **never** be committed.
-- `.env.example`: A template file that lists all required environment variables with placeholder values. This file **should** be committed to provide a guide for other developers and deployment environments. All variables accessible in client-side code must be prefixed with `VITE_`.
-
-**Required Variables in `.env.local`:**
-
-*   `VITE_OBS_WEBSOCKET_URL`: The WebSocket URL for OBS Studio (e.g., `ws://localhost:4455`).
-*   `VITE_GEMINI_API_KEY`: Your Google Gemini API key.
-*   `VITE_UNSPLASH_ACCESS_KEY`: Your Unsplash API access key.
-*   `VITE_API_URL`: The base URL for any backend API (if applicable).
-*   `VITE_STREAMERBOT_WEBSOCKET_URL`: The WebSocket URL for Streamer.bot (e.g., `ws://localhost:6747`).
-
-Example `.env.local` content:
-```
-VITE_OBS_WEBSOCKET_URL="ws://localhost:4455"
-VITE_GEMINI_API_KEY="your_gemini_api_key_here"
-VITE_UNSPLASH_ACCESS_KEY="your_unsplash_access_key_here"
-VITE_API_URL="https://your-api.com"
-VITE_STREAMERBOT_WEBSOCKET_URL="ws://localhost:6747"
-```
-
-Never commit sensitive information in `.env.local` files.
-
-### A Note on Proprietary Plugins
-
-This project uses `gsap/MorphSVGPlugin`, which is a proprietary plugin from [Club GreenSock](https://greensock.com/club/). It is **not** included in the standard `npm install` and requires a paid membership to download.
-
-If you do not have this plugin, the application will still work, but the morphing logo animations will be disabled and a simpler fallback animation will be used instead. A warning will be logged to the console.
-
-To enable the full animation experience, you will need to:
-1.  Obtain a Club GreenSock membership.
-2.  Download the `gsap-bonus.tgz` file provided with your membership.
-3.  Place the `gsap-bonus.tgz` file in the root of this project.
-4.  Run `npm install` again.
-
-This will install `MorphSVGPlugin` and other bonus plugins, and the application will use them automatically.
-
----
-
-## 🧑‍💻 Usage
-
-- **Connect**: Enter OBS WebSocket URL and Gemini API key
-- **Chat**: Use natural language to control OBS, automate, and get suggestions
-- **Music/TTS**: Play music, TTS, and control output from any panel
-- **Automation**: Build rules to trigger actions on OBS/Streamer.bot events
-- **Advanced Panel**: Access diagnostics, quick actions, and advanced settings
-
----
-
-## 🎨 Customization
-
-- **Themes**: 13 Catppuccin accent colors, extra dark mode, glass morphism
-- **Animations**: GSAP-powered transitions, animated markdown, morphing logos
-- **Responsive**: Works on all screen sizes, mobile-friendly
-
----
-
-## 📝 Documentation
-
-- **[PROJECT_RULES_AND_GUIDELINES.md](PROJECT_RULES_AND_GUIDELINES.md)**: Full architecture, coding standards, and component patterns
-- **notes/**: Feature guides, animation docs, troubleshooting
-
----
-
-## 🏗️ Development
-
-```bash
-npm run dev      # Start dev server
-npm run build    # Production build
-npm run preview  # Preview build
-npm run lint     # Lint code
-```
-
----
-
-## 📦 Scripts
-
-- `npm run dev`: Start development server with hot reload
-- `npm run build`: Build for production
-- `npm run preview`: Preview production build locally
-- `npm run test`: Run tests
-- `npm run clean`: Clean up build artifacts and temporary files
-- `npm run check-deps`: Check for unused dependencies
-- `npm run lint`: Run ESLint for code quality checks
-- `npm run proxy`: Start the development proxy server
-
----
-
-## 📄 License
-
-MIT License. See [LICENSE](LICENSE).
-
----
-
-## 🙏 Credits
-
-- OBS Studio, Google Gemini, Catppuccin, GSAP, Streamer.bot, and all open-source contributors.
+- `npm run clean`: Cleans up build

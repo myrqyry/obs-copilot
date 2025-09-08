@@ -6,9 +6,9 @@ export const overlayTemplates: OverlayConfig[] = [
     customizations: {
       fontSize: '16px',
       colors: {
-        primary: '#ffffff',
-        secondary: '#00ff00',
-        background: 'rgba(0,0,0,0.7)'
+        primary: 'var(--foreground)',
+        secondary: 'var(--accent)',
+        background: 'var(--background-overlay)'
       },
       position: {
         x: 10,
@@ -31,8 +31,8 @@ export const overlayTemplates: OverlayConfig[] = [
   top: 10px;
   left: 10px;
   width: 300px;
-  background: rgba(0,0,0,0.7);
-  color: #ffffff;
+  background: var(--background-overlay, rgba(0,0,0,0.7));
+  color: var(--foreground, #ffffff);
   font-size: 16px;
   border-radius: 5px;
   padding: 10px;
@@ -44,7 +44,7 @@ export const overlayTemplates: OverlayConfig[] = [
 }
 
 .username {
-  color: #00ff00;
+  color: var(--accent, #00ff00);
   font-weight: bold;
 }
 
@@ -81,9 +81,9 @@ window.addEventListener('message', (event) => {
     customizations: {
       fontSize: '24px',
       colors: {
-        primary: '#ffffff',
-        secondary: '#ff6b6b',
-        background: 'rgba(0,0,0,0.8)'
+        primary: 'var(--foreground)',
+        secondary: 'var(--destructive)',
+        background: 'var(--background-overlay)'
       },
       position: {
         x: 50,
@@ -103,29 +103,29 @@ window.addEventListener('message', (event) => {
   position: absolute;
   top: 10px;
   right: 50px;
-  background: rgba(0,0,0,0.8);
-  color: #ffffff;
+  background: var(--background-overlay, rgba(0,0,0,0.8));
+  color: var(--foreground, #ffffff);
   font-size: 24px;
   padding: 10px 20px;
   border-radius: 25px;
-  border: 2px solid #ff6b6b;
+  border: 2px solid var(--destructive, #ff6b6b);
   animation: pulse 2s infinite;
 }
 
 .label {
-  color: #ff6b6b;
+  color: var(--destructive, #ff6b6b);
   font-weight: bold;
 }
 
 .number {
-  color: #ffffff;
+  color: var(--foreground, #ffffff);
   margin-left: 5px;
 }
 
 @keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7); }
-  70% { box-shadow: 0 0 0 10px rgba(255, 107, 107, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); }
+  0% { box-shadow: 0 0 0 0 var(--destructive-glow, rgba(255, 107, 107, 0.7)); }
+  70% { box-shadow: 0 0 0 10px var(--destructive-subtle, rgba(255, 107, 107, 0)); }
+  100% { box-shadow: 0 0 0 0 var(--destructive-subtle, rgba(255, 107, 107, 0)); }
 }
       `,
       js: `
@@ -157,9 +157,9 @@ updateViewerCount(0);
     customizations: {
       fontSize: '20px',
       colors: {
-        primary: '#ffd700',
-        secondary: '#ff4500',
-        background: 'rgba(0,0,0,0.9)'
+        primary: 'var(--warning)',
+        secondary: 'var(--destructive)',
+        background: 'var(--background-overlay)'
       },
       position: {
         x: 20,
@@ -183,11 +183,11 @@ updateViewerCount(0);
   position: absolute;
   top: 20px;
   left: 20px;
-  background: rgba(0,0,0,0.9);
-  color: #ffd700;
+  background: var(--background-overlay, rgba(0,0,0,0.9));
+  color: var(--warning, #ffd700);
   padding: 20px;
   border-radius: 10px;
-  box-shadow: 0 4px 20px rgba(255, 215, 0, 0.3);
+  box-shadow: 0 4px 20px var(--warning-glow, rgba(255, 215, 0, 0.3));
   transform: translateY(100px);
   opacity: 0;
   transition: all 0.5s ease;
@@ -200,20 +200,20 @@ updateViewerCount(0);
 }
 
 .donor-name {
-  color: #ffd700;
+  color: var(--warning, #ffd700);
   font-size: 20px;
   margin: 0 0 5px 0;
 }
 
 .donation-amount {
-  color: #ff4500;
+  color: var(--destructive, #ff4500);
   font-size: 18px;
   font-weight: bold;
   margin: 5px 0;
 }
 
 .donation-message {
-  color: #ffffff;
+  color: var(--foreground, #ffffff);
   font-size: 14px;
   margin: 5px 0 0 0;
   font-style: italic;
@@ -262,9 +262,9 @@ window.addEventListener('message', (event) => {
     customizations: {
       fontSize: '18px',
       colors: {
-        primary: '#ffffff',
-        secondary: '#4169e1',
-        background: 'rgba(0,0,0,0.85)'
+        primary: 'var(--foreground)',
+        secondary: 'var(--primary)',
+        background: 'var(--background-overlay)'
       },
       position: {
         x: 30,
@@ -291,8 +291,8 @@ window.addEventListener('message', (event) => {
   position: absolute;
   top: 30px;
   right: 30px;
-  background: rgba(0,0,0,0.85);
-  color: #ffffff;
+  background: var(--background-overlay, rgba(0,0,0,0.85));
+  color: var(--foreground, #ffffff);
   padding: 20px;
   border-radius: 15px;
   display: flex;
@@ -302,7 +302,7 @@ window.addEventListener('message', (event) => {
   transform: translateX(100%);
   opacity: 0;
   transition: all 0.6s ease;
-  border: 2px solid #4169e1;
+  border: 2px solid var(--primary, #4169e1);
 }
 
 .team {
@@ -322,19 +322,19 @@ window.addEventListener('message', (event) => {
 
 .team-name {
   font-size: 18px;
-  color: #ffffff;
+  color: var(--foreground, #ffffff);
   margin-bottom: 5px;
   font-weight: bold;
 }
 
 .team-score {
   font-size: 32px;
-  color: #4169e1;
+  color: var(--primary, #4169e1);
   font-weight: bold;
 }
 
 .vs-divider {
-  color: #4169e1;
+  color: var(--primary, #4169e1);
   font-size: 20px;
   font-weight: bold;
   margin: 0 15px;
@@ -384,9 +384,9 @@ updateScoreboard('Team A', '0', 'Team B', '0');
     customizations: {
       fontSize: '14px',
       colors: {
-        primary: '#ffffff',
-        secondary: '#00e5ff',
-        background: 'rgba(0,0,0,0.5)'
+        primary: 'var(--foreground)',
+        secondary: 'var(--accent)',
+        background: 'var(--background-overlay)'
       },
       position: {
         x: 0,
@@ -412,7 +412,7 @@ updateScoreboard('Team A', '0', 'Team B', '0');
   left: 0;
   width: 100%;
   height: 50%;
-  background: rgba(0,0,0,0.5);
+  background: var(--background-overlay, rgba(0,0,0,0.5));
   padding: 12px;
   box-sizing: border-box;
   overflow: hidden;
@@ -434,7 +434,7 @@ updateScoreboard('Team A', '0', 'Team B', '0');
   object-fit: contain;
   will-change: transform, opacity;
   animation: emotePop 0.45s ease forwards;
-  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+  filter: drop-shadow(0 4px 8px var(--shadow-lg, rgba(0,0,0,0.4)));
 }
 
 @keyframes emotePop {

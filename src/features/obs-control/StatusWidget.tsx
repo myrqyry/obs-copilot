@@ -53,7 +53,7 @@ const StatusWidget: React.FC<StatusWidgetProps> = ({ config }) => {
       <div className="flex flex-col gap-2 p-2 rounded-md border">
         <label className="text-sm font-medium">Current Scene</label>
         <p className="text-base">{currentStatus}</p>
-        {errorMessage && <p className="text-red-500 text-xs mt-1">{errorMessage}</p>}
+        {errorMessage && <p className="text-destructive text-xs mt-1">{errorMessage}</p>}
       </div>
     </BaseWidget>
   );

@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { ObsClientImpl, ConnectionStatus } from '@/services/obsClient';
+import { ObsClientImpl, ConnectionStatus, ObsError } from '@/services/obsClient';
 import type { OBSScene, OBSSource, OBSVideoSettings, OBSStreamStatus, OBSRecordStatus } from '@/types/obs';
 import { StreamerBotService } from '@/services/streamerBotService';
 import type { ConnectionProfile } from '@/types/connections';
 import { StreamerBotError } from '@/types/streamerbot'; // Import StreamerBotError
+import { toast } from '@/components/ui/toast';
 
 // Combined state for live connections and saved profiles
 export interface ConnectionState {
@@ -84,9 +85,24 @@ const useConnectionsStore = create<ConnectionState>()(
         });
     
         if (status === 'connected') {
-          // When connected (post-Identified), fetch initial data
-          obsClient.getSceneList().then(({ scenes }) => set({ scenes }));
-          obsClient.getCurrentProgramScene().then(({ currentProgramSceneName }) => set({ currentProgramScene: currentProgramSceneName }));
+          console.log('[DEBUG] OBS connected, fetching initial data'); // Fetch start log
+          // When connected (post-Identified), fetch initial data with error handling
+          obsClient.getSceneList().then(({ scenes }) => set({ scenes })).catch(err => {
+            console.log('[DEBUG] getSceneList rejected:', err);
+            if (err instanceof ObsError && err.message.includes('Stale')) {
+              console.log('[DEBUG] Ignoring stale getSceneList rejection');
+            } else {
+              console.error('[OBS] Failed to fetch scenes:', err);
+            }
+          });
+          obsClient.getCurrentProgramScene().then(({ currentProgramSceneName }) => set({ currentProgramScene: currentProgramSceneName })).catch(err => {
+            console.log('[DEBUG] getCurrentProgramScene rejected:', err);
+            if (err instanceof ObsError && err.message.includes('Stale')) {
+              console.log('[DEBUG] Ignoring stale getCurrentProgramScene rejection');
+            } else {
+              console.error('[OBS] Failed to fetch current scene:', err);
+            }
+          });
           obsClient.getInputList().then(({ inputs }) => {
             // Transform inputs to OBSSource format
             const sources = inputs.map((input: any) => ({
@@ -95,10 +111,39 @@ const useConnectionsStore = create<ConnectionState>()(
               ...input
             }));
             set({ sources });
+          }).catch(err => {
+            console.log('[DEBUG] getInputList rejected:', err);
+            if (err instanceof ObsError && err.message.includes('Stale')) {
+              console.log('[DEBUG] Ignoring stale getInputList rejection');
+            } else {
+              console.error('[OBS] Failed to fetch inputs:', err);
+            }
           });
-          obsClient.getStreamStatus().then((status) => set({ streamStatus: status as OBSStreamStatus }));
-          obsClient.getRecordStatus().then((status) => set({ recordStatus: status as OBSRecordStatus }));
-          obsClient.getVideoSettings().then((settings) => set({ videoSettings: settings as OBSVideoSettings }));
+          obsClient.getStreamStatus().then((status) => set({ streamStatus: status as OBSStreamStatus })).catch(err => {
+            console.log('[DEBUG] getStreamStatus rejected:', err);
+            if (err instanceof ObsError && err.message.includes('Stale')) {
+              console.log('[DEBUG] Ignoring stale getStreamStatus rejection');
+            } else {
+              console.error('[OBS] Failed to fetch stream status:', err);
+            }
+          });
+          obsClient.getRecordStatus().then((status) => set({ recordStatus: status as OBSRecordStatus })).catch(err => {
+            console.log('[DEBUG] getRecordStatus rejected:', err);
+            if (err instanceof ObsError && err.message.includes('Stale')) {
+              console.log('[DEBUG] Ignoring stale getRecordStatus rejection');
+            } else {
+              console.error('[OBS] Failed to fetch record status:', err);
+            }
+          });
+          obsClient.getVideoSettings().then((settings) => set({ videoSettings: settings as OBSVideoSettings })).catch(err => {
+            console.log('[DEBUG] getVideoSettings rejected:', err);
+            if (err instanceof ObsError && err.message.includes('Stale')) {
+              console.log('[DEBUG] Ignoring stale getVideoSettings rejection');
+            } else {
+              console.error('[OBS] Failed to fetch video settings:', err);
+            }
+          });
+          console.log('[DEBUG] Initial data fetch promises created'); // Fetch end log
         }
       });
 
@@ -173,8 +218,14 @@ const useConnectionsStore = create<ConnectionState>()(
                 u.port = '4455';
               }
 
-              // Remove any path/query/hash (OBS websocket root only)
-              if (u.pathname !== '/') u.pathname = '/';
+              // Remove any path/query/hash (OBS websocket root only) - STRICT: reject if original had non-root path
+              if (u.pathname !== '/') {
+                // Check if original input had path; if so, reject as invalid for WebSocket
+                if (raw.includes('/') && !raw.match(/^ws[s]?:\/\//)) {
+                  return { url: null, reason: 'Invalid WebSocket URL: paths not allowed (e.g., no "/myrqyry/")' };
+                }
+                u.pathname = '/';
+              }
               u.search = '';
               u.hash = '';
 
@@ -185,10 +236,19 @@ const useConnectionsStore = create<ConnectionState>()(
                 }
               }
 
-              // Basic validation: host must be valid hostname or IPv4
+              // Enhanced validation: host must be valid hostname or IPv4
               const ipv4Re = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/;
-              const hostOk = ipv4Re.test(u.hostname) || /^[a-zA-Z0-9.-]+$/.test(u.hostname);
-              if (!hostOk) return { url: null, reason: 'Invalid host' };
+              const hostnameRe = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/; // Standard hostname regex
+              
+              // Allow common valid hostnames
+              const isValidHostname = ipv4Re.test(u.hostname) || 
+                                    hostnameRe.test(u.hostname) || 
+                                    u.hostname === 'localhost' || 
+                                    u.hostname.endsWith('.local');
+              
+              if (!isValidHostname) {
+                return { url: null, reason: 'Invalid host: must be valid hostname/IP (e.g., localhost, 127.0.0.1, example.com)' };
+              }
 
               return { url: u.toString() };
             } catch (e) {
@@ -198,19 +258,38 @@ const useConnectionsStore = create<ConnectionState>()(
 
           const { url: sanitized, reason } = sanitize(url);
           if (!sanitized) {
-            set({ isLoading: false, connectionError: reason || 'Invalid OBS URL', isConnected: false });
+            console.log('[DEBUG] Sanitize failed:', { input: url, reason }); // Validation log
+            set({ isLoading: false, connectionError: `Invalid OBS URL: ${reason}`, isConnected: false });
+            toast({
+              title: "Connection Failed",
+              description: `Invalid OBS URL: ${reason}`,
+              variant: "destructive"
+            });
             return;
           }
           if (sanitized !== url.trim()) {
             console.info(`[OBS] Sanitized URL from '${url}' to '${sanitized}'`);
+            toast({
+              title: "URL Sanitized",
+              description: `Using corrected URL: ${sanitized}`,
+              variant: "default"
+            });
           }
+          console.log('[DEBUG] Sanitized URL parsed:', { hostname: new URL(sanitized).hostname, pathname: new URL(sanitized).pathname }); // URL parsing log
 
-            try {
-              await obsClient.connect(sanitized, password);
-              set({ isLoading: false, isConnected: true });
-            } catch (error: any) {
-              set({ connectionError: error.message, isLoading: false, isConnected: false });
-            }
+          try {
+            await obsClient.connect(sanitized, password);
+            set({ isLoading: false, isConnected: true, connectionError: null });
+          } catch (error: any) {
+            console.log('[DEBUG] ObsError instanceof check:', { errorName: error?.name, isObsError: error instanceof ObsError }); // ObsError check log
+            const errorMsg = error instanceof ObsError ? error.message : `Connection failed: ${error.message || 'Unknown error'}`;
+            set({ connectionError: errorMsg, isLoading: false, isConnected: false });
+            toast({
+              title: "OBS Connection Failed",
+              description: errorMsg,
+              variant: "destructive"
+            });
+          }
         },
 
         disconnectFromObs: async () => {

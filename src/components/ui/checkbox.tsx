@@ -13,7 +13,7 @@ interface CheckboxProps extends Omit<React.ComponentPropsWithoutRef<typeof Radix
   onCheckedChange?: (checked: CheckedState) => void;
 }
 
-const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
+const Checkbox = React.forwardRef<React.ElementRef<typeof RadixCheckbox>, CheckboxProps>(
   ({ label, className, ...props }, ref) => {
     return (
       <div className={cn("flex items-center space-x-2", className)}>

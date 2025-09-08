@@ -8,6 +8,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { ConnectionProfile, ObsConnectionProfile, StreamerbotConnectionProfile, ConnectionType } from '@/types/connections';
 import { nanoid } from 'nanoid';
 
+// Helper function for URL validation
+const isValidObsUrl = (url: string): boolean => {
+  try {
+    const u = new URL(url.startsWith('http') ? url.replace(/^https?:\/\//, 'ws://') : url);
+    return (u.protocol === 'ws:' || u.protocol === 'wss:') &&
+           (u.hostname && (u.hostname.match(/^(localhost|127\.0\.0\.1|[a-zA-Z0-9.-]+)$/)) !== null) &&
+           (u.port === '' || /^\d+$/.test(u.port)) &&
+           u.pathname === '/';
+  } catch {
+    return false;
+  }
+};
+
 interface ConnectionFormProps {
   onSave: (profile: ConnectionProfile) => void; // Now accepts full ConnectionProfile
   initialProfile?: ConnectionProfile;
@@ -126,7 +139,18 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({ onSave, initialProfile 
                   id="obs-url"
                   placeholder="ws://localhost:4455"
                   value={obsUrl}
-                  onChange={(e) => setObsUrl(e.target.value)}
+                  onChange={(e) => {
+                    const newUrl = e.target.value;
+                    setObsUrl(newUrl);
+                    // Real-time validation
+                    if (newUrl && !isValidObsUrl(newUrl)) {
+                      toast({
+                        title: "Invalid URL",
+                        description: "Please enter a valid WebSocket URL (e.g., ws://localhost:4455)",
+                        variant: "destructive"
+                      });
+                    }
+                  }}
                   required
                 />
               </div>

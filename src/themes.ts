@@ -13,7 +13,7 @@ import {
   solarizedLightColors,
   gruvboxDarkColors,
   gruvboxLightColors,
-} from './types/themes';
+} from './constants/colors';
 
 export const themes: Theme[] = [
   {

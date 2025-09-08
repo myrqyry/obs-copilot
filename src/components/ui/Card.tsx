@@ -1,9 +1,8 @@
 import React, { useRef, useEffect } from 'react';
-import { gsap } from 'gsap';
 import { cn, safeGsapTo, safeGsapSet } from '@/lib/utils';
 
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: 'default' | 'glass' | 'elevated' | 'outlined' | 'gradient' | 'neon' | 'frosted' | 'minimal';
+  variant?: 'default' | 'glass' | 'elevated' | 'outlined' | 'gradient' | 'neon' | 'frosted' | 'minimal' | 'accent-gradient' | 'accent-outline' | 'primary-glow';
   size?: 'sm' | 'md' | 'lg' | 'xl';
   hover?: boolean;
   accentColor?: string;
@@ -29,14 +28,18 @@ export const Card: React.FC<CardProps> = ({
   const baseStyles = 'rounded-xl transition-all duration-300 ease-out relative overflow-hidden';
   
   const variantStyles = {
-    default: 'bg-card border border-border shadow-sm hover:shadow-md',
-    glass: 'glass-card backdrop-blur-md border border-white/10 shadow-glass hover:shadow-glass-lg',
-    elevated: 'bg-card border border-border shadow-lg hover:shadow-xl hover:-translate-y-1',
-    outlined: 'bg-transparent border-2 border-border hover:border-primary/50',
-    gradient: 'bg-gradient-to-br from-card via-card/80 to-card/60 border border-border shadow-lg hover:shadow-xl',
-    neon: 'bg-card/80 border border-primary/30 shadow-glow hover:shadow-glow-lg backdrop-blur-sm',
-    frosted: 'bg-white/5 backdrop-blur-xl border border-white/10 shadow-lg hover:shadow-xl',
-    minimal: 'bg-transparent border border-border/50 hover:border-border'
+    default: 'bg-card border border-border shadow-sm hover:shadow-md hover:border-primary/20',
+    glass: 'glass-card backdrop-blur-md border border-white/10 shadow-glass hover:shadow-glass-lg hover:border-accent/20',
+    elevated: 'bg-card border border-border shadow-lg hover:shadow-xl hover:-translate-y-1 hover:border-primary/30',
+    outlined: 'bg-transparent border-2 border-border hover:border-primary/50 hover:shadow-sm',
+    gradient: 'bg-gradient-to-br from-card via-card/80 to-card/60 border border-border shadow-lg hover:shadow-xl hover:border-accent/40',
+    neon: 'bg-card/80 border border-primary/30 shadow-glow hover:shadow-glow-lg backdrop-blur-sm hover:border-accent/50',
+    frosted: 'bg-white/5 backdrop-blur-xl border border-white/10 shadow-lg hover:shadow-xl hover:border-primary/20',
+    minimal: 'bg-transparent border border-border/50 hover:border-accent/60',
+    // New accent-focused variants
+    'accent-gradient': 'bg-gradient-to-br from-primary/10 via-accent/5 to-primary/10 border border-primary/20 shadow-sm hover:shadow-md hover:border-accent/40',
+    'accent-outline': 'bg-transparent border-2 border-accent/30 hover:border-accent hover:bg-accent/5 shadow-sm hover:shadow-md',
+    'primary-glow': 'bg-card border border-primary/40 shadow-glow hover:shadow-glow-lg hover:border-primary/60 backdrop-blur-sm'
   };
 
   const sizeStyles = {
@@ -174,8 +177,8 @@ export const CardBadge: React.FC<React.HTMLAttributes<HTMLSpanElement> & { varia
 }) => {
   const variantStyles = {
     default: 'bg-primary/10 text-primary border border-primary/20',
-    success: 'bg-green-500/10 text-green-500 border border-green-500/20',
-    warning: 'bg-orange-500/10 text-orange-500 border border-orange-500/20',
+    success: 'bg-accent/10 text-accent border border-accent/20',
+    warning: 'bg-warning/10 text-warning border border-warning/20',
     error: 'bg-destructive/10 text-destructive border border-destructive/20',
     info: 'bg-info/10 text-info border border-info/20'
   };

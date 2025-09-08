@@ -1,9 +1,14 @@
 import React from 'react';
 import { useTheme } from '@/hooks/useTheme';
-import { darkThemes, lightThemes } from '@/types/themes';
+import { themes } from '@/themes';
 
 export const ThemeChooser: React.FC = () => {
-  const { theme, setTheme } = useTheme();
+  const { themeSettings, setTheme } = useTheme();
+
+  const darkThemes = themes.filter((theme) => theme.type === 'dark');
+  const lightThemes = themes.filter((theme) => theme.type === 'light');
+
+  const currentThemeName = themeSettings.base === 'system' ? 'system' : themeSettings.name;
 
   return (
     <div className="mb-2">
@@ -11,8 +16,8 @@ export const ThemeChooser: React.FC = () => {
         Theme
       </label>
       <select
-        value={theme?.name || 'system'}
-        onChange={(e) => setTheme(e.target.value as 'light' | 'dark' | 'system')}
+        value={currentThemeName}
+        onChange={(e) => setTheme(e.target.value)}
         className="w-full p-2 rounded-md bg-input border border-border"
       >
         <option value="system">System</option>

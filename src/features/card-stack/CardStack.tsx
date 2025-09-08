@@ -1,5 +1,4 @@
 import { motion } from 'framer-motion';
-import React from 'react';
 
 interface CardStackProps {
   items: Array<{ id: string; title: string; description: string; image: string }>;

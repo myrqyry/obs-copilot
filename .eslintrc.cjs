@@ -1,5 +1,4 @@
 module.exports = {
-  root: true,
   // Use the TypeScript parser at the root so TS/TSX files are parsed correctly
   parser: '@typescript-eslint/parser',
   parserOptions: {

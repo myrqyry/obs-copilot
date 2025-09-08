@@ -1,4 +1,6 @@
 import { logger } from '@/utils/logger';
+import type { UniversalWidgetConfig } from '@/types/universalWidget';
+import { ActionMapper } from '@/services/actionMapper';
 
 export interface ValidationResult {
   valid: boolean;

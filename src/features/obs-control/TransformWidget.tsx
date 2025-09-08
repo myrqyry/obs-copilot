@@ -140,7 +140,7 @@ const TransformWidget: React.FC<TransformWidgetProps> = ({ config, id }) => {
         <button
           onClick={updateTransform}
           disabled={loading}
-          className="w-full p-2 bg-blue-500 text-white rounded disabled:bg-gray-500 mt-4"
+          className="w-full p-2 bg-primary hover:bg-primary/90 text-white rounded disabled:bg-muted disabled:text-muted-foreground mt-4 transition-colors"
         >
           {loading ? 'Applying...' : 'Apply Transform'}
         </button>

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import AssetSearchTab from '@/components/asset-search/EnhancedAssetSearch'; // Updated path based on project structure
+import { EnhancedAssetSearch } from '@/components/asset-search/EnhancedAssetSearch';
 import { getAllAssetConfigs } from '@/config/assetSearchConfigs';
 import { useOverlaysStore } from '@/store/overlaysStore';
 import { overlayTemplates } from '@/config/overlayTemplates';
@@ -35,7 +35,7 @@ const StreamingAssetsTab: React.FC = () => {
           <CardTitle>Asset Search</CardTitle>
         </CardHeader>
           <CardContent>
-          <AssetSearchTab title="Asset Search" emoji="🔎" apiConfigs={getAllAssetConfigs()} />
+          <EnhancedAssetSearch title="Asset Search" emoji="🔎" apiConfigs={getAllAssetConfigs()} />
         </CardContent>
       </Card>
 
