@@ -169,6 +169,41 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
         }
     };
 
+    // Handle image uploads from the chat input
+    const handleImageSelect = async (file: File, base64: string) => {
+        try {
+            // Create a data URL for preview or storage if needed
+            const dataUrl = `data:${file.type};base64,${base64}`;
+
+            // Add a system message notifying the user
+            onAddMessage({ role: 'system', text: `🖼️ Image uploaded: ${file.name}` });
+
+            // Add to context for analysis (truncated sample for logs)
+            handleAddToContext(`Uploaded image ${file.name} (${Math.round(file.size / 1024)} KB). Data preview: ${base64.substring(0, 120)}...`);
+
+            // Optionally create a media data part to be consumed by streaming handlers
+            chatActions.addMessage({
+                id: `media-${Date.now()}`,
+                role: 'system',
+                text: `Image: ${file.name}`,
+                timestamp: new Date(),
+                dataParts: [
+                    {
+                        type: 'media',
+                        value: {
+                            url: dataUrl,
+                            contentType: file.type,
+                            alt: file.name,
+                        },
+                    },
+                ],
+            });
+        } catch (error) {
+            console.error('Error handling uploaded image:', error);
+            onAddMessage({ role: 'system', text: `❌ Failed to process uploaded image ${file.name}` });
+        }
+    };
+
     useEffect(() => {
         if (isGeminiClientInitialized) {
             // AI client state is initialized (hook now manages internal client)
@@ -204,6 +239,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
                 currentProgramScene={currentProgramScene}
                 onScreenshot={handleScreenshot}
                 onAudio={handleAudioInput}
+                onImageSelect={handleImageSelect}
                 chatInputRef={chatInputRef}
             />
         </div>
