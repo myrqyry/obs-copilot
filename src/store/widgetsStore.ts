@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { devtools } from 'zustand/middleware';
+import { devtools, persist } from 'zustand/middleware';
 import type { UniversalWidgetConfig, WidgetState } from '@/types/universalWidget';
 import { obsClient } from '@/services/obsClient';
 import { eventSubscriptionManager } from '@/services/eventSubscriptionManager';
@@ -8,8 +8,8 @@ import { logger } from '@/utils/logger';
 interface WidgetStoreState {
   widgets: Record<string, { config: UniversalWidgetConfig; state: WidgetState }>;
   isLoading: boolean;
-  lastSyncTime?: number;
-  syncError?: string;
+  lastSyncTime?: number | null;
+  syncError?: string | null;
 }
 
 interface WidgetStoreActions {
@@ -26,18 +26,23 @@ interface WidgetStoreActions {
 type WidgetStore = WidgetStoreState & WidgetStoreActions;
 
 const createWidgetState = (config: UniversalWidgetConfig): WidgetState => ({
+  id: config.id,
   value: config.valueMapping?.defaultValue ?? null,
   isActive: false,
   isLoading: false,
+  isDirty: false,
+  error: undefined,
   lastUpdated: Date.now(),
+  lastSynced: 0,
 });
 
 export const useWidgetsStore = create<WidgetStore>()(
   devtools(
-    (set, get) => ({
+    persist(
+      (set, get) => ({
       widgets: {},
       isLoading: false,
-        lastSyncTime: null,
+      lastSyncTime: null,
       syncError: null,
       addWidget: (config) => {
         const initialState = createWidgetState(config);
@@ -85,12 +90,12 @@ export const useWidgetsStore = create<WidgetStore>()(
           return { widgets };
         });
       },
-      subscribeToEvents: (widgetId, events) => {
-        // eventSubscriptionManager.subscribeToEvents(widgetId, events);
+      subscribeToEvents: (widgetId, _events) => {
+        // eventSubscriptionManager.subscribeToEvents(widgetId, _events);
         logger.info(`[widgetsStore] Subscribed to events for widget ${widgetId}`);
       },
-      unsubscribeFromEvents: (widgetId, events) => {
-        // eventSubscriptionManager.unsubscribeFromEvents(widgetId, events);
+      unsubscribeFromEvents: (widgetId, _events) => {
+        // eventSubscriptionManager.unsubscribeFromEvents(widgetId, _events);
         logger.info(`[widgetsStore] Unsubscribed from events for widget ${widgetId}`);
       },
       syncAllWidgets: async () => {
@@ -121,7 +126,23 @@ export const useWidgetsStore = create<WidgetStore>()(
       clearWidgets: () => {
         set({ widgets: {} });
       },
-    }),
-    { name: 'widgetsStore' }
+      }),
+      {
+        name: 'widgetsStore',
+        storage: {
+          getItem: (name: string) => Promise.resolve(localStorage.getItem(name)),
+          setItem: (name: string, value: string) => Promise.resolve(localStorage.setItem(name, value)),
+          removeItem: (name: string) => Promise.resolve(localStorage.removeItem(name)),
+        },
+        partialize: (state) => ({ widgets: state.widgets, isLoading: state.isLoading }),
+      }
+    ),
+    { name: 'widgetsStore-dev' }
   )
 );
+
+// Backwards compatibility exports: some older modules import alternate hook names
+// like `useWidgetStore` or `useUniversalWidgetStore`. Provide aliases to avoid
+// breaking imports until the codebase is migrated.
+export const useWidgetStore = useWidgetsStore;
+export const useUniversalWidgetStore = useWidgetsStore;

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { geminiService } from '@/services/geminiService';
 import { useWidgetsStore } from '@/store/widgetsStore';
 import { obsClient } from '@/services/obsClient';
@@ -31,12 +31,6 @@ function useDebounce<T extends (...args: any[]) => any>(callback: T, delay: numb
 
   return debouncedCallback;
 }
-import { useWidgetsStore } from '@/store/widgetsStore';
-import { obsClient } from '@/services/obsClient';
-import { eventSubscriptionManager } from '@/services/eventSubscriptionManager';
-import { UniversalWidgetConfig } from '@/types/universalWidget';
-import { widgetDiscoveryService } from '@/services/widgetDiscovery';
-import { logger } from '@/utils/logger';
 
 export const useObsWidget = (config: UniversalWidgetConfig) => {
   const { updateWidgetState, subscribeToEvents, unsubscribeFromEvents } = useWidgetsStore();

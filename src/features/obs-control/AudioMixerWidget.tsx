@@ -4,8 +4,8 @@ import { obsClient } from '@/services/obsClient';
 import type { UniversalWidgetConfig } from '@/types/universalWidget';
 import type { AudioConfig } from '@/types/universalWidget';
 
-interface AudioMixerWidgetProps extends UniversalWidgetConfig {
-  config: AudioConfig;
+interface AudioMixerWidgetProps {
+  config: UniversalWidgetConfig & { audioConfig?: AudioConfig };
   id: string;
   className?: string;
 }
@@ -44,7 +44,7 @@ const AudioMixerWidget: React.FC<AudioMixerWidgetProps> = ({ config, id }) => {
 
   // Subscribe to audio levels or settings changes
   useEffect(() => {
-    const handleAudioLevels = (data) => {
+    const handleAudioLevels = (data: any) => {
       if (data.inputName === sourceName) {
         const volumes = data.inputAudioLevels || [];
         if (volumes.length === numChannels) {

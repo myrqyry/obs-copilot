@@ -1,6 +1,7 @@
 import OBSWebSocket from 'obs-websocket-js';
 import { backoff } from '@/lib/utils';
 import { logger } from '@/utils/logger';
+import type { UniversalWidgetConfig } from '@/types/universalWidget';
 
 export class ObsError extends Error {
   constructor(message: string) {
@@ -227,6 +228,10 @@ export class ObsClientImpl {
     return this.call('GetSceneItemList', { sceneName });
   }
 
+  getInputList() {
+    return this.call('GetInputList');
+  }
+
   async addBrowserSource(
     sceneName: string,
     url: string,
@@ -294,17 +299,21 @@ export class ObsClientImpl {
   }
 
   // Widget-specific methods
-  async getAvailableTargets(type: TargetType): Promise<string[]> {
+  async getAvailableTargets(type: string): Promise<string[]> {
+    // Accept string values for target types (e.g. 'input', 'scene', 'transition')
     switch (type) {
-      case TargetType.INPUT:
+      case 'input': {
         const inputs = await this.call('GetInputList');
         return inputs.inputs.map((input: any) => input.inputName);
-      case TargetType.SCENE:
+      }
+      case 'scene': {
         const scenes = await this.call('GetSceneList');
         return scenes.scenes.map((scene: any) => scene.sceneName);
-      case TargetType.TRANSITION:
+      }
+      case 'transition': {
         const transitions = await this.call('GetTransitionList');
         return transitions.transitions.map((t: any) => t.transitionName);
+      }
       default:
         return [];
     }
@@ -312,16 +321,19 @@ export class ObsClientImpl {
 
   async executeWidgetAction(config: UniversalWidgetConfig, value: any): Promise<void> {
     const params: Record<string, any> = {};
-    if (config.targetName) params.inputName = config.targetName;
-    if (config.targetType === TargetType.SCENE && config.targetName) params.sceneName = config.targetName;
+  if (config.targetName) params.inputName = config.targetName;
+  if (config.targetType === 'scene' && config.targetName) params.sceneName = config.targetName;
 
     switch (config.actionType) {
+      case 'setInputVolume':
       case 'SetVolume':
         await this.call('SetInputVolume', { ...params, inputVolumeDb: value });
         break;
+      case 'setInputMute':
       case 'SetInputMute':
         await this.call('SetInputMute', { ...params, inputMuted: value });
         break;
+      case 'setCurrentProgramScene':
       case 'SetCurrentScene':
         await this.call('SetCurrentScene', { sceneName: value });
         break;
@@ -331,3 +343,8 @@ export class ObsClientImpl {
     }
   }
 }
+
+// Export a convenient singleton instance for consumers that import { obsClient }
+// This preserves existing import sites while keeping the class available for
+// direct use or testing.
+export const obsClient = ObsClientImpl.getInstance();

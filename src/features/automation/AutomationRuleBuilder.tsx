@@ -79,7 +79,7 @@ export const AutomationRuleBuilder: React.FC<AutomationRuleBuilderProps> = ({
             case 'actions':
                 return <ActionsStep actions={actions} addAction={addAction} updateAction={updateAction} removeAction={removeAction} />;
             case 'review':
-                return <ReviewStep rule={{ id: '', name: ruleName, enabled, trigger, conditions, actions, createdAt: new Date(), triggerCount: 0 }} />;
+                return <ReviewStep rule={{ id: '', name: ruleName, enabled, trigger, conditions, actions, createdAt: new Date(), triggerCount: 0, cooldown: 0 }} />;
             default:
                 return null;
         }

@@ -45,16 +45,16 @@ export const EnhancedSearchFilters: React.FC<EnhancedSearchFiltersProps> = ({
             >
               <option value="any">Any</option>
               <option value="black_and_white">Black & White</option>
-              <option value="black">Black</option>
-              <option value="white">White</option>
-              <option value="yellow">Yellow</option>
-              <option value="orange">Orange</option>
-              <option value="red">Red</option>
-              <option value="purple">Purple</option>
-              <option value="magenta">Magenta</option>
-              <option value="green">Green</option>
-              <option value="teal">Teal</option>
-              <option value="blue">Blue</option>
+              <option value="#000000">Black</option>
+              <option value="#ffffff">White</option>
+              <option value="#ffff00">Yellow</option>
+              <option value="#ffa500">Orange</option>
+              <option value="#ff0000">Red</option>
+              <option value="#800080">Purple</option>
+              <option value="#ff00ff">Magenta</option>
+              <option value="#00ff00">Green</option>
+              <option value="#008080">Teal</option>
+              <option value="#0000ff">Blue</option>
             </select>
           </div>
         );

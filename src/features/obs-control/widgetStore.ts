@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools, subscribeWithSelector } from 'zustand/middleware';
-import { UniversalWidgetConfig, WidgetState, WidgetContext, WidgetError } from './types';
+import { UniversalWidgetConfig, WidgetState, WidgetContext, WidgetError, ActionConfig, ActionResult } from '@/types/universalWidget';
 import { widgetEngine } from './UniversalWidgetEngine';
 // Remove immer dependency - we'll use manual state updates
 
@@ -22,10 +22,14 @@ export interface WidgetStoreState {
   isLoading: boolean;
   error: WidgetError | null;
   lastSyncTime: number | null;
+  // Recent actions cache per widget
+  recentActions: Record<string, Array<{ action: ActionConfig; timestamp: number; success: boolean }>>;
   
   // Actions
   registerWidget: (config: UniversalWidgetConfig) => Promise<void>;
   unregisterWidget: (widgetId: string) => Promise<void>;
+  // Execute an action for a widget via the engine
+  executeAction: (widgetId: string, action: string | ActionConfig, value?: any, options?: any) => Promise<ActionResult>;
   updateWidgetConfig: (widgetId: string, config: Partial<UniversalWidgetConfig>) => void;
   updateWidgetState: (widgetId: string, state: Partial<WidgetState>) => void;
   selectWidget: (widgetId: string | null) => void;
@@ -85,9 +89,10 @@ export const useWidgetStore = create<WidgetStoreState>()(
         selectedWidgetId: null,
         widgetGroups: [],
         activeDashboard: null,
-        isLoading: false,
-        error: null,
-        lastSyncTime: null,
+  isLoading: false,
+  error: null,
+  lastSyncTime: null,
+  recentActions: {},
 
         // Register a new widget
         registerWidget: async (config: UniversalWidgetConfig) => {
@@ -370,8 +375,18 @@ export const useWidgetStore = create<WidgetStoreState>()(
           });
         },
 
+        // Execute an action via the engine proxy
+        executeAction: async (widgetId: string, action: string | ActionConfig, value?: any, options?: any) => {
+          try {
+            const result = await (widgetEngine as any).executeWidgetAction(widgetId, action as any, value, options);
+            return result as ActionResult;
+          } catch (err) {
+            throw err;
+          }
+        },
+
         // Get cached actions for a widget
-        getCachedActions: (widgetId: string) => get().recentActions[widgetId] || [],
+    getCachedActions: (widgetId: string) => get().recentActions[widgetId] || [],
 
         // Getters
         getWidget: (widgetId: string) => {
@@ -384,7 +399,7 @@ export const useWidgetStore = create<WidgetStoreState>()(
 
         getWidgetsByType: (widgetType: string) => {
           return Array.from(get().widgets.values()).filter(
-            widget => widget.config.type === widgetType
+            widget => widget.config.controlType === widgetType
           );
         },
 
@@ -399,7 +414,7 @@ export const useWidgetStore = create<WidgetStoreState>()(
 
         getActiveWidgets: () => {
           return Array.from(get().widgets.values()).filter(
-            widget => widget.state.enabled
+            widget => widget.state.isActive
           );
         },
 
@@ -459,7 +474,17 @@ export const useWidgetStore = create<WidgetStoreState>()(
             activeDashboard: null,
             isLoading: false,
             error: null,
-            lastSyncTime: null
+            lastSyncTime: null,
+            recentActions: {},
+            executeAction: async (widgetId: string, action: string | ActionConfig, value?: any, options?: any) => {
+              // Proxy to engine if available
+              try {
+                const result = await (widgetEngine as any).executeWidgetAction(widgetId, action as any, value, options);
+                return result as ActionResult;
+              } catch (err) {
+                throw err;
+              }
+            }
           });
         }
       })

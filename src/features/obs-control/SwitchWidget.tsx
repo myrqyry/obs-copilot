@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { BaseWidget } from './BaseWidget';
 import { Switch } from '@/components/ui/switch';
 import { obsClient } from '@/services/obsClient';
 import { UniversalWidgetConfig } from '@/types/universalWidget';
@@ -21,23 +20,24 @@ export const SwitchWidget: React.FC<SwitchWidgetProps> = ({ config }) => {
     const fetchInitialState = async () => {
       if (!obsClient || !targetName) return;
       try {
-        switch (actionType) {
+        const action = actionType as string; // Allow flexible action types
+        switch (action) {
           case 'ToggleMute':
             const { inputMuted } = await obsClient.call('GetInputMute', { inputName: targetName });
             setIsChecked(inputMuted);
             setCurrentValue(inputMuted);
-            updateWidgetState(id, { muted: inputMuted });
+            updateWidgetState(id, { value: inputMuted, metadata: { muted: inputMuted } });
             break;
           // Add other boolean actions like scene item enabled
           case 'ToggleSourceEnabled':
-            const { sceneName } = config;
+            const sceneName = config.targetName; // Use targetName for scene
             if (sceneName) {
               const sceneItems = await obsClient.call('GetSceneItemList', { sceneName });
               const item = sceneItems.sceneItems.find((item: any) => item.sourceName === targetName);
               if (item) {
                 setIsChecked(item.sceneItemEnabled);
                 setCurrentValue(item.sceneItemEnabled);
-                updateWidgetState(id, { enabled: item.sceneItemEnabled });
+                updateWidgetState(id, { value: item.sceneItemEnabled, metadata: { enabled: item.sceneItemEnabled } });
               }
             }
             break;
@@ -58,16 +58,17 @@ export const SwitchWidget: React.FC<SwitchWidgetProps> = ({ config }) => {
     const newValue = !currentValue;
     try {
       let result;
-      switch (actionType) {
+      const action = actionType as string; // Allow flexible action types
+      switch (action) {
         case 'ToggleMute':
           result = await obsClient.call('SetInputMute', { inputName: targetName, inputMuted: newValue });
-          updateWidgetState(id, { muted: newValue });
+          updateWidgetState(id, { value: newValue, metadata: { muted: newValue } });
           break;
         case 'ToggleSourceEnabled':
-          const { sceneName } = config;
+          const sceneName = config.targetName; // Use targetName for scene
           if (sceneName) {
             result = await obsClient.call('SetSceneItemEnabled', { sceneName, sceneItemId: 0, sceneItemEnabled: newValue }); // Assume ID 0 or fetch properly
-            updateWidgetState(id, { enabled: newValue });
+            updateWidgetState(id, { value: newValue, metadata: { enabled: newValue } });
           }
           break;
         default:
@@ -90,7 +91,7 @@ export const SwitchWidget: React.FC<SwitchWidgetProps> = ({ config }) => {
   const disabled = isLoading || !obsClient;
 
   return (
-    <BaseWidget config={config}>
+    <div className="widget-container">
       <div className="flex items-center justify-between p-2">
         <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
           {switchLabel}
@@ -101,6 +102,6 @@ export const SwitchWidget: React.FC<SwitchWidgetProps> = ({ config }) => {
           disabled={disabled}
         />
       </div>
-    </BaseWidget>
+    </div>
   );
 };

@@ -2,15 +2,32 @@ import { ObsClientImpl } from '@/services/obsClient';
 import { 
   WidgetError, 
   ActionResult, 
+  ActionConfig,
+  ActionExecutionOptions,
+  ObsActionType
+} from '@/types/universalWidget';
+import { 
   ActionExecutionContext, 
   ActionHandler, 
   ValidationResult,
-  ActionConfig,
-  WidgetAction,
-  ActionExecutionOptions,
-  ObsConnectionState
+  WidgetAction
 } from './types';
 import { actionHandlers } from './ActionHandler';
+import type {
+  CurrentSceneChangedEvent,
+  InputMuteStateChangedEvent,
+  InputVolumeChangedEvent,
+  StreamOutputStateEvent,
+  ScenesChangedEvent,
+  ObsEventPayload,
+} from '@/types/obsEvents';
+
+// Import additional types from canonical location
+import type {
+  UniversalWidgetConfig,
+  WidgetContext,
+  WidgetState,
+} from '@/types/universalWidget';
 import { EventEmitter } from 'eventemitter3';
 
 const obsClient = ObsClientImpl.getInstance();
@@ -74,7 +91,9 @@ export class UniversalWidgetEngine extends EventEmitter {
       value: this.getDefaultValue(config),
       isActive: true,
       isLoading: false,
+      isDirty: false,
       lastUpdated: Date.now(),
+      lastSynced: Date.now(),
       metadata: {}
     };
 
@@ -87,10 +106,20 @@ export class UniversalWidgetEngine extends EventEmitter {
         connectionState: obsClient.getConnectionStatus()
       },
       updateState: (updates: Partial<WidgetState>) => this.updateWidgetState(widgetId, updates),
-      executeAction: (action: string | WidgetAction | ActionConfig, value?: any, options?: ActionExecutionOptions) => 
+      executeAction: (action: ObsActionType | ActionConfig, value?: any, options?: ActionExecutionOptions) => 
         this.executeWidgetAction(widgetId, action, value, options),
       subscribeToEvents: (events: string[]) => this.subscribeWidgetToEvents(widgetId, events),
-      unsubscribeFromEvents: (events: string[]) => this.unsubscribeWidgetFromEvents(widgetId, events)
+      unsubscribeFromEvents: (events: string[]) => this.unsubscribeWidgetFromEvents(widgetId, events),
+      getMetrics: () => this.getMetrics(widgetId) || {
+        renderCount: 0,
+        actionExecutions: 0,
+        eventReceived: 0,
+        errors: 0,
+        averageRenderTime: 0,
+        averageActionTime: 0,
+        memoryUsage: 0,
+        lastUpdated: Date.now()
+      }
     };
 
     this.widgets.set(widgetId, context);
@@ -142,7 +171,7 @@ export class UniversalWidgetEngine extends EventEmitter {
     widgetId: string, 
     action: string | WidgetAction | ActionConfig, 
     value?: any,
-    options?: ActionExecutionOptions
+    _options?: ActionExecutionOptions
   ): Promise<ActionResult> {
     const startTime = performance.now();
     const context = this.widgets.get(widgetId);
@@ -158,7 +187,7 @@ export class UniversalWidgetEngine extends EventEmitter {
     if (typeof action === 'string') {
       actionType = action;
     } else if ('actionType' in action) {
-      actionType = action.actionType;
+      actionType = action.actionType || '';
       parameters = action.parameters || {};
     } else {
       throw new WidgetError('Invalid action format', 'INVALID_ACTION');
@@ -395,7 +424,7 @@ export class UniversalWidgetEngine extends EventEmitter {
       context.obsConnection = {
         isConnected: false,
         connectionState: 'error',
-        lastError: new WidgetError(error.message, 'CONNECTION_ERROR')
+        lastError: error.message
       };
       this.updateWidgetState(widgetId, { isActive: false });
     }
@@ -406,7 +435,7 @@ export class UniversalWidgetEngine extends EventEmitter {
   /**
    * Handle OBS events and route to subscribed widgets
    */
-  private handleObsEvent(eventType: string, eventData: any): void {
+  private handleObsEvent(eventType: string, eventData: ObsEventPayload): void {
     const startTime = performance.now();
     
     const subscribedWidgets = this.getWidgetsSubscribedToEvent(eventType);
@@ -444,9 +473,9 @@ export class UniversalWidgetEngine extends EventEmitter {
    * Process OBS event for a specific widget
    */
   private processObsEventForWidget(
-    context: WidgetContext, 
-    eventType: string, 
-    eventData: any
+    context: WidgetContext,
+    eventType: string,
+    eventData: ObsEventPayload
   ): void {
     const { config } = context;
 
@@ -457,19 +486,24 @@ export class UniversalWidgetEngine extends EventEmitter {
 
     switch (eventType) {
       case 'InputMuteStateChanged':
-        this.handleInputMuteStateChanged(context, eventData);
+        this.handleInputMuteStateChanged(context, eventData as InputMuteStateChangedEvent);
+        break;
         break;
       case 'InputVolumeChanged':
-        this.handleInputVolumeChanged(context, eventData);
+        this.handleInputVolumeChanged(context, eventData as InputVolumeChangedEvent);
+        break;
         break;
       case 'CurrentProgramSceneChanged':
-        this.handleCurrentProgramSceneChanged(context, eventData);
+        this.handleCurrentProgramSceneChanged(context, eventData as CurrentSceneChangedEvent);
+        break;
         break;
       case 'StreamStateChanged':
-        this.handleStreamStateChanged(context, eventData);
+        this.handleStreamStateChanged(context, eventData as StreamOutputStateEvent);
+        break;
         break;
       case 'RecordStateChanged':
-        this.handleRecordStateChanged(context, eventData);
+        this.handleRecordStateChanged(context, eventData as StreamOutputStateEvent);
+        break;
         break;
       default:
         this.handleGenericObsEvent(context, eventType, eventData);
@@ -642,7 +676,7 @@ export class UniversalWidgetEngine extends EventEmitter {
   /**
    * Record event received
    */
-  private recordEventReceived(widgetId: string, eventType: string): void {
+  private recordEventReceived(widgetId: string, _eventType: string): void {
     const metrics = this.performanceMetrics.get(widgetId);
     if (metrics) {
       metrics.eventReceived++;
@@ -653,7 +687,7 @@ export class UniversalWidgetEngine extends EventEmitter {
   /**
    * Record error
    */
-  private recordError(widgetId: string, error: WidgetError): void {
+  private recordError(widgetId: string, _error: WidgetError): void {
     const metrics = this.performanceMetrics.get(widgetId);
     if (metrics) {
       metrics.errors++;
@@ -664,7 +698,7 @@ export class UniversalWidgetEngine extends EventEmitter {
   /**
    * Record widget update
    */
-  private recordWidgetUpdate(widgetId: string, duration: number): void {
+  private recordWidgetUpdate(widgetId: string, _duration: number): void {
     const metrics = this.performanceMetrics.get(widgetId);
     if (metrics) {
       metrics.lastUpdated = Date.now();
@@ -705,9 +739,9 @@ export class UniversalWidgetEngine extends EventEmitter {
    * Execute custom event handler
    */
   private executeCustomEventHandler(
-    context: WidgetContext, 
+    _context: WidgetContext, 
     eventType: string, 
-    eventData: any
+    _eventData: any
   ): void {
     console.log(`[UniversalWidgetEngine] Executing custom event handler for ${eventType}`);
   }
@@ -715,7 +749,7 @@ export class UniversalWidgetEngine extends EventEmitter {
   /**
    * Handle input mute state changed event
    */
-  private handleInputMuteStateChanged(context: WidgetContext, eventData: any): void {
+  private handleInputMuteStateChanged(context: WidgetContext, eventData: InputMuteStateChangedEvent): void {
     if (context.config.targetType === 'input' && context.config.targetName === eventData.inputName) {
       this.updateWidgetState(context.config.id, { value: eventData.inputMuted });
     }
@@ -724,7 +758,7 @@ export class UniversalWidgetEngine extends EventEmitter {
   /**
    * Handle input volume changed event
    */
-  private handleInputVolumeChanged(context: WidgetContext, eventData: any): void {
+  private handleInputVolumeChanged(context: WidgetContext, eventData: InputVolumeChangedEvent): void {
     if (context.config.targetType === 'input' && context.config.targetName === eventData.inputName) {
       this.updateWidgetState(context.config.id, { value: eventData.inputVolumeDb });
     }
@@ -733,7 +767,7 @@ export class UniversalWidgetEngine extends EventEmitter {
   /**
    * Handle current program scene changed event
    */
-  private handleCurrentProgramSceneChanged(context: WidgetContext, eventData: any): void {
+  private handleCurrentProgramSceneChanged(context: WidgetContext, eventData: CurrentSceneChangedEvent): void {
     if (context.config.targetType === 'scene') {
       this.updateWidgetState(context.config.id, { value: eventData.sceneName });
     }
@@ -742,8 +776,8 @@ export class UniversalWidgetEngine extends EventEmitter {
   /**
    * Handle stream state changed event
    */
-  private handleStreamStateChanged(context: WidgetContext, eventData: any): void {
-    if (context.config.targetType === 'output' && context.config.actionType === 'StartStream') {
+  private handleStreamStateChanged(context: WidgetContext, eventData: StreamOutputStateEvent): void {
+    if (context.config.targetType === 'output' && String(context.config.actionType).includes('Stream')) {
       this.updateWidgetState(context.config.id, { value: eventData.outputActive });
     }
   }
@@ -751,8 +785,8 @@ export class UniversalWidgetEngine extends EventEmitter {
   /**
    * Handle record state changed event
    */
-  private handleRecordStateChanged(context: WidgetContext, eventData: any): void {
-    if (context.config.targetType === 'output' && context.config.actionType === 'StartRecord') {
+  private handleRecordStateChanged(context: WidgetContext, eventData: StreamOutputStateEvent): void {
+    if (context.config.targetType === 'output' && String(context.config.actionType).includes('Record')) {
       this.updateWidgetState(context.config.id, { value: eventData.outputActive });
     }
   }
@@ -760,7 +794,7 @@ export class UniversalWidgetEngine extends EventEmitter {
   /**
    * Handle generic OBS event
    */
-  private handleGenericObsEvent(context: WidgetContext, eventType: string, eventData: any): void {
+  private handleGenericObsEvent(context: WidgetContext, eventType: string, _eventData: any): void {
     console.log(`[UniversalWidgetEngine] Generic event handling: ${eventType} for widget ${context.config.id}`);
   }
 

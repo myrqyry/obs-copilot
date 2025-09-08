@@ -1,62 +1,59 @@
 
 import { obsClient } from './obsClient';
-import { useWidgetStore } from '../store/widgetsStore';
 import { logger } from '@/utils/logger';
+import type {
+  ObsEventPayload,
+  CurrentSceneChangedEvent,
+  InputMuteStateChangedEvent,
+  InputVolumeChangedEvent,
+  ScenesChangedEvent,
+} from '@/types/obsEvents';
 
 class EventSubscriptionManager {
   private widgetSubscriptions = new Map<string, Set<string>>(); // widgetId -> set of events
-  private eventCallbacks = new Map<string, Map<string, (data: unknown, widgetId?: string) => void>>(); // event -> widgetId -> callback
+  private eventCallbacks = new Map<string, Map<string, (data: ObsEventPayload, widgetId?: string) => void>>(); // event -> widgetId -> callback
 
   constructor() {
     // Initialize event listeners
-    this.subscribeToEvents();
+    this.initializeEventListeners();
   }
 
-  private subscribeToEvents() {
+  private initializeEventListeners() {
     // Subscribe to scene change event
-    obsClient.on('CurrentSceneChanged', (data: unknown) => {
-      logger.info(`Scene changed to: ${(data as { sceneName: string }).sceneName}`);
-      // Update global store if exists
-      // useWidgetStore.setState({ currentScene: (data as { sceneName: string }).sceneName });
-      this.handleWidgetEvent('CurrentSceneChanged', data);
+    obsClient.on('CurrentSceneChanged', (data: CurrentSceneChangedEvent) => {
+      logger.info(`Scene changed to: ${data.sceneName}`);
+      this.handleWidgetEvent('CurrentSceneChanged', data as ObsEventPayload);
     });
 
     // Subscribe to input mute changed
-    obsClient.on('InputMuteStateChanged', (data: unknown) => {
-      const inputName = (data as { inputName: string }).inputName;
-      const inputMuted = (data as { inputMuted: boolean }).inputMuted;
-      logger.info(`Input ${inputName} mute changed to: ${inputMuted}`);
-      // useWidgetStore.setState({ mutedInputs: { ...useWidgetStore.getState().mutedInputs, [inputName]: inputMuted } });
-      this.handleWidgetEvent('InputMuteStateChanged', data);
+    obsClient.on('InputMuteStateChanged', (data: InputMuteStateChangedEvent) => {
+      logger.info(`Input ${data.inputName} mute changed to: ${data.inputMuted}`);
+      this.handleWidgetEvent('InputMuteStateChanged', data as ObsEventPayload);
     });
 
     // Subscribe to input volume changed
-    obsClient.on('InputVolumeChanged', (data: unknown) => {
-      const inputName = (data as { inputName: string }).inputName;
-      const inputVolumeDb = (data as { inputVolumeDb: number }).inputVolumeDb;
-      logger.info(`Input ${inputName} volume changed to: ${inputVolumeDb}`);
-      // useWidgetStore.setState({ volumeLevels: { ...useWidgetStore.getState().volumeLevels, [inputName]: inputVolumeDb } });
-      this.handleWidgetEvent('InputVolumeChanged', data);
+    obsClient.on('InputVolumeChanged', (data: InputVolumeChangedEvent) => {
+      logger.info(`Input ${data.inputName} volume changed to: ${data.inputVolumeDb}`);
+      this.handleWidgetEvent('InputVolumeChanged', data as ObsEventPayload);
     });
 
     // Add more event subscriptions as needed
     // For example, SceneItemAdded, SceneItemRemoved, TransitionCreated, etc.
 
     // Subscribe to scene list changed
-    obsClient.on('ScenesChanged', (data: unknown) => {
+    obsClient.on('ScenesChanged', (data: ScenesChangedEvent) => {
       logger.info('Scenes list changed');
-      // Update store with new scene list if needed
-      // useWidgetStore.setState({ availableScenes: (data as { scenes: string[] }).scenes });
-      this.handleWidgetEvent('ScenesChanged', data);
+      this.handleWidgetEvent('ScenesChanged', data as ObsEventPayload);
     });
   }
 
-  private handleWidgetEvent(event: string, data: unknown) {
+  private handleWidgetEvent(event: string, data: ObsEventPayload) {
     // Find widgets subscribed to this event and update their state
     for (const [widgetId, events] of this.widgetSubscriptions.entries()) {
       if (events.has(event)) {
         const callback = this.eventCallbacks.get(event)?.get(widgetId);
         if (callback) {
+          // data is already typed as ObsEventPayload here
           callback(data, widgetId);
         }
       }
@@ -75,10 +72,10 @@ class EventSubscriptionManager {
       }
 
       // Create callback that updates widget state
-      const callback = (data: unknown, wid?: string) => {
+      const callback = (_data: ObsEventPayload, wid?: string) => {
         if (wid === widgetId) {
           // Update widget state via store
-          // useWidgetsStore.getState().updateWidgetState(widgetId, { value: data, lastUpdated: Date.now() });
+          // useWidgetsStore.getState().updateWidgetState(widgetId, { value: _data, lastUpdated: Date.now() });
         }
       };
 
@@ -106,7 +103,6 @@ class EventSubscriptionManager {
   }
 
   subscribe(event: string, callback: (data: unknown) => void) {
-    const eventKey = `subscription_${event}_${Date.now()}`;
     // Legacy subscribe method
     obsClient.on(event, callback);
     logger.info(`Subscribed to event: ${event}`);

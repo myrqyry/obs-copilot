@@ -95,3 +95,5 @@ desktop.ini
 AGENTS.md
 /backend/venv/*
 /backend/__pycache__/*
+.github/copilot-instructions.md
+.clinerules/obscopilotrules.md

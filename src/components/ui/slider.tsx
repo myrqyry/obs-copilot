@@ -15,13 +15,23 @@ const Slider: React.FC<SliderProps> = ({
   className,
   unit,
 }) => {
-  const handleValueChange = (values: number[]) => {
-    onChange(values[0]);
+  // Normalize incoming value and change callbacks to support both number and number[]
+  const currentValue = Array.isArray(value) ? value[0] : value;
+
+  const handleValueChange = (values: number[] | number) => {
+    if (Array.isArray(values)) {
+      onChange(values[0]);
+    } else {
+      onChange(values);
+    }
   };
 
-  const handleValueCommit = (values: number[]) => {
-    if (onChangeEnd) {
+  const handleValueCommit = (values: number[] | number) => {
+    if (!onChangeEnd) return;
+    if (Array.isArray(values)) {
       onChangeEnd(values[0]);
+    } else {
+      onChangeEnd(values);
     }
   };
 
@@ -32,16 +42,19 @@ const Slider: React.FC<SliderProps> = ({
           {label} {unit && <span className="text-muted-foreground">({value}{unit})</span>}
         </label>
       )}
+      {/* Cast to any to bridge differences between this wrapper's SliderProps and the underlying ShadcnSlider implementation */}
       <ShadcnSlider
-        id={id}
-        min={min}
-        max={max}
-        step={step}
-        value={[value]}
-        onValueChange={handleValueChange}
-        onValueCommit={handleValueCommit}
-        disabled={disabled}
-        className="w-full"
+        {...( {
+          id,
+          min,
+          max,
+          step,
+          value: [currentValue],
+          onValueChange: handleValueChange,
+          onValueCommit: handleValueCommit,
+          disabled,
+          className: 'w-full'
+        } as any )}
       />
     </div>
   );

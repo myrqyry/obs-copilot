@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ObsActionType, ObsWidgetConfig, ControlKind, ObsControlConfig } from '@/types/obs';
+import useConnectionsStore from '@/store/connectionsStore';
 import { Checkbox } from '@/components/ui/checkbox'; // Assuming checkbox is available
 import { Textarea } from '@/components/ui/textarea'; // Assuming textarea is available
 
@@ -44,6 +45,9 @@ const ObsWidgetConfigModal: React.FC<ObsWidgetConfigModalProps> = ({ onSave, sce
   const [controlThrottleMs, setControlThrottleMs] = useState(0); // 0 means no throttle
 
   const handleSave = () => {
+    const normalizedScene = sceneName === '__none__' ? '' : sceneName;
+    const normalizedSource = sourceName === '__none__' ? '' : sourceName;
+
     const newConfig: ObsWidgetConfig = {
       id: new Date().toISOString(),
       label,
@@ -65,13 +69,27 @@ const ObsWidgetConfigModal: React.FC<ObsWidgetConfigModalProps> = ({ onSave, sce
         throttleMs: controlThrottleMs,
       };
     } else {
-      newConfig.type = actionType;
-      newConfig.sceneName = actionType === 'switch_scene' ? sceneName : undefined;
-      newConfig.sourceName = actionType === 'toggle_mute' ? sourceName : undefined;
+      newConfig.type = actionType as any;
+  newConfig.sceneName = actionType === 'switch_scene' ? (normalizedScene || undefined) : undefined;
+  newConfig.sourceName = actionType === 'toggle_mute' ? (normalizedSource || undefined) : undefined;
     }
 
     onSave(newConfig);
   };
+
+  // Use store values as a fallback so lists populate even if parent doesn't supply them
+  const { scenes: storeScenes, sources: storeSources } = useConnectionsStore();
+
+  const scenesList = (scenes && scenes.length > 0) ? scenes : (storeScenes || []).map((s) => s.sceneName);
+  const sourcesList = (sources && sources.length > 0) ? sources : (storeSources || []).map((s) => s.sourceName);
+  const { currentProgramScene } = useConnectionsStore();
+
+  // If switching to scene action and no sceneName selected, default to current program scene
+  React.useEffect(() => {
+    if (actionType === 'switch_scene' && !sceneName && currentProgramScene) {
+      setSceneName(currentProgramScene);
+    }
+  }, [actionType, currentProgramScene]);
 
   return (
     <Dialog>
@@ -145,11 +163,20 @@ const ObsWidgetConfigModal: React.FC<ObsWidgetConfigModalProps> = ({ onSave, sce
                       <SelectValue placeholder="Select scene" />
                     </SelectTrigger>
                     <SelectContent>
-                      {scenes.map((scene) => (
-                        <SelectItem key={scene} value={scene}>
-                          {scene}
+                      {scenesList.length === 0 ? (
+                        // Radix Select requires non-empty values on SelectItem; use a sentinel and disabled
+                        <SelectItem value="__none__" disabled>
+                          No scenes available
                         </SelectItem>
-                      ))}
+                      ) : (
+                        scenesList
+                          .filter((s) => s != null && s !== '')
+                          .map((scene) => (
+                            <SelectItem key={scene} value={scene}>
+                              {scene}
+                            </SelectItem>
+                          ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -163,11 +190,20 @@ const ObsWidgetConfigModal: React.FC<ObsWidgetConfigModalProps> = ({ onSave, sce
                       <SelectValue placeholder="Select source" />
                     </SelectTrigger>
                     <SelectContent>
-                      {sources.map((source) => (
-                        <SelectItem key={source} value={source}>
-                          {source}
+                      {sourcesList.length === 0 ? (
+                        // Radix Select requires non-empty values on SelectItem; use a sentinel and disabled
+                        <SelectItem value="__none__" disabled>
+                          No sources available
                         </SelectItem>
-                      ))}
+                      ) : (
+                        sourcesList
+                          .filter((s) => s != null && s !== '')
+                          .map((source) => (
+                            <SelectItem key={source} value={source}>
+                              {source}
+                            </SelectItem>
+                          ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -196,11 +232,13 @@ const ObsWidgetConfigModal: React.FC<ObsWidgetConfigModalProps> = ({ onSave, sce
                     <SelectValue placeholder="Select source" />
                   </SelectTrigger>
                   <SelectContent>
-                    {sources.map((source) => (
-                      <SelectItem key={source} value={source}>
-                        {source}
-                      </SelectItem>
-                    ))}
+                    {sourcesList
+                      .filter((s) => s != null && s !== '')
+                      .map((source) => (
+                        <SelectItem key={source} value={source}>
+                          {source}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>

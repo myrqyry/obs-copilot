@@ -1,5 +1,4 @@
 import React from 'react';
-import { BaseWidget } from './BaseWidget';
 import { Button } from '@/components/ui/button';
 import { obsClient } from '@/services/obsClient';
 import { UniversalWidgetConfig } from '@/types/universalWidget';
@@ -19,34 +18,35 @@ export const ButtonWidget: React.FC<ButtonWidgetProps> = ({ config }) => {
     setIsLoading(true);
     try {
       let result;
-      switch (actionType) {
+      const action = actionType as string; // Allow flexible action types
+      switch (action) {
         case 'StartStream':
           result = await obsClient.call('StartStream');
-          updateWidgetState(id, { status: 'streaming' });
+          updateWidgetState(id, { value: 'streaming', metadata: { status: 'streaming' } });
           break;
         case 'StopStream':
           result = await obsClient.call('StopStream');
-          updateWidgetState(id, { status: 'stopped' });
+          updateWidgetState(id, { value: 'stopped', metadata: { status: 'stopped' } });
           break;
         case 'StartRecord':
           result = await obsClient.call('StartRecord');
-          updateWidgetState(id, { status: 'recording' });
+          updateWidgetState(id, { value: 'recording', metadata: { status: 'recording' } });
           break;
         case 'StopRecord':
           result = await obsClient.call('StopRecord');
-          updateWidgetState(id, { status: 'stopped' });
+          updateWidgetState(id, { value: 'stopped', metadata: { status: 'stopped' } });
           break;
         case 'ToggleMute':
           if (targetName) {
             const { inputMuted } = await obsClient.call('GetInputMute', { inputName: targetName });
             result = await obsClient.call('SetInputMute', { inputName: targetName, inputMuted: !inputMuted });
-            updateWidgetState(id, { muted: !inputMuted });
+            updateWidgetState(id, { value: !inputMuted, metadata: { muted: !inputMuted } });
           }
           break;
         case 'SwitchScene':
           if (targetName) {
             result = await obsClient.call('SetCurrentProgramScene', { sceneName: targetName });
-            updateWidgetState(id, { currentScene: targetName });
+            updateWidgetState(id, { value: targetName, metadata: { currentScene: targetName } });
           }
           break;
         default:
@@ -55,27 +55,21 @@ export const ButtonWidget: React.FC<ButtonWidgetProps> = ({ config }) => {
       }
       console.log(`Action ${actionType} executed:`, result);
     } catch (error) {
-      console.error(`Failed to execute ${actionType}:`, error);
-      updateWidgetState(id, { error: (error as Error).message });
+      console.error(`Error executing action ${actionType}:`, error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const buttonLabel = config.name || actionType;
-  const buttonVariant = actionType.includes('Stop') ? 'destructive' : 'default';
-
   return (
-    <BaseWidget config={config}>
+    <div className="widget-container">
       <Button
         onClick={executeAction}
-        disabled={isLoading || !obsClient}
-        variant={buttonVariant}
+        disabled={isLoading}
         className="w-full"
-        size="lg"
       >
-        {isLoading ? 'Loading...' : buttonLabel}
+        {isLoading ? 'Loading...' : (actionType || 'Execute')}
       </Button>
-    </BaseWidget>
+    </div>
   );
 };

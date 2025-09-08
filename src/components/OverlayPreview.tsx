@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/Card';
 import { OverlayConfig } from '@/types/overlay';
 import { useOverlaysStore } from '@/store/overlaysStore';
 
@@ -15,7 +15,9 @@ const OverlayPreview: React.FC<OverlayPreviewProps> = ({
   height = 300 
 }) => {
   // Unconditional hook call - fallback to store if no prop config
-  const storeConfig = useOverlaysStore((state) => state.currentOverlay);
+  // The store exposes an `overlays` array; use the most recent overlay as a fallback.
+  const overlays = useOverlaysStore((state) => state.overlays);
+  const storeConfig = overlays && overlays.length > 0 ? overlays[overlays.length - 1] : undefined;
   const finalConfig = config || storeConfig;
 
   if (!finalConfig?.generatedCode) {
@@ -33,10 +35,10 @@ const OverlayPreview: React.FC<OverlayPreviewProps> = ({
   // Escape HTML content to prevent injection issues in srcDoc
   const escapeHtml = (unsafe: string) => {
     return unsafe
-      .replace(/&/g, "&")
-      .replace(/</g, "<")
-      .replace(/>/g, ">")
-      .replace(/"/g, """)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
   };
 
@@ -72,9 +74,9 @@ const OverlayPreview: React.FC<OverlayPreviewProps> = ({
             frameBorder="0"
           />
         </div>
-        {finalConfig.name && (
+        {finalConfig.templateName && (
           <div className="p-2 text-xs text-gray-500 dark:text-gray-400 text-center border-t border-gray-200 dark:border-gray-700">
-            {finalConfig.name}
+            {finalConfig.templateName}
           </div>
         )}
       </CardContent>

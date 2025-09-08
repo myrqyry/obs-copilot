@@ -87,6 +87,15 @@ const useConnectionsStore = create<ConnectionState>()(
           // When connected (post-Identified), fetch initial data
           obsClient.getSceneList().then(({ scenes }) => set({ scenes }));
           obsClient.getCurrentProgramScene().then(({ currentProgramSceneName }) => set({ currentProgramScene: currentProgramSceneName }));
+          obsClient.getInputList().then(({ inputs }) => {
+            // Transform inputs to OBSSource format
+            const sources = inputs.map((input: any) => ({
+              sourceName: input.inputName,
+              sourceKind: input.inputKind,
+              ...input
+            }));
+            set({ sources });
+          });
           obsClient.getStreamStatus().then((status) => set({ streamStatus: status as OBSStreamStatus }));
           obsClient.getRecordStatus().then((status) => set({ recordStatus: status as OBSRecordStatus }));
           obsClient.getVideoSettings().then((settings) => set({ videoSettings: settings as OBSVideoSettings }));
@@ -99,9 +108,8 @@ const useConnectionsStore = create<ConnectionState>()(
       });
       obsClient.on('CurrentProgramSceneChanged', ({ sceneName }) => {
         set({ currentProgramScene: sceneName });
-        obsClient.getSceneItemList(sceneName).then(({ sceneItems }) => {
-          set({ sources: sceneItems });
-        });
+        // Note: Don't overwrite the global sources list with scene items
+        // Scene items are different from sources - they're instances of sources in a scene
       });
       obsClient.on('StreamStateChanged', (data: OBSStreamStatus) => {
         set({ streamStatus: data });
@@ -206,18 +214,28 @@ const useConnectionsStore = create<ConnectionState>()(
         },
 
         disconnectFromObs: async () => {
+          // On refresh/unmount we don't want to erase the last-known scenes/sources
+          // so the UI can still show them. Provide an explicit clear action below
+          // if the user intentionally wants to remove persisted OBS data.
           await obsClient.disconnect();
           set({
             isConnected: false,
             connectionError: null,
             isLoading: false,
-            scenes: [],
-            currentProgramScene: null,
-            sources: [],
+            // keep scenes/sources/currentProgramScene intact to preserve last-known values
             streamStatus: null,
             recordStatus: null,
             videoSettings: null,
             activeConnectionId: null,
+          });
+        },
+
+        // Explicitly clear persisted OBS data (scenes/sources) when the user requests it
+        clearObsData: () => {
+          set({
+            scenes: [],
+            currentProgramScene: null,
+            sources: [],
           });
         },
 
@@ -283,9 +301,13 @@ const useConnectionsStore = create<ConnectionState>()(
     {
       name: 'connection-profiles-storage',
       storage: createJSONStorage(() => localStorage),
+      // Persist last-known OBS scenes/sources to improve UX on reloads when OBS is disconnected
       partialize: (state) => ({
         connectionProfiles: state.connectionProfiles,
         activeConnectionId: state.activeConnectionId,
+        scenes: state.scenes,
+        sources: state.sources,
+        currentProgramScene: state.currentProgramScene,
       }),
       version: 1,
       // No rehydration logic here; components should re-connect based on activeConnectionId

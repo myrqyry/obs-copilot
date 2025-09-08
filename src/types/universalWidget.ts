@@ -322,31 +322,7 @@ export interface MultiChannelValueMappingConfig extends ValueMappingConfig {
 }
 
 // Export all types for use in other modules
-export type {
-  WidgetControlType,
-  TargetType,
-  UniversalWidgetConfig,
-  ValueMappingConfig,
-  VisualWidgetConfig,
-  ReactionConfig,
-  ActionConfig,
-  ConditionalAction,
-  WidgetState,
-  WidgetMetrics,
-  ObsConnectionState,
-  WidgetContext,
-  ActionExecutionOptions,
-  ActionResult,
-  WidgetError,
-  PerformanceMonitor,
-  RetryConfig,
-  ValidationResult,
-  WidgetGroup,
-  AudioConfig,
-  SceneConfig,
-  SourceConfig,
-  TransformConfig,
-  VisibilityConfig,
-  FilterConfig,
-  MultiChannelValueMappingConfig
-};
+// Re-export types are not required because we've used `export` on each declaration above.
+// This file intentionally avoids a final `export type { ... }` block to prevent
+// duplicate-export issues that TypeScript can surface when types are re-declared
+// or merged in build processes. Consumers should import the named types directly.

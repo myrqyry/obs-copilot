@@ -1,24 +1,22 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import AssetSearchTab from '@/components/asset-search/EnhancedAssetSearch'; // Updated path based on project structure
-import { useOverlayGeneration } from '@/hooks/useOverlayGeneration';
+import { getAllAssetConfigs } from '@/config/assetSearchConfigs';
+import { useOverlaysStore } from '@/store/overlaysStore';
 import { overlayTemplates } from '@/config/overlayTemplates';
 import OverlayPreview from '@/components/OverlayPreview';
 
 const StreamingAssetsTab: React.FC = () => {
-  // Use hook unconditionally
-  const {
-    selectedTemplate,
-    setSelectedTemplate,
-    description,
-    setDescription,
-    generateOverlay,
-    isLoading,
-    currentOverlay
-  } = useOverlayGeneration();
+  // Manage selection and description locally; use overlays store for generation and current overlays
+  const [selectedTemplate, setSelectedTemplate] = React.useState<string>('');
+  const [description, setDescription] = React.useState<string>('');
+  const generateOverlay = useOverlaysStore((s) => s.generateOverlay);
+  const isLoading = useOverlaysStore((s) => s.loading);
+  const overlays = useOverlaysStore((s) => s.overlays);
+  const currentOverlay = overlays && overlays.length > 0 ? overlays[overlays.length - 1] : undefined;
 
   const handleGenerate = async () => {
     if (selectedTemplate && description.trim()) {
@@ -26,7 +24,8 @@ const StreamingAssetsTab: React.FC = () => {
     }
   };
 
-  const availableTemplates = overlayTemplates.getAvailableTemplates(); // Assuming this method exists
+  // overlayTemplates exports an array of templates — use it directly
+  const availableTemplates = Array.isArray(overlayTemplates) ? overlayTemplates : [];
 
   return (
     <div className="space-y-6 p-4">
@@ -35,8 +34,8 @@ const StreamingAssetsTab: React.FC = () => {
         <CardHeader>
           <CardTitle>Asset Search</CardTitle>
         </CardHeader>
-        <CardContent>
-          <AssetSearchTab />
+          <CardContent>
+          <AssetSearchTab title="Asset Search" emoji="🔎" apiConfigs={getAllAssetConfigs()} />
         </CardContent>
       </Card>
 
@@ -59,8 +58,8 @@ const StreamingAssetsTab: React.FC = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {availableTemplates.map((template) => (
-                      <SelectItem key={template.id} value={template.id}>
-                        {template.name}
+                      <SelectItem key={template.templateName} value={template.templateName}>
+                        {template.templateName}
                       </SelectItem>
                     ))}
                   </SelectContent>

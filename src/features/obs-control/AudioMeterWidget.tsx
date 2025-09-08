@@ -4,8 +4,8 @@ import { obsClient } from '@/services/obsClient';
 import type { UniversalWidgetConfig } from '@/types/universalWidget';
 import type { AudioConfig } from '@/types/universalWidget';
 
-interface AudioMeterWidgetProps extends UniversalWidgetConfig {
-  config: AudioConfig;
+interface AudioMeterWidgetProps {
+  config: UniversalWidgetConfig & { audioConfig?: AudioConfig };
   id: string;
   className?: string;
 }
@@ -25,7 +25,7 @@ const AudioMeterWidget: React.FC<AudioMeterWidgetProps> = ({ config, id }) => {
 
   // Subscribe to audio levels event
   useEffect(() => {
-    const handleAudioLevels = (data) => {
+    const handleAudioLevels = (data: any) => {
       if (data.inputName === sourceName) {
         const levelsData = data.inputAudioLevels || [];
         const peakData = data.inputAudioPeak || [];

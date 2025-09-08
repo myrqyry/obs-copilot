@@ -2,7 +2,17 @@ import { GoogleGenAI, Type } from '@google/genai';
 import { OverlayConfig, OverlayCustomization, GeneratedCode } from '@/types/overlay';
 import { overlayTemplates } from '@/config/overlayTemplates';
 
-const ai = new GoogleGenAI({}); // Assumes GEMINI_API_KEY environment variable is set
+// Lazy initialize GoogleGenAI client to avoid errors when running in browser without an API key.
+let ai: GoogleGenAI | null = null;
+function getAi(): GoogleGenAI {
+  if (ai) return ai;
+  const key = import.meta.env.VITE_GEMINI_API_KEY || '';
+  if (!key) {
+    throw new Error('Google GenAI API key is not set. Set VITE_GEMINI_API_KEY in your environment to use overlay generation.');
+  }
+  ai = new GoogleGenAI({ apiKey: key });
+  return ai;
+}
 
 // Define the response schema for structured output
 const overlaySchema = {
@@ -45,6 +55,11 @@ const overlaySchema = {
           type: Type.OBJECT,
           description: 'Other customizations',
           additionalProperties: true
+        },
+        placeholders: {
+          type: Type.OBJECT,
+          description: 'Placeholders for dynamic customization values',
+          additionalProperties: true
         }
       }
     },
@@ -82,29 +97,36 @@ export async function generateOverlay(
   }
 
   // Construct the prompt including template details and user requirements
-  const prompt = `
+  let prompt = `
     Using the following overlay template as a base, generate a customized streaming overlay based on the user's description.
-
+ 
     Template Name: ${templateName}
     Base Customizations: ${JSON.stringify(template.customizations)}
     Base HTML: ${template.generatedCode.html}
     Base CSS: ${template.generatedCode.css}
     Base JS: ${template.generatedCode.js}
-
+ 
     User Description: ${userDescription}
-
+ 
     Please generate a customized overlay that:
     1. Maintains the core functionality of the original template
     2. Applies appropriate customizations based on the user description
     3. Updates the HTML, CSS, and JavaScript accordingly
     4. Preserves placeholders for dynamic data (like {username}, {message}, etc.)
     5. Ensures the overlay is suitable for streaming use
-
+ 
     Return the complete customized overlay configuration.
   `;
 
+  if (templateName === 'Emote Overlay') {
+    prompt += `
+      For the 'Emote Overlay', ensure the JavaScript includes logic to receive emote data (e.g., image URLs) via 'window.postMessage' from the parent application. The JS should dynamically add these emotes to the HTML structure. Consider how to handle a continuous stream of emotes, potentially removing older ones to prevent overflow and optimizing for performance. The emotes should animate in.
+    `;
+  }
+
   try {
-    const response = await ai.models.generateContent({
+    const client = getAi();
+    const response = await client.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
       config: {

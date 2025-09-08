@@ -5,7 +5,10 @@ from typing import Optional, List, Dict
 from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.responses import StreamingResponse
-from backend.auth import get_api_key
+try:
+    from .auth import get_api_key
+except Exception:
+    from auth import get_api_key
 from google import genai
 from google.generativeai import types
 

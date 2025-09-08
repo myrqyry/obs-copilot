@@ -188,8 +188,8 @@ export class ActionHandlerSystem {
       };
     }
 
-    // Map parameters dynamically
-    const mappedParams = this.mapParameters(actionId, params || {});
+    // Use parameters as-is for now
+    const mappedParams = params || {};
 
     // Validate action parameters
     const validation = await this.validateAction(actionId, mappedParams);
@@ -272,7 +272,7 @@ export class ActionHandlerSystem {
    * Create a generic OBS call handler
    */
   private createGenericHandler(method: string): ActionHandler {
-    return async (context: ActionExecutionContext, params?: Record<string, any>): Promise<ActionResult> => {
+    return async (_context: ActionExecutionContext, params?: Record<string, any>): Promise<ActionResult> => {
       try {
         if (!obsClient.isConnected()) {
           return {
@@ -346,7 +346,8 @@ export class ActionHandlerSystem {
           };
         }
       }
-      return this.createGenericHandler(action)(context, params);
+      const handler = this.createGenericHandler(action);
+      return typeof handler === 'function' ? handler(context, params) : handler.execute(context, params);
     };
   }
 

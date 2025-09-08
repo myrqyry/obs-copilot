@@ -202,7 +202,7 @@ export function FaviconDropdown({ options, value, onChange, className = '', plac
                 >
                     {options.map((option, index) => (
                         <button
-                            key={option.value}
+                            key={`${option.value}::${option.domain || index}`}
                             type="button"
                             role="option"
                             aria-selected={option.value === value}

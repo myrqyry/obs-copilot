@@ -10,6 +10,7 @@ export interface OverlayCustomization {
     y?: number;
   };
   animation?: string;
+  placeholders?: Record<string, string>;
   other?: Record<string, any>;
 }
 

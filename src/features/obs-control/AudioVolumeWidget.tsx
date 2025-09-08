@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useUniversalWidgetStore } from '@/store/widgetsStore';
 import { obsClient } from '@/services/obsClient';
-import type { UniversalWidgetConfig, WidgetState } from '@/types/universalWidget';
+import type { UniversalWidgetConfig } from '@/types/universalWidget';
 import type { AudioConfig } from '@/types/universalWidget'; // Extended for Phase 3
 
-interface AudioVolumeWidgetProps extends UniversalWidgetConfig {
-  config: AudioConfig;
+interface AudioVolumeWidgetProps {
+  config: UniversalWidgetConfig & { 
+    audioConfig?: AudioConfig;
+    valueMapping?: Record<string, any>;
+    property?: string;
+  };
   id: string;
   className?: string;
 }
@@ -140,7 +144,7 @@ const AudioVolumeWidget: React.FC<AudioVolumeWidgetProps> = ({ config, id }) => 
           step={config.valueMapping?.step || 0.1}
           value={volume}
           onChange={(e) => setVolume(Number(e.target.value))}
-          onMouseUp={(e) => handleVolumeChange(Number(e.target.value))}
+          onMouseUp={(e) => handleVolumeChange(Number((e.target as HTMLInputElement).value))}
           className="w-full slider slider-primary"
         />
       </div>
@@ -165,7 +169,7 @@ const AudioVolumeWidget: React.FC<AudioVolumeWidgetProps> = ({ config, id }) => 
           step="1"
           value={balance}
           onChange={(e) => setBalance(Number(e.target.value))}
-          onMouseUp={(e) => handleBalanceChange(Number(e.target.value))}
+          onMouseUp={(e) => handleBalanceChange(Number((e.target as HTMLInputElement).value))}
           className="w-full slider slider-secondary"
         />
       </div>

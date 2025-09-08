@@ -3,7 +3,10 @@ import os
 import httpx
 from fastapi import APIRouter, HTTPException, Request, Depends, status
 from fastapi.responses import Response
-from backend.auth import get_api_key
+try:
+    from .auth import get_api_key
+except Exception:
+    from auth import get_api_key
 
 router = APIRouter()
 

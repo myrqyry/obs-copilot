@@ -3,8 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/Card';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { useObsWidget } from '@/hooks/useObsWidget';
 import { UniversalWidgetConfig, WidgetControlType } from '@/types/universalWidget';
 import { logger } from '@/utils/logger';
@@ -63,7 +65,7 @@ const UniversalWidgetEngine: React.FC<UniversalWidgetEngineProps> = ({ config, o
           <div className="flex items-center space-x-2">
             <Switch
               checked={boolValue}
-              onCheckedChange={(checked) => handleValueChange(checked)}
+              onCheckedChange={(checked: boolean) => handleValueChange(checked)}
               disabled={isLoading}
               aria-label={`Switch ${config.name}`}
             />
@@ -78,7 +80,7 @@ const UniversalWidgetEngine: React.FC<UniversalWidgetEngineProps> = ({ config, o
             <Label className="text-sm font-medium">{config.name}</Label>
             <Slider
               value={[numValue]}
-              onValueChange={(value) => handleValueChange(value[0])}
+              onValueChange={(value: number[]) => handleValueChange(value[0])}
               min={min}
               max={max}
               step={step}
@@ -97,11 +99,13 @@ const UniversalWidgetEngine: React.FC<UniversalWidgetEngineProps> = ({ config, o
                 <SelectValue placeholder="Select..." />
               </SelectTrigger>
               <SelectContent>
-                {options.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {option}
-                  </SelectItem>
-                ))}
+                {options
+                  .filter((opt: string | null | undefined) => opt !== '' && opt != null)
+                  .map((option: string) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>
@@ -114,7 +118,7 @@ const UniversalWidgetEngine: React.FC<UniversalWidgetEngineProps> = ({ config, o
             <Label className="text-sm font-medium">{config.name}</Label>
             <Slider
               value={[stepValue]}
-              onValueChange={(value) => handleValueChange(value[0])}
+              onValueChange={(value: number[]) => handleValueChange(value[0])}
               min={stepMin}
               max={stepMax}
               step={stepStep}
@@ -125,12 +129,19 @@ const UniversalWidgetEngine: React.FC<UniversalWidgetEngineProps> = ({ config, o
           </div>
         );
       case WidgetControlType.COLOR:
+        // Ensure color values are valid hex for input[type=color]
+        const normalizeColor = (c: any) => {
+          if (!c) return '#000000';
+          if (typeof c === 'string' && /^#([0-9A-Fa-f]{6})$/.test(c)) return c;
+          return '#000000';
+        };
+
         return (
           <div className="space-y-2">
             <Label className="text-sm font-medium">{config.name}</Label>
             <input
               type="color"
-              value={config.state?.value || '#000000'}
+              value={normalizeColor(config.state?.value)}
               onChange={(e) => handleValueChange(e.target.value)}
               disabled={isLoading}
               className="w-full h-10 border rounded"
@@ -144,7 +155,7 @@ const UniversalWidgetEngine: React.FC<UniversalWidgetEngineProps> = ({ config, o
             <Label className="text-sm font-medium">{config.name}</Label>
             <Input
               value={config.state?.value || ''}
-              onChange={(e) => handleValueChange(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleValueChange(e.target.value)}
               disabled={isLoading}
               className="w-full"
               aria-label={`Text input ${config.name}`}
@@ -160,11 +171,13 @@ const UniversalWidgetEngine: React.FC<UniversalWidgetEngineProps> = ({ config, o
                 <SelectValue placeholder="Select..." />
               </SelectTrigger>
               <SelectContent>
-                {options.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {option}
-                  </SelectItem>
-                ))}
+                {options
+                  .filter((opt: string | null | undefined) => opt !== '' && opt != null)
+                  .map((option: string) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>
@@ -186,7 +199,7 @@ const UniversalWidgetEngine: React.FC<UniversalWidgetEngineProps> = ({ config, o
             <Label className="text-sm font-medium">{config.name}</Label>
             <Slider
               value={[progressValue]}
-              onValueChange={(value) => handleValueChange(value[0])}
+              onValueChange={(value: number[]) => handleValueChange(value[0])}
               min={progressMin}
               max={progressMax}
               step={1}

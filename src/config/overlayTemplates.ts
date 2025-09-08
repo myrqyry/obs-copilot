@@ -173,7 +173,7 @@ updateViewerCount(0);
   <div class="alert-icon">💰</div>
   <div class="alert-content">
     <h3 class="donor-name">{donorName}</h3>
-    <p class="donation-amount">Donated ${donorAmount}</p>
+    <p class="donation-amount">Donated {donorAmount}</p>
     <p class="donation-message">{message}</p>
   </div>
 </div>
@@ -376,6 +376,108 @@ window.addEventListener('message', (event) => {
 
 // Initial scores
 updateScoreboard('Team A', '0', 'Team B', '0');
+      `
+    }
+  },
+  {
+    templateName: 'Emote Overlay',
+    customizations: {
+      fontSize: '14px',
+      colors: {
+        primary: '#ffffff',
+        secondary: '#00e5ff',
+        background: 'rgba(0,0,0,0.5)'
+      },
+      position: {
+        x: 0,
+        y: 50
+      },
+      animation: 'popIn',
+      placeholders: {
+        GRID_SIZE: '5x5',
+        BG_COLOR: '#00000080',
+        POSITION: 'bottom-left'
+      }
+    },
+    generatedCode: {
+      html: `
+<div id="emote-wall" class="emote-wall">
+  <div id="emotes" class="emote-grid" aria-live="polite"></div>
+</div>
+      `,
+      css: `
+.emote-wall {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  background: rgba(0,0,0,0.5);
+  padding: 12px;
+  box-sizing: border-box;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.emote-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+  gap: 8px;
+  align-content: start;
+  width: 100%;
+  height: 100%;
+}
+
+.emote {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  will-change: transform, opacity;
+  animation: emotePop 0.45s ease forwards;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+}
+
+@keyframes emotePop {
+  0% { transform: scale(0.4) translateY(8px); opacity: 0; }
+  60% { transform: scale(1.08) translateY(-4px); opacity: 1; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+      `,
+      js: `
+function addEmote(emoteUrl) {
+  const grid = document.getElementById('emotes');
+  if (!grid) return;
+
+  const img = document.createElement('img');
+  img.src = emoteUrl;
+  img.className = 'emote';
+  img.alt = 'emote';
+
+  // Append and ensure newest are visible
+  grid.appendChild(img);
+
+  // Remove oldest if overflow (keep roughly 25 items)
+  while (grid.children.length > 25) {
+    grid.removeChild(grid.firstChild);
+  }
+
+  // Auto-remove emote after animation (optional)
+  setTimeout(() => {
+    if (img.parentElement) img.parentElement.removeChild(img);
+  }, 8000);
+}
+
+// Listen for emote events from OBS or external source
+window.addEventListener('message', (event) => {
+  if (event.data?.type === 'addEmote' && event.data.url) {
+    addEmote(event.data.url);
+  }
+});
+
+// For convenience expose API
+window.EmoteWall = {
+  add: addEmote
+};
       `
     }
   }

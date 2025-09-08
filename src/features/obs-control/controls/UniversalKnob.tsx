@@ -10,16 +10,17 @@ interface UniversalKnobProps {
 
 export const UniversalKnob: React.FC<UniversalKnobProps> = ({ config }) => {
   const { id, valueMapping } = config;
-  const [value, setValue] = useState(valueMapping?.defaultValue || 0);
+  const [value, setValue] = useState<number>(valueMapping?.defaultValue || 0);
   const [error, setError] = useState<string | null>(null);
   const { executeAction } = useWidgetStore();
 
-  const handleValueChange = useCallback(async (newValue) => {
-    setValue(newValue);
+  const handleValueChange = useCallback(async (newValue: number | number[]) => {
+    const normalized = Array.isArray(newValue) ? newValue[0] : newValue;
+    setValue(normalized);
     try {
-      await executeAction(id, 'setProperty', newValue, { targetType: config.targetType, targetName: config.targetName });
-    } catch (err) {
-      setError(err.message);
+      await executeAction(id, 'setProperty' as any, normalized, { targetType: config.targetType, targetName: config.targetName });
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
     }
   }, [id, executeAction, config.targetType, config.targetName]);
 
@@ -38,8 +39,8 @@ export const UniversalKnob: React.FC<UniversalKnobProps> = ({ config }) => {
     <ComprehensiveErrorBoundary>
       <div className="p-2 border rounded bg-background">
         <Slider 
-          value={[value]} 
-          onValueChange={(values) => handleValueChange(values[0])} 
+          value={value} 
+          onChange={handleValueChange} 
           min={valueMapping?.min || 0} 
           max={valueMapping?.max || 100} 
           step={valueMapping?.step || 1}

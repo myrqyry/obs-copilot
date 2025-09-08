@@ -9,7 +9,11 @@ import { dataUrlToBlobUrl } from '@/lib/utils';
 import { LiveConnectParameters } from '@google/genai';
 import { GoogleGenAI, Content, Type } from '@google/genai';
 import { UniversalWidgetConfig } from '@/types/universalWidget';
-import { readFileSync } from 'fs';
+// Use Vite raw imports for markdown prompts so they're bundled for the browser
+// `?raw` imports the file contents as a string at build time
+import widgetGenerationPrompt from '@/constants/prompts/widgetGenerationPrompt.md?raw';
+import geminiSystemPrompt from '@/constants/prompts/geminiSystemPrompt.md?raw';
+// readFileSync removed because this file runs in browser context
 import { Buffer } from 'buffer';
 import { pcm16ToWavUrl } from '@/lib/pcmToWavUrl';
 import { httpClient } from './httpClient';
@@ -438,8 +442,7 @@ class GeminiService implements AIService {
       throw new Error(handleAppError('Gemini Live API connection', error, 'Live API connection failed or authentication failed.'));
     }
   }
-}
-
+  
   // Widget-specific methods
   async generateWidgetConfigFromPrompt(
     description: string,
@@ -451,9 +454,8 @@ class GeminiService implements AIService {
     } = options;
 
     try {
-      // Read the system prompt
-      const promptPath = './src/constants/prompts/widgetGenerationPrompt.md';
-      const systemInstruction = readFileSync(promptPath, 'utf8');
+  // Use bundled prompt raw content
+  const systemInstruction = widgetGenerationPrompt;
 
       // Define response schema based on UniversalWidgetConfig
       const responseSchema = {
@@ -578,8 +580,7 @@ class GeminiService implements AIService {
       const chat = ai.chats.create({ model: 'gemini-2.5-pro' });
       
       // Initialize with the system prompt
-      const promptPath = './src/constants/prompts/widgetGenerationPrompt.md';
-      const systemInstruction = readFileSync(promptPath, 'utf8');
+  const systemInstruction = widgetGenerationPrompt;
       
       // Send initial system message to set context
       await chat.sendMessage({
@@ -618,5 +619,7 @@ class GeminiService implements AIService {
       throw new Error(handleAppError('Gemini widget refinement', error, 'Failed to refine widget configuration.'));
     }
   }
+
+}
 
 export const geminiService = aiMiddleware(new GeminiService());

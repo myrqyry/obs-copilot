@@ -60,14 +60,15 @@ export const useAutomationRuleBuilder = (
     }
 
     const rule: AutomationRule = {
-      id: editingRule?.id || `rule-${Date.now()}`,
-      name: ruleName.trim(),
+      id: '',
+      name: ruleName,
       enabled,
       trigger,
-      conditions: conditions.length > 0 ? conditions : undefined,
+      conditions,
       actions,
-      createdAt: editingRule?.createdAt || new Date(),
-      triggerCount: editingRule?.triggerCount || 0,
+      createdAt: new Date(),
+      triggerCount: 0,
+      cooldown: 0,
     };
 
     if (editingRule) {

@@ -76,13 +76,15 @@ const PickerWidget: React.FC<PickerWidgetProps> = ({ config }) => {
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Select a scene" />
           </SelectTrigger>
-          <SelectContent>
-            {scenes.map((scene) => (
-              <SelectItem key={scene} value={scene}>
-                {scene}
-              </SelectItem>
-            ))}
-          </SelectContent>
+              <SelectContent>
+                {scenes
+                  .filter((s) => s != null && s !== '')
+                  .map((scene) => (
+                    <SelectItem key={scene} value={scene}>
+                      {scene}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
         </Select>
         {errorMessage && <p className="text-red-500 text-xs mt-1">{errorMessage}</p>}
       </div>

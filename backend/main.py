@@ -8,13 +8,26 @@ from fastapi.responses import JSONResponse
 from fastapi_mcp import FastApiMCP  # Import FastApiMCP
 from dotenv import load_dotenv # Import load_dotenv
 
-from .auth import get_api_key
-from .api.routes import gemini
-from .api.routes import assets
-from .api.routes import overlays
-from .api.routes import proxy_7tv
-from .api.routes import proxy_emotes
-from .middleware import logging_middleware
+try:
+    # When running as a package, relative import works; when run as a script, fallback to absolute import
+    from .auth import get_api_key
+except Exception:
+    from auth import get_api_key
+try:
+    from .api.routes import gemini
+    from .api.routes import assets
+    from .api.routes import overlays
+    from .api.routes import proxy_7tv
+    from .api.routes import proxy_emotes
+    from .middleware import logging_middleware
+except Exception:
+    # Fallback when running as a script (not a package)
+    from api.routes import gemini
+    from api.routes import assets
+    from api.routes import overlays
+    from api.routes import proxy_7tv
+    from api.routes import proxy_emotes
+    from middleware import logging_middleware
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

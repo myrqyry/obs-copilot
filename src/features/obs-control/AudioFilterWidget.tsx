@@ -3,8 +3,8 @@ import { useUniversalWidgetStore } from '@/store/widgetsStore';
 import { obsClient } from '@/services/obsClient';
 import type { UniversalWidgetConfig } from '@/types/universalWidget';
 
-interface AudioFilterWidgetProps extends UniversalWidgetConfig {
-  config: { filterType: string; params?: Record<string, unknown> };
+interface AudioFilterWidgetProps {
+  config: UniversalWidgetConfig & { filterType: string; params?: Record<string, unknown> };
   id: string;
   className?: string;
 }
@@ -106,8 +106,8 @@ const AudioFilterWidget: React.FC<AudioFilterWidgetProps> = ({ config, id }) => 
         >
           <option value="">Select Filter</option>
           {filters.map((filter, index) => (
-            <option key={index} value={filter.type}>
-              {filter.type}
+            <option key={index} value={String(filter.type || '')}>
+              {String(filter.type || 'Unknown Filter')}
             </option>
           ))}
         </select>
@@ -118,7 +118,7 @@ const AudioFilterWidget: React.FC<AudioFilterWidgetProps> = ({ config, id }) => 
                 key={key}
                 type="number"
                 placeholder={key}
-                value={value}
+                value={String(value || '')}
                 onChange={(e) => setFilterParams({ ...filterParams, [key]: Number(e.target.value) })}
                 className="w-full p-1 bg-gray-700 text-white rounded"
               />

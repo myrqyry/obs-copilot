@@ -62,6 +62,15 @@ export const EnhancedAssetSearch: React.FC<EnhancedAssetSearchProps> = ({
     [apiConfigs, selectedApi]
   );
 
+  // Prepare deduped options for dropdown to avoid duplicate keys across categories
+  const apiOptionsForDropdown = useMemo(() => {
+    const map = new Map<string, AssetSearchConfig>();
+    for (const cfg of apiConfigs) {
+      if (!map.has(cfg.value)) map.set(cfg.value, cfg);
+    }
+    return Array.from(map.values());
+  }, [apiConfigs]);
+
   const mappedResults = useMemo<StandardApiItem[]>(() => {
     if (!results || !selectedApi) return [];
     const mapper = (apiMappers as any)[selectedApi];
@@ -335,7 +344,7 @@ export const EnhancedAssetSearch: React.FC<EnhancedAssetSearchProps> = ({
               className="flex-grow"
             />
             <FaviconDropdown
-              options={apiConfigs}
+              options={apiOptionsForDropdown.map(cfg => ({ label: cfg.label, value: cfg.value, domain: cfg.domain }))}
               value={selectedApi}
               onChange={handleApiChange}
               className="min-w-[120px]"
