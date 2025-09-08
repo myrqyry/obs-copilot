@@ -66,7 +66,7 @@ const App: React.FC = () => {
      return (
          <ComprehensiveErrorBoundary>
              <ConnectionProvider>
-                 <div className={`h-screen max-h-screen bg-gradient-to-br from-background to-card text-foreground flex flex-col transition-colors duration-500 ease-in-out`}>
+                 <div className={`app-root h-screen max-h-screen bg-gradient-to-br from-background to-card text-foreground flex flex-col transition-colors duration-500 ease-in-out`}>
                      <Header headerRef={headerRef} />
                      <TabNavigation
                          activeTab={activeTab}

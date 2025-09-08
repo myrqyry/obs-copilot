@@ -1,12 +1,11 @@
 import { TabPlugin } from '@/types/plugins';
 import TwitchChat from './TwitchChat';
 import React from 'react';
-
-const createEmojiIcon = (emoji: string) => () => React.createElement('span', { className: 'text-2xl' }, emoji);
+import ChatBubbleIcon from '@mui/icons-material/ChatBubble';
 
 export const twitchChatPlugin: TabPlugin = {
   id: 'twitch-chat',
   name: 'Twitch Chat',
-  icon: createEmojiIcon('💬'),
+  icon: (props: any) => React.createElement(ChatBubbleIcon, props),
   component: TwitchChat,
 };

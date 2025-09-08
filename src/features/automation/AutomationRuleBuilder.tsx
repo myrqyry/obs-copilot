@@ -22,6 +22,8 @@ export const AutomationRuleBuilder: React.FC<AutomationRuleBuilderProps> = ({
     initialEventName,
     editingRule
 }) => {
+    console.log('AutomationRuleBuilder mounted:', { isOpen, initialEventName, editingRuleExists: !!editingRule });
+
     const {
         ruleName,
         setRuleName,

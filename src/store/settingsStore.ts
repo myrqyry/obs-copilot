@@ -70,6 +70,15 @@ export interface SettingsState extends Omit<ThemeState, 'theme'>, LayoutState {
   setTwitchRefreshToken: (token: string) => void;
   twitchChatPluginEnabled: boolean;
   setTwitchChatPluginEnabled: (enabled: boolean) => void;
+  automationPluginEnabled: boolean;
+  setAutomationPluginEnabled: (enabled: boolean) => void;
+  streamingAssetsPluginEnabled: boolean;
+  setStreamingAssetsPluginEnabled: (enabled: boolean) => void;
+  createPluginEnabled: boolean;
+  setCreatePluginEnabled: (enabled: boolean) => void;
+  // Order of plugin tab ids (controls navigation order)
+  tabOrder: string[];
+  setTabOrder: (order: string[]) => void;
 }
 
 const useSettingsStore = create<SettingsState>()(
@@ -95,6 +104,12 @@ const useSettingsStore = create<SettingsState>()(
       twitchAccessToken: '',
       twitchRefreshToken: '',
       twitchChatPluginEnabled: true,
+      automationPluginEnabled: false,
+  // New toggles to allow disabling these tabs/plugins
+  streamingAssetsPluginEnabled: true,
+  createPluginEnabled: true,
+  // Default tab order uses the core plugin ids in the current default sequence
+  tabOrder: ['connections','obs-studio','gemini','create','streaming-assets','settings','advanced','twitch-chat','automation'],
       setTheme: (name) => set((state) => ({ theme: { ...state.theme, name } })),
       setThemeBase: (base) => set((state) => ({ theme: { ...state.theme, base } })),
       setAccent: (accent) => set((state) => ({ theme: { ...state.theme, accent } })),
@@ -113,6 +128,10 @@ const useSettingsStore = create<SettingsState>()(
       setTwitchAccessToken: (token) => set({ twitchAccessToken: token }),
       setTwitchRefreshToken: (token) => set({ twitchRefreshToken: token }),
       setTwitchChatPluginEnabled: (enabled) => set({ twitchChatPluginEnabled: enabled }),
+      setAutomationPluginEnabled: (enabled) => set({ automationPluginEnabled: enabled }),
+  setStreamingAssetsPluginEnabled: (enabled) => set({ streamingAssetsPluginEnabled: enabled }),
+  setCreatePluginEnabled: (enabled) => set({ createPluginEnabled: enabled }),
+  setTabOrder: (order: string[]) => set({ tabOrder: order }),
       autoApplySuggestions: true,
       customChatBackground: '',
       bubbleFillOpacity: 0.7,

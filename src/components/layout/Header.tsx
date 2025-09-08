@@ -23,18 +23,13 @@ export const Header: React.FC<HeaderProps> = ({ headerRef }) => {
     return (
         <header 
             ref={headerRef} 
-            className="sticky top-0 z-20 bg-background/90 backdrop-blur-md p-2 shadow-md border-b border-border/50 h-12 flex justify-center items-center relative overflow-hidden"
+            className="app-header sticky top-0 z-20 bg-background/90 backdrop-blur-md p-2 shadow-md border-b border-border/50 h-12 flex justify-center items-center relative overflow-hidden"
         >
             {/* Gradient accent border on bottom */}
             <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
             
-            {/* Subtle accent glow effect */}
-            <div 
-                className="absolute inset-0 opacity-5 bg-gradient-to-r from-primary/20 via-accent/10 to-primary/20"
-                style={{
-                    background: `linear-gradient(90deg, ${accentColor}20 0%, ${secondaryAccentColor}10 50%, ${accentColor}20 100%)`
-                }}
-            />
+            {/* Subtle accent overlay driven by theme variables */}
+            <div className="subtle-accent-overlay" />
             
             <AnimatedTitleLogos accentColor={accentColor} secondaryAccentColor={secondaryAccentColor} />
         </header>

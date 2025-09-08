@@ -126,14 +126,8 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     }, [message, forceExpand]);
 
     // Debounced scroll handler (single implementation)
-    const handleBubbleScroll = (event: React.UIEvent<HTMLDivElement>) => {
-        const target = event.currentTarget as HTMLDivElement;
+    const handleBubbleScroll = (_event: React.UIEvent<HTMLDivElement>) => {
         setIsScrolling(true);
-        
-
-        const isAtBottom =
-            target.scrollHeight - target.scrollTop - target.clientHeight < 5;
-        
 
         if (scrollTimeoutRef.current) {
             clearTimeout(scrollTimeoutRef.current);
@@ -367,22 +361,27 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
             : 'chat-bubble-glass'
         : '';
 
+    // Use CSS variables for bubble theming so styles can be tuned in CSS
     const bubbleStyle: React.CSSProperties = {
+        // CSS variables consumed by global CSS
+        ['--bubble-bg' as any]: backgroundColor,
+        ['--bubble-border' as any]: borderColor,
+        ['--bubble-text' as any]: textColor,
+        ['--bubble-radius' as any]: '0.75rem',
+        ['--bubble-border-width' as any]: isSystem ? '1px' : '1.5px',
+        ['--bubble-shadow' as any]: 'none',
+        // preserve a few inline fallbacks
         backgroundColor,
         borderColor,
-        borderWidth: '1px', // Standardize border width
-        borderStyle: 'solid',
         color: textColor,
         fontStyle: isSystem ? 'italic' : 'normal',
         fontSize: '0.875rem',
         position: 'relative',
-        boxShadow: 'none', // Remove box shadow
-        borderRadius: '0.75rem', // Adjust border radius
-        padding: '0.75rem 1rem', // Adjust padding
+        overflow: 'hidden',
+        padding: '0.75rem 1rem',
         maxWidth: isSystem ? '400px' : '480px',
         margin: '0.25rem 0',
-        overflow: 'hidden',
-        transition: 'background 0.3s, border-color 0.3s', // Remove box-shadow from transition
+        transition: 'background 0.28s, border-color 0.28s, box-shadow 0.28s, transform 0.18s',
         mixBlendMode: ('normal') as React.CSSProperties['mixBlendMode'],
     };
 

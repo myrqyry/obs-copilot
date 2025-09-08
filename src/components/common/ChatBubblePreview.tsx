@@ -95,6 +95,12 @@ export const ChatBubblePreview: React.FC<ChatBubblePreviewProps> = ({
         : '';
 
     const userStyle: React.CSSProperties = {
+        ['--bubble-bg' as any]: userBgColor,
+        ['--bubble-border' as any]: userBorderColor,
+        ['--bubble-text' as any]: userTextColor,
+        ['--bubble-radius' as any]: '18px',
+        ['--bubble-border-width' as any]: '2px',
+        ['--bubble-shadow' as any]: '0 6px 22px rgba(0,0,0,0.16)',
         backgroundColor: userBgColor,
         borderColor: userBorderColor,
         color: userTextColor,
@@ -110,11 +116,17 @@ export const ChatBubblePreview: React.FC<ChatBubblePreviewProps> = ({
         boxShadow: '0 2px 8px 0 rgba(0,0,0,0.08)',
         position: 'relative',
         overflow: 'hidden',
-        transition: 'background 0.3s, box-shadow 0.3s, border-color 0.3s, align-self 0.3s ease-in-out', // Added align-self transition
+        transition: 'background 0.28s, box-shadow 0.28s, border-color 0.28s, align-self 0.28s ease-in-out',
         mixBlendMode: chatBubbleBlendMode,
     };
 
     const modelStyle: React.CSSProperties = {
+        ['--bubble-bg' as any]: modelBgColor,
+        ['--bubble-border' as any]: modelBorderColor,
+        ['--bubble-text' as any]: modelTextColor,
+        ['--bubble-radius' as any]: '18px',
+        ['--bubble-border-width' as any]: '2px',
+        ['--bubble-shadow' as any]: '0 6px 22px rgba(0,0,0,0.16)',
         backgroundColor: modelBgColor,
         borderColor: modelBorderColor,
         color: modelTextColor,
@@ -130,7 +142,7 @@ export const ChatBubblePreview: React.FC<ChatBubblePreviewProps> = ({
         boxShadow: '0 2px 8px 0 rgba(0,0,0,0.08)',
         position: 'relative',
         overflow: 'hidden',
-        transition: 'background 0.3s, box-shadow 0.3s, border-color 0.3s, align-self 0.3s ease-in-out', // Added align-self transition
+        transition: 'background 0.28s, box-shadow 0.28s, border-color 0.28s, align-self 0.28s ease-in-out',
         mixBlendMode: chatBubbleBlendMode,
     };
     return (

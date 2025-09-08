@@ -138,6 +138,141 @@
     color: transparent;
     animation: gradient-shift 12s ease-in-out infinite;
   }
+  /* New: global layout elements that consume theme variables */
+  .app-header, header, .site-header {
+    background: var(--nav-bg);
+    color: var(--nav-foreground);
+    border-bottom: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-primary);
+  }
+
+  .primary-gradient-accent {
+    background: var(--nav-accent-gradient);
+    color: var(--button-text);
+  }
+
+  /* Primary nav helper: use CSS variable for the top/bottom gradient indicator */
+  nav[aria-label='Primary'].prime-nav::before {
+    background: var(--nav-accent-gradient);
+  }
+
+  /* Subtle accent overlay used by header and other surfaces to add theme color without heavy saturation */
+  .subtle-accent-overlay {
+    position: absolute;
+    inset: 0;
+    opacity: 0.06;
+    pointer-events: none;
+    background: var(--nav-accent-gradient);
+    mix-blend-mode: overlay;
+  }
+
+  /* Buttons and actionable UI - avoid styling all native <button> elements to prevent UI control overrides
+     Only apply the themed button treatment to components opting into it via .btn or .button */
+  .btn, .button, .themed-button {
+    background: linear-gradient(180deg, var(--button-bg), var(--button-bg-accent));
+    color: var(--button-text);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-accent);
+    transition: transform 0.12s ease, box-shadow 0.18s ease, opacity 0.12s ease;
+  }
+
+  .btn:hover, .button:hover, .themed-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px hsl(var(--accent) / 0.24);
+  }
+
+  /* Tabs / Navigation */
+  .tabs, .tab-list, nav[role='tablist'] {
+    background: var(--nav-bg);
+    color: var(--tab-inactive-text);
+    border-radius: calc(var(--radius) + 2px);
+  }
+
+  .tab, .tab-button {
+    color: var(--tab-inactive-text);
+    background: transparent;
+    transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+  }
+
+  /* Icon coloring for tabs - use CSS variables so theme updates apply immediately */
+  .tab-item .tab-icon {
+    color: hsl(var(--tab-inactive-text));
+    transition: color 0.18s ease, transform 0.12s ease;
+  }
+
+  .tab-item[data-active='true'] .tab-icon,
+  .tab-item[aria-selected='true'] .tab-icon {
+    color: hsl(var(--tab-active-text));
+  }
+
+  .tab[aria-selected='true'], .tab-button.active {
+    color: var(--tab-active-text);
+    background: var(--tab-active-bg);
+    box-shadow: var(--shadow-accent);
+    border-radius: calc(var(--radius) - 2px);
+  }
+
+  /* Cards use semantic card variables */
+  .card, .panel {
+    background: hsl(var(--component-bg));
+    color: hsl(var(--card-foreground));
+    border: 1px solid hsl(var(--component-border-color));
+    border-radius: var(--radius);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+  }
+
+  /* Links and badges should use accent color */
+  a, .link {
+    color: hsl(var(--accent));
+    text-decoration: underline;
+  }
+
+  .badge, .accent-pill {
+    background: linear-gradient(90deg, hsl(var(--accent)), hsl(var(--primary)));
+    color: hsl(var(--accent-foreground));
+    border-radius: 999px;
+    padding: 0.125rem 0.5rem;
+    font-weight: 600;
+  }
+
+  /* Focus ring - unify across components */
+  :focus {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  /* App-level root background and main split panels */
+  .app-root {
+    background: linear-gradient(135deg, hsl(var(--background)), hsl(var(--card)));
+    color: hsl(var(--foreground));
+    min-height: 100vh;
+  }
+
+  .main-panel {
+    background: transparent;
+    color: inherit;
+  }
+
+  /* Make header & nav use themed variables */
+  header, .app-header, .site-header {
+    background: linear-gradient(90deg, hsl(var(--nav-bg)), color-mix(in srgb, hsl(var(--nav-bg)) 92%, transparent));
+    color: hsl(var(--nav-foreground));
+    border-bottom: 1px solid hsl(var(--border) / 0.6);
+  }
+
+  nav.prime-nav {
+    background: hsl(var(--nav-bg) / 0.85);
+    color: hsl(var(--nav-foreground));
+  }
+
+  /* Panels and sidebars should use card variables for consistent look */
+  .sidebar, .panel, .workspace {
+    background: hsl(var(--component-bg));
+    color: hsl(var(--card-foreground));
+    border: 1px solid hsl(var(--component-border-color) / 0.7);
+    border-radius: calc(var(--radius));
+  }
   .theme {
     --color-chart-2: var(--color-chart-2);
     --color-chart-3: var(--color-chart-3);
@@ -153,6 +288,43 @@
     --component-active-color-default: var(--accent-foreground);
   }
 }
+
+/* Chat bubble variable-driven defaults and tuned visuals */
+.chat-message {
+  /* CSS variable fallbacks (inline styles on elements will override these) */
+  --bubble-bg: rgba(30,30,46,0.5);
+  --bubble-border: hsl(var(--accent));
+  --bubble-text: hsl(var(--accent));
+  --bubble-radius: 0.75rem;
+  --bubble-border-width: 1.5px;
+  --bubble-shadow: 0 6px 20px rgba(0,0,0,0.14);
+
+  background-color: var(--bubble-bg);
+  border-color: var(--bubble-border);
+  color: var(--bubble-text);
+  border-width: var(--bubble-border-width);
+  border-style: solid;
+  border-radius: var(--bubble-radius);
+  box-shadow: var(--bubble-shadow);
+  transition: background 0.28s, border-color 0.28s, box-shadow 0.28s, transform 0.18s;
+}
+
+/* Glassy variant used when custom background is present */
+.chat-bubble-glass {
+  backdrop-filter: blur(6px) saturate(120%);
+  background-color: rgba(255,255,255,0.06);
+}
+.chat-bubble-glass-extra-dark {
+  backdrop-filter: blur(6px) saturate(120%);
+  background-color: rgba(8,8,12,0.6);
+}
+
+/* Pop/hover polish for bubbles */
+.chat-message.group:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+}
+
 
 @layer base {
   /* Removed global border application to avoid conflicts */

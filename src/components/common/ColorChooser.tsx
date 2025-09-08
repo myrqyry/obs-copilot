@@ -32,7 +32,10 @@ export const ColorChooser: React.FC<ColorChooserProps> = ({
                 isSelected ? 'ring-2 ring-offset-2 ring-offset-background border-border' : 'border-border hover:border-muted-foreground'
               }`}
               style={{
+                // force the swatch background to the exact color and avoid any background-image
                 backgroundColor: hex,
+                backgroundImage: 'none',
+                mixBlendMode: 'normal',
                 borderColor: isSelected ? hex : undefined,
               }}
               aria-label={`Select ${colorNameIter} for ${label}`}

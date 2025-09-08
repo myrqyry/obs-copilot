@@ -193,15 +193,34 @@ export const applyTheme = (theme: Theme) => {
   root.style.setProperty('--shadow-accent', `0 4px 20px hsl(${hexToHsl(accentColor)} / 0.2)`);
   root.style.setProperty('--shadow-primary', `0 4px 20px hsl(${hexToHsl(primaryColor)} / 0.2)`);
 
+  // Expose higher-level semantic variables so layout components can consume themed values
+  // Buttons
+  root.style.setProperty('--button-bg', `hsl(${hexToHsl(primaryColor)})`);
+  root.style.setProperty('--button-text', `hsl(${hexToHsl(themeMapping['primary-foreground'])})`);
+  root.style.setProperty('--button-bg-accent', `hsl(${hexToHsl(accentColor)})`);
+
+  // Navigation / header
+  root.style.setProperty('--nav-bg', `hsl(${hexToHsl(themeMapping['card'])})`);
+  root.style.setProperty('--nav-foreground', `hsl(${hexToHsl(themeMapping['card-foreground'])})`);
+
   // Set dynamic accent colors for animations and gradients (theme-aware)
   const userAccent = useSettingsStore.getState().theme.accent;
   const userSecondaryAccent = useSettingsStore.getState().theme.secondaryAccent;
-  
   const currentAccentColor = theme.accentColors?.[userAccent] || accentColor;
   const currentSecondaryAccentColor = theme.accentColors?.[userSecondaryAccent] || primaryColor;
-  
   root.style.setProperty('--dynamic-accent', currentAccentColor);
   root.style.setProperty('--dynamic-secondary-accent', currentSecondaryAccentColor);
+
+  root.style.setProperty('--nav-accent-gradient', `linear-gradient(90deg, ${currentAccentColor}, ${currentSecondaryAccentColor})`);
+
+  // Tabs
+  root.style.setProperty('--tab-active-bg', `hsl(${hexToHsl(primaryColor)} / 0.12)`);
+  root.style.setProperty('--tab-active-text', `hsl(${hexToHsl(themeMapping['primary-foreground'])})`);
+  root.style.setProperty('--tab-inactive-bg', `hsl(${hexToHsl(themeMapping['card'])})`);
+  root.style.setProperty('--tab-inactive-text', `hsl(${hexToHsl(themeMapping['muted-foreground'])})`);
+
+  // Focus / ring
+  root.style.setProperty('--focus-ring', `hsl(${hexToHsl(primaryColor)} / 0.6)`);
 
   // Apply accent colors as CSS variables if present
   if (theme.accentColors) {

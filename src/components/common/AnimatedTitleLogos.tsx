@@ -18,8 +18,10 @@ export const AnimatedTitleLogos: React.FC<AnimatedTitleLogosProps> = ({
           className={cn(
             "absolute opacity-25 blur-md rounded-full -top-1.5 -left-1.5 -right-1.5 -bottom-1.5 -z-10"
           )}
+          // Use `backgroundImage` longhand to avoid mixing `background` shorthand with `backgroundClip`.
+          // React warns when shorthand is updated while non-shorthand properties like `backgroundClip` exist.
           style={{
-            background: `radial-gradient(ellipse, ${accentColor} 0%, ${secondaryAccentColor} 100%)`
+            backgroundImage: `radial-gradient(ellipse, ${accentColor} 0%, ${secondaryAccentColor} 100%)`
           }}
         />
         <div
@@ -55,8 +57,9 @@ export const AnimatedTitleLogos: React.FC<AnimatedTitleLogosProps> = ({
             "bg-gradient-to-br from-primary via-accent to-primary bg-clip-text text-transparent"
           )}
           style={{
-            background: accentColor && secondaryAccentColor ? 
-              `linear-gradient(135deg, var(--dynamic-accent, ${accentColor}) 0%, var(--dynamic-secondary-accent, ${secondaryAccentColor}) 50%, var(--dynamic-accent, ${accentColor}) 100%)` : 
+            // prefer longhand `backgroundImage` so React doesn't detect shorthand/non-shorthand collisions
+            backgroundImage: accentColor && secondaryAccentColor ?
+              `linear-gradient(135deg, var(--dynamic-accent, ${accentColor}) 0%, var(--dynamic-secondary-accent, ${secondaryAccentColor}) 50%, var(--dynamic-accent, ${accentColor}) 100%)` :
               undefined,
             WebkitBackgroundClip: 'text',
             backgroundClip: 'text',

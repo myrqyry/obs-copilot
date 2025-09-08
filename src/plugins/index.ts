@@ -7,55 +7,60 @@ import StreamingAssetsTab from './core/StreamingAssetsTab';
 import SettingsTab from './core/SettingsTab';
 import AdvancedPanel from './core/AdvancedPanel';
 import React from 'react';
-
-// A simple way to create icon components from emojis
-const createEmojiIcon = (emoji: string) => () => React.createElement('span', { className: 'text-2xl' }, emoji);
+import LinkIcon from '@mui/icons-material/Link';
+import MovieIcon from '@mui/icons-material/Movie';
+import DeveloperBoardIcon from '@mui/icons-material/DeveloperBoard';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import ImageIcon from '@mui/icons-material/Image';
+import SettingsIcon from '@mui/icons-material/Settings';
+import BuildIcon from '@mui/icons-material/Build';
 
 export const corePlugins: TabPlugin[] = [
   {
     id: 'connections',
     name: 'Connections',
-    icon: createEmojiIcon('🔌'),
+  icon: (props: any) => React.createElement(LinkIcon, props),
     component: ConnectionsTab,
   },
   {
     id: 'obs-studio',
     name: 'OBS Studio',
-    icon: createEmojiIcon('🎬'),
+  icon: (props: any) => React.createElement(MovieIcon, props),
     component: NewObsStudioTab,
   },
   {
     id: 'gemini',
     name: 'Gemini',
-    icon: createEmojiIcon('🤖'),
+  icon: (props: any) => React.createElement(DeveloperBoardIcon, props),
     component: GeminiTab,
   },
   {
     id: 'create',
     name: 'Create',
-    icon: createEmojiIcon('✨'),
+  icon: (props: any) => React.createElement(AutoAwesomeIcon, props),
     component: CreateTab,
   },
   {
     id: 'streaming-assets',
     name: 'Streaming Assets',
-    icon: createEmojiIcon('🌈'),
+  icon: (props: any) => React.createElement(ImageIcon, props),
     component: StreamingAssetsTab,
   },
   {
     id: 'settings',
     name: 'Settings',
-    icon: createEmojiIcon('⚙️'),
+  icon: (props: any) => React.createElement(SettingsIcon, props),
     component: SettingsTab,
   },
   {
     id: 'advanced',
     name: 'Advanced',
-    icon: createEmojiIcon('🛠️'),
+  icon: (props: any) => React.createElement(BuildIcon, props),
     component: AdvancedPanel,
   },
 ];
 
 import { twitchChatPlugin } from './twitch-chat';
+import { automationPlugin } from './automation';
 
-export const allPlugins = [...corePlugins, twitchChatPlugin];
+export const allPlugins = [...corePlugins, twitchChatPlugin, automationPlugin];
