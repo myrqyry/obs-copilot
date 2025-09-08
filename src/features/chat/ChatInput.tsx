@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Globe, Camera } from 'lucide-react';
-import Tooltip from '@/components/ui/Tooltip';
+import React, { useState, useRef } from 'react';
+import { Paperclip } from 'lucide-react';
+import * as PopoverPrimitive from '@radix-ui/react-popover';
 import { ZodError } from 'zod';
 import { chatInputSchema } from '@/lib/validations';
 import {
@@ -11,7 +11,8 @@ import {
     PromptInputTools,
     PromptInputToolbar,
 } from '@/components/ai-elements/prompt-input';
-import type { ChatStatus } from 'ai'; // Import ChatStatus from 'ai'
+// Local ChatStatus type to avoid depending on external 'ai' types at runtime
+type ChatStatus = 'submitted' | 'streaming' | 'error' | undefined;
 import { VoiceInput } from '@/components/ui/voice-input';
 
 interface ChatInputProps {
@@ -26,6 +27,7 @@ interface ChatInputProps {
     currentProgramScene: string | null;
     onScreenshot: () => void;
     onAudio: (audioBlob: Blob) => void;
+    onImageSelect?: (file: File, base64: string) => void;
     chatInputRef: React.RefObject<HTMLTextAreaElement>;
 }
 
@@ -41,9 +43,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     currentProgramScene,
     onScreenshot,
     onAudio,
+    onImageSelect,
     chatInputRef,
 }) => {
     const [error, setError] = useState<string | undefined>(undefined);
+    const [attachmentsOpen, setAttachmentsOpen] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     const handleValidatedSend = () => {
         try {
@@ -73,37 +78,80 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                     disabled={isLoading || !isGeminiClientInitialized}
                     label="Type your message..."
                 />
-                <PromptInputToolbar className="!p-0 !pr-2">
+                    <PromptInputToolbar className="!p-0 !pr-2">
                     <PromptInputTools>
-                                                <Tooltip content={useGoogleSearch ? "Disable web search" : "Enable web search"}>
-                            <PromptInputButton
-                                onClick={() => setUseGoogleSearch(!useGoogleSearch)}
-                                disabled={!isGeminiClientInitialized}
-                                className={`transition-all duration-200 ${useGoogleSearch 
-                                    ? 'text-accent bg-accent/20 hover:bg-accent/30 border border-accent/40 shadow-glow-accent' 
-                                    : 'text-muted-foreground hover:text-accent hover:bg-accent/10 border border-transparent'
-                                }`}
-                                aria-label={useGoogleSearch ? "Disable web search" : "Enable web search"}
-                            >
-                                <Globe className="w-4 h-4" />
-                            </PromptInputButton>
-                        </Tooltip>
-                        <Tooltip content={isConnected && currentProgramScene ? "Take screenshot of current scene" : "Connect to OBS to take screenshots"}>
-                            <PromptInputButton
-                                onClick={onScreenshot}
-                                disabled={!isGeminiClientInitialized || !isConnected || !currentProgramScene}
-                                className={`transition-all duration-200 ${isConnected && currentProgramScene
-                                    ? 'text-primary bg-primary/20 hover:bg-primary/30 border border-primary/40 hover:text-primary-foreground hover:shadow-glow'
-                                    : 'text-muted-foreground cursor-not-allowed opacity-50 border border-transparent'
-                                    }`}
-                                aria-label="Take screenshot of current scene"
-                            >
-                                <Camera className="w-4 h-4" />
-                            </PromptInputButton>
-                        </Tooltip>
-                        <Tooltip content="Use voice input">
-                            <VoiceInput onRecordStop={onAudio} />
-                        </Tooltip>
+                        {/* Attachments popover: groups screenshot, upload image, record audio, and web-search toggle */}
+                        <PopoverPrimitive.Root open={attachmentsOpen} onOpenChange={setAttachmentsOpen}>
+                            <PopoverPrimitive.Trigger asChild>
+                                <PromptInputButton
+                                    onClick={() => setAttachmentsOpen((v) => !v)}
+                                    disabled={!isGeminiClientInitialized}
+                                    aria-label="Attachments"
+                                    className="transition-all duration-200 text-muted-foreground hover:text-accent hover:bg-accent/10"
+                                >
+                                    <Paperclip className="w-4 h-4" />
+                                </PromptInputButton>
+                            </PopoverPrimitive.Trigger>
+                            <PopoverPrimitive.Content sideOffset={6} align="start" className="w-56 p-2 bg-popover rounded-md shadow-md">
+                                <div className="flex flex-col gap-1">
+                                    <button
+                                        className={`w-full text-left px-2 py-1.5 rounded hover:bg-accent/10 ${(!isConnected || !currentProgramScene) ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                        onClick={() => { if (isConnected && currentProgramScene) { onScreenshot(); setAttachmentsOpen(false); } }}
+                                        disabled={!isConnected || !currentProgramScene}
+                                    >
+                                        📸 Take screenshot
+                                    </button>
+                                    <button
+                                        className="w-full text-left px-2 py-1.5 rounded hover:bg-accent/10"
+                                        onClick={() => {
+                                            fileInputRef.current?.click();
+                                        }}
+                                    >
+                                        🖼️ Upload image
+                                    </button>
+                                    <div className="px-2 py-1.5">
+                                        <VoiceInput onRecordStop={(blob) => { onAudio(blob); setAttachmentsOpen(false); }} />
+                                    </div>
+                                    <div className="flex items-center justify-between px-2 py-1.5">
+                                        <div className="text-sm">Use web search</div>
+                                        <input
+                                            type="checkbox"
+                                            checked={useGoogleSearch}
+                                            onChange={() => setUseGoogleSearch(!useGoogleSearch)}
+                                            aria-label="Toggle web search"
+                                        />
+                                    </div>
+                                </div>
+                                {/* hidden file input for image upload */}
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        const reader = new FileReader();
+                                        reader.onload = () => {
+                                            const result = reader.result as string;
+                                            const base64 = result.split(',')[1] || '';
+                                            // call optional prop handler
+                                            if (typeof (onAudio) === 'function') {
+                                                // noop for audio
+                                            }
+                                            // If parent provided an onImageSelect prop, call it
+                                            // @ts-ignore - optional prop exists in runtime when provided
+                                            if (typeof (onImageSelect as any) === 'function') {
+                                                // @ts-ignore
+                                                onImageSelect(file, base64);
+                                            }
+                                            setAttachmentsOpen(false);
+                                        };
+                                        reader.readAsDataURL(file);
+                                    }}
+                                />
+                            </PopoverPrimitive.Content>
+                        </PopoverPrimitive.Root>
                     </PromptInputTools>
                     <PromptInputSubmit
                         status={chatStatus}
