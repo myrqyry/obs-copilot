@@ -1,6 +1,7 @@
 import { obsClient } from './obsClient';
 import { logger } from '@/utils/logger';
 import { UniversalWidgetConfig } from '@/types/universalWidget';
+import { ObsWidgetConfig } from '@/types/obs';
 
 export interface ActionMapping {
   method: string;
@@ -95,4 +96,53 @@ export class ActionMapper {
       throw error;
     }
   }
+}
+
+export function mapObsWidgetAction(config: ObsWidgetConfig, value?: any): ActionMapping | null {
+  if (config.type === 'action') {
+    switch (config.action) {
+      case 'toggle_mute':
+        return {
+          method: 'ToggleInputMute',
+          params: { inputName: config.sourceName },
+        };
+      case 'switch_scene':
+        return {
+          method: 'SetCurrentProgramScene',
+          params: { sceneName: config.sceneName },
+        };
+    }
+  } else if (config.type === 'control') {
+    const { control } = config;
+    const params: Record<string, any> = {
+      inputName: control.sourceName,
+    };
+    if (control.sendMethod === 'SetInputVolume') {
+        params.inputVolumeDb = value;
+    } else {
+        params[control.property] = value;
+    }
+    return {
+      method: control.sendMethod,
+      params,
+    };
+  }
+  return null;
+}
+
+export async function executeObsWidgetAction(config: ObsWidgetConfig, value?: any): Promise<any> {
+    const mapping = mapObsWidgetAction(config, value);
+    if (!mapping) {
+        const err = `Could not map widget config to an OBS action: ${config.id}`;
+        logger.error(err);
+        throw new Error(err);
+    }
+    try {
+      const result = await obsClient.call(mapping.method, mapping.params);
+      logger.info(`Executed OBS widget action for ${config.id}: ${mapping.method}`);
+      return result;
+    } catch (error: any) {
+      logger.error(`Failed to execute OBS widget action for ${config.id}: ${error.message}`);
+      throw error;
+    }
 }

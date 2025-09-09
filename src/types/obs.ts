@@ -42,8 +42,8 @@ export interface OBSVideoSettings {
   outputWidth: number;
 }
 
-export type ObsActionType = 'toggle_mute' | 'switch_scene' | 'control';
-
+export type ObsActionName = 'toggle_mute' | 'switch_scene';
+export type WidgetType = 'action' | 'control';
 export type ControlKind = 'slider' | 'knob';
 
 export interface ObsControlConfig {
@@ -65,18 +65,35 @@ export interface ObsControlConfig {
   addableFilters?: string[];
 }
 
-export interface ObsWidgetConfig {
+// Base interface with common properties for all widgets
+interface BaseWidgetConfig {
   id: string;
-  type: ObsActionType;
   label: string;
   icon?: string;
-  // Action-specific settings
-  sceneName?: string;
-  sourceName?: string;
-  className?: string; // Added for styling customization
-  // Control-specific settings
-  control?: ObsControlConfig;
+  className?: string;
 }
+
+// Discriminated union for different action types
+export type ActionConfig =
+  | (BaseWidgetConfig & {
+      type: 'action';
+      action: 'toggle_mute';
+      sourceName: string;
+    })
+  | (BaseWidgetConfig & {
+      type: 'action';
+      action: 'switch_scene';
+      sceneName: string;
+    });
+
+// Config for control widgets
+export interface ControlConfig extends BaseWidgetConfig {
+  type: 'control';
+  control: ObsControlConfig;
+}
+
+// The final discriminated union for all widget configurations
+export type ObsWidgetConfig = ActionConfig | ControlConfig;
 
 export interface OBSAudioSource extends OBSSource {
   channels?: number[];

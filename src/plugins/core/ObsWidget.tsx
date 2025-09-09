@@ -1,48 +1,29 @@
 import React from 'react';
 import { ObsWidgetConfig } from '@/types/obs';
-import useConnectionsStore from '@/store/connectionsStore';
 import { Button } from '@/components/ui/button';
-import SliderWidget from '@/features/obs-control/SliderWidget';
-import KnobWidget from '@/features/obs-control/KnobWidget';
+import { ObsSliderWidget } from '@/features/obs-control/ObsSliderWidget';
+import { ObsKnobWidget } from '@/features/obs-control/ObsKnobWidget';
+import { executeObsWidgetAction } from '@/services/actionMapper';
 
 const ObsWidget: React.FC<ObsWidgetConfig> = (config) => {
-  const { type, label, sceneName, sourceName } = config;
-  const { obs: client } = useConnectionsStore();
-
-  if (config.control) {
+  if (config.type === 'control') {
     switch (config.control.kind) {
       case 'slider':
-        return <SliderWidget config={config} />;
+        return <ObsSliderWidget config={config} />;
       case 'knob':
-        return <KnobWidget config={config} />;
+        return <ObsKnobWidget config={config} />;
       default:
         return <div className="text-red-500">Unsupported control type: {config.control.kind}</div>;
     }
   }
 
   const handleClick = async () => {
-    if (!client) return;
-
-    switch (type) {
-      case 'toggle_mute':
-        if (sourceName) {
-          const { inputMuted } = await client.call('GetInputMute', { inputName: sourceName });
-          await client.call('SetInputMute', { inputName: sourceName, inputMuted: !inputMuted });
-        }
-        break;
-      case 'switch_scene':
-        if (sceneName) {
-          await client.call('SetCurrentProgramScene', { sceneName });
-        }
-        break;
-      default:
-        break;
-    }
+    await executeObsWidgetAction(config);
   };
 
   return (
     <Button onClick={handleClick} className="w-full h-full">
-      {label}
+      {config.label}
     </Button>
   );
 };
