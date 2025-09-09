@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button.radix';
 import { Label } from '@/components/ui/label';
 import useSettingsStore from '../../store/settingsStore';
 import { CollapsibleCard } from '@/components/common/CollapsibleCard';
 import { ThemeChooser } from '@/components/common/ThemeChooser';
 import { ColorChooser } from '@/components/common/ColorChooser';
 import { useTheme } from '@/hooks/useTheme';
+import { ChatBubblePreview } from '@/components/common/ChatBubblePreview';
 import { CatppuccinAccentColorName } from '@/types';
 import { Switch } from '@/components/ui/switch';
-import { ChatBubblePreview } from '@/components/common/ChatBubblePreview';
 
 const SettingsTab: React.FC = () => {
     const { 
@@ -29,11 +28,11 @@ const SettingsTab: React.FC = () => {
     setModelChatBubble,
     extraDarkMode,
     setExtraDarkMode,
-        customChatBackground,
-        bubbleFillOpacity,
-        chatBubbleBlendMode,
-        backgroundOpacity,
-        chatBackgroundBlendMode
+    // preview-related settings (restored)
+    customChatBackground,
+    bubbleFillOpacity,
+    chatBubbleBlendMode,
+        
     } = useSettingsStore();
     const { theme } = useTheme();
 
@@ -95,26 +94,7 @@ const SettingsTab: React.FC = () => {
                                     />
                                 </div>
 
-                                {/* Accent Colors Preview - Full height */}
-                                <div className="flex-shrink-0 w-64 flex flex-col">
-                                    <div className="text-sm font-medium mb-2">Preview</div>
-                                    <div className="flex-1 p-3 border rounded-lg bg-background/50 flex flex-col justify-center">
-                                        <div className="flex items-center gap-3">
-                                            <div 
-                                                className="w-8 h-8 rounded border border-border"
-                                                style={{ backgroundColor: theme?.accentColors?.[currentTheme.accent] }}
-                                            />
-                                            <span className="text-sm text-muted-foreground">Primary: {currentTheme.accent}</span>
-                                        </div>
-                                        <div className="flex items-center gap-3 mt-2">
-                                            <div 
-                                                className="w-8 h-8 rounded border border-border"
-                                                style={{ backgroundColor: theme?.accentColors?.[currentTheme.secondaryAccent] }}
-                                            />
-                                            <span className="text-sm text-muted-foreground">Secondary: {currentTheme.secondaryAccent}</span>
-                                        </div>
-                                    </div>
-                                </div>
+                                {/* Accent preview removed (kept controls only) */}
                             </div>
                         </div>
                     )}
@@ -125,25 +105,26 @@ const SettingsTab: React.FC = () => {
             <CollapsibleCard title="Chat Bubbles 💬" isOpen={openChatBubbles} onToggle={() => setOpenChatBubbles(!openChatBubbles)}>
                 <div className="space-y-4">
                     {theme?.accentColors && (
-                        <div className="flex gap-6 items-stretch">
+                            <div className="flex gap-6 items-stretch">
                             <div className="flex-1 space-y-4">
                                 {/* Left column: all options */}
                                 <div className="flex items-center justify-between">
                                     <Label htmlFor="flip-sides">Swap Chat Sides</Label>
                                     <div className="flex items-center gap-3">
-                                        <Button
-                                            id="flip-sides"
-                                            onClick={() => setFlipSides(!flipSides)}
-                                            variant="outline"
-                                        >
-                                            {flipSides ? 'Left' : 'Right'}
-                                        </Button>
+                                        <div className="flex items-center gap-2">
+                                            <Switch
+                                                id="flip-sides"
+                                                checked={flipSides}
+                                                onCheckedChange={(val: boolean) => setFlipSides(!!val)}
+                                            />
+                                            <span className="text-sm">{flipSides ? 'Left' : 'Right'}</span>
+                                        </div>
                                         <div className="flex items-center gap-2">
                                             <Label htmlFor="dark-bubbles" className="text-sm">Dark bubbles</Label>
                                             <Switch
                                                 id="dark-bubbles"
                                                 checked={extraDarkMode}
-                                                onCheckedChange={(val) => setExtraDarkMode(!!val)}
+                                                onCheckedChange={(val: boolean) => setExtraDarkMode(!!val)}
                                             />
                                         </div>
                                     </div>
@@ -165,22 +146,18 @@ const SettingsTab: React.FC = () => {
                                 />
                             </div>
 
-                            {/* Right column: preview only */}
-                            <div className="flex-shrink-0 w-64 flex flex-col">
-                                <Label className="text-sm font-medium mb-2 block">Preview</Label>
-                                <div className="flex-1 p-4 border rounded-lg bg-background/50 flex items-center justify-center">
-                                    <ChatBubblePreview
-                                        userColor={currentTheme.userChatBubble}
-                                        modelColor={currentTheme.modelChatBubble}
-                                        flipSides={flipSides}
-                                        extraDarkMode={extraDarkMode}
-                                        customBackground={customChatBackground}
-                                        bubbleFillOpacity={bubbleFillOpacity}
-                                        chatBubbleBlendMode={chatBubbleBlendMode as React.CSSProperties['mixBlendMode']}
-                                        backgroundOpacity={backgroundOpacity}
-                                        chatBackgroundBlendMode={chatBackgroundBlendMode as React.CSSProperties['mixBlendMode']}
-                                    />
-                                </div>
+                            {/* Right column preview (restored) */}
+                            <div className="flex-shrink-0 w-80 md:w-96 flex flex-col">
+                                <ChatBubblePreview
+                                    userColor={currentTheme.userChatBubble}
+                                    modelColor={currentTheme.modelChatBubble}
+                                    flipSides={flipSides}
+                                    extraDarkMode={extraDarkMode}
+                                    customBackground={customChatBackground}
+                                    bubbleFillOpacity={bubbleFillOpacity}
+                                    secondaryAccent={currentTheme.secondaryAccent}
+                                    chatBubbleBlendMode={chatBubbleBlendMode as React.CSSProperties['mixBlendMode']}
+                                />
                             </div>
                         </div>
                     )}

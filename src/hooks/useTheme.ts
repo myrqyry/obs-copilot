@@ -103,12 +103,6 @@ export const applyTheme = (theme: Theme) => {
     return `${hDeg} ${sPercent}% ${lPercent}%`;
   };
 
-  // Helper function to safely get color value
-  const getColorValue = (colorKey: string, fallback: string): string => {
-    const value = theme.colors[colorKey];
-    return typeof value === 'string' ? value : fallback;
-  };
-
   // Map theme colors to semantic CSS variables with theme-specific mappings
   const getThemeSpecificColor = (keys: string[], fallback: string): string => {
     for (const key of keys) {
@@ -213,11 +207,72 @@ export const applyTheme = (theme: Theme) => {
 
   root.style.setProperty('--nav-accent-gradient', `linear-gradient(90deg, ${currentAccentColor}, ${currentSecondaryAccentColor})`);
 
+  // Also expose RGB component variables (without alpha) to support translucent gradients in components.
+  // Helper to convert hex to 'r, g, b'
+  const hexToRgbComponents = (hex: string): string => {
+    const clean = hex.replace('#', '');
+    const r = parseInt(clean.substring(0, 2), 16);
+    const g = parseInt(clean.substring(2, 4), 16);
+    const b = parseInt(clean.substring(4, 6), 16);
+    return `${r}, ${g}, ${b}`;
+  };
+
+  try {
+    root.style.setProperty('--dynamic-accent-rgb', hexToRgbComponents(currentAccentColor));
+    root.style.setProperty('--dynamic-secondary-accent-rgb', hexToRgbComponents(currentSecondaryAccentColor));
+  } catch (e) {
+    // If parsing fails, set reasonable fallback RGBs (teal/mauve)
+    root.style.setProperty('--dynamic-accent-rgb', '148, 226, 213');
+    root.style.setProperty('--dynamic-secondary-accent-rgb', '203, 166, 247');
+  }
+
+  // Ensure the user-selected accent is the primary semantic color where appropriate.
+  // index.css expects --primary and --accent to be HSL components (without the hsl() wrapper)
+  // because the stylesheet calls hsl(var(--primary)) etc. Convert the chosen hex to HSL components.
+  const userSelectedAccentHex = currentAccentColor;
+  try {
+  const accentHsl = hexToHsl(userSelectedAccentHex);
+    // Set semantic primary/accent variables as HSL component strings so index.css can wrap them with hsl(...)
+  root.style.setProperty('--primary', accentHsl);
+  root.style.setProperty('--accent', accentHsl);
+  root.style.setProperty('--primary-foreground', hexToHsl(themeMapping['primary-foreground']));
+  root.style.setProperty('--accent-foreground', hexToHsl(themeMapping['accent-foreground']));
+
+    // Keep dynamic hex values for gradients (these are used directly as colors in gradients)
+    root.style.setProperty('--dynamic-accent', currentAccentColor);
+    root.style.setProperty('--dynamic-secondary-accent', currentSecondaryAccentColor);
+  } catch (e) {
+    // If conversion fails for any reason, fall back to existing mappings
+    root.style.setProperty('--primary', hexToHsl(themeMapping['primary']));
+    root.style.setProperty('--accent', hexToHsl(themeMapping['accent']));
+  }
+
+  // Recompute higher-level semantic variables to reference the (possibly overridden) --primary/--accent variables
+  // This ensures the user-selected accent actually drives buttons, tabs, shadows and focus ring.
+  root.style.setProperty('--button-bg', `hsl(var(--primary))`);
+  root.style.setProperty('--button-bg-accent', `hsl(var(--accent))`);
+  root.style.setProperty('--button-text', `hsl(var(--primary-foreground))`);
+
+  // Shadow / glow should use the semantic variables so they track user accent
+  root.style.setProperty('--shadow-accent', `0 4px 20px hsl(var(--accent) / 0.2)`);
+  root.style.setProperty('--shadow-primary', `0 4px 20px hsl(var(--primary) / 0.2)`);
+  root.style.setProperty('--primary-glow', `hsl(var(--primary) / 0.3)`);
+  root.style.setProperty('--accent-glow', `hsl(var(--accent) / 0.3)`);
+
+  // Tabs and focus ring
+  root.style.setProperty('--tab-active-bg', `hsl(var(--primary) / 0.12)`);
+  // --tab-active-text is expected to be an HSL "component" string (e.g. "220 14% 10%")
+  // index.css calls hsl(var(--tab-active-text)) so we must store the components only here.
+  root.style.setProperty('--tab-active-text', hexToHsl(themeMapping['primary-foreground']));
+  root.style.setProperty('--focus-ring', `hsl(var(--primary) / 0.6)`);
+
   // Tabs
+  // --tab-active-bg is used directly as a color token (HSL with alpha), keep as-is
   root.style.setProperty('--tab-active-bg', `hsl(${hexToHsl(primaryColor)} / 0.12)`);
-  root.style.setProperty('--tab-active-text', `hsl(${hexToHsl(themeMapping['primary-foreground'])})`);
+  // Store only HSL component strings for text tokens so callers can wrap them with hsl(...)
+  root.style.setProperty('--tab-active-text', hexToHsl(themeMapping['primary-foreground']));
   root.style.setProperty('--tab-inactive-bg', `hsl(${hexToHsl(themeMapping['card'])})`);
-  root.style.setProperty('--tab-inactive-text', `hsl(${hexToHsl(themeMapping['muted-foreground'])})`);
+  root.style.setProperty('--tab-inactive-text', hexToHsl(themeMapping['muted-foreground']));
 
   // Focus / ring
   root.style.setProperty('--focus-ring', `hsl(${hexToHsl(primaryColor)} / 0.6)`);

@@ -67,12 +67,12 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
                     },
                 },
                 callbacks: {
-                    onmessage: (message) => {
-                        if (message.transcription) {
-                            onChatInputChange(chatInputValue + message.transcription.text);
+                    onmessage: (message: any) => {
+                        if ((message as any).transcription) {
+                            onChatInputChange(chatInputValue + (message as any).transcription.text);
                         }
                     },
-                    onerror: (error) => {
+                    onerror: (error: any) => {
                         console.error('Live session error:', error);
                     },
                 },
@@ -83,7 +83,8 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
         const reader = new FileReader();
         reader.onload = () => {
             const base64Audio = (reader.result as string).split(',')[1];
-            session?.sendAudio(base64Audio);
+            // session.sendAudio may be provided at runtime even if types don't declare it
+            try { (session as any)?.sendAudio?.(base64Audio); } catch (e) { console.error(e); }
         };
         reader.readAsDataURL(audioBlob);
     };

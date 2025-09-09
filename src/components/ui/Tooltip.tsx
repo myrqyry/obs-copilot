@@ -152,14 +152,13 @@ const Tooltip: React.FC<TooltipProps> = ({
     return (
         <div
             ref={childRef}
-            className="inline-block"
+            className="inline-block outline-none"
             onMouseEnter={e => showTooltip(e)}
             onMouseMove={e => showTooltip(e)}
             onMouseLeave={hideTooltip}
             onFocus={() => showTooltip()}
             onBlur={hideTooltip}
             tabIndex={0}
-            style={{ outline: 'none' }}
         >
             {children}
             {renderPortal(

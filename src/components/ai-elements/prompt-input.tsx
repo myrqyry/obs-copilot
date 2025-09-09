@@ -108,24 +108,26 @@ export const PromptInputTools = ({
 
 export type PromptInputButtonProps = ComponentProps<typeof Button>;
 
-export const PromptInputButton = ({
+export const PromptInputButton = forwardRef<HTMLButtonElement, PromptInputButtonProps>(({
   variant = 'ghost',
   className,
   size,
   ...props
-}: PromptInputButtonProps) => {
+}, ref) => {
   const newSize =
     (size ?? Children.count(props.children) > 1) ? 'default' : 'icon';
 
   return (
     <Button
+      ref={ref}
       variant={variant}
       size={newSize}
       className={cn(className)}
       {...props}
     />
   );
-};
+});
+PromptInputButton.displayName = 'PromptInputButton';
 
 export type PromptInputSubmitProps = ComponentProps<typeof Button> & {
   status?: ChatStatus;

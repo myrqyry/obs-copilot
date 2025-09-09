@@ -233,7 +233,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
             }
         }
 
-        return parts.length > 0 ? parts : <span style={{ color: textColor }}>{message.text}</span>;
+    return parts.length > 0 ? parts : <span className="break-words whitespace-normal">{message.text}</span>;
     };
 
     // Render AI SDK 5 Data Parts (typed streaming updates)
@@ -370,10 +370,8 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
         ['--bubble-radius' as any]: '0.75rem',
         ['--bubble-border-width' as any]: isSystem ? '1px' : '1.5px',
         ['--bubble-shadow' as any]: 'none',
-        // preserve a few inline fallbacks
-        backgroundColor,
-        borderColor,
-        color: textColor,
+        // preserve a few inline fallbacks for environments that don't read CSS variables
+        // (visuals primarily driven by the CSS variables above)
         fontStyle: isSystem ? 'italic' : 'normal',
         fontSize: '0.875rem',
         position: 'relative',
@@ -399,12 +397,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                 `}
                     style={bubbleStyle}
                 >
-                    <div
-                        style={{
-                            position: 'relative',
-                            color: textColor
-                        }}
-                    >
+                    <div className="relative">
                         <div
                             ref={bubbleRef}
                             className={`chat-scrollable-content
@@ -460,14 +453,14 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                                         </div>
                                     ) : (
                                         <div className="relative">
-                                            <div style={{ color: textColor, fontStyle: isSystem ? 'italic' : 'normal', wordBreak: 'break-word', whiteSpace: 'normal' }}>
+                                            <div className={`${isSystem ? 'italic' : ''} break-words whitespace-normal`}>
                                                 {renderContent()}
                                                 {renderDataParts()}
                                             </div>
 
                                             {/* Show suggestion buttons for greeting system messages */}
                                             {showSuggestions && isSystem && onSuggestionClick && (
-                                                <div className="mt-3 pt-3 border-t border-opacity-30" style={{ borderColor: bubbleColorHex }}>
+                                                <div className="mt-3 pt-3 border-t border-opacity-30">
                                                     <div className="text-sm opacity-90 mb-3 font-normal font-sans"><span className="emoji">✨</span> Try these commands:</div>
                                                     <Suggestions className="grid grid-cols-2 gap-2">
                                                         {memoizedSuggestions.map((suggestion: any) => (
@@ -507,7 +500,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
 
                                             {/* Show choice buttons for model messages with choices */}
                                             {message.type === "choice-prompt" && message.choices && onSuggestionClick && (
-                                                <div className="mt-3 pt-3 border-t border-opacity-30" style={{ borderColor: bubbleColorHex }}>
+                                                <div className="mt-3 pt-3 border-t border-opacity-30">
                                                     <div className="text-sm opacity-90 mb-3 font-normal font-sans">
                                                         <span className="emoji">
                                                             {message.choiceType === 'scene' ? '🎬' :

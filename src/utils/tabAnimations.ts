@@ -277,14 +277,53 @@ export const tabAnimations = {
       gsap.set(element, { boxShadow: 'none', scale: 1 });
       return gsap.timeline();
     }
-    return gsap.to(element, {
-      boxShadow: `0 0 20px ${color}, 0 0 40px ${color}`,
-      scale: 1.1,
-      duration: 1.5,
-      ease: 'sine.inOut',
-      repeat: -1,
-      yoyo: true,
-    });
+    // Resolve color to a concrete computed color string to avoid passing
+    // unresolved tokens (e.g. var(...) or hsl(var(...))) into GSAP's color parser.
+    const resolveColor = (cssColor: string): string => {
+      if (typeof window === 'undefined') return cssColor;
+      try {
+        const span = document.createElement('span');
+        span.style.position = 'absolute';
+        span.style.left = '-9999px';
+        // Use getComputedStyle on a temporary element but DO NOT write the color back
+        // to any live element. This function will return a concrete RGB(A) string
+        // for use in box-shadow strings where necessary.
+        span.style.color = cssColor;
+        document.body.appendChild(span);
+        const computed = window.getComputedStyle(span).color;
+        document.body.removeChild(span);
+        return computed || cssColor;
+      } catch (e) {
+        return cssColor;
+      }
+    };
+
+    try {
+      const resolved = resolveColor(color);
+      return gsap.to(element, {
+        boxShadow: `0 0 20px ${resolved}, 0 0 40px ${resolved}`,
+        scale: 1.1,
+        duration: 1.5,
+        ease: 'sine.inOut',
+        repeat: -1,
+        yoyo: true,
+      });
+    } catch (e) {
+      // Fallback: attempt the animation using the original color string; swallow errors
+      try {
+        return gsap.to(element, {
+          boxShadow: `0 0 20px ${color}, 0 0 40px ${color}`,
+          scale: 1.1,
+          duration: 1.5,
+          ease: 'sine.inOut',
+          repeat: -1,
+          yoyo: true,
+        });
+      } catch (err) {
+        // give up gracefully
+        return gsap.timeline();
+      }
+    }
   },
 };
 

@@ -10,7 +10,7 @@ interface CollapsibleCardProps {
     domain?: string;
     customSvg?: string;
     children: React.ReactNode;
-    accentColor?: string;
+    // accentColor removed - prefer using theme-driven .accent-color class
     className?: string;
     isOpen: boolean;
     onToggle: () => void;
@@ -22,7 +22,7 @@ export const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
     domain,
     customSvg,
     children,
-    accentColor = '#89b4fa',
+    
     className = '',
     isOpen,
     onToggle
@@ -51,7 +51,7 @@ export const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
                 )}
 
                 {customSvg && (
-                    <span className="w-6 h-6" style={{ color: accentColor }} aria-hidden="true">
+                    <span className="w-6 h-6 accent-color" aria-hidden="true">
                         <SecureHtmlRenderer
                             htmlContent={customSvg}
                             allowedTags={['svg','path','g','circle','rect','line','polygon','polyline','ellipse']}
@@ -61,11 +61,11 @@ export const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
                     </span>
                 )}
 
-                {emoji && <span className="text-2xl select-none" style={{ color: accentColor }} aria-hidden="true">{emoji}</span>}
-                <span className="text-lg font-semibold flex-1 text-left truncate" style={{ color: accentColor }}>
+                {emoji && <span className="text-2xl select-none accent-color" aria-hidden="true">{emoji}</span>}
+                <span className="text-lg font-semibold flex-1 text-left truncate accent-color">
                     {title}
                 </span>
-                <svg aria-hidden="true" className={`w-5 h-5 ml-1 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} style={{ color: accentColor }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg aria-hidden="true" className={`w-5 h-5 ml-1 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''} accent-color`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
             </button>

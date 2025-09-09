@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef, useEffect } from 'react';
+import { useLayoutEffect, useRef, useEffect } from 'react';
 import { gsap } from 'gsap';
 import { safeGsapTo, safeGsapSet } from '@/lib/utils';
 
@@ -17,6 +17,9 @@ const MorphingLogos: React.FC<MorphingLogosProps> = ({ accentColor, secondaryAcc
     const stop1Ref = useRef<SVGStopElement>(null);
     const stop2Ref = useRef<SVGStopElement>(null);
     const colorAnimationRef = useRef<gsap.core.Tween | null>(null);
+    const offsetAnimationRef = useRef<gsap.core.Tween | null>(null);
+    const morphTweenRef = useRef<gsap.core.Tween | null>(null);
+    const rotationTweenRef = useRef<gsap.core.Tween | null>(null);
 
     useLayoutEffect(() => {
         const morphingPath = morphingPathRef.current;
@@ -25,27 +28,39 @@ const MorphingLogos: React.FC<MorphingLogosProps> = ({ accentColor, secondaryAcc
         // Set initial path
         safeGsapSet(morphingPath, { attr: { d: paths.gemini } });
 
-        // This will now work correctly!
-        safeGsapTo(morphingPath, {
+        // Create morph tween and store ref so it can be cleaned up
+        morphTweenRef.current = safeGsapTo(morphingPath, {
             duration: 2.8,
-            ease: "power2.inOut",
+            ease: 'power2.inOut',
             morphSVG: {
                 shape: paths.obs,
-                origin: "24 24"
+                origin: '24 24'
             },
             repeat: -1,
             repeatDelay: 1.2,
             yoyo: true
         });
 
-        // Continuous slow rotation for polish
-        safeGsapTo(morphingPath, {
+        // Continuous slow rotation for polish (store ref)
+        rotationTweenRef.current = safeGsapTo(morphingPath, {
             duration: 12,
-            ease: "none",
+            ease: 'none',
             rotation: 360,
             repeat: -1,
-            transformOrigin: "24 24"
+            transformOrigin: '24 24'
         });
+
+        // Cleanup function to kill tweens when component unmounts
+        return () => {
+            if (morphTweenRef.current) {
+                morphTweenRef.current.kill();
+                morphTweenRef.current = null;
+            }
+            if (rotationTweenRef.current) {
+                rotationTweenRef.current.kill();
+                rotationTweenRef.current = null;
+            }
+        };
     }, []);
 
     useEffect(() => {
@@ -53,31 +68,64 @@ const MorphingLogos: React.FC<MorphingLogosProps> = ({ accentColor, secondaryAcc
         const stop2 = stop2Ref.current;
         if (!stop1 || !stop2) return;
 
+        // Kill previous animations
         if (colorAnimationRef.current) {
             colorAnimationRef.current.kill();
             colorAnimationRef.current = null;
         }
+        if (offsetAnimationRef.current) {
+            offsetAnimationRef.current.kill();
+            offsetAnimationRef.current = null;
+        }
 
-        // Initialize stop colors
-        safeGsapSet(stop1, { attr: { 'stop-color': accentColor } });
-        safeGsapSet(stop2, { attr: { 'stop-color': secondaryAccentColor } });
+        // Resolve CSS variables into concrete colors at runtime. Animating between
+        // concrete color strings avoids snapping when GSAP recreates tweens that
+        // reference CSS variables (which are not interpolated by GSAP).
+        const docStyle = typeof window !== 'undefined' ? getComputedStyle(document.documentElement) : null;
+        const resolvedAccent = docStyle?.getPropertyValue('--dynamic-accent')?.trim() || accentColor;
+        const resolvedSecondary = docStyle?.getPropertyValue('--dynamic-secondary-accent')?.trim() || secondaryAccentColor;
 
-        // Animate gradient stop colors
+        // Initialize stop colors with resolved values
+        safeGsapSet(stop1, { attr: { 'stop-color': resolvedAccent } });
+        safeGsapSet(stop2, { attr: { 'stop-color': resolvedSecondary } });
+
+        // Keep a subtle color swap animation between resolved concrete colors.
+        // Use immediateRender:false so creating the tween doesn't snap presentation values
+        // before the timeline/ease starts. This prevents visible jumps when the tween
+        // is recreated (for example when theme props change).
         colorAnimationRef.current = safeGsapTo([stop1, stop2], {
             duration: 6,
-            ease: "power2.inOut",
+            ease: 'power2.inOut',
             attr: {
-                'stop-color': (i) => i === 0 ? secondaryAccentColor : accentColor
+                'stop-color': (index: number) => index === 0 ? resolvedSecondary : resolvedAccent
             },
             repeat: -1,
             repeatDelay: 0,
-            yoyo: true
+            yoyo: true,
+            immediateRender: false
+        });
+
+        // Animate offsets to mimic the text's background-position shift; avoid immediateRender
+        // to prevent abrupt jumps when the tween is recreated.
+        offsetAnimationRef.current = safeGsapTo([stop1, stop2], {
+            duration: 12,
+            ease: 'sine.inOut',
+            attr: {
+                offset: (index: number) => index === 0 ? ['0%', '100%'] : ['100%', '0%']
+            },
+            repeat: -1,
+            yoyo: true,
+            immediateRender: false
         });
 
         return () => {
             if (colorAnimationRef.current) {
                 colorAnimationRef.current.kill();
                 colorAnimationRef.current = null;
+            }
+            if (offsetAnimationRef.current) {
+                offsetAnimationRef.current.kill();
+                offsetAnimationRef.current = null;
             }
         };
     }, [accentColor, secondaryAccentColor]);
@@ -90,10 +138,15 @@ const MorphingLogos: React.FC<MorphingLogosProps> = ({ accentColor, secondaryAcc
             height={48}
         >
             <defs>
-                <radialGradient id="logo-gradient" cx="50%" cy="50%" r="75%">
-                    <stop ref={stop1Ref} offset="0%" stopColor={accentColor} />
-                    <stop ref={stop2Ref} offset="100%" stopColor={secondaryAccentColor} />
-                </radialGradient>
+                {/* Use linear gradient so the logo can mirror the text gradient direction. */}
+                <linearGradient id="logo-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    {/* Use stopColor attribute which is the standard SVG presentation attribute and
+                        tends to be more reliable across browsers and when animated via JS. */}
+                    <stop ref={stop1Ref} offset="0%" stopColor={`var(--dynamic-accent, ${accentColor})`} />
+                    <stop ref={stop2Ref} offset="100%" stopColor={`var(--dynamic-secondary-accent, ${secondaryAccentColor})`} />
+                </linearGradient>
+
+                {/* No SVG filter here — reverting to original morph/rotation behavior. */}
             </defs>
             <path
                 ref={morphingPathRef}

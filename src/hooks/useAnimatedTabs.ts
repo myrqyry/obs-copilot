@@ -95,17 +95,41 @@ export const useAnimatedTabs = (activeTab: string) => {
         );
 
         // Add a subtle glow effect
-        gsap.fromTo(
-          tabElement,
-          { boxShadow: '0 0 0 rgba(203, 166, 247, 0)' },
-          {
-            boxShadow: '0 0 20px rgba(203, 166, 247, 0.5)',
-            duration: 0.3,
-            ease: 'power2.out',
-            yoyo: true,
-            repeat: 1,
-          },
-        );
+        try {
+          // Resolve a safe boxShadow color value from CSS vars before handing to GSAP
+          const resolveBoxShadow = (cssValue: string): string => {
+            if (typeof window === 'undefined') return cssValue;
+            try {
+              const span = document.createElement('span');
+              span.style.position = 'absolute';
+              span.style.left = '-9999px';
+              span.style.boxShadow = cssValue;
+              document.body.appendChild(span);
+              const computed = window.getComputedStyle(span).boxShadow;
+              document.body.removeChild(span);
+              return computed || cssValue;
+            } catch (e) {
+              return cssValue;
+            }
+          };
+
+          const fromShadow = resolveBoxShadow('0 0 0 rgba(203, 166, 247, 0)');
+          const toShadow = resolveBoxShadow('0 0 20px rgba(203, 166, 247, 0.5)');
+
+          gsap.fromTo(
+            tabElement,
+            { boxShadow: fromShadow },
+            {
+              boxShadow: toShadow,
+              duration: 0.3,
+              ease: 'power2.out',
+              yoyo: true,
+              repeat: 1,
+            },
+          );
+        } catch (e) {
+          // swallow any runtime issues with color parsing
+        }
       }
 
       // Call the original click handler
