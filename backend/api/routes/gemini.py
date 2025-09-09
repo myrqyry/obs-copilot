@@ -47,11 +47,11 @@ def get_gemini_client():
         )
     return genai.Client(api_key=api_key)
 
-async def stream_generator(response):
+def stream_generator(response):
     """Generator function to format and stream response chunks."""
     total_tokens = 0
     try:
-        async for chunk in response:
+        for chunk in response:
             if chunk.text:
                 yield f"data: {json.dumps({'type': 'chunk', 'data': chunk.text})}\n\n"
             if hasattr(chunk, 'usage_metadata') and chunk.usage_metadata:
@@ -66,33 +66,30 @@ async def stream_generator(response):
         yield f"data: {json.dumps({'type': 'usage', 'data': {'total_tokens': total_tokens}})}\n\n"
 
 @router.post("/stream", dependencies=[Depends(get_api_key)])
-async def stream_content(
+def stream_content(
     request: StreamRequest,
     client: genai.Client = Depends(get_gemini_client)
 ):
     """Streams generated content from Gemini."""
     try:
-        chat = client.chats.create(model=request.model)
-        
-        # Prepare history for the chat session
-        # The history from the request might need to be converted to the format expected by genai.types.Content
-        converted_history = []
+        # Prepare contents for the request
+        contents = []
         if request.history:
+            # Convert history to proper format for generate_content_stream
             for msg in request.history:
-                # Assuming msg has 'role' and 'parts' where parts is a list of dicts with 'text'
-                # This conversion might need adjustment based on actual history structure
-                converted_history.append(types.Content(role=msg['role'], parts=[types.Part.from_text(p['text']) for p in msg['parts']]))
+                role = msg['role']
+                parts = [types.Part.from_text(p['text']) for p in msg['parts']]
+                contents.append(types.Content(role=role, parts=parts))
 
-        # Reinitialize chat with converted history for each request to avoid state issues
-        # Or, if history is meant to persist, use chat.send_message with a new message
-        # For this implementation, we'll assume chat history is sent with each new request
-        # and re-create the chat object to properly load the history.
-        chat = client.chats.create(model=request.model, history=converted_history)
+        # Add the current prompt
+        contents.append(types.Content(role="user", parts=[types.Part.from_text(request.prompt)]))
 
-        response_stream = await chat.send_message_stream(
-            request.prompt,
+        # Use the official generate_content_stream method
+        response_stream = client.models.generate_content_stream(
+            model=request.model,
+            contents=contents,
         )
-        
+
         return StreamingResponse(
             stream_generator(response_stream),
             media_type="text/event-stream"
@@ -112,12 +109,12 @@ async def stream_content(
         )
 
 @router.post("/generate-image-enhanced", dependencies=[Depends(get_api_key)])
-async def generate_image_enhanced(
+def generate_image_enhanced(
     request: EnhancedImageGenerateRequest,
     client: genai.Client = Depends(get_gemini_client)
 ):
     """
-    Enhanced image generation using Gemini 1.5 Flash with comprehensive parameters.
+    Enhanced image generation using Gemini 2.5 Flash with comprehensive parameters.
     Supports both text-to-image and image-to-image editing.
     """
     try:
@@ -130,12 +127,18 @@ async def generate_image_enhanced(
         if image_input_part:
             contents.insert(0, image_input_part) # Prepend image for image-to-image
 
-        # Use gemini-2.5-flash-image-preview for image editing if image input is provided
-        if image_input_part and "gemini-2.5-flash-image-preview" not in request.model:
-            logger.warning("Switching model to 'gemini-2.5-flash-image-preview' for image editing.")
-            request.model = "gemini-2.5-flash-image-preview"
+        # Validate and set appropriate model for image editing
+        if image_input_part:
+            # For image editing, the model MUST be compatible.
+            compatible_models = ["gemini-2.5-flash-image-preview"]
+            if request.model not in compatible_models:
+                # If an incompatible model is requested for an image editing task, raise an error.
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Model '{request.model}' does not support image editing. Please use one of the following: {', '.join(compatible_models)}"
+                )
             # For image-editing model, generateContent is used instead of generate_images
-            response = await client.models.generate_content(
+            response = client.models.generate_content(
                 model=request.model,
                 contents=contents,
             )
@@ -147,7 +150,7 @@ async def generate_image_enhanced(
                         "data": part.inline_data.data,
                         "mime_type": part.inline_data.mime_type
                     })
-            
+
             if not generated_images_data:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -164,9 +167,9 @@ async def generate_image_enhanced(
                     "personGeneration": "N/A", # Person generation not directly controlled for image-editing model
                 },
             }
-        
+
         else: # Regular image generation for imagen models
-            result = await client.models.generate_images(
+            result = client.models.generate_images(
                 model=request.model,
                 prompt=request.prompt,
                 config=dict(

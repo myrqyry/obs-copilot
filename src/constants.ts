@@ -1,7 +1,7 @@
 import systemPromptRaw from './constants/prompts/geminiSystemPrompt.md?raw';
 
 export const GEMINI_API_KEY_ENV_VAR = 'VITE_GEMINI_API_KEY';
-export const GEMINI_MODEL_NAME = 'gemini-2.5-flash-preview-04-17';
+export const GEMINI_MODEL_NAME = 'gemini-2.5-flash';
 export const DEFAULT_OBS_WEBSOCKET_URL =
   import.meta.env.VITE_OBS_WEBSOCKET_URL || 'ws://localhost:4455';
 

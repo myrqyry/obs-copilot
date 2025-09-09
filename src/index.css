@@ -225,7 +225,7 @@
 
   /* Icon coloring for tabs - use CSS variables so theme updates apply immediately */
   .tab-item .tab-icon {
-    color: hsl(var(--tab-inactive-text));
+    color: inherit;
     transition: color 0.18s ease, transform 0.12s ease;
   }
 

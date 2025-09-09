@@ -284,10 +284,11 @@ const SortableTab: React.FC<SortableTabProps> = (props: SortableTabProps) => {
         >
             <span
                 ref={iconRef as any}
-                // use the tab-icon class so global CSS variables control the icon color
+                // Apply theme-aware text colors directly, using group state from the parent button.
                 className={cn(
                     'tab-icon',
-                    'flex-none w-6 h-6 flex items-center justify-center leading-none'
+                    'flex-none w-6 h-6 flex items-center justify-center leading-none',
+                    'text-muted-foreground group-data-[active=true]:text-primary group-hover:text-accent'
                 )}
             >
                 {/* ensure icon SVG scales to its container; svg set to block to avoid baseline clipping
@@ -299,8 +300,7 @@ const SortableTab: React.FC<SortableTabProps> = (props: SortableTabProps) => {
                 ref={labelRef}
                 className={cn(
                     'tab-label text-sm font-medium inline-block',
-                    isActive ? 'active' : '',
-                    isActive ? 'text-[color:hsl(var(--tab-active-text))]' : 'text-[color:hsl(var(--tab-inactive-text))]'
+                    isActive ? 'active' : ''
                 )}
                 style={{ whiteSpace: 'nowrap' }}
             >

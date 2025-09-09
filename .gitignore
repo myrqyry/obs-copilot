@@ -100,3 +100,6 @@ AGENTS.md
 .github/copilot-instructions.md
 backend/api/routes/__pycache__/*
 .playwright-mcp/*
+*/__pycache__/*
+*.pyc
+backend/tests/__pycache__/test_gemini.cpython-312-pytest-7.4.4.pyc
