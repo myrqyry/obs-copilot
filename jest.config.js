@@ -10,12 +10,13 @@ export default {
     '/node_modules/(?!gsap|@streamerbot/client|uncrypto)/'
   ],
   moduleNameMapper: {
+    'zustand': '<rootDir>/src/__mocks__/zustand.ts',
     '^@/(.*)$': '<rootDir>/src/$1',
     '^store/(.*)$': '<rootDir>/src/store/$1',
     '^services/(.*)$': '<rootDir>/src/services/$1',
     '^types/(.*)$': '<rootDir>/src/types/$1',
   },
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   moduleFileExtensions: [
     "ts",
     "tsx",

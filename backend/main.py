@@ -8,26 +8,9 @@ from fastapi.responses import JSONResponse
 from fastapi_mcp import FastApiMCP  # Import FastApiMCP
 from dotenv import load_dotenv # Import load_dotenv
 
-try:
-    # When running as a package, relative import works; when run as a script, fallback to absolute import
-    from .auth import get_api_key
-except Exception:
-    from auth import get_api_key
-try:
-    from .api.routes import gemini
-    from .api.routes import assets
-    from .api.routes import overlays
-    from .api.routes import proxy_7tv
-    from .api.routes import proxy_emotes
-    from .middleware import logging_middleware
-except Exception:
-    # Fallback when running as a script (not a package)
-    from api.routes import gemini
-    from api.routes import assets
-    from api.routes import overlays
-    from api.routes import proxy_7tv
-    from api.routes import proxy_emotes
-    from middleware import logging_middleware
+from .auth import get_api_key
+from .api.routes import gemini, assets, overlays, proxy_7tv, proxy_emotes
+from .middleware import logging_middleware
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -94,14 +77,17 @@ def read_root():
 @app.get("/health")
 def health_check():
     """Detailed health check endpoint."""
-    import os
+    # Add checks for other services here
+    # For example, a check for the database connection
+    # db_status = "available" if check_db_connection() else "unavailable"
 
     return JSONResponse(
         content={
             "status": "healthy",
             "version": "1.1.0",
             "services": {
-                "gemini": "available" if os.getenv("GEMINI_API_KEY") else "unavailable"
+                "gemini": "available" if os.getenv("GEMINI_API_KEY") else "unavailable",
+                # "database": db_status,
             },
         }
     )

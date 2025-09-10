@@ -67,3 +67,18 @@ export interface AIService {
   ): Promise<GeminiGenerateContentResponse>;
   liveConnect(options: LiveConnectParameters): Promise<any>;
 }
+
+export type GeneratedImage = {
+  /**
+The base64-encoded image data.
+   */
+  base64: string;
+  /**
+The media type of the image.
+   */
+  mediaType: `image/${string}`;
+  /**
+The Uint8Array representation of the image data.
+   */
+  uint8Array: Uint8Array;
+};
