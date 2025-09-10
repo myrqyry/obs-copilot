@@ -10,11 +10,6 @@
     "type": "json",
     "path": "./audit-report.json"
   },
-  "advisories": {
-    "1066843": "skip",
-    "1066727": "skip",
-    "1066369": "skip"
-  },
   "path-allowlist": [
     "/node_modules/*"
   ],

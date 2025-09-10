@@ -1,37 +1,26 @@
-// Mock global console before any tests run
-jest.doMock('console', () => ({
-  log: jest.fn(),
-  debug: jest.fn(),
-  info: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn(),
-}));
-
 let logger: typeof import('../logger').logger;
-let consoleDebug: any;
-let consoleInfo: any;
-let consoleWarn: any;
-let consoleError: any;
+let consoleDebug: jest.SpyInstance;
+let consoleInfo: jest.SpyInstance;
+let consoleWarn: jest.SpyInstance;
+let consoleError: jest.SpyInstance;
 
 describe('Logger', () => {
   beforeEach(() => {
-    jest.resetModules(); // Reset module registry so require('../logger') yields a fresh module
+    // Spy on console methods and provide a mock implementation to avoid logging to the console during tests.
+    consoleDebug = jest.spyOn(console, 'debug').mockImplementation(() => {});
+    consoleInfo = jest.spyOn(console, 'info').mockImplementation(() => {});
+    consoleWarn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    // Get the mocked console methods
-    const mockConsole = require('console');
-    consoleDebug = mockConsole.debug;
-    consoleInfo = mockConsole.info;
-    consoleWarn = mockConsole.warn;
-    consoleError = mockConsole.error;
-
-    // Import the logger after mocking console
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // Reset modules to ensure we get a fresh instance of the logger
+    jest.resetModules();
     const mod = require('../logger');
     logger = mod.logger;
   });
 
   afterEach(() => {
-    jest.clearAllMocks(); // Clear mock calls between tests
+    // Restore original console methods
+    jest.restoreAllMocks();
   });
 
   it('should log debug messages', () => {
@@ -68,6 +57,7 @@ describe('Logger', () => {
       'Error occurred',
       testError,
     );
+    // The logger also logs error details separately
     expect(consoleError).toHaveBeenCalledWith(
       'Error details:',
       testError.message,

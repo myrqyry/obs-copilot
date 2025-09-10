@@ -41,6 +41,7 @@ jest.mock('../useGeminiChat', () => ({
   useGeminiChat: mockUseGeminiChat,
 }));
 
+import { renderHook, act } from '@testing-library/react';
 import { useGeminiChat } from '../useGeminiChat';
 
 describe('useGeminiChat integration tests', () => {

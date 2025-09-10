@@ -1,18 +1,10 @@
 // Mock the httpClient service
-jest.mock('../../httpClient', () => ({
+jest.mock('../httpClient', () => ({
   httpClient: {
     post: jest.fn(),
   },
 }));
 
-// Mock the uiStore
-jest.mock('../../store/uiStore', () => ({
-  default: {
-    getState: () => ({
-      addError: jest.fn(),
-    }),
-  },
-}));
 
 // Mock errorUtils for handleAppError
 jest.mock('../../lib/errorUtils', () => ({
@@ -57,18 +49,20 @@ import { dataUrlToBlobUrl } from '../../lib/utils';
 import { pcm16ToWavUrl } from '../../lib/pcmToWavUrl';
 
 describe('GeminiService', () => {
-  const mockAddError = jest.fn();
   const mockPost = jest.fn();
+  let addErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.mocked(useUiStore).mockImplementation(() => ({
-      getState: () => ({ addError: mockAddError }),
-    }));
+    addErrorSpy = jest.spyOn(useUiStore.getState(), 'addError');
     httpClient.post = mockPost;
     (handleAppError as jest.Mock).mockReturnValue('Mocked error message');
     (dataUrlToBlobUrl as jest.Mock).mockImplementation((url: string) => `blob:${url}`);
     (pcm16ToWavUrl as jest.Mock).mockResolvedValue('mock-wav-url');
+  });
+
+  afterEach(() => {
+    addErrorSpy.mockRestore();
   });
 
   describe('generateContent', () => {
@@ -119,7 +113,7 @@ describe('GeminiService', () => {
       mockPost.mockRejectedValueOnce(mockError);
 
       await expect(geminiService.generateContent('Test prompt')).rejects.toThrow('Mocked error message');
-      expect(mockAddError).toHaveBeenCalledWith({
+      expect(addErrorSpy).toHaveBeenCalledWith({
         message: 'Mocked error message',
         source: 'geminiService',
         level: 'critical',
@@ -132,7 +126,7 @@ describe('GeminiService', () => {
       mockPost.mockRejectedValueOnce(mockError);
 
       await expect(geminiService.generateContent('Test prompt')).rejects.toThrow('Mocked error message');
-      expect(mockAddError).not.toHaveBeenCalled();
+      expect(addErrorSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -201,7 +195,7 @@ describe('GeminiService', () => {
       mockPost.mockRejectedValueOnce({ response: { status: 403 } });
 
       await expect(geminiService.generateImage('Test prompt')).rejects.toThrow('Mocked error message');
-      expect(mockAddError).toHaveBeenCalled();
+      expect(addErrorSpy).toHaveBeenCalled();
     });
   });
 
@@ -311,7 +305,7 @@ describe('GeminiService', () => {
       mockPost.mockRejectedValueOnce({ response: { status: 401 } });
 
       await expect(geminiService.generateWithLongContext('Test prompt', 'context')).rejects.toThrow('Mocked error message');
-      expect(mockAddError).toHaveBeenCalledWith(expect.objectContaining({
+      expect(addErrorSpy).toHaveBeenCalledWith(expect.objectContaining({
         details: { model: MODEL_CONFIG.longContext, contextLength: 7, error: expect.any(Object) },
       }));
     });
