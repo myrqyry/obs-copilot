@@ -3,6 +3,7 @@ import os
 import httpx
 from fastapi import APIRouter, HTTPException, Request, Depends, status
 from fastapi.responses import Response
+from urllib.parse import urlparse
 try:
     from .auth import get_api_key
 except Exception:
@@ -142,29 +143,48 @@ async def search_assets(api_name: str, request: Request):
                 detail=f"An unexpected error occurred: {str(e)}",
             )
 
+# Define a list of trusted domains for the image proxy
+ALLOWED_IMAGE_DOMAINS = [
+    "images.unsplash.com",
+    "images.pexels.com",
+    "cdn.pixabay.com",
+    "i.giphy.com",
+    "media.tenor.com",
+    "w.wallhaven.cc",
+    "th.wallhaven.cc",
+    # Add any other trusted domains here
+]
+
 @router.get("/proxy-image")
 async def proxy_image(image_url: str):
     """
-    Proxies an image URL to bypass CORS issues, returning a streaming response.
+    Proxies an image URL to bypass CORS issues, with SSRF protection.
     """
-    async with httpx.AsyncClient() as client:
-        try:
+    try:
+        parsed_url = urlparse(image_url)
+        if not parsed_url.scheme or not parsed_url.netloc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid URL provided.")
+
+        if parsed_url.hostname not in ALLOWED_IMAGE_DOMAINS:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Image source is not allowed.")
+
+        # Use httpx with follow_redirects=False to prevent redirect-based SSRF
+        async with httpx.AsyncClient(follow_redirects=False) as client:
             real_response = await client.get(image_url, timeout=10.0)
             real_response.raise_for_status()
-            
-            # Get the content type from the original response
+
             content_type = real_response.headers.get("Content-Type", "application/octet-stream")
-            
-            # Return the image content with the correct media type
+            if not content_type.startswith("image/"):
+                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="URL does not point to a valid image.")
+
             return Response(content=real_response.content, media_type=content_type)
-            
-        except httpx.HTTPStatusError as e:
-            raise HTTPException(
-                status_code=e.response.status_code,
-                detail=f"Error fetching image from {image_url}: {e.response.text}",
-            )
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"An unexpected error occurred while proxying image: {str(e)}",
-            )
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(
+            status_code=e.response.status_code,
+            detail=f"Error fetching image from {image_url}: {e.response.text}",
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An unexpected error occurred while proxying image: {str(e)}",
+        )

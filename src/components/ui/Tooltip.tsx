@@ -1,15 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { usePortal } from '@/lib/portalUtils'; // Import the new usePortal hook
+import { usePortal } from '@/lib/portalUtils';
 import useSettingsStore from '@/store/settingsStore';
 import { catppuccinAccentColorsHexMap, catppuccinMochaColors } from '@/types';
-
-// Extend window for global tooltip tracking
-declare global {
-    interface Window {
-        __activeTooltip?: string | null;
-        __activeTooltipHide?: (() => void) | null;
-    }
-}
+import { useTooltip } from '@/contexts/TooltipContext';
 
 interface TooltipProps {
     content: React.ReactNode;
@@ -30,68 +23,43 @@ const Tooltip: React.FC<TooltipProps> = ({
     className = '',
     delay = 200,
 }) => {
-    const [visible, setVisible] = useState(false);
+    const { activeTooltip, showTooltip, hideTooltip } = useTooltip();
     const [mouse, setMouse] = useState<{ x: number; y: number } | null>(null);
     const [tooltipId] = useState(() => Math.random().toString(36).slice(2));
     const timeout = useRef<NodeJS.Timeout | null>(null);
     const childRef = useRef<HTMLDivElement>(null);
     const lastMouse = useRef<{ x: number; y: number } | null>(null);
+    const visible = activeTooltip === tooltipId;
 
-    // Global tooltip state
-    useEffect(() => {
-        if (!window.__activeTooltip) {
-            window.__activeTooltip = null;
-        }
-    }, []);
-
-    // Smoother mouse tracking for tooltip
-    const showTooltip = useCallback((e?: React.MouseEvent) => {
+    const handleShow = useCallback((e?: React.MouseEvent) => {
         if (e) {
             lastMouse.current = { x: e.clientX, y: e.clientY };
         }
         if (timeout.current) clearTimeout(timeout.current);
         timeout.current = setTimeout(() => {
-            // Hide any other tooltip
-            if (window.__activeTooltip && window.__activeTooltip !== tooltipId) {
-                window.__activeTooltipHide && window.__activeTooltipHide();
-            }
-            window.__activeTooltip = tooltipId;
-            window.__activeTooltipHide = hideTooltip;
-            setVisible(true);
+            showTooltip(tooltipId);
             if (lastMouse.current) {
                 setMouse({ ...lastMouse.current });
             } else if (childRef.current) {
                 const rect = childRef.current.getBoundingClientRect();
-                setMouse({ top: rect.top + window.scrollY, left: rect.left + window.scrollX } as any); // Use mouse for positioning
+                setMouse({ top: rect.top + window.scrollY, left: rect.left + window.scrollX } as any);
             }
         }, delay);
-    }, [delay, tooltipId]);
+    }, [delay, tooltipId, showTooltip]);
 
-    const hideTooltip = useCallback(() => {
+    const handleHide = useCallback(() => {
         if (timeout.current) clearTimeout(timeout.current);
-        setVisible(false);
+        hideTooltip(tooltipId);
         setMouse(null);
         lastMouse.current = null;
-        if (window.__activeTooltip === tooltipId) {
-            window.__activeTooltip = null;
-            window.__activeTooltipHide = null;
-        }
-    }, [tooltipId]);
+    }, [tooltipId, hideTooltip]);
 
-    useEffect(() => {
-        return () => {
-            if (window.__activeTooltip === tooltipId) {
-                window.__activeTooltip = null;
-                window.__activeTooltipHide = null;
-            }
-        };
-    }, [tooltipId]);
-
-    // Tooltip position logic: always above and centered on the cursor, but never out of viewport
+    // Tooltip position logic
     let tooltipStyle: React.CSSProperties = { zIndex: 9999, pointerEvents: 'none', opacity: visible ? 1 : 0, transition: 'opacity 0.18s cubic-bezier(.4,1.2,.6,1), transform 0.18s cubic-bezier(.4,1.2,.6,1)' };
-    let calculatedLeft = undefined;
-    let calculatedTop = undefined;
+    let calculatedLeft: number | undefined;
+    let calculatedTop: number | undefined;
     let transform = 'translate(-50%, -100%) scale(1)';
+
     if (mouse) {
         calculatedLeft = mouse.x;
         calculatedTop = mouse.y - 18;
@@ -100,25 +68,25 @@ const Tooltip: React.FC<TooltipProps> = ({
         calculatedLeft = rect.left + rect.width / 2;
         calculatedTop = rect.top - 8;
     }
-    // Clamp tooltip position to viewport
+
     if (typeof window !== 'undefined' && calculatedLeft !== undefined && calculatedTop !== undefined && visible) {
-        const tooltipWidth = 260; // Estimate, or could use a ref for actual width
-        const tooltipHeight = 48; // Estimate, or could use a ref for actual height
+        const tooltipWidth = 260;
+        const tooltipHeight = 48;
         const padding = 8;
         const vw = window.innerWidth;
-        // Clamp horizontally
+
         if (calculatedLeft - tooltipWidth / 2 < padding) {
             calculatedLeft = padding + tooltipWidth / 2;
         } else if (calculatedLeft + tooltipWidth / 2 > vw - padding) {
             calculatedLeft = vw - padding - tooltipWidth / 2;
         }
-        // Clamp vertically (above cursor preferred, but fallback below if needed)
+
         if (calculatedTop - tooltipHeight < padding) {
-            // Not enough space above, show below
             calculatedTop = (mouse ? mouse.y : calculatedTop) + 24;
             transform = 'translate(-50%, 0) scale(1)';
         }
     }
+
     tooltipStyle = {
         ...tooltipStyle,
         left: calculatedLeft,
@@ -134,30 +102,28 @@ const Tooltip: React.FC<TooltipProps> = ({
     const textColor = isDarkModeActive ? accentColor : catppuccinMochaColors.crust;
     const tooltipBg = isDarkModeActive
         ? `rgba(17, 17, 27, 0.98)`
-        : accentColor + 'F2'; // add alpha for light mode
+        : accentColor + 'F2';
     const tooltipBorder = accentColor;
-
-    // Glass effect (optional, can be tweaked)
     const glassClass = isDarkModeActive ? 'chat-bubble-glass-extra-dark' : 'chat-bubble-glass';
 
     const renderPortal = usePortal({
         isOpen: visible && (mouse !== null || childRef.current !== null),
-        onClose: hideTooltip,
+        onClose: handleHide,
         closeOnEscape: true,
-        closeOnBackdropClick: false, // Tooltip should not close on backdrop click
-        preventBodyScroll: false, // Tooltip should not prevent body scroll
-        portalId: 'tooltip-portal-root', // Unique ID for tooltip portal
+        closeOnBackdropClick: false,
+        preventBodyScroll: false,
+        portalId: 'tooltip-portal-root',
     });
 
     return (
         <div
             ref={childRef}
             className="inline-block outline-none"
-            onMouseEnter={e => showTooltip(e)}
-            onMouseMove={e => showTooltip(e)}
-            onMouseLeave={hideTooltip}
-            onFocus={() => showTooltip()}
-            onBlur={hideTooltip}
+            onMouseEnter={handleShow}
+            onMouseMove={handleShow}
+            onMouseLeave={handleHide}
+            onFocus={() => handleShow()}
+            onBlur={handleHide}
             tabIndex={0}
         >
             {children}
@@ -190,10 +156,6 @@ export default Tooltip;
 // Compatibility shims for Radix-style named imports used elsewhere in the codebase.
 // These are intentionally minimal wrappers that preserve render semantics for now.
 // If richer behavior is needed later, replace these with a more full-featured implementation.
-export const TooltipProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    return <>{children}</>;
-};
-
 export const TooltipTrigger: React.FC<{ asChild?: boolean; children: React.ReactNode }> = ({ children }) => {
     // Radix's TooltipTrigger often uses `asChild` to forward children as trigger.
     // Our shim simply renders the child directly.

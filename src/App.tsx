@@ -7,6 +7,7 @@ import './utils/gsapTest';
 import ComprehensiveErrorBoundary from './components/common/ComprehensiveErrorBoundary';
 import { Header } from './components/layout/Header';
 import { TabNavigation } from './components/layout/TabNavigation';
+import { TooltipProvider } from './contexts/TooltipContext';
 import { ConnectionProvider } from './features/connections/ConnectionProvider';
 import useSettingsStore from './store/settingsStore';
 import { usePlugins } from './hooks/usePlugins';
@@ -65,21 +66,23 @@ const App: React.FC = () => {
 
      return (
          <ComprehensiveErrorBoundary>
-             <ConnectionProvider>
-                 <div className={`app-root h-screen max-h-screen bg-gradient-to-br from-background to-card text-foreground flex flex-col transition-colors duration-500 ease-in-out`}>
-                     <Header headerRef={headerRef} />
-                     <TabNavigation
-                         activeTab={activeTab}
-                         setActiveTab={handleTabChange}
-                         tabs={plugins}
-                     />
-                     <div className="flex flex-grow overflow-hidden">
-                         <div className={`flex-grow overflow-y-auto px-1 sm:px-2 pb-1 transition-all duration-300 ease-in-out ${flipSides ? 'order-last' : 'order-first'}`}>
-                             {renderTabContent()}
+            <TooltipProvider>
+                <ConnectionProvider>
+                    <div className={`app-root h-screen max-h-screen bg-gradient-to-br from-background to-card text-foreground flex flex-col transition-colors duration-500 ease-in-out`}>
+                        <Header headerRef={headerRef} />
+                        <TabNavigation
+                            activeTab={activeTab}
+                            setActiveTab={handleTabChange}
+                            tabs={plugins}
+                        />
+                        <div className="flex flex-grow overflow-hidden">
+                            <div className={`flex-grow overflow-y-auto px-1 sm:px-2 pb-1 transition-all duration-300 ease-in-out ${flipSides ? 'order-last' : 'order-first'}`}>
+                                {renderTabContent()}
+                            </div>
                          </div>
                      </div>
-                 </div>
-             </ConnectionProvider>
+                </ConnectionProvider>
+            </TooltipProvider>
          </ComprehensiveErrorBoundary>
      );
  };
