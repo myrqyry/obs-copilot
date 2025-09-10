@@ -103,3 +103,8 @@ backend/api/routes/__pycache__/*
 */__pycache__/*
 *.pyc
 backend/tests/__pycache__/test_gemini.cpython-312-pytest-7.4.4.pyc
+.clinerules/
+.kilocode/
+.playwright-mcp/
+.pytest_cache/
+.cursorignore
