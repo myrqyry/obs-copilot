@@ -108,3 +108,4 @@ backend/tests/__pycache__/test_gemini.cpython-312-pytest-7.4.4.pyc
 .playwright-mcp/
 .pytest_cache/
 .cursorignore
+backend/api/routes/__pycache__/gemini.cpython-312.pyc

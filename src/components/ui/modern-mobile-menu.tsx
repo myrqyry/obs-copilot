@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Home, Work, CalendarMonth, Security, Settings } from '@mui/icons-material';
+import { Home, Briefcase, Calendar, Shield, Settings } from 'lucide-react';
 
 type IconComponentType = React.ElementType<{ className?: string } | any>;
 export interface InteractiveMenuItem {
@@ -14,9 +14,9 @@ export interface InteractiveMenuProps {
 
 const defaultItems: InteractiveMenuItem[] = [
   { label: 'home', icon: Home },
-  { label: 'strategy', icon: Work },
-  { label: 'period', icon: CalendarMonth },
-  { label: 'security', icon: Security },
+  { label: 'strategy', icon: Briefcase },
+  { label: 'period', icon: Calendar },
+  { label: 'security', icon: Shield },
   { label: 'settings', icon: Settings },
 ];
 
@@ -111,8 +111,6 @@ const InteractiveMenu: React.FC<InteractiveMenuProps> = ({ items, accentColor })
 
 export {InteractiveMenu}
 "use client";
-
-import React from "react";
 import { Button } from "@/components/ui/button.radix";
 import { X, Menu } from "lucide-react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";

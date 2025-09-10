@@ -6,7 +6,7 @@ import { Modal } from '@/components/ui/Modal';
 import { useConnectionManagerStore } from '@/store/connectionManagerStore';
 import { HtmlTemplateService, TemplateConfig } from '@/services/htmlTemplateService';
 import { catppuccinAccentColorsHexMap, CatppuccinAccentColorName } from '@/types';
-import SecureHtmlRenderer from '@/components/ui/SecureHtmlRenderer';
+import { SecureHtmlRenderer } from '@/components/ui/SecureHtmlRenderer';
 import { handleAppError } from '@/lib/errorUtils'; // Import error utilities
 
 interface HtmlTemplateBuilderProps {
@@ -68,24 +68,41 @@ const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({ accentColorNa
         }
     };
 
-    const handleConfigChange = (
-        section: keyof TemplateConfig,
-        key: string,
-        value: any
-    ) => {
-        setCustomConfig((prev: Partial<TemplateConfig>) => {
-            // If section is empty string, update the root config property
-            if (!section) {
-                return { ...prev, [key]: value };
-            }
-            return {
-                ...prev,
-                [section]: {
-                    ...((prev[section] as object) || {}),
-                    [key]: value,
-                },
-            };
-        });
+    const handleContentChange = (key: 'title' | 'subtitle' | 'body' | 'customHtml', value: string) => {
+      setCustomConfig((prev: Partial<TemplateConfig>) => ({
+        ...prev,
+        content: {
+          ...prev.content,
+          [key]: value,
+        },
+      }));
+    };
+    
+    const handleLayoutChange = (value: TemplateConfig['layout']) => {
+      setCustomConfig((prev: Partial<TemplateConfig>) => ({
+        ...prev,
+        layout: value,
+      }));
+    };
+    
+    const handlePositionChange = (value: TemplateConfig['position']) => {
+      setCustomConfig((prev: Partial<TemplateConfig>) => ({
+        ...prev,
+        position: value,
+      }));
+    };
+    
+    const handleAnimationsChange = (key: 'glow' | 'rainbow' | 'pulse', value: number | boolean) => {
+      setCustomConfig((prev: Partial<TemplateConfig>) => ({
+        ...prev,
+        animations: {
+          ...prev.animations,
+          effects: {
+            ...(prev.animations?.effects || {}),
+            [key]: value,
+          },
+        },
+      }));
     };
 
     const handleCreateBrowserSource = async () => {
@@ -166,36 +183,36 @@ const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({ accentColorNa
                     <div className="flex-1">
                         <label className="block text-xs font-medium mb-1">Title</label>
                         <TextInput
-                            value={customConfig.content?.title || ''}
-                            onChange={(e) => handleConfigChange('content', 'title', e.target.value)}
-                            placeholder="Enter title"
+                          value={customConfig.content?.title || ''}
+                          onChange={(e) => handleContentChange('title', e.target.value)}
+                          placeholder="Enter title"
                         />
                     </div>
                     <div className="flex-1">
                         <label className="block text-xs font-medium mb-1">Subtitle</label>
                         <TextInput
-                            value={customConfig.content?.subtitle || ''}
-                            onChange={(e) => handleConfigChange('content', 'subtitle', e.target.value)}
-                            placeholder="Enter subtitle"
+                          value={customConfig.content?.subtitle || ''}
+                          onChange={(e) => handleContentChange('subtitle', e.target.value)}
+                          placeholder="Enter subtitle"
                         />
                     </div>
                 </div>
                 <div>
                     <label className="block text-xs font-medium mb-1">Body Text</label>
                     <textarea
-                        value={customConfig.content?.body || ''}
-                        onChange={(e) => handleConfigChange('content', 'body', e.target.value)}
-                        className="w-full p-1 border border-border rounded-md bg-background text-foreground h-16 resize-none text-xs"
-                        placeholder="Enter body content (supports HTML)"
+                      value={customConfig.content?.body || ''}
+                      onChange={(e) => handleContentChange('body', e.target.value)}
+                      className="w-full p-1 border border-border rounded-md bg-background text-foreground h-16 resize-none text-xs"
+                      placeholder="Enter body content (supports HTML)"
                     />
                 </div>
                 <div className="flex flex-col md:flex-row gap-2">
                     <div className="flex-1">
                         <label className="block text-xs font-medium mb-1">Layout</label>
                         <select
-                            value={customConfig.layout || 'overlay'}
-                            onChange={(e) => handleConfigChange('layout', 'layout', e.target.value)}
-                            className="w-full p-1 border border-border rounded-md bg-background text-foreground text-xs"
+                          value={customConfig.layout || 'overlay'}
+                          onChange={(e) => handleLayoutChange(e.target.value as TemplateConfig['layout'])}
+                          className="w-full p-1 border border-border rounded-md bg-background text-foreground text-xs"
                         >
                             <option value="overlay">Overlay</option>
                             <option value="fullscreen">Fullscreen</option>
@@ -207,9 +224,9 @@ const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({ accentColorNa
                         <div className="flex-1">
                             <label className="block text-xs font-medium mb-1">Position</label>
                             <select
-                                value={customConfig.position || 'bottom-right'}
-                                onChange={(e) => handleConfigChange('position', 'position', e.target.value)}
-                                className="w-full p-1 border border-border rounded-md bg-background text-foreground text-xs"
+                              value={customConfig.position || 'bottom-right'}
+                              onChange={(e) => handlePositionChange(e.target.value as NonNullable<TemplateConfig['position']>)}
+                              className="w-full p-1 border border-border rounded-md bg-background text-foreground text-xs"
                             >
                                 <option value="top-left">Top Left</option>
                                 <option value="top-right">Top Right</option>
@@ -288,37 +305,28 @@ const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({ accentColorNa
                         <label className="block text-xs font-medium mb-1">Animation Effects</label>
                         <div className="flex gap-2 items-center">
                             <input
-                                type="checkbox"
-                                checked={customConfig.animations?.effects?.rainbow || false}
-                                onChange={(e) => handleConfigChange('animations', 'effects', {
-                                    ...customConfig.animations?.effects,
-                                    rainbow: e.target.checked,
-                                })}
-                                className="rounded"
+                              type="checkbox"
+                              checked={customConfig.animations?.effects?.rainbow || false}
+                              onChange={(e) => handleAnimationsChange('rainbow', e.target.checked)}
+                              className="rounded"
                             />
                             <span className="text-xs">🌈 Rainbow</span>
                             <input
-                                type="checkbox"
-                                checked={customConfig.animations?.effects?.pulse || false}
-                                onChange={(e) => handleConfigChange('animations', 'effects', {
-                                    ...customConfig.animations?.effects,
-                                    pulse: e.target.checked,
-                                })}
-                                className="rounded ml-2"
+                              type="checkbox"
+                              checked={customConfig.animations?.effects?.pulse || false}
+                              onChange={(e) => handleAnimationsChange('pulse', e.target.checked)}
+                              className="rounded ml-2"
                             />
                             <span className="text-xs">💓 Pulse</span>
                             <label className="text-xs ml-2">🔥 Glow:</label>
                             <input
-                                type="range"
-                                min="0"
-                                max="5"
-                                step="0.5"
-                                value={customConfig.animations?.effects?.glow || 0}
-                                onChange={(e) => handleConfigChange('animations', 'effects', {
-                                    ...customConfig.animations?.effects,
-                                    glow: parseFloat(e.target.value),
-                                })}
-                                className="flex-1 mx-1"
+                              type="range"
+                              min="0"
+                              max="5"
+                              step="0.5"
+                              value={customConfig.animations?.effects?.glow || 0}
+                              onChange={(e) => handleAnimationsChange('glow', parseFloat(e.target.value))}
+                              className="flex-1 mx-1"
                             />
                             <span className="text-xs text-muted-foreground">
                                 {customConfig.animations?.effects?.glow || 0}
@@ -364,7 +372,7 @@ const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({ accentColorNa
                     </div>
                 )}
                 <div className="mt-2">
-                    <SecureHtmlRenderer htmlContent={htmlContent} customCss={customCss} />
+                    <SecureHtmlRenderer htmlContent={htmlContent} />
                 </div>
             </div>
 

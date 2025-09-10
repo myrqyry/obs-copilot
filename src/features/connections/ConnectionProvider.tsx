@@ -1,5 +1,5 @@
-// src/components/ConnectionProvider.tsx
-import React, { createContext, useEffect, useMemo, useCallback } from 'react';
+// src/features/connections/ConnectionProvider.tsx
+import React, { createContext, useEffect, useMemo, useCallback, useState } from 'react';
 import { ObsClientImpl } from '@/services/obsClient';
 import { StreamerBotService } from '@/services/streamerBotService';
 import useConnectionsStore from '@/store/connectionsStore';
@@ -7,6 +7,8 @@ import { useAutomationStore } from '@/store/automationStore';
 import { useChatStore } from '@/store/chatStore';
 import { toast } from '@/components/ui/toast';
 import { loadConnectionSettings } from '@/utils/persistence';
+import ErrorViewer from '@/components/ui/ErrorViewer';
+import useUiStore from '@/store/uiStore';
 
 // Define the shape of our context
 interface ConnectionContextType {
@@ -28,6 +30,16 @@ export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const { connectToObs, disconnectFromObs } = useConnectionsStore();
     const { setStreamerBotServiceInstance } = useAutomationStore(state => state.actions);
     const { addMessage } = useChatStore(state => state.actions);
+
+    const { criticalErrors } = useUiStore();
+    const [isErrorViewerOpen, setIsErrorViewerOpen] = useState(false);
+    
+    // Auto-open ErrorViewer if there are critical errors
+    useEffect(() => {
+      if (criticalErrors.length > 0 && !isErrorViewerOpen) {
+        setIsErrorViewerOpen(true);
+      }
+    }, [criticalErrors.length, isErrorViewerOpen]);
     
     // --- 3. Define Connection Logic ---
     const handleObsConnect = useCallback(async (url: string, password?: string) => {
@@ -79,9 +91,9 @@ export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }, [streamerBotService, setStreamerBotServiceInstance, connectToObs, disconnectFromObs]);
 
     // --- 5. Provide Context to Children ---
-    const contextValue = useMemo(() => ({ 
-        obsClient, 
-        streamerBotService, 
+    const contextValue = useMemo(() => ({
+        obsClient,
+        streamerBotService,
         handleObsConnect,
         handleStreamerBotConnect
     }), [obsClient, streamerBotService, handleObsConnect, handleStreamerBotConnect]);
@@ -89,6 +101,10 @@ export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return (
         <ConnectionContext.Provider value={contextValue}>
             {children}
+            <ErrorViewer
+              isOpen={isErrorViewerOpen}
+              onClose={() => setIsErrorViewerOpen(false)}
+            />
         </ConnectionContext.Provider>
     );
 };

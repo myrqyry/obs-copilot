@@ -8,12 +8,12 @@ import {
     OBSSource,
     CatppuccinChatBubbleColorName
 } from '@/types';
-import { ChevronDownIcon, ChevronUpIcon, ClipboardDocumentIcon, ArrowPathIcon, ChatBubbleLeftEllipsisIcon } from '@heroicons/react/24/solid';
+import { ChevronDown, ChevronUp, Clipboard, RefreshCw, MessageCircle } from 'lucide-react';
 import { gsap } from 'gsap';
 import { getRandomSuggestions } from '@/constants/chatSuggestions';
 import useSettingsStore from '@/store/settingsStore';
 import Tooltip from '@/components/ui/Tooltip';
-import SecureHtmlRenderer from '@/components/ui/SecureHtmlRenderer';
+import { SecureHtmlRenderer } from '@/components/ui/SecureHtmlRenderer';
 
 // Import AI Elements components
 import {
@@ -198,7 +198,11 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                             key={lastIndex}
                             htmlContent={htmlFragment}
                             allowedTags={['p','br','strong','em','code','pre','ul','ol','li','a','span','div']}
-                            allowedAttributes={['class','href','target','rel']}
+                            allowedAttrs={{
+                                '*': ['class'],
+                                'a': ['href', 'target', 'rel'],
+                                'img': ['src', 'alt']
+                            }}
                         />
                     );
                 }
@@ -227,7 +231,11 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                         key={lastIndex}
                         htmlContent={htmlFragment}
                         allowedTags={['p','br','strong','em','code','pre','ul','ol','li','a','span','div']}
-                        allowedAttributes={['class','href','target','rel']}
+                        allowedAttrs={{
+                            '*': ['class'],
+                            'a': ['href', 'target', 'rel'],
+                            'img': ['src', 'alt']
+                        }}
                     />
                 );
             }
@@ -564,7 +572,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                                 className="text-muted-foreground hover:text-info hover:bg-info/10 p-1 rounded-full transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-info/50"
                                 aria-label="Copy message text"
                             >
-                                <ClipboardDocumentIcon className="w-3 h-3" />
+                                <Clipboard className="w-3 h-3" />
                             </button>
                         </Tooltip>
 
@@ -575,7 +583,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                                     className="text-muted-foreground hover:text-green-500 hover:bg-green-500/10 p-1 rounded-full transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-green-500/50"
                                     aria-label="Regenerate message"
                                 >
-                                    <ArrowPathIcon className="w-3 h-3" />
+                                    <RefreshCw className="w-3 h-3" />
                                 </button>
                             </Tooltip>
                         )}
@@ -587,7 +595,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                                     className="text-accent hover:bg-accent/20 p-1 rounded-full transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-accent/50"
                                     aria-label="Add message to context"
                                 >
-                                    <ChatBubbleLeftEllipsisIcon className="w-4 h-4 text-accent" />
+                                    <MessageCircle className="w-4 h-4 text-accent" />
                                 </button>
                             </Tooltip>
                         )}
@@ -599,7 +607,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                             onClick={() => setForceExpand(true)}
                             aria-label="Expand chat bubble"
                         >
-                            <ChevronDownIcon className="w-5 h-5" />
+                            <ChevronDown className="w-5 h-5" />
                         </div>
                     )}
                     {forceExpand && (
@@ -609,7 +617,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                                 onClick={() => setForceExpand(false)}
                                 aria-label="Shrink chat bubble"
                             >
-                                <ChevronUpIcon className="w-5 h-5" />
+                                <ChevronUp className="w-5 h-5" />
                             </button>
                         </Tooltip>
                     )}

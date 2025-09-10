@@ -1,4 +1,10 @@
 import axios from 'axios';
+import DOMPurify from 'dompurify';
+
+type TmiTags = Record<string, string | undefined> & { emotes?: Record<string, string[]>; badges?: Record<string, string> };
+
+type TwitchEmote = { start: number; end: number; src: string; code: string };
+import type { SevenTVCosmetics } from '@/types/sevenTVCosmetics';
 
 type EmoteEntry = {
   code: string;
@@ -52,11 +58,11 @@ function restoreCacheFromLocalStorage() {
 try { restoreCacheFromLocalStorage(); } catch (e) {}
 
 // 7TV cosmetics cache (simple per-username map)
-const cosmeticsCache = new Map<string, CacheEntry<{ paintBackground?: string; paintFilter?: string; paintColor?: string }>>();
+const cosmeticsCache = new Map<string, CacheEntry<SevenTVCosmetics>>();
 
 function persistCosmeticsToLocalStorage() {
   try {
-    const arr: Array<[string, number, { paintBackground?: string; paintFilter?: string; paintColor?: string }]> = [];
+    const arr: Array<[string, number, SevenTVCosmetics]> = [];
     for (const [k, v] of cosmeticsCache.entries()) {
       arr.push([k, v.ts, v.value]);
     }
@@ -68,7 +74,7 @@ function restoreCosmeticsFromLocalStorage() {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_7TV_KEY);
     if (!raw) return;
-    const parsed = JSON.parse(raw) as Array<[string, number, { paintBackground?: string; paintFilter?: string; paintColor?: string }]>;
+    const parsed = JSON.parse(raw) as Array<[string, number, SevenTVCosmetics]>;
     for (const [k, ts, val] of parsed) {
       cosmeticsCache.set(k, { ts, value: val });
     }
@@ -77,9 +83,13 @@ function restoreCosmeticsFromLocalStorage() {
 
 try { restoreCosmeticsFromLocalStorage(); } catch (e) {}
 
-function setCosmeticsCache(key: string, val: { paintBackground?: string; paintFilter?: string; paintColor?: string }) {
+function setCosmeticsCache(key: string, val: SevenTVCosmetics) {
   cosmeticsCache.set(key, { ts: Date.now(), value: val });
   try { persistCosmeticsToLocalStorage(); } catch (e) {}
+}
+
+export function getCachedCosmetics(key: string): SevenTVCosmetics | null {
+  return getCosmeticsCache(key);
 }
 
 function getCosmeticsCache(key: string) {
@@ -284,34 +294,131 @@ export async function lookupNameColorFFZ(userIdOrName: string) {
 }
 
 // Fetch 7TV cosmetics for a username (returns an object suitable for inline style usage)
-export async function getSevenTVCosmetics(userIdentifier: string) {
+export async function getSevenTVCosmetics(userIdentifier: string, retryCount = 0): Promise<SevenTVCosmetics | null> {
   if (!userIdentifier) return null;
   const cached = getCosmeticsCache(userIdentifier);
   if (cached) return cached;
+ 
   try {
-    // endpoint referenced in upstream component; may vary depending on 7TV deployment
-  // Use backend proxy to avoid direct browser requests to 7tv that show 404s in console
-  const url = `/api/proxy/7tv/cosmetics?user_identifier=${encodeURIComponent(userIdentifier)}`;
-  const res = await axios.get(url, { timeout: 5000 });
-    if (res.data) {
+    const url = `/api/proxy/7tv/cosmetics?user_identifier=${encodeURIComponent(userIdentifier)}`;
+    const res = await axios.get(url, { timeout: 5000 });
+ 
+    if (res.data && (typeof res.data === 'object' || Array.isArray(res.data))) {
       const body = res.data;
-      const paint = (body && (body.paint || (Array.isArray(body) && body[0] && body[0].paint))) || null;
+ 
+      const paint = (body.paint || (Array.isArray(body) && body[0] && body[0].paint)) || null;
       const paintBackground = paint && (paint.background || paint.background_url || paint.backgroundImage || paint.background_image) || null;
       const paintFilter = paint && (paint.filter || paint.css_filter) || null;
-      const paintColor = paint && (paint.color || paint.text_color || paint.paintColor) || null;
-      const out: { paintBackground?: string; paintFilter?: string; paintColor?: string } = {};
+      const paintColor = paint && (paint.color || paint.text_color || body.color || body.text_color || paint.paintColor) || null;
+ 
+      const out: SevenTVCosmetics = {};
       if (paintBackground) out.paintBackground = typeof paintBackground === 'string' ? paintBackground : String(paintBackground);
       if (paintFilter) out.paintFilter = String(paintFilter);
       if (paintColor) out.paintColor = String(paintColor);
+ 
       if (out.paintBackground || out.paintFilter || out.paintColor) {
         setCosmeticsCache(userIdentifier, out);
         return out;
       }
     }
+    return null;
   } catch (err) {
-    // ignore
+    console.warn('7TV cosmetics fetch failed for', userIdentifier, err);
+    if (retryCount < 1) {
+      console.log('Retrying 7TV cosmetics fetch for', userIdentifier);
+      return await getSevenTVCosmetics(userIdentifier, retryCount + 1);
+    }
+    return null;
   }
-  return null;
+}
+ 
+export function clearCosmeticsCache() {
+  cosmeticsCache.clear();
+  try {
+    localStorage.removeItem(LOCAL_STORAGE_7TV_KEY);
+  } catch (e) {}
 }
 
-export default { getCombinedEmotes, lookupNameColorFFZ, getSevenTVCosmetics };
+// Escape HTML helper
+function escapeHtml(s: string): string {
+  return String(s).replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>').replace(/"/g, '"').replace(/'/g, '&#x27;');
+}
+
+// Replace third-party emotes in text fragment
+function replaceThirdPartyEmotesInText(fragment: string, emoteMap: Map<string, { src: string }>, emoteParser?: any): string {
+  if (!fragment) return '';
+  try {
+    // Placeholder for TMI client parser if integrated later
+    // For now, use emoteParser if provided
+    if (emoteParser) {
+      try {
+        return emoteParser.parse(fragment);
+      } catch (e) {
+        console.warn('emote parser parse failed', e);
+      }
+    }
+
+    const tokens = fragment.split(/(\s+|[.,!?:;()\[\]{}])/g);
+    return tokens.map((tok) => {
+      if (!tok || /^\s+$/.test(tok) || /^[.,!?:;()\[\]{}]$/.test(tok)) return escapeHtml(tok);
+      const em = emoteMap.get(tok);
+      if (em) {
+        const isAnimated = em.src.endsWith('.gif') || em.src.endsWith('.apng');
+        const animateClass = isAnimated ? ' animate' : '';
+        return `<img src="${em.src}" alt="${escapeHtml(tok)}" title="${escapeHtml(tok)}"${animateClass} class="w-4 h-4 sm:w-5 h-5 hover:scale-110 transition-transform" style="vertical-align:middle;display:inline-block;margin:0 0.25rem;" loading="lazy" />`;
+      }
+      return escapeHtml(tok);
+    }).join('');
+  } catch (e) {
+    return escapeHtml(fragment);
+  }
+}
+
+// Generate safe HTML for Twitch message with emotes
+export function generateSafeMessageHtml(text: string, tags?: TmiTags, emoteMap?: Map<string, { src: string }>, emoteParser?: any): string {
+  const twitchEmotes: TwitchEmote[] = [];
+  if (tags?.emotes) {
+    for (const emId of Object.keys(tags.emotes)) {
+      const occ = tags.emotes[emId] ?? [];
+      for (const o of occ) {
+        const [sStr, eStr] = String(o).split('-');
+        const s = parseInt(sStr, 10);
+        const e = parseInt(eStr, 10);
+        if (!Number.isNaN(s) && !Number.isNaN(e)) {
+          const code = text.substring(s, e + 1);
+          const src = `https://static-cdn.jtvnw.net/emoticons/v1/${emId}/3.0`;
+          twitchEmotes.push({ start: s, end: e, src, code });
+        }
+      }
+    }
+    twitchEmotes.sort((a, b) => a.start - b.start);
+  }
+
+  const parts: string[] = [];
+  let last = 0;
+  for (const te of twitchEmotes) {
+    if (te.start > last) {
+      parts.push(replaceThirdPartyEmotesInText(text.substring(last, te.start), emoteMap || new Map(), emoteParser));
+    }
+    parts.push(`<img src="${te.src}" alt="${escapeHtml(te.code)}" title="${escapeHtml(te.code)}"/>`);
+    last = te.end + 1;
+  }
+  if (last < text.length) {
+    parts.push(replaceThirdPartyEmotesInText(text.substring(last), emoteMap || new Map(), emoteParser));
+  }
+  const rawHtml = parts.join('');
+
+  // Sanitize with DOMPurify
+  const cleanHtml = DOMPurify.sanitize(rawHtml, {
+    ALLOWED_TAGS: ['img', 'span'],
+    ALLOWED_ATTR: {
+      img: ['src', 'alt', 'title', 'class', 'style', 'loading'],
+      span: ['class', 'style']
+    },
+    ALLOW_DATA_ATTR: false,
+    FORBID_TAGS: ['script', 'style'],
+    FORBID_ATTR: ['on*']
+  } as any);
+
+  return cleanHtml.toString();
+}

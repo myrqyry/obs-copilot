@@ -1,6 +1,8 @@
 import OBSWebSocket from 'obs-websocket-js';
 import { backoff } from '@/lib/utils';
 import { logger } from '@/utils/logger';
+import { handleAppError } from '@/lib/errorUtils';
+import useUiStore from '@/store/uiStore';
 import type { UniversalWidgetConfig } from '@/types/universalWidget';
 
 export class ObsError extends Error {
@@ -32,14 +34,12 @@ interface Command<T = any> {
   params?: Record<string, any>;
   resolve: (value: T | PromiseLike<T>) => void;
   reject: (reason?: any) => void;
-  connEpoch: number;
 }
 
 export class ObsClientImpl {
   private static instance: ObsClientImpl;
   private obs: OBSWebSocketInstance;
   private status: ConnectionStatus = 'disconnected';
-  private connEpoch = 0;
   private commandQueue: Command[] = [];
   private retryCount = 0;
   private connectOptions: { address: string; password?: string } | null = null;
@@ -80,7 +80,6 @@ export class ObsClientImpl {
     this.obs.on('Identified', () => {
       logger.info('OBS Identified: Socket ready for API calls.');
       this.setStatus('connected');
-      this.connEpoch++;
       this.retryCount = 0;
       this.processCommandQueue();
     });
@@ -93,6 +92,13 @@ export class ObsClientImpl {
 
     this.obs.on('ConnectionError', (err: any) => {
         logger.error('OBS connection error:', err);
+        const errorMsg = handleAppError('OBS ConnectionError', err, 'Connection error occurred');
+        useUiStore.getState().addError({
+          message: errorMsg,
+          source: 'obsClient',
+          level: 'critical',
+          details: { error: err }
+        });
         this.setStatus('reconnecting');
         this.handleReconnect();
     });
@@ -100,6 +106,13 @@ export class ObsClientImpl {
     // Catch general errors to prevent uncaught exceptions in connection/retry logic
     this.obs.on('error', (err: any) => {
       logger.error('Uncaught OBS error:', err);
+      const errorMsg = handleAppError('OBS uncaught error', err, 'Uncaught error in OBS client');
+      useUiStore.getState().addError({
+        message: errorMsg,
+        source: 'obsClient',
+        level: 'critical',
+        details: { error: err }
+      });
       if (err instanceof ObsError) {
         logger.error(`ObsError details: ${err.message}`);
         this.setStatus('error');
@@ -128,7 +141,7 @@ export class ObsClientImpl {
     if (this.status === 'connected' || this.status === 'connecting') {
       return;
     }
-
+    
     this.connectOptions = { address, password };
     this.setStatus('connecting');
 
@@ -137,10 +150,17 @@ export class ObsClientImpl {
         eventSubscriptions: 0xffffffff,
       });
     } catch (error) {
-      logger.error(`Failed to connect to OBS: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMsg = handleAppError('OBS connection', error, `Failed to connect to OBS at ${address}`);
+      logger.error(errorMsg);
+      useUiStore.getState().addError({
+        message: errorMsg,
+        source: 'obsClient',
+        level: 'critical',
+        details: { address, error }
+      });
       this.setStatus('reconnecting');
       this.handleReconnect();
-      throw new ObsError(`Failed to connect to OBS: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new ObsError(errorMsg);
     }
   }
 
@@ -158,13 +178,8 @@ export class ObsClientImpl {
   private processCommandQueue() {
       const queue = this.commandQueue;
       this.commandQueue = [];
-      console.log(`[DEBUG] Processing ${queue.length} queued OBS commands, current connEpoch: ${this.connEpoch}`); // Queue processing log
+      console.log(`[DEBUG] Processing ${queue.length} queued OBS commands`); // Queue processing log
       queue.forEach(command => {
-          if (command.connEpoch < this.connEpoch) {
-              console.log(`[DEBUG] Rejecting stale command ${command.method} from epoch ${command.connEpoch}`); // Stale rejection log
-              command.reject(new ObsError('Stale command from previous connection.'));
-              return;
-          }
         this.call(command.method, command.params)
           .then(command.resolve)
           .catch(command.reject);
@@ -176,31 +191,31 @@ export class ObsClientImpl {
       const requestId = `${method}-${Date.now()}`;
       const obsInstance = this.obs as any; // To access identified property
       if (this.status !== 'connected' || !obsInstance.identified) {
+        if (this.status === 'disconnected' || this.status === 'error') {
+          reject(new ObsError('OBS not connected.'));
+          return;
+        }
         console.log(`[DEBUG] OBS not ready (status: ${this.status}, identified: ${obsInstance.identified}). Queuing command: ${method}`); // Queue log
-        this.commandQueue.push({ id: requestId, method, params, resolve, reject, connEpoch: this.connEpoch });
+        this.commandQueue.push({ id: requestId, method, params, resolve, reject });
         return;
       }
-
-      const currentEpoch = this.connEpoch;
-      console.log(`[DEBUG] OBS call ${method}, current connEpoch: ${currentEpoch}, status: ${this.status}`); // Call start log
-
+  
+      console.log(`[DEBUG] OBS call ${method}, status: ${this.status}`); // Call start log
+  
       this.obs.call<T>(method, params)
         .then(response => {
-            if (this.connEpoch !== currentEpoch) {
-                console.log(`[DEBUG] Rejecting stale response for ${method}, epoch mismatch: ${this.connEpoch} != ${currentEpoch}`); // Stale response log
-                reject(new ObsError('Stale response from previous connection.'));
-            } else {
-                resolve(response);
-            }
+            resolve(response);
         })
         .catch(error => {
           console.error(`[DEBUG] OBS call failed for method ${method}:`, error); // Call failure log
-          if (this.status !== 'connected' || !obsInstance.identified) {
-            logger.warn(`Re-queuing command ${method} due to connection issue.`);
-            this.commandQueue.push({ id: requestId, method, params, resolve, reject, connEpoch: this.connEpoch });
-          } else {
-            reject(new ObsError(`OBS call failed: ${error instanceof Error ? error.message : 'Unknown error'}`));
-          }
+          const errorMsg = handleAppError(`OBS call ${method}`, error, `Failed to execute OBS command: ${method}`);
+          useUiStore.getState().addError({
+            message: errorMsg,
+            source: 'obsClient',
+            level: 'error',
+            details: { method, params, error }
+          });
+          reject(new ObsError(errorMsg));
         });
     });
   }
@@ -216,7 +231,7 @@ export class ObsClientImpl {
   isConnected(): boolean {
     return this.status === 'connected';
   }
-
+  
   getConnectionStatus(): ConnectionStatus {
     return this.status;
   }
@@ -256,19 +271,30 @@ export class ObsClientImpl {
     width: number = 800,
     height: number = 600,
   ) {
-    await this.call('CreateInput', {
-      sceneName,
-      inputName: sourceName,
-      inputKind: 'browser_source',
-      inputSettings: {
-        url,
-        width,
-        height,
-        rerender_with_css: true,
-        webpage_control_level: 2, // Full control
-      },
-      sceneItemEnabled: true,
-    });
+    try {
+      await this.call('CreateInput', {
+        sceneName,
+        inputName: sourceName,
+        inputKind: 'browser_source',
+        inputSettings: {
+          url,
+          width,
+          height,
+          rerender_with_css: true,
+          webpage_control_level: 2, // Full control
+        },
+        sceneItemEnabled: true,
+      });
+    } catch (error) {
+      const errorMsg = handleAppError('OBS addBrowserSource', error, `Failed to add browser source ${sourceName} to scene ${sceneName}`);
+      useUiStore.getState().addError({
+        message: errorMsg,
+        source: 'obsClient',
+        level: 'error',
+        details: { sceneName, sourceName, url, error }
+      });
+      throw new ObsError(errorMsg);
+    }
   }
 
   async addImageSource(
@@ -276,16 +302,27 @@ export class ObsClientImpl {
     imageUrl: string,
     sourceName: string,
   ) {
-    await this.call('CreateInput', {
-      sceneName,
-      inputName: sourceName,
-      inputKind: 'image_source',
-      inputSettings: {
-        file: imageUrl,
-        unload_when_not_showing: true,
-      },
-      sceneItemEnabled: true,
-    });
+    try {
+      await this.call('CreateInput', {
+        sceneName,
+        inputName: sourceName,
+        inputKind: 'image_source',
+        inputSettings: {
+          file: imageUrl,
+          unload_when_not_showing: true,
+        },
+        sceneItemEnabled: true,
+      });
+    } catch (error) {
+      const errorMsg = handleAppError('OBS addImageSource', error, `Failed to add image source ${sourceName} to scene ${sceneName}`);
+      useUiStore.getState().addError({
+        message: errorMsg,
+        source: 'obsClient',
+        level: 'error',
+        details: { sceneName, sourceName, imageUrl, error }
+      });
+      throw new ObsError(errorMsg);
+    }
   }
 
   async setVideoSettings(settings: {
@@ -296,23 +333,78 @@ export class ObsClientImpl {
     outputWidth: number;
     outputHeight: number;
   }) {
-    await this.call('SetVideoSettings', settings);
+    try {
+      await this.call('SetVideoSettings', settings);
+    } catch (error) {
+      const errorMsg = handleAppError('OBS setVideoSettings', error, 'Failed to set video settings');
+      useUiStore.getState().addError({
+        message: errorMsg,
+        source: 'obsClient',
+        level: 'error',
+        details: { settings, error }
+      });
+      throw new ObsError(errorMsg);
+    }
   }
 
   async startStream() {
-    await this.call('StartStream');
+    try {
+      await this.call('StartStream');
+    } catch (error) {
+      const errorMsg = handleAppError('OBS startStream', error, 'Failed to start stream');
+      useUiStore.getState().addError({
+        message: errorMsg,
+        source: 'obsClient',
+        level: 'error',
+        details: { error }
+      });
+      throw new ObsError(errorMsg);
+    }
   }
 
   async stopStream() {
-    await this.call('StopStream');
+    try {
+      await this.call('StopStream');
+    } catch (error) {
+      const errorMsg = handleAppError('OBS stopStream', error, 'Failed to stop stream');
+      useUiStore.getState().addError({
+        message: errorMsg,
+        source: 'obsClient',
+        level: 'error',
+        details: { error }
+      });
+      throw new ObsError(errorMsg);
+    }
   }
 
   async startRecord() {
-    await this.call('StartRecord');
+    try {
+      await this.call('StartRecord');
+    } catch (error) {
+      const errorMsg = handleAppError('OBS startRecord', error, 'Failed to start recording');
+      useUiStore.getState().addError({
+        message: errorMsg,
+        source: 'obsClient',
+        level: 'error',
+        details: { error }
+      });
+      throw new ObsError(errorMsg);
+    }
   }
 
   async stopRecord() {
-    await this.call('StopRecord');
+    try {
+      await this.call('StopRecord');
+    } catch (error) {
+      const errorMsg = handleAppError('OBS stopRecord', error, 'Failed to stop recording');
+      useUiStore.getState().addError({
+        message: errorMsg,
+        source: 'obsClient',
+        level: 'error',
+        details: { error }
+      });
+      throw new ObsError(errorMsg);
+    }
   }
 
   // Widget-specific methods
@@ -337,26 +429,34 @@ export class ObsClientImpl {
   }
 
   async executeWidgetAction(config: UniversalWidgetConfig, value: any): Promise<void> {
-    const params: Record<string, any> = {};
-  if (config.targetName) params.inputName = config.targetName;
-  if (config.targetType === 'scene' && config.targetName) params.sceneName = config.targetName;
-
-    switch (config.actionType) {
-      case 'setInputVolume':
-      case 'SetVolume':
-        await this.call('SetInputVolume', { ...params, inputVolumeDb: value });
-        break;
-      case 'setInputMute':
-      case 'SetInputMute':
-        await this.call('SetInputMute', { ...params, inputMuted: value });
-        break;
-      case 'setCurrentProgramScene':
-      case 'SetCurrentScene':
-        await this.call('SetCurrentScene', { sceneName: value });
-        break;
-      // Add more cases as needed
-      default:
-        throw new ObsError(`Unsupported action: ${config.actionType}`);
+    try {
+      const params: Record<string, any> = {};
+      if (config.targetName) params.inputName = config.targetName;
+      if (config.targetType === 'scene' && config.targetName) params.sceneName = config.targetName;
+  
+      switch (config.actionType) {
+        case 'setInputVolume':
+          await this.call('SetInputVolume', { ...params, inputVolumeDb: value });
+          break;
+        case 'setInputMute':
+          await this.call('SetInputMute', { ...params, inputMuted: value });
+          break;
+        case 'setCurrentProgramScene':
+          await this.call('SetCurrentProgramScene', { sceneName: value });
+          break;
+        // Add more cases as needed
+        default:
+          throw new ObsError(`Unsupported action: ${config.actionType}`);
+      }
+    } catch (error) {
+      const errorMsg = handleAppError('OBS executeWidgetAction', error, `Failed to execute widget action ${config.actionType}`);
+      useUiStore.getState().addError({
+        message: errorMsg,
+        source: 'obsClient',
+        level: 'error',
+        details: { config, value, error }
+      });
+      throw new ObsError(errorMsg);
     }
   }
 }

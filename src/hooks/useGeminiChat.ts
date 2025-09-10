@@ -1,13 +1,14 @@
-import { useState, useCallback, useEffect } from 'react'; // Combined and moved useEffect
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { geminiService } from '@/services/geminiService';
 import useConnectionsStore from '@/store/connectionsStore';
 import { useChatStore } from '@/store/chatStore';
 import { INITIAL_SYSTEM_PROMPT } from '@/constants';
 import { buildMarkdownStylingSystemMessage } from '@/utils/systemPrompts';
-import { detectChoiceQuestion } from '@/utils/choiceDetection';
 import { logger } from '@/utils/logger';
-import type { GeminiActionResponse, ObsAction } from '@/types/obsActions';
-import { OBSScene, OBSSource, SupportedDataPart, StreamingHandlers } from '@/types';
+import { handleAppError } from '@/lib/errorUtils';
+import useUiStore from '@/store/uiStore';
+import type { GeminiActionResponse, ObsAction, StreamingHandlers, SupportedDataPart } from '@/types/obsActions';
+import { OBSScene, OBSSource } from '@/types';
 
 import { useObsActions } from './useObsActions';
 import { aiSdk5Config } from '@/config';
@@ -15,20 +16,20 @@ import { aiSdk5Config } from '@/config';
 export const useGeminiChat = (
   onRefreshData: (() => Promise<void>) | undefined,
   setErrorMessage: (message: string | null) => void,
-  geminiApiKey: string | undefined, // Added geminiApiKey
+  geminiApiKey: string | undefined,
 ) => {
   const isConnected = useConnectionsStore((state) => state.isConnected);
+  const obs = useConnectionsStore((state) => state.obs);
   const scenes = useConnectionsStore((state) => state.scenes);
   const currentProgramScene = useConnectionsStore((state) => state.currentProgramScene);
   const sources = useConnectionsStore((state) => state.sources);
   const streamStatus = useConnectionsStore((state) => state.streamStatus);
   const recordStatus = useConnectionsStore((state) => state.recordStatus);
   const videoSettings = useConnectionsStore((state) => state.videoSettings);
-  const obs: any | null = useConnectionsStore((state) => state.obs); // Changed type to any for now
 
   const userDefinedContext = useChatStore((state) => state.userDefinedContext);
   const chatActions = useChatStore((state) => state.actions);
-  
+   
 
   // Effect to initialize Gemini client status (guarded, mount-only)
   useEffect(() => {
@@ -46,61 +47,17 @@ export const useGeminiChat = (
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const obsData = {
-    scenes,
-    currentProgramScene,
-    sources,
-    streamStatus,
-    recordStatus,
-    videoSettings,
-  };
-
-  const { handleObsAction } = useObsActions({
-    obsService: obs, // Corrected to use 'obs'
-    obsData,
-    onRefreshData: onRefreshData || (() => Promise.resolve()),
-    setErrorMessage,
-  });
-
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [useGoogleSearch, setUseGoogleSearch] = useState<boolean>(false);
-  const [contextMessages, setContextMessages] = useState<string[]>([]);
-
-  const handleAddToContext = useCallback((text: string) => {
-    setContextMessages((prev) => [...prev, text].slice(-5));
-  }, []);
-
-  const handleRegenerate = useCallback(async (messageId: string, onChatInputChange: (value: string) => void, currentHandleSend: (chatInputValue: string, onChatInputChange: (value: string) => void) => Promise<void>) => {
-    setIsLoading(true);
-    const messages = useChatStore.getState().geminiMessages;
-    const messageToRegenerate = messages.find(msg => msg.id === messageId);
-
-    if (!messageToRegenerate || messageToRegenerate.role !== 'model') {
-      logger.warn('Attempted to regenerate a non-model message or a message not found:', messageId);
-      setIsLoading(false);
-      return;
-    }
-
-    // Find the last user message before the message to regenerate
-    const userMessages = messages.filter(msg => msg.role === 'user' && msg.id < messageId);
-    const lastUserMessage = userMessages[userMessages.length - 1];
-
-    if (!lastUserMessage) {
-      logger.warn('No preceding user message found to regenerate from.');
-      setIsLoading(false);
-      return;
-    }
-
-    // Remove messages from the last user message onwards (inclusive of the user message)
-    const startIndex = messages.findIndex(msg => msg.id === lastUserMessage.id);
-    if (startIndex !== -1) {
-      chatActions.removeMessagesFrom(startIndex);
-    }
-
-    // Re-send the last user message
-    await currentHandleSend(lastUserMessage.text, onChatInputChange);
-    setIsLoading(false);
-  }, [chatActions]);
+  const obsData = useMemo(
+    () => ({
+      scenes,
+      currentProgramScene,
+      sources,
+      streamStatus,
+      recordStatus,
+      videoSettings,
+    }),
+    [scenes, currentProgramScene, sources, streamStatus, recordStatus, videoSettings]
+  );
 
   // AI SDK 5 Data Parts streaming support
   const emitDataPart = useCallback((dataPart: SupportedDataPart, messageId?: string) => {
@@ -120,8 +77,9 @@ export const useGeminiChat = (
       
       if (messageIndex >= 0) {
         const updatedMessage = {
-          ...currentMessages[messageIndex],
-          dataParts: [...(currentMessages[messageIndex].dataParts || []), enrichedDataPart],
+          role: currentMessages[messageIndex].role,
+          text: currentMessages[messageIndex].text,
+          dataParts: [...(currentMessages[messageIndex].dataParts || []), enrichedDataPart as SupportedDataPart],
         };
         chatActions.replaceMessage(messageId, updatedMessage);
       }
@@ -130,143 +88,74 @@ export const useGeminiChat = (
       chatActions.addMessage({
         role: 'system',
         text: `Status: ${enrichedDataPart.type}`,
-        dataParts: [enrichedDataPart],
+        dataParts: [enrichedDataPart as SupportedDataPart],
       });
     }
   }, [chatActions]);
 
-  // Enhanced OBS action handler with data parts
- const handleObsActionWithDataParts = useCallback(async (
-   action: ObsAction,
-   streamingHandlers?: StreamingHandlers
- ) => {
-   if (aiSdk5Config.enableDataParts) {
-     // Emit pending status
-     const pendingDataPart: SupportedDataPart = {
-       type: 'obs-action',
-       value: {
-         action: action.type,
-         target: (action as any).sceneName || (action as any).sourceName,
-         status: 'pending',
-       },
-     };
-      
-      emitDataPart(pendingDataPart);
-      streamingHandlers?.onData?.(pendingDataPart);
+  const {
+    handleObsActionWithDataParts,
+    handleStreamerBotActionWithDataParts,
+    buildObsSystemMessage,
+  } = useObsActions({
+    obsService: obs,
+    obsData,
+    onRefreshData: onRefreshData || (() => Promise.resolve()),
+    setErrorMessage,
+    emitDataPart,
+  });
 
-      // Emit executing status
-      const executingDataPart: SupportedDataPart = {
-        type: 'obs-action',
-        value: {
-          action: action.type,
-          target: (action as any).sceneName || (action as any).sourceName,
-          status: 'executing',
-        },
-      };
-      
-      emitDataPart(executingDataPart);
-      streamingHandlers?.onData?.(executingDataPart);
-    }
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [useGoogleSearch, setUseGoogleSearch] = useState<boolean>(false);
+  const [contextMessages, setContextMessages] = useState<string[]>([]);
 
-    // Execute the actual action
-    const result = await handleObsAction(action);
-
-    if (aiSdk5Config.enableDataParts) {
-      // Emit completed/error status
-      const completedDataPart: SupportedDataPart = {
-        type: 'obs-action',
-        value: {
-          action: action.type,
-          target: (action as any).sceneName || (action as any).sourceName,
-          status: result.success ? 'completed' : 'error',
-          result,
-        },
-      };
-      
-      emitDataPart(completedDataPart);
-      streamingHandlers?.onData?.(completedDataPart);
-    }
-
-    return result;
-  }, [handleObsAction, emitDataPart]);
-
-  // Placeholder for actual Streamer.bot action handler
-  const handleStreamerBotActionWithDataParts = useCallback(async (
-    action: { type: string; args?: Record<string, unknown> },
-    streamingHandlers?: StreamingHandlers
-  ) => {
-    logger.warn('Streamer.bot action handler not yet implemented in useGeminiChat.');
-    // In a real scenario, you would call the actual streamer.bot service here.
-    // For now, we'll just simulate a successful action.
-
-    if (aiSdk5Config.enableDataParts) {
-      const pendingDataPart: SupportedDataPart = {
-        type: 'streamerbot-action',
-        value: {
-          action: action.type,
-          args: action.args,
-          status: 'pending',
-        },
-      };
-      emitDataPart(pendingDataPart);
-      streamingHandlers?.onData?.(pendingDataPart);
-
-      const executingDataPart: SupportedDataPart = {
-        type: 'streamerbot-action',
-        value: {
-          action: action.type,
-          args: action.args,
-          status: 'executing',
-        },
-      };
-      emitDataPart(executingDataPart);
-      streamingHandlers?.onData?.(executingDataPart);
-    }
-
+  const handleAddToContext = useCallback((text: string) => {
+    setContextMessages((prev) => [...prev, text].slice(-5));
+  }, []);
+  const handleRegenerate = useCallback(async (messageId: string, onChatInputChange: (value: string) => void, currentHandleSend: (chatInputValue: string, onChatInputChange: (value: string) => void) => Promise<void>) => {
     try {
-      // Simulate a delay for the action
-      await new Promise(resolve => setTimeout(resolve, 1000)); 
-      
-      if (aiSdk5Config.enableDataParts) {
-        const completedDataPart: SupportedDataPart = {
-          type: 'streamerbot-action',
-          value: {
-            action: action.type,
-            args: action.args,
-            status: 'completed',
-            result: { success: true },
-          },
-        };
-        emitDataPart(completedDataPart);
-        streamingHandlers?.onData?.(completedDataPart);
+      setIsLoading(true);
+      const messages = useChatStore.getState().geminiMessages;
+      const messageToRegenerate = messages.find(msg => msg.id === messageId);
+  
+      if (!messageToRegenerate || messageToRegenerate.role !== 'model') {
+        logger.warn('Attempted to regenerate a non-model message or a message not found:', messageId);
+        setIsLoading(false);
+        return;
       }
-
-      return { success: true };
+  
+      // Find the last user message before the message to regenerate
+      const userMessages = messages.filter(msg => msg.role === 'user' && msg.id < messageId);
+      const lastUserMessage = userMessages[userMessages.length - 1];
+  
+      if (!lastUserMessage) {
+        logger.warn('No preceding user message found to regenerate from.');
+        setIsLoading(false);
+        return;
+      }
+  
+      // Remove messages from the last user message onwards (inclusive of the user message)
+      const startIndex = messages.findIndex(msg => msg.id === lastUserMessage.id);
+      if (startIndex !== -1) {
+        chatActions.removeMessagesFrom(startIndex);
+      }
+  
+      // Re-send the last user message
+      await currentHandleSend(lastUserMessage.text, onChatInputChange);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
-      if (aiSdk5Config.enableDataParts) {
-        // Emit error status
-        const errorDataPart: SupportedDataPart = {
-          type: 'streamerbot-action',
-          value: {
-            action: action.type,
-            args: action.args,
-            status: 'error',
-            result: { 
-              success: false, 
-              error: errorMessage 
-            },
-          },
-        };
-        
-        emitDataPart(errorDataPart);
-        streamingHandlers?.onData?.(errorDataPart);
-      }
-
-      return { success: false, error: errorMessage };
+      const errorMsg = handleAppError('Gemini chat regenerate', error, 'Failed to regenerate message');
+      useUiStore.getState().addError({
+        message: errorMsg,
+        source: 'useGeminiChat',
+        level: 'error',
+        details: { messageId, error }
+      });
+      logger.error(errorMsg);
+    } finally {
+      setIsLoading(false);
     }
-  }, [emitDataPart]); // Removed onStreamerBotAction from dependencies
+  }, [chatActions]);
+
 
   const handleSend = useCallback(async (
     chatInputValue: string,
@@ -279,13 +168,27 @@ export const useGeminiChat = (
     const hasObsIntent = /\b(scene|source|filter|stream|record|obs|hide|show|volume|mute|transition)\b/i.test(userMessageText);
 
     if (!geminiApiKey) {
-      setErrorMessage("Gemini API key is missing. Please set it in the Settings tab.");
-      chatActions.addMessage({ role: 'system', text: "Gemini API key is missing. Please set it in the Settings tab." });
+      const errorMsg = handleAppError('Gemini chat', new Error('Missing API key'), "Gemini API key is missing. Please set it in the Settings tab.");
+      useUiStore.getState().addError({
+        message: errorMsg,
+        source: 'useGeminiChat',
+        level: 'critical',
+        details: { hasObsIntent }
+      });
+      setErrorMessage(errorMsg);
+      chatActions.addMessage({ role: 'system', text: errorMsg });
       return;
     }
-
+    
     if (!isConnected && hasObsIntent && !useGoogleSearch) {
-      chatActions.addMessage({ role: 'system', text: "Hey! I'm not connected to OBS right now, so I can't perform that OBS action. Please connect OBS and try again when you're ready." });
+      const errorMsg = handleAppError('Gemini chat OBS', new Error('Not connected'), "Hey! I'm not connected to OBS right now, so I can't perform that OBS action. Please connect OBS and try again when you're ready.");
+      useUiStore.getState().addError({
+        message: errorMsg,
+        source: 'useGeminiChat',
+        level: 'critical',
+        details: { hasObsIntent }
+      });
+      chatActions.addMessage({ role: 'system', text: errorMsg });
       return;
     }
 
@@ -356,14 +259,20 @@ export const useGeminiChat = (
         const message = obsActionResult.success ? obsActionResult.message : `OBS Action failed: ${obsActionResult.error}`;
         chatActions.addMessage({ role: 'system', text: message });
       }
-
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      chatActions.replaceMessage(modelMessageId, { role: 'system', text: `Gemini API Error: ${errorMessage}` });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isLoading, geminiApiKey, isConnected, useGoogleSearch, chatActions, scenes, sources, currentProgramScene, setErrorMessage, onRefreshData, handleObsActionWithDataParts]);
+} catch (error: unknown) {
+  const errorMsg = handleAppError('Gemini chat send', error, 'Failed to send message to Gemini');
+  useUiStore.getState().addError({
+    message: errorMsg,
+    source: 'useGeminiChat',
+    level: 'error',
+    details: { userMessage: userMessageText, error }
+  });
+  chatActions.replaceMessage(modelMessageId, { role: 'system', text: `Gemini API Error: ${errorMsg}` });
+  logger.error(errorMsg);
+} finally {
+  setIsLoading(false);
+}
+}, [isLoading, geminiApiKey, isConnected, useGoogleSearch, chatActions, scenes, sources, currentProgramScene, setErrorMessage, onRefreshData, handleObsActionWithDataParts]);
 
   return {
     isLoading,

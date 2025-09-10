@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { ObsClientImpl, ConnectionStatus, ObsError } from '@/services/obsClient';
+import { ObsClientImpl, ObsError, ConnectionStatus } from '@/services/obsClient';
 import type { OBSScene, OBSSource, OBSVideoSettings, OBSStreamStatus, OBSRecordStatus } from '@/types/obs';
 import { StreamerBotService } from '@/services/streamerBotService';
 import type { ConnectionProfile } from '@/types/connections';
@@ -20,13 +20,13 @@ export interface ConnectionState {
   streamStatus: OBSStreamStatus | null;
   recordStatus: OBSRecordStatus | null;
   videoSettings: OBSVideoSettings | null;
+  editableSettings: OBSVideoSettings | null;
 
   // Live Streamer.bot Connection State
   streamerBotServiceInstance: StreamerBotService | null;
   isStreamerBotConnected: boolean;
   streamerBotConnectionError: string | null;
   isStreamerBotLoading: boolean;
-
 
   // Saved Connection Profiles Management
   connectionProfiles: ConnectionProfile[];
@@ -52,13 +52,17 @@ export interface ConnectionState {
   setStreamStatus: (status: OBSStreamStatus | null) => void;
   setRecordStatus: (status: OBSRecordStatus | null) => void;
   setVideoSettings: (settings: OBSVideoSettings | null) => void;
+
+  // Settings actions
+  setEditableSettings: (settings: OBSVideoSettings | null) => void;
+  resetSettings: () => void;
 }
 
 const useConnectionsStore = create<ConnectionState>()(
   persist(
-  (set) => {
+    (set, get) => {
       const obsClient = ObsClientImpl.getInstance();
-      const streamerBotService = StreamerBotService.getInstance(); 
+      const streamerBotService = StreamerBotService.getInstance();
       
       const setupStreamerBotListeners = () => {
         streamerBotService.setLifecycleCallbacks({
@@ -175,6 +179,7 @@ const useConnectionsStore = create<ConnectionState>()(
         streamStatus: null,
         recordStatus: null,
         videoSettings: null,
+        editableSettings: null,
 
         // Live Streamer.bot Connection State
         streamerBotServiceInstance: streamerBotService, // Pass the singleton instance
@@ -187,7 +192,7 @@ const useConnectionsStore = create<ConnectionState>()(
         activeConnectionId: null,
 
         // Actions related to live connections
-        connectToObs: async (url, password) => {
+        connectToObs: async (url: string, password?: string) => {
           set({ isLoading: true, connectionError: null });
 
           const sanitize = (raw: string): { url: string | null; reason?: string } => {
@@ -241,9 +246,9 @@ const useConnectionsStore = create<ConnectionState>()(
               const hostnameRe = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/; // Standard hostname regex
               
               // Allow common valid hostnames
-              const isValidHostname = ipv4Re.test(u.hostname) || 
-                                    hostnameRe.test(u.hostname) || 
-                                    u.hostname === 'localhost' || 
+              const isValidHostname = ipv4Re.test(u.hostname) ||
+                                    hostnameRe.test(u.hostname) ||
+                                    u.hostname === 'localhost' ||
                                     u.hostname.endsWith('.local');
               
               if (!isValidHostname) {
@@ -340,22 +345,22 @@ const useConnectionsStore = create<ConnectionState>()(
 
         // Actions related to profile management
         addConnectionProfile: (profile: ConnectionProfile) => {
-          set((state) => ({
+          set((state: ConnectionState) => ({
             connectionProfiles: [...state.connectionProfiles, profile],
           }));
         },
 
-        updateConnectionProfile: (updatedProfile) => {
-          set((state) => ({
-            connectionProfiles: state.connectionProfiles.map((p) =>
+        updateConnectionProfile: (updatedProfile: ConnectionProfile) => {
+          set((state: ConnectionState) => ({
+            connectionProfiles: state.connectionProfiles.map((p: ConnectionProfile) =>
               p.id === updatedProfile.id ? updatedProfile : p
             ),
           }));
         },
 
-        removeConnectionProfile: (id) => {
-          set((state) => ({
-            connectionProfiles: state.connectionProfiles.filter((p) => p.id !== id),
+        removeConnectionProfile: (id: string) => {
+          set((state: ConnectionState) => ({
+            connectionProfiles: state.connectionProfiles.filter((p: ConnectionProfile) => p.id !== id),
             activeConnectionId: state.activeConnectionId === id ? null : state.activeConnectionId,
           }));
         },
@@ -364,18 +369,22 @@ const useConnectionsStore = create<ConnectionState>()(
           set({ connectionProfiles: [], activeConnectionId: null });
         },
 
-        setActiveConnectionId: (id) => {
+        setActiveConnectionId: (id: string | null) => {
           set({ activeConnectionId: id });
         },
 
         // Standard setters for current OBS status
-        setScenes: (scenes) => set({ scenes }),
-        setCurrentProgramScene: (sceneName) => set({ currentProgramScene: sceneName }),
-        setSources: (sources) => set({ sources }),
+        setScenes: (scenes: OBSScene[]) => set({ scenes }),
+        setCurrentProgramScene: (sceneName: string | null) => set({ currentProgramScene: sceneName }),
+        setSources: (sources: OBSSource[]) => set({ sources }),
         setStreamStatus: (status: OBSStreamStatus | null) => set({ streamStatus: status }),
         setRecordStatus: (status: OBSRecordStatus | null) => set({ recordStatus: status }),
         setVideoSettings: (settings: OBSVideoSettings | null) => set({ videoSettings: settings }),
-      };
+
+        // Settings actions
+        setEditableSettings: (settings: OBSVideoSettings | null) => set({ editableSettings: settings }),
+        resetSettings: () => set({ editableSettings: null }),
+       };
     },
     {
       name: 'connection-profiles-storage',
@@ -387,11 +396,12 @@ const useConnectionsStore = create<ConnectionState>()(
         scenes: state.scenes,
         sources: state.sources,
         currentProgramScene: state.currentProgramScene,
+        editableSettings: state.editableSettings,
       }),
       version: 1,
       // No rehydration logic here; components should re-connect based on activeConnectionId
-    },
-  ),
+    }
+  )
 );
 
 export default useConnectionsStore;

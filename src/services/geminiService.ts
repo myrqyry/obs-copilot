@@ -1,4 +1,5 @@
 import { handleAppError } from '@/lib/errorUtils';
+import useUiStore from '@/store/uiStore';
 import { aiMiddleware } from './aiMiddleware';
 import {
   GeminiGenerateContentResponse,
@@ -6,8 +7,6 @@ import {
 } from '@/types/gemini';
 import { AIService } from '@/types/ai';
 import { dataUrlToBlobUrl } from '@/lib/utils';
-import { LiveConnectParameters } from '@google/genai';
-import { GoogleGenAI, Content, Type } from '@google/genai';
 import { UniversalWidgetConfig } from '@/types/universalWidget';
 // Use Vite raw imports for markdown prompts so they're bundled for the browser
 // `?raw` imports the file contents as a string at build time
@@ -18,21 +17,6 @@ import { Buffer } from 'buffer';
 import { pcm16ToWavUrl } from '@/lib/pcmToWavUrl';
 import { httpClient } from './httpClient';
 import { MODEL_CONFIG } from '@/config/modelConfig';
-
-// Initialize the Google GenAI client with a placeholder key
-// The actual key will be passed dynamically from the components
-let ai: GoogleGenAI;
-
-// Function to initialize or reinitialize the client with a specific API key
-export function initializeGeminiClient(apiKey: string) {
-  ai = new GoogleGenAI({ apiKey });
-}
-
-// Initialize with environment variable as fallback
-const initialApiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-if (initialApiKey) {
-  initializeGeminiClient(initialApiKey);
-}
 
 export type StreamEvent = {
     type: 'chunk' | 'usage' | 'error' | 'tool_call';
@@ -65,41 +49,29 @@ class GeminiService implements AIService {
     } = options;
 
     try {
-      const formattedHistory: Content[] = history.map(turn => ({
-        role: turn.role,
-        parts: turn.parts.map(part => ({ text: part.text }))
-      }));
-
-      const config: GeminiGenerateContentConfig = {
+      const response = await httpClient.post('/gemini/generate-content', {
+        prompt,
+        model,
         temperature,
         maxOutputTokens,
         topP,
         topK,
-      };
-
-      const response = await ai.models.generateContent({
-        model: model,
-        contents: [
-          ...formattedHistory,
-          { role: 'user', parts: [{ text: prompt }] }
-        ],
-        config: config,
+        history,
       });
 
-      const text = response.text || '';
-      const candidates = response.candidates || [];
-      const usageMetadata = response.usageMetadata || {};
-      const toolCalls = response.functionCalls || [];
-
-      return {
-        text,
-        candidates,
-        usageMetadata,
-        toolCalls,
-      };
-    } catch (error: any) {
-      throw new Error(handleAppError('Gemini API content generation', error, `Model '${model}' not found or authentication failed.`));
-    }
+      return response.data;
+      } catch (error: any) {
+        const errorMsg = handleAppError('Gemini API content generation', error, `Model '${model}' not found or authentication failed.`);
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          useUiStore.getState().addError({
+            message: errorMsg,
+            source: 'geminiService',
+            level: 'critical',
+            details: { model, error }
+          });
+        }
+        throw new Error(errorMsg);
+      }
   }
 
   /**
@@ -168,7 +140,6 @@ class GeminiService implements AIService {
     }
   }
 
-
   async generateImage(
     prompt: string,
     options: {
@@ -192,61 +163,37 @@ class GeminiService implements AIService {
     } = options;
 
     try {
-      if (model.startsWith('gemini')) {
-        const contents: Content[] = [{ role: 'user', parts: [{ text: prompt }] }];
-        if (imageInput) {
-          contents[0].parts.push({
-            inlineData: {
-              data: imageInput.data,
-              mimeType: imageInput.mimeType,
-            },
-          });
-        }
-
-        const response = await ai.models.generateContent({
-          model,
-          contents,
-        });
-
-        const imageUrls = response.candidates?.[0]?.content?.parts
-          ?.filter(part => part.inlineData)
-          .map(part => {
-            const data = part.inlineData?.data;
-            const mimeType = part.inlineData?.mimeType;
-            const dataUrl = `data:${mimeType};base64,${data}`;
-            return dataUrlToBlobUrl(dataUrl);
-          });
-
-        if (imageUrls && imageUrls.length > 0) {
-          return await Promise.all(imageUrls);
-        }
-      } else if (model.startsWith('imagen')) {
-        const response = await ai.models.generateImages({
-          model,
-          prompt,
-          config: {
-            numberOfImages,
-            outputMimeType,
-            aspectRatio: aspectRatio as any,
-            personGeneration: personGeneration as any,
-            negativePrompt,
-          },
-        });
-
-        if (response.generatedImages && response.generatedImages.length > 0) {
-          const imageUrls = response.generatedImages.map(image => {
-            const mimeType = image.image?.mimeType || outputMimeType;
-            const dataUrl = `data:${mimeType};base64,${Buffer.from(image.image!.imageBytes!).toString('base64')}`;
-            return dataUrlToBlobUrl(dataUrl);
-          });
-          return await Promise.all(imageUrls);
-        }
+      const formData = new FormData();
+      formData.append('prompt', prompt);
+      formData.append('model', model);
+      formData.append('numberOfImages', numberOfImages.toString());
+      formData.append('outputMimeType', outputMimeType);
+      formData.append('aspectRatio', aspectRatio);
+      formData.append('personGeneration', personGeneration);
+      if (negativePrompt) formData.append('negativePrompt', negativePrompt);
+      if (imageInput) {
+        formData.append('imageData', imageInput.data);
+        formData.append('imageMimeType', imageInput.mimeType);
       }
 
-      throw new Error('Image generation response did not contain expected image data.');
-    } catch (error: any) {
-      throw new Error(handleAppError('Gemini API image generation', error, 'Image generation failed.'));
-    }
+      const response = await httpClient.post('/gemini/generate-image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      const imageUrls: string[] = response.data.imageUrls || [];
+      return Promise.all(imageUrls.map((url: string) => dataUrlToBlobUrl(url)));
+      } catch (error: any) {
+        const errorMsg = handleAppError('Gemini API image generation', error, 'Image generation failed.');
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          useUiStore.getState().addError({
+            message: errorMsg,
+            source: 'geminiService',
+            level: 'critical',
+            details: { model, prompt: prompt.substring(0, 50), error }
+          });
+        }
+        throw new Error(errorMsg);
+      }
   }
 
   async generateSpeech(
@@ -264,29 +211,33 @@ class GeminiService implements AIService {
     } = options;
 
     try {
-      const response = await ai.models.generateContent({
+      const response = await httpClient.post('/gemini/generate-speech', {
+        prompt,
         model,
-        contents: [{ parts: [{ text: prompt }] }],
-        config: {
-          responseModalities: ['AUDIO'],
-          speechConfig: {
-            voiceConfig,
-            multiSpeakerVoiceConfig,
-          },
-        },
+        voiceConfig,
+        multiSpeakerVoiceConfig,
       });
 
-      const data = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-      if (data) {
-        const audioBuffer = Buffer.from(data, 'base64');
+      const { audioData } = response.data;
+      if (audioData) {
+        const audioBuffer = Buffer.from(audioData, 'base64');
         const wavUrl = await pcm16ToWavUrl(audioBuffer, 24000, 1);
         return wavUrl;
       }
 
       throw new Error('Speech generation response did not contain expected audio data.');
-    } catch (error: any) {
-      throw new Error(handleAppError('Gemini API speech generation', error, 'Speech generation failed.'));
-    }
+      } catch (error: any) {
+        const errorMsg = handleAppError('Gemini API speech generation', error, 'Speech generation failed.');
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          useUiStore.getState().addError({
+            message: errorMsg,
+            source: 'geminiService',
+            level: 'critical',
+            details: { model, prompt: prompt.substring(0, 50), error }
+          });
+        }
+        throw new Error(errorMsg);
+      }
   }
 
   async generateVideo(
@@ -308,47 +259,29 @@ class GeminiService implements AIService {
     } = options;
 
     try {
-      // Generate videos using the Veo models
-      const response = await ai.models.generateVideos({
-        model,
+      const response = await httpClient.post('/gemini/generate-video', {
         prompt,
-        config: {
-          aspectRatio: aspectRatio as any,
-          durationSeconds,
-          personGeneration: personGeneration as any,
-          numberOfVideos,
-        },
+        model,
+        aspectRatio,
+        durationSeconds,
+        personGeneration,
+        numberOfVideos,
       });
 
-      // Handle the async operation
-      let operation = response;
-      
-      // Poll for completion
-      while (!operation.done) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        operation = await ai.operations.getVideosOperation({
-          operation: operation,
-        });
-      }
-
-      // Extract video URLs
-      const videoUrls: string[] = [];
-      if (operation.response?.generatedVideos) {
-        for (const generatedVideo of operation.response.generatedVideos) {
-          if (generatedVideo.video?.uri) {
-            // Download the video file
-            const videoResponse = await fetch(generatedVideo.video.uri);
-            const videoBlob = await videoResponse.blob();
-            const videoUrl = URL.createObjectURL(videoBlob);
-            videoUrls.push(videoUrl);
-          }
+      const { videoUrls } = response.data;
+      return videoUrls || [];
+      } catch (error: any) {
+        const errorMsg = handleAppError('Gemini API video generation', error, 'Video generation failed.');
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          useUiStore.getState().addError({
+            message: errorMsg,
+            source: 'geminiService',
+            level: 'critical',
+            details: { model, prompt: prompt.substring(0, 50), error }
+          });
         }
+        throw new Error(errorMsg);
       }
-
-      return videoUrls;
-    } catch (error: any) {
-      throw new Error(handleAppError('Gemini API video generation', error, 'Video generation failed.'));
-    }
   }
 
   async generateStructuredContent(
@@ -367,29 +300,32 @@ class GeminiService implements AIService {
     } = options;
 
     try {
-      const response = await ai.models.generateContent({
-        model: model,
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        config: {
-          temperature,
-          maxOutputTokens,
-          responseSchema: schema,
-          responseMimeType: 'application/json',
-        },
+      const response = await httpClient.post('/gemini/generate-structured', {
+        prompt,
+        model,
+        temperature,
+        maxOutputTokens,
+        schema: JSON.stringify(schema),
       });
 
-      const structuredData = JSON.parse(response.text || '{}');
-      const rawContent = response.text;
-      const usage = response.usageMetadata || {};
-
+      const { structuredData, rawContent, usage } = response.data;
       return {
         structuredData,
         rawContent,
         usage
       };
-    } catch (error: any) {
-      throw new Error(handleAppError('Gemini API structured content generation', error, 'Structured content generation failed or authentication failed.'));
-    }
+      } catch (error: any) {
+        const errorMsg = handleAppError('Gemini API structured content generation', error, 'Structured content generation failed or authentication failed.');
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          useUiStore.getState().addError({
+            message: errorMsg,
+            source: 'geminiService',
+            level: 'critical',
+            details: { model, prompt: prompt.substring(0, 50), schema, error }
+          });
+        }
+        throw new Error(errorMsg);
+      }
   }
 
   async generateWithLongContext(
@@ -408,39 +344,31 @@ class GeminiService implements AIService {
     } = options;
 
     try {
-      const fullPrompt = `Context:\n${context}\n\nBased on the above context, please respond to this request:\n${prompt}`;
-
-      const response = await ai.models.generateContent({
-        model: model,
-        contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
-        config: {
-          temperature,
-          maxOutputTokens,
-        },
+      const response = await httpClient.post('/gemini/generate-long-context', {
+        prompt,
+        context,
+        model,
+        temperature,
+        maxOutputTokens,
       });
 
-      const text = response.text || '';
-      const candidates = response.candidates || [];
-      const usageMetadata = response.usageMetadata || {};
-      const toolCalls = response.functionCalls || [];
-
-      return {
-        text,
-        candidates,
-        usageMetadata,
-        toolCalls,
-      };
-    } catch (error: any) {
-      throw new Error(handleAppError('Gemini API long context generation', error, 'Long context generation failed or authentication failed.'));
-    }
+      return response.data;
+      } catch (error: any) {
+        const errorMsg = handleAppError('Gemini API long context generation', error, 'Long context generation failed or authentication failed.');
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          useUiStore.getState().addError({
+            message: errorMsg,
+            source: 'geminiService',
+            level: 'critical',
+            details: { model, contextLength: context.length, error }
+          });
+        }
+        throw new Error(errorMsg);
+      }
   }
 
-  async liveConnect(options: LiveConnectParameters): Promise<any> {
-    try {
-      return await ai.live.connect(options);
-    } catch (error: any) {
-      throw new Error(handleAppError('Gemini Live API connection', error, 'Live API connection failed or authentication failed.'));
-    }
+  async liveConnect(options: any): Promise<any> {
+    throw new Error('Live API connection not supported in proxied mode');
   }
   
   // Widget-specific methods
@@ -454,172 +382,41 @@ class GeminiService implements AIService {
     } = options;
 
     try {
-  // Use bundled prompt raw content
-  const systemInstruction = widgetGenerationPrompt;
-
-      // Define response schema based on UniversalWidgetConfig
-      const responseSchema = {
-        type: Type.OBJECT,
-        properties: {
-          id: { type: Type.STRING, description: 'Unique widget ID (generate if not provided)' },
-          name: { type: Type.STRING, description: 'Widget display name' },
-          controlType: {
-            type: Type.STRING,
-            enum: ['button', 'switch', 'slider', 'picker', 'stepper', 'color', 'text', 'multi', 'status', 'progress', 'meter', 'chart'],
-            description: 'Widget control type'
-          },
-          actionType: { type: Type.STRING, description: 'OBS WebSocket action (e.g., SetInputVolume)' },
-          targetType: {
-            type: Type.STRING,
-            enum: ['input', 'scene', 'source', 'filter', 'transition', 'global'],
-            description: 'Target type for the action'
-          },
-          targetName: { type: Type.STRING, description: 'Specific target name (e.g., Mic)' },
-          property: { type: Type.STRING, description: 'Property to modify (if applicable)' },
-          valueMapping: {
-            type: Type.OBJECT,
-            properties: {
-              min: { type: Type.NUMBER },
-              max: { type: Type.NUMBER },
-              step: { type: Type.NUMBER },
-              unit: { type: Type.STRING }
-            },
-            description: 'Value constraints and scaling'
-          },
-          eventSubscriptions: {
-            type: Type.ARRAY,
-            items: { type: Type.STRING },
-            description: 'Events to subscribe for real-time updates'
-          },
-          visualConfig: {
-            type: Type.OBJECT,
-            properties: {
-              color: { type: Type.STRING },
-              size: { type: Type.STRING }
-            },
-            description: 'Visual styling options'
-          },
-          reactionConfig: {
-            type: Type.OBJECT,
-            properties: {
-              onChange: {
-                type: Type.ARRAY,
-                items: { type: Type.OBJECT }
-              }
-            },
-            description: 'Reaction chain configurations'
-          },
-          validation: {
-            type: Type.OBJECT,
-            properties: {
-              min: { type: Type.NUMBER },
-              max: { type: Type.NUMBER }
-            },
-            description: 'Input validation rules'
-          },
-          performance: {
-            type: Type.OBJECT,
-            properties: {
-              debounce: { type: Type.NUMBER }
-            },
-            description: 'Performance optimization settings'
-          }
-        },
-        required: ['name', 'controlType', 'actionType', 'targetType'],
-        description: 'Complete UniversalWidgetConfig object'
-      };
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-pro',
-        contents: [{
-          role: 'user',
-          parts: [{
-            text: `Generate an OBS widget configuration based on this description: "${description}". Use the project mappings and ensure all required fields are present.`
-          }]
-        }],
-        config: {
-          systemInstruction,
-          temperature,
-          maxOutputTokens,
-          responseMimeType: 'application/json',
-          responseSchema
-        },
+      const response = await httpClient.post('/gemini/generate-widget-config', {
+        description,
+        temperature,
+        maxOutputTokens,
       });
 
-      if (!response.text) {
-        throw new Error('No response generated from Gemini');
-      }
-
-      // Parse and validate the JSON response
-      let config: UniversalWidgetConfig;
-      try {
-        config = JSON.parse(response.text);
-      } catch (parseError) {
-        throw new Error(`Failed to parse JSON response: ${parseError instanceof Error ? parseError.message : 'Unknown parsing error'}`);
-      }
-
-      // Basic validation
-      if (!config.name || !config.controlType || !config.actionType || !config.targetType) {
-        throw new Error('Generated config missing required fields');
-      }
-
-      // Generate ID if not present
+      const config: UniversalWidgetConfig = response.data;
       if (!config.id) {
         config.id = `widget_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       }
-
       return config;
-    } catch (error: any) {
-      throw new Error(handleAppError('Gemini widget config generation', error, 'Failed to generate widget configuration from description.'));
-    }
+      } catch (error: any) {
+        const errorMsg = handleAppError('Gemini widget config generation', error, 'Failed to generate widget configuration from description.');
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          useUiStore.getState().addError({
+            message: errorMsg,
+            source: 'geminiService',
+            level: 'critical',
+            details: { description: description.substring(0, 50), error }
+          });
+        }
+        throw new Error(errorMsg);
+      }
   }
 
   async createWidgetChatSession(): Promise<any> {
-    try {
-      // Create a chat session for iterative refinement
-      const chat = ai.chats.create({ model: 'gemini-2.5-pro' });
-      
-      // Initialize with the system prompt
-  const systemInstruction = widgetGenerationPrompt;
-      
-      // Send initial system message to set context
-      await chat.sendMessage({
-        message: `System: ${systemInstruction}\n\nReady to help configure OBS widgets. Please describe your desired widget.`
-      });
-
-      return chat;
-    } catch (error: any) {
-      throw new Error(handleAppError('Gemini chat session creation', error, 'Failed to create chat session for widget configuration.'));
-    }
+    // Chat sessions for widgets would be handled backend-side if needed
+    throw new Error('Widget chat sessions not supported in proxied mode');
   }
 
   // Method for follow-up refinements in chat session
   async refineWidgetConfig(chatSession: any, refinementPrompt: string): Promise<UniversalWidgetConfig> {
-    try {
-      const response = await chatSession.sendMessage({ message: refinementPrompt });
-      
-      if (!response.text) {
-        throw new Error('No response from chat refinement');
-      }
-
-      let config: UniversalWidgetConfig;
-      try {
-        config = JSON.parse(response.text);
-      } catch (parseError) {
-        throw new Error(`Failed to parse refinement JSON: ${parseError instanceof Error ? parseError.message : 'Unknown parsing error'}`);
-      }
-
-      // Validate required fields
-      if (!config.name || !config.controlType || !config.actionType || !config.targetType) {
-        throw new Error('Refined config missing required fields');
-      }
-
-      return config;
-    } catch (error: any) {
-      throw new Error(handleAppError('Gemini widget refinement', error, 'Failed to refine widget configuration.'));
-    }
+    // Refinements would be handled via backend chat proxy if implemented
+    throw new Error('Widget refinement not supported in proxied mode');
   }
-
 }
 
 export const geminiService = aiMiddleware(new GeminiService());

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { shallow } from 'zustand/shallow';
 import { CatppuccinAccentColorName, OBSVideoSettings, OBSScene, OBSSource, catppuccinAccentColorsHexMap } from '@/types';
 import { CustomButton as Button } from '@/components/ui/CustomButton';
 import { AddToContextButton } from '@/components/common/AddToContextButton';
@@ -46,7 +47,7 @@ export const ObsMainControls: React.FC = () => {
   const [openSources, setOpenSources] = useState(true);
   const [openVideo, setOpenVideo] = useState(true);
   const [openStats, setOpenStats] = useState(false);
-  // Use Zustand for OBS state
+  // Use Zustand for OBS state with shallow equality
   const {
     scenes,
     currentProgramScene,
@@ -54,11 +55,23 @@ export const ObsMainControls: React.FC = () => {
     streamStatus,
     recordStatus,
     videoSettings: initialVideoSettings,
-  } = useConnectionsStore();
+    editableSettings,
+    setEditableSettings: storeSetEditableSettings,
+  } = useConnectionsStore(
+    (state) => ({
+      scenes: state.scenes,
+      currentProgramScene: state.currentProgramScene,
+      sources: state.sources,
+      streamStatus: state.streamStatus,
+      recordStatus: state.recordStatus,
+      videoSettings: state.videoSettings,
+      editableSettings: state.editableSettings,
+      setEditableSettings: state.setEditableSettings,
+    }),
+    shallow
+  );
   const [isLoading, setIsLoading] = React.useState(false);
 
-  // Video settings state
-  const [editableSettings, setEditableSettings] = useState<OBSVideoSettings | null>(initialVideoSettings);
   const [isVideoSettingsLoading, setIsVideoSettingsLoading] = useState(false);
 
   // Resolution and FPS dropdown states
@@ -70,38 +83,38 @@ export const ObsMainControls: React.FC = () => {
   const [customFPS, setCustomFPS] = useState('');
 
   useEffect(() => {
-    setEditableSettings(initialVideoSettings);
+    storeSetEditableSettings(initialVideoSettings);
 
     // Initialize dropdown selections based on current settings
-    if (initialVideoSettings) {
+    if (editableSettings) {
       // Check for matching base resolution
       const baseResMatch = COMMON_RESOLUTIONS.find(
-        (res: { width: number; height: number; label: string }) => res.width === initialVideoSettings.baseWidth && res.height === initialVideoSettings.baseHeight
+        (res: { width: number; height: number; label: string }) => res.width === editableSettings.baseWidth && res.height === editableSettings.baseHeight
       );
       setSelectedBaseResolution(baseResMatch ? baseResMatch.label : 'Custom');
       if (!baseResMatch) {
-        setCustomBaseResolution(`${initialVideoSettings.baseWidth}x${initialVideoSettings.baseHeight}`);
+        setCustomBaseResolution(`${editableSettings.baseWidth}x${editableSettings.baseHeight}`);
       }
 
       // Check for matching output resolution
       const outputResMatch = COMMON_RESOLUTIONS.find(
-        (res: { width: number; height: number; label: string }) => res.width === initialVideoSettings.outputWidth && res.height === initialVideoSettings.outputHeight
+        (res: { width: number; height: number; label: string }) => res.width === editableSettings.outputWidth && res.height === editableSettings.outputHeight
       );
       setSelectedOutputResolution(outputResMatch ? outputResMatch.label : 'Custom');
       if (!outputResMatch) {
-        setCustomOutputResolution(`${initialVideoSettings.outputWidth}x${initialVideoSettings.outputHeight}`);
+        setCustomOutputResolution(`${editableSettings.outputWidth}x${editableSettings.outputHeight}`);
       }
 
       // Check for matching FPS
       const fpsMatch = COMMON_FPS.find(
-        (fps: { numerator: number; denominator: number; label: string }) => fps.numerator === initialVideoSettings.fpsNumerator && fps.denominator === initialVideoSettings.fpsDenominator
+        (fps: { numerator: number; denominator: number; label: string }) => fps.numerator === editableSettings.fpsNumerator && fps.denominator === editableSettings.fpsDenominator
       );
       setSelectedFPS(fpsMatch ? fpsMatch.label : 'Custom');
       if (!fpsMatch) {
-        setCustomFPS(`${initialVideoSettings.fpsNumerator}/${initialVideoSettings.fpsDenominator}`);
+        setCustomFPS(`${editableSettings.fpsNumerator}/${editableSettings.fpsDenominator}`);
       }
     }
-  }, [initialVideoSettings]);
+  }, [editableSettings, storeSetEditableSettings]);
 
   const handleAction = async (action: () => Promise<unknown>) => {
     setIsLoading(true);
@@ -127,7 +140,7 @@ export const ObsMainControls: React.FC = () => {
     if (selectedLabel !== 'Custom' && editableSettings) {
       const resolution = COMMON_RESOLUTIONS.find((res: { label: string; width: number; height: number }) => res.label === selectedLabel);
       if (resolution) {
-        setEditableSettings({
+        storeSetEditableSettings({
           ...editableSettings,
           baseWidth: resolution.width,
           baseHeight: resolution.height,
@@ -143,7 +156,7 @@ export const ObsMainControls: React.FC = () => {
     if (selectedLabel !== 'Custom' && editableSettings) {
       const resolution = COMMON_RESOLUTIONS.find((res: { label: string; width: number; height: number }) => res.label === selectedLabel);
       if (resolution) {
-        setEditableSettings({
+        storeSetEditableSettings({
           ...editableSettings,
           outputWidth: resolution.width,
           outputHeight: resolution.height,
@@ -159,7 +172,7 @@ export const ObsMainControls: React.FC = () => {
     if (selectedLabel !== 'Custom' && editableSettings) {
       const fps = COMMON_FPS.find((fps: { label: string; numerator: number; denominator: number }) => fps.label === selectedLabel);
       if (fps) {
-        setEditableSettings({
+        storeSetEditableSettings({
           ...editableSettings,
           fpsNumerator: fps.numerator,
           fpsDenominator: fps.denominator,
@@ -182,13 +195,13 @@ export const ObsMainControls: React.FC = () => {
       const height = parseInt(match[2], 10);
 
       if (type === 'base') {
-        setEditableSettings({
+        storeSetEditableSettings({
           ...editableSettings,
           baseWidth: width,
           baseHeight: height,
         });
       } else {
-        setEditableSettings({
+        storeSetEditableSettings({
           ...editableSettings,
           outputWidth: width,
           outputHeight: height,
@@ -206,7 +219,7 @@ export const ObsMainControls: React.FC = () => {
       const numerator = parseInt(match[1], 10);
       const denominator = match[2] ? parseInt(match[2], 10) : 1;
 
-      setEditableSettings({
+      storeSetEditableSettings({
         ...editableSettings,
         fpsNumerator: numerator,
         fpsDenominator: denominator,

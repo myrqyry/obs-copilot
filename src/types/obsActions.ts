@@ -14,6 +14,29 @@ export interface ObsActionBase {
   type: string;
 }
 
+export interface StreamingHandlers {
+  onData?: (part: SupportedDataPart) => void;
+}
+
+export interface SupportedDataPart {
+  id?: string;
+  timestamp?: Date;
+  type: 'obs-action' | 'streamerbot-action' | 'media' | string;
+  value: {
+    action?: string;
+    target?: string;
+    status: 'pending' | 'executing' | 'completed' | 'error';
+    args?: Record<string, unknown>;
+    result?: {
+      success: boolean;
+      error?: string;
+    };
+    url?: string;
+    contentType?: string;
+    alt?: string;
+  } | any;
+}
+
 export interface CreateInputAction extends ObsActionBase {
   type: 'createInput';
   inputName: string;

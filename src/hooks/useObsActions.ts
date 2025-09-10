@@ -1,14 +1,16 @@
 import { useCallback } from 'react';
 import type { ObsClientImpl } from '@/services/obsClient';
-import type { ObsAction } from '@/types/obsActions';
-import type { OBSData, OBSScene } from '@/types';
+import type { ObsAction, GeminiActionResponse } from '@/types/obsActions';
+import type { OBSData, OBSScene, SupportedDataPart, StreamingHandlers } from '@/types';
 import { logger } from '../utils/logger'; // Import logger
+import { aiSdk5Config } from '@/config';
 
 interface UseObsActionsProps {
   obsService: ObsClientImpl;
   obsData: OBSData;
   onRefreshData: () => Promise<void>;
   setErrorMessage: (message: string | null) => void;
+  emitDataPart?: (dataPart: SupportedDataPart) => void;
 }
 
 interface ActionResult {
@@ -18,11 +20,19 @@ interface ActionResult {
   error?: string;
 }
 
+// Utility function to build OBS system message
+export const buildObsSystemMessage = (obsData: OBSData): string => {
+  const sceneNames = obsData.scenes.map((s: OBSScene) => s.sceneName).join(', ');
+  const sourceNames = obsData.sources?.map((s) => s.sourceName).join(', ') || '';
+  return `**OBS Context:**\n- Current Scene: ${obsData.currentProgramScene || 'None'}\n- Available Scenes: ${sceneNames}\n- Available Sources: ${sourceNames}`;
+};
+
 export const useObsActions = ({
   obsService,
   obsData,
   onRefreshData,
   setErrorMessage,
+  emitDataPart,
 }: UseObsActionsProps) => {
   const handleObsAction = useCallback(
     async (action: ObsAction): Promise<ActionResult> => {
@@ -98,5 +108,140 @@ export const useObsActions = ({
     [obsService, obsData, onRefreshData, setErrorMessage],
   );
 
-  return { handleObsAction };
+  const handleObsActionWithDataParts = useCallback(async (
+    action: ObsAction,
+    streamingHandlers?: StreamingHandlers
+  ) => {
+    if (aiSdk5Config.enableDataParts && emitDataPart) {
+      // Emit pending status
+      const pendingDataPart: SupportedDataPart = {
+        type: 'obs-action',
+        value: {
+          action: action.type,
+          target: (action as any).sceneName || (action as any).sourceName,
+          status: 'pending',
+        },
+      };
+       
+      emitDataPart(pendingDataPart);
+      streamingHandlers?.onData?.(pendingDataPart);
+
+      // Emit executing status
+      const executingDataPart: SupportedDataPart = {
+        type: 'obs-action',
+        value: {
+          action: action.type,
+          target: (action as any).sceneName || (action as any).sourceName,
+          status: 'executing',
+        },
+      };
+       
+      emitDataPart(executingDataPart);
+      streamingHandlers?.onData?.(executingDataPart);
+    }
+
+    // Execute the actual action
+    const result = await handleObsAction(action);
+
+    if (aiSdk5Config.enableDataParts && emitDataPart) {
+      // Emit completed/error status
+      const completedDataPart: SupportedDataPart = {
+        type: 'obs-action',
+        value: {
+          action: action.type,
+          target: (action as any).sceneName || (action as any).sourceName,
+          status: result.success ? 'completed' : 'error',
+          result,
+        },
+      };
+       
+      emitDataPart(completedDataPart);
+      streamingHandlers?.onData?.(completedDataPart);
+    }
+
+    return result;
+  }, [handleObsAction, emitDataPart]);
+
+  const handleStreamerBotActionWithDataParts = useCallback(async (
+    action: { type: string; args?: Record<string, unknown> },
+    streamingHandlers?: StreamingHandlers
+  ) => {
+    logger.warn('Streamer.bot action handler not yet implemented in useObsActions.');
+    // TODO: Implement actual Streamer.bot service integration here
+
+    if (aiSdk5Config.enableDataParts && emitDataPart) {
+      const pendingDataPart: SupportedDataPart = {
+        type: 'streamerbot-action',
+        value: {
+          action: action.type,
+          args: action.args,
+          status: 'pending',
+        },
+      };
+      emitDataPart(pendingDataPart);
+      streamingHandlers?.onData?.(pendingDataPart);
+
+      const executingDataPart: SupportedDataPart = {
+        type: 'streamerbot-action',
+        value: {
+          action: action.type,
+          args: action.args,
+          status: 'executing',
+        },
+      };
+      emitDataPart(executingDataPart);
+      streamingHandlers?.onData?.(executingDataPart);
+    }
+
+    try {
+      // Simulate a delay for the action
+      await new Promise(resolve => setTimeout(resolve, 1000));
+       
+      if (aiSdk5Config.enableDataParts && emitDataPart) {
+        const completedDataPart: SupportedDataPart = {
+          type: 'streamerbot-action',
+          value: {
+            action: action.type,
+            args: action.args,
+            status: 'completed',
+            result: { success: true },
+          },
+        };
+        emitDataPart(completedDataPart);
+        streamingHandlers?.onData?.(completedDataPart);
+      }
+
+      return { success: true };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+       
+      if (aiSdk5Config.enableDataParts && emitDataPart) {
+        // Emit error status
+        const errorDataPart: SupportedDataPart = {
+          type: 'streamerbot-action',
+          value: {
+            action: action.type,
+            args: action.args,
+            status: 'error',
+            result: {
+              success: false,
+              error: errorMessage
+            },
+          },
+        };
+         
+        emitDataPart(errorDataPart);
+        streamingHandlers?.onData?.(errorDataPart);
+      }
+
+      return { success: false, error: errorMessage };
+    }
+  }, [emitDataPart]);
+
+  return {
+    handleObsAction,
+    handleObsActionWithDataParts,
+    handleStreamerBotActionWithDataParts,
+    buildObsSystemMessage: () => buildObsSystemMessage(obsData)
+  };
 };

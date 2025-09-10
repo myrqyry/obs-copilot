@@ -1,5 +1,5 @@
 import React from 'react';
-import { PlusCircleIcon } from '@heroicons/react/24/solid';
+import { PlusCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AddToContextButtonProps {
@@ -31,7 +31,7 @@ export const AddToContextButton: React.FC<AddToContextButtonProps> = ({
       title={title}
       aria-label={title}
     >
-      <PlusCircleIcon className="w-4 h-4" />
+      <PlusCircle className="w-4 h-4" />
     </button>
   );
 };

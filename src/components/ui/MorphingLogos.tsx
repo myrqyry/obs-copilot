@@ -108,7 +108,7 @@ const MorphingLogos: React.FC<MorphingLogosProps> = ({ accentColor, secondaryAcc
         // to prevent abrupt jumps when the tween is recreated.
         offsetAnimationRef.current = safeGsapTo([stop1, stop2], {
             duration: 12,
-            ease: 'sine.inOut',
+            ease: "steps(100, jump-end)",
             attr: {
                 offset: (index: number) => index === 0 ? ['0%', '100%'] : ['100%', '0%']
             },
