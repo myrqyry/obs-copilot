@@ -1,8 +1,11 @@
 import Tooltip from '@/components/ui/Tooltip';
 import React, { useState, useEffect } from 'react';
-import { CustomButton as Button } from '@/components/ui/CustomButton';
-import { TextInput } from '@/components/common/TextInput';
-import { Modal } from '@/components/ui/Modal';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { useConnectionManagerStore } from '@/store/connectionManagerStore';
 import { HtmlTemplateService, TemplateConfig } from '@/services/htmlTemplateService';
 import { catppuccinAccentColorsHexMap, CatppuccinAccentColorName } from '@/types';
@@ -85,10 +88,10 @@ const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({ accentColorNa
       }));
     };
     
-    const handlePositionChange = (value: TemplateConfig['position']) => {
+    const handlePositionChange = (value: string) => {
       setCustomConfig((prev: Partial<TemplateConfig>) => ({
         ...prev,
-        position: value,
+        position: value as TemplateConfig['position'],
       }));
     };
     
@@ -177,237 +180,276 @@ const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({ accentColorNa
     }, [customCss]);
 
     return (
-        <div className="space-y-6">
-            <div className="px-2 pb-2 pt-1 space-y-2">
-                <div className="flex flex-col md:flex-row gap-2">
-                    <div className="flex-1">
-                        <label className="block text-xs font-medium mb-1">Title</label>
-                        <TextInput
-                          value={customConfig.content?.title || ''}
-                          onChange={(e) => handleContentChange('title', e.target.value)}
-                          placeholder="Enter title"
-                        />
-                    </div>
-                    <div className="flex-1">
-                        <label className="block text-xs font-medium mb-1">Subtitle</label>
-                        <TextInput
-                          value={customConfig.content?.subtitle || ''}
-                          onChange={(e) => handleContentChange('subtitle', e.target.value)}
-                          placeholder="Enter subtitle"
-                        />
-                    </div>
+        <div className="space-y-6 p-4">
+            <div className="bg-card text-card-foreground rounded-lg border p-6 space-y-6">
+                <div className="space-y-2">
+                    <h2 className="text-lg font-semibold">Template Configuration</h2>
+                    <p className="text-sm text-muted-foreground">Configure your HTML template settings</p>
                 </div>
-                <div>
-                    <label className="block text-xs font-medium mb-1">Body Text</label>
-                    <textarea
-                      value={customConfig.content?.body || ''}
-                      onChange={(e) => handleContentChange('body', e.target.value)}
-                      className="w-full p-1 border border-border rounded-md bg-background text-foreground h-16 resize-none text-xs"
-                      placeholder="Enter body content (supports HTML)"
-                    />
-                </div>
-                <div className="flex flex-col md:flex-row gap-2">
-                    <div className="flex-1">
-                        <label className="block text-xs font-medium mb-1">Layout</label>
-                        <select
-                          value={customConfig.layout || 'overlay'}
-                          onChange={(e) => handleLayoutChange(e.target.value as TemplateConfig['layout'])}
-                          className="w-full p-1 border border-border rounded-md bg-background text-foreground text-xs"
-                        >
-                            <option value="overlay">Overlay</option>
-                            <option value="fullscreen">Fullscreen</option>
-                            <option value="corner">Corner</option>
-                            <option value="sidebar">Sidebar</option>
-                        </select>
-                    </div>
-                    {customConfig.layout === 'corner' && (
-                        <div className="flex-1">
-                            <label className="block text-xs font-medium mb-1">Position</label>
-                            <select
-                              value={customConfig.position || 'bottom-right'}
-                              onChange={(e) => handlePositionChange(e.target.value as NonNullable<TemplateConfig['position']>)}
-                              className="w-full p-1 border border-border rounded-md bg-background text-foreground text-xs"
-                            >
-                                <option value="top-left">Top Left</option>
-                                <option value="top-right">Top Right</option>
-                                <option value="bottom-left">Bottom Left</option>
-                                <option value="bottom-right">Bottom Right</option>
-                            </select>
+
+                {/* Content Section */}
+                <div className="space-y-4">
+                    <h3 className="text-sm font-semibold border-b pb-2">Content</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Title</label>
+                            <Input
+                                value={customConfig.content?.title || ''}
+                                onChange={(e) => handleContentChange('title', e.target.value)}
+                                placeholder="Enter title"
+                            />
                         </div>
-                    )}
-                </div>
-                <div className="flex flex-col md:flex-row gap-2">
-                    <div className="flex-1">
-                        <label className="block text-xs font-medium mb-1">Preset</label>
-                        <select
-                            value={selectedPreset}
-                            onChange={(e) => handlePresetChange(e.target.value)}
-                            className="w-full p-1 border border-border rounded-md bg-background text-foreground text-xs"
-                        >
-                            {Object.keys(presets).map((key) => (
-                                <option key={key} value={key}>
-                                    {key.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-                                </option>
-                            ))}
-                        </select>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Subtitle</label>
+                            <Input
+                                value={customConfig.content?.subtitle || ''}
+                                onChange={(e) => handleContentChange('subtitle', e.target.value)}
+                                placeholder="Enter subtitle"
+                            />
+                        </div>
                     </div>
-                    <div className="flex-1">
-                        <label className="block text-xs font-medium mb-1">Load External HTML</label>
-                        <input
-                            type="file"
-                            accept=".html"
-                            className="w-full p-1 border border-border rounded-md bg-background text-foreground text-xs"
-                            onChange={(e) => {
-                                setSelectedFile(e.target.files?.[0] || null);
-                            }}
-                        />
-                    </div>
-                    <div className="flex-1">
-                        <label className="block text-xs font-medium mb-1">Custom CSS</label>
-                        <textarea
-                            className="w-full p-1 border border-border rounded-md bg-background text-foreground h-8 resize-none text-xs"
-                            placeholder="Enter custom CSS"
-                            value={customCss}
-                            onChange={(e) => setCustomCss(e.target.value)}
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Body Text</label>
+                        <Textarea
+                            value={customConfig.content?.body || ''}
+                            onChange={(e) => handleContentChange('body', e.target.value)}
+                            placeholder="Enter body content (supports HTML)"
+                            className="h-20 resize-none"
                         />
                     </div>
                 </div>
-                <div className="flex flex-col md:flex-row gap-2">
-                    <div className="flex-1">
-                        <label className="block text-xs font-medium mb-1">Source Name</label>
-                        <TextInput
-                            value={sourceName}
-                            onChange={(e) => setSourceName(e.target.value)}
-                            placeholder="Browser source name"
-                        />
-                    </div>
-                    <div className="flex-1">
-                        <label className="block text-xs font-medium mb-1">Width</label>
-                        <TextInput
-                            type="number"
-                            value={sourceWidth.toString()}
-                            onChange={(e) => setSourceWidth(parseInt(e.target.value) || 800)}
-                            placeholder="800"
-                        />
-                    </div>
-                    <div className="flex-1">
-                        <label className="block text-xs font-medium mb-1">Height</label>
-                        <TextInput
-                            type="number"
-                            value={sourceHeight.toString()}
-                            onChange={(e) => setSourceHeight(parseInt(e.target.value) || 600)}
-                            placeholder="600"
-                        />
+
+                {/* Layout Section */}
+                <div className="space-y-4">
+                    <h3 className="text-sm font-semibold border-b pb-2">Layout</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Layout Type</label>
+                            <Select value={customConfig.layout || 'overlay'} onValueChange={handleLayoutChange}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select layout" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="overlay">Overlay</SelectItem>
+                                    <SelectItem value="fullscreen">Fullscreen</SelectItem>
+                                    <SelectItem value="corner">Corner</SelectItem>
+                                    <SelectItem value="sidebar">Sidebar</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        {customConfig.layout === 'corner' && (
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Position</label>
+                                <Select value={customConfig.position || 'bottom-right'} onValueChange={handlePositionChange}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select position" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="top-left">Top Left</SelectItem>
+                                        <SelectItem value="top-right">Top Right</SelectItem>
+                                        <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                                        <SelectItem value="bottom-right">Bottom Right</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
                     </div>
                 </div>
-                <div className="flex flex-col md:flex-row gap-2">
-                    <div className="flex-1">
-                        <label className="block text-xs font-medium mb-1">Animation Effects</label>
-                        <div className="flex gap-2 items-center">
-                            <input
-                              type="checkbox"
-                              checked={customConfig.animations?.effects?.rainbow || false}
-                              onChange={(e) => handleAnimationsChange('rainbow', e.target.checked)}
-                              className="rounded"
+
+                {/* Presets and Custom Section */}
+                <div className="space-y-4">
+                    <h3 className="text-sm font-semibold border-b pb-2">Presets & Custom</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Preset</label>
+                            <Select value={selectedPreset} onValueChange={handlePresetChange}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select preset" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {Object.keys(presets).map((key) => (
+                                        <SelectItem key={key} value={key}>
+                                            {key.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Load External HTML</label>
+                            <Input type="file" accept=".html" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Custom CSS</label>
+                            <Textarea
+                                value={customCss}
+                                onChange={(e) => setCustomCss(e.target.value)}
+                                placeholder="Enter custom CSS"
+                                className="h-16 resize-none"
                             />
-                            <span className="text-xs">🌈 Rainbow</span>
-                            <input
-                              type="checkbox"
-                              checked={customConfig.animations?.effects?.pulse || false}
-                              onChange={(e) => handleAnimationsChange('pulse', e.target.checked)}
-                              className="rounded ml-2"
-                            />
-                            <span className="text-xs">💓 Pulse</span>
-                            <label className="text-xs ml-2">🔥 Glow:</label>
-                            <input
-                              type="range"
-                              min="0"
-                              max="5"
-                              step="0.5"
-                              value={customConfig.animations?.effects?.glow || 0}
-                              onChange={(e) => handleAnimationsChange('glow', parseFloat(e.target.value))}
-                              className="flex-1 mx-1"
-                            />
-                            <span className="text-xs text-muted-foreground">
-                                {customConfig.animations?.effects?.glow || 0}
-                            </span>
                         </div>
                     </div>
                 </div>
-                <div className="flex flex-wrap gap-2 mt-2">
+
+                {/* Source Settings */}
+                <div className="space-y-4">
+                    <h3 className="text-sm font-semibold border-b pb-2">Source Settings</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Source Name</label>
+                            <Input
+                                value={sourceName}
+                                onChange={(e) => setSourceName(e.target.value)}
+                                placeholder="Browser source name"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Width</label>
+                            <Input
+                                type="number"
+                                value={sourceWidth.toString()}
+                                onChange={(e) => setSourceWidth(parseInt(e.target.value) || 800)}
+                                placeholder="800"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Height</label>
+                            <Input
+                                type="number"
+                                value={sourceHeight.toString()}
+                                onChange={(e) => setSourceHeight(parseInt(e.target.value) || 600)}
+                                placeholder="600"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Animations Section */}
+                <div className="space-y-4">
+                    <h3 className="text-sm font-semibold border-b pb-2">Animation Effects</h3>
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                                <Switch
+                                    checked={customConfig.animations?.effects?.rainbow || false}
+                                    onCheckedChange={(checked) => handleAnimationsChange('rainbow', checked)}
+                                />
+                                <span className="text-sm">🌈 Rainbow</span>
+                            </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                                <Switch
+                                    checked={customConfig.animations?.effects?.pulse || false}
+                                    onCheckedChange={(checked) => handleAnimationsChange('pulse', checked)}
+                                />
+                                <span className="text-sm">💓 Pulse</span>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium flex items-center space-x-2">
+                                <span>🔥 Glow Intensity</span>
+                                <span className="text-sm text-muted-foreground">
+                                    {customConfig.animations?.effects?.glow || 0}
+                                </span>
+                            </label>
+                            <input
+                                type="range"
+                                min="0"
+                                max="5"
+                                step="0.5"
+                                value={customConfig.animations?.effects?.glow || 0}
+                                onChange={(e) => handleAnimationsChange('glow', parseFloat(e.target.value))}
+                                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer slider"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-wrap gap-2 pt-4 border-t">
                     <Button
                         onClick={handleCreateBrowserSource}
                         disabled={!isConnected || isCreating}
-                        variant="default"
-                        size="sm"
                     >
-                        {isCreating ? 'Creating...' : '✨ Create'}
+                        {isCreating ? 'Creating...' : '✨ Create Source'}
                     </Button>
                     <Button
                         onClick={handleUpdateExistingSource}
                         disabled={!isConnected || isCreating}
-                        variant="secondary"
-                        size="sm"
+                        variant="outline"
                     >
-                        {isCreating ? 'Updating...' : '🛠 Update'}
+                        {isCreating ? 'Updating...' : '🛠 Update Source'}
                     </Button>
                     <Button
                         onClick={() => setShowPreview(true)}
-                        variant="secondary"
-                        size="sm"
+                        variant="outline"
                     >
                         🖥 Preview
                     </Button>
                     <Button
                         onClick={copyTemplateUrl}
-                        variant="secondary"
-                        size="sm"
+                        variant="outline"
                     >
                         📋 Copy URL
                     </Button>
                 </div>
+
                 {feedbackMessage && (
-                    <div className="mt-2 p-2 bg-muted rounded-md">
-                        <p className="text-xs">{feedbackMessage}</p>
+                    <div className="p-3 bg-muted rounded-md mt-4">
+                        <p className="text-sm">{feedbackMessage}</p>
                     </div>
                 )}
-                <div className="mt-2">
-                    <SecureHtmlRenderer htmlContent={htmlContent} />
-                </div>
+            </div>
+
+            <div className="bg-muted rounded-md p-4">
+                <SecureHtmlRenderer htmlContent={htmlContent} />
             </div>
 
             {/* Preview Modal */}
             {showPreview && (
-                <Modal
-                    title="Template Preview"
-                    onClose={() => setShowPreview(false)}
-                >
-                    <div className="space-y-4">
-                        <div className="bg-muted p-3 rounded-md">
-                            <p className="text-sm font-medium mb-2">Template URL:</p>
-                            <code className="text-xs break-all bg-background p-2 rounded block">
-                                {previewUrl}
-                            </code>
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-card text-card-foreground rounded-lg border max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="p-6 border-b">
+                            <div className="flex justify-between items-center">
+                                <h2 className="text-lg font-semibold">Template Preview</h2>
+                                <Button
+                                    onClick={() => setShowPreview(false)}
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0"
+                                >
+                                    ✕
+                                </Button>
+                            </div>
                         </div>
-                        <div className="border border-border rounded-md overflow-hidden">
-                            <Tooltip content="Template Preview">
-                                <iframe
-                                    src={previewUrl}
-                                    width="100%"
-                                    height="400"
-                                    className="border-none"
-                                    title="Template Preview"
-                                    sandbox="allow-scripts allow-same-origin"
-                                    referrerPolicy="no-referrer"
-                                    loading="lazy"
-                                />
-                            </Tooltip>
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                            🛈 This preview shows how your template will look in OBS browser source
+                        <div className="p-6 space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Template URL:</label>
+                                <code className="text-xs break-all bg-muted p-2 rounded block whitespace-pre-wrap max-h-20 overflow-y-auto">
+                                    {previewUrl}
+                                </code>
+                            </div>
+                            <div className="border rounded-md overflow-hidden">
+                                <Tooltip content="Template Preview">
+                                    <iframe
+                                        src={previewUrl}
+                                        width="100%"
+                                        height="400"
+                                        className="border-none"
+                                        title="Template Preview"
+                                        sandbox="allow-scripts allow-same-origin"
+                                        referrerPolicy="no-referrer"
+                                        loading="lazy"
+                                    />
+                                </Tooltip>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                🛈 This preview shows how your template will look in OBS browser source
+                            </p>
                         </div>
                     </div>
-                </Modal>
+                </div>
             )}
         </div>
     );

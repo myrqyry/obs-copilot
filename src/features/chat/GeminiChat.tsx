@@ -263,36 +263,38 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
 
 
     return (
-        <div className="flex flex-col h-full bg-background border-l border-r border-b border-border rounded-b-lg shadow-lg relative">
-            <MessageList
-                messages={messages}
-                isLoading={isLoading}
-                handleSuggestionClick={(prompt) => onChatInputChange(prompt)}
-                accentColorName={accentColorName}
-                obsSources={sources}
-                handleAddToContext={handleAddToContext}
-                extraDarkMode={extraDarkMode}
-                flipSides={flipSides}
-                handleRegenerate={memoizedHandleRegenerate}
-                userChatBubbleColorName={userChatBubbleColorName}
-                modelChatBubbleColorName={modelChatBubbleColorName}
-                customChatBackground=""
-            />
-            <ChatInput
-                chatInputValue={chatInputValue}
-                onChatInputChange={onChatInputChange}
-                isLoading={isLoading}
-                isGeminiClientInitialized={isGeminiClientInitialized}
-                handleSend={() => handleSend(chatInputValue, onChatInputChange)}
-                useGoogleSearch={useGoogleSearch}
-                setUseGoogleSearch={setUseGoogleSearch}
-                isConnected={isConnected}
-                currentProgramScene={currentProgramScene}
-                onScreenshot={handleScreenshot}
-                onAudio={handleAudioInput}
-                onImageSelect={handleImageSelect}
-                chatInputRef={chatInputRef}
-            />
+        <div className="flex flex-col h-full">
+            <div className="bg-card text-foreground border-border rounded-lg shadow-sm p-4 flex flex-col h-full">
+                <MessageList
+                    messages={messages}
+                    isLoading={isLoading}
+                    handleSuggestionClick={(prompt) => onChatInputChange(prompt)}
+                    accentColorName={accentColorName}
+                    obsSources={sources}
+                    handleAddToContext={handleAddToContext}
+                    extraDarkMode={extraDarkMode}
+                    flipSides={flipSides}
+                    handleRegenerate={memoizedHandleRegenerate}
+                    userChatBubbleColorName={userChatBubbleColorName}
+                    modelChatBubbleColorName={modelChatBubbleColorName}
+                    customChatBackground=""
+                />
+                <ChatInput
+                    chatInputValue={chatInputValue}
+                    onChatInputChange={onChatInputChange}
+                    isLoading={isLoading}
+                    isGeminiClientInitialized={isGeminiClientInitialized}
+                    handleSend={() => handleSend(chatInputValue, onChatInputChange)}
+                    useGoogleSearch={useGoogleSearch}
+                    setUseGoogleSearch={setUseGoogleSearch}
+                    isConnected={isConnected}
+                    currentProgramScene={currentProgramScene}
+                    onScreenshot={handleScreenshot}
+                    onAudio={handleAudioInput}
+                    onImageSelect={handleImageSelect}
+                    chatInputRef={chatInputRef}
+                />
+            </div>
         </div>
     );
 };

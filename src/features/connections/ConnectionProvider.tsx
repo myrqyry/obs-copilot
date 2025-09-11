@@ -6,7 +6,7 @@ import useConnectionsStore from '@/store/connectionsStore';
 import { useAutomationStore } from '@/store/automationStore';
 import { useChatStore } from '@/store/chatStore';
 import { toast } from '@/components/ui/toast';
-import { loadConnectionSettings } from '@/utils/persistence';
+import { loadConnectionSettings, saveConnectionSettings } from '@/utils/persistence';
 import ErrorViewer from '@/components/ui/ErrorViewer';
 import useUiStore from '@/store/uiStore';
 
@@ -75,9 +75,14 @@ export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     // --- 4. Auto-Connect on App Load ---
     useEffect(() => {
+        // Clear the invalid URL from local storage on first load
+        const savedSettings = loadConnectionSettings();
+        if (savedSettings.obsUrl === 'myrqyry') {
+            saveConnectionSettings({ obsUrl: '' });
+        }
+        
         setStreamerBotServiceInstance(streamerBotService);
 
-        const savedSettings = loadConnectionSettings();
         if (savedSettings.autoConnect && savedSettings.obsUrl) { // Use obsUrl
             connectToObs(savedSettings.obsUrl, savedSettings.obsPassword); // Use obsUrl and obsPassword
         }

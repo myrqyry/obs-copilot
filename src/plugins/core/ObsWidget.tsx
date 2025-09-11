@@ -7,6 +7,9 @@ import { executeObsWidgetAction } from '@/services/actionMapper';
 
 const ObsWidget: React.FC<ObsWidgetConfig> = (config) => {
   if (config.type === 'control') {
+    if (!config.control) {
+      return <div className="text-yellow-500">Control not fully loaded</div>;
+    }
     switch (config.control.kind) {
       case 'slider':
         return <ObsSliderWidget config={config} />;

@@ -110,7 +110,7 @@ const MorphingLogos: React.FC<MorphingLogosProps> = ({ accentColor, secondaryAcc
             duration: 12,
             ease: "steps(100, jump-end)",
             attr: {
-                offset: (index: number) => index === 0 ? ['0%', '100%'] : ['100%', '0%']
+                offset: (index: number) => (index === 0 ? '100%' : '0%')
             },
             repeat: -1,
             yoyo: true,

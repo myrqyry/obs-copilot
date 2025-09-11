@@ -52,7 +52,7 @@ export const ConditionsStep: React.FC<ConditionsStepProps> = ({
 
                             <div className="grid grid-cols-4 gap-2">
                                 <select
-                                    value={condition.type}
+                                    value={condition.type || ''}
                                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateCondition(condition.id, {
                                         type: e.target.value as any,
                                         field: CONDITION_FIELD_OPTIONS[e.target.value as keyof typeof CONDITION_FIELD_OPTIONS]?.[0]?.field || ''
@@ -66,7 +66,7 @@ export const ConditionsStep: React.FC<ConditionsStepProps> = ({
                                 </select>
 
                                 <select
-                                    value={condition.field}
+                                    value={condition.field || ''}
                                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateCondition(condition.id, { field: e.target.value })}
                                     className="border rounded p-1 bg-background text-foreground text-sm"
                                 >
@@ -78,7 +78,7 @@ export const ConditionsStep: React.FC<ConditionsStepProps> = ({
                                 </select>
 
                                 <select
-                                    value={condition.operator}
+                                    value={condition.operator || ''}
                                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateCondition(condition.id, { operator: e.target.value as any })}
                                     className="border rounded p-1 bg-background text-foreground text-sm"
                                 >
@@ -90,7 +90,7 @@ export const ConditionsStep: React.FC<ConditionsStepProps> = ({
                                 </select>
 
                                 <TextInput
-                                    value={condition.value as string}
+                                    value={(condition.value as string) || ''}
                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateCondition(condition.id, { value: e.target.value })}
                                     placeholder="Value"
                                     className="text-sm"

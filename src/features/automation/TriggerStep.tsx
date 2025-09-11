@@ -1,5 +1,7 @@
 import React from 'react';
-import { TextInput } from '@/components/common/TextInput';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { OBS_EVENT_LIST } from '@/constants/obsEvents';
 import { EVENT_DATA_CONFIGS, AutomationTrigger } from '@/types/automation';
 
@@ -21,75 +23,76 @@ export const TriggerStep: React.FC<TriggerStepProps> = ({
     setEnabled,
 }) => {
     return (
-        <div className="space-y-4">
-            <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+        <div className="space-y-6">
+            <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">
                     Rule Name
                 </label>
-                <TextInput
+                <Input
                     value={ruleName}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRuleName(e.target.value)}
+                    onChange={(e) => setRuleName(e.target.value)}
                     placeholder="Enter a descriptive name for this rule"
-                    className="w-full"
                 />
             </div>
 
-            <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+            <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">
                     Trigger Event
                 </label>
-                <select
-                    value={trigger.eventName}
-                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setTrigger({ ...trigger, eventName: e.target.value, eventData: {} })}
-                    className="w-full border rounded p-2 bg-background text-foreground"
-                >
-                    <option value="">Select an event...</option>
-                    {OBS_EVENT_LIST.map(event => (
-                        <option key={event.name} value={event.name}>
-                            {event.name}
-                        </option>
-                    ))}
-                </select>
+                <Select value={trigger.eventName} onValueChange={(value) => setTrigger({ ...trigger, eventName: value, eventData: {} })}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Select an event..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {OBS_EVENT_LIST.map(event => (
+                            <SelectItem key={event.name} value={event.name}>
+                                {event.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
                 {trigger.eventName && (
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <p className="text-sm text-muted-foreground">
                         {OBS_EVENT_LIST.find(e => e.name === trigger.eventName)?.description}
                     </p>
                 )}
             </div>
 
             {trigger.eventName && EVENT_DATA_CONFIGS[trigger.eventName] && (
-                <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
+                <div className="space-y-4">
+                    <label className="text-sm font-medium text-foreground">
                         Event Data Filters (Optional)
                     </label>
                     {EVENT_DATA_CONFIGS[trigger.eventName].map(field => (
-                        <div key={field.name} className="mb-3">
-                            <label className="block text-xs text-muted-foreground mb-1">
+                        <div key={field.name} className="space-y-2">
+                            <label className="text-xs text-muted-foreground">
                                 {field.description || field.name}
                             </label>
                             {field.type === 'select' ? (
-                                <select
-                                    value={String(trigger.eventData?.[field.name] || '')}
-                                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setTrigger({
-                                        ...trigger,
-                                        eventData: { ...trigger.eventData, [field.name]: e.target.value }
-                                    })}
-                                    className="w-full border rounded p-2 bg-background text-foreground text-sm"
-                                >
-                                    <option value="">Any {field.name}</option>
-                                    {field.options?.map(option => (
-                                        <option key={option} value={option}>{option}</option>
-                                    ))}
-                                </select>
+                                <Select value={String(trigger.eventData?.[field.name] || '')} onValueChange={(value) => setTrigger({
+                                    ...trigger,
+                                    eventData: { ...trigger.eventData, [field.name]: value }
+                                })}>
+                                    <SelectTrigger className="text-sm">
+                                        <SelectValue placeholder={`Any ${field.name}`} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {field.options?.map(option => (
+                                            <SelectItem key={option} value={option}>
+                                                {option}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             ) : (
-                                <TextInput
+                                <Input
                                     value={String(trigger.eventData?.[field.name] || '')}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTrigger({
+                                    onChange={(e) => setTrigger({
                                         ...trigger,
                                         eventData: { ...trigger.eventData, [field.name]: e.target.value }
                                     })}
                                     placeholder={`Enter ${field.name}`}
-                                    className="w-full text-sm"
+                                    className="text-sm"
                                 />
                             )}
                         </div>
@@ -98,12 +101,10 @@ export const TriggerStep: React.FC<TriggerStepProps> = ({
             )}
 
             <div className="flex items-center space-x-2">
-                <input
-                    type="checkbox"
+                <Switch
                     id="enabled"
                     checked={enabled}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEnabled(e.target.checked)}
-                    className="accent-accent"
+                    onCheckedChange={setEnabled}
                 />
                 <label htmlFor="enabled" className="text-sm text-foreground">
                     Enable this rule

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { shallow } from 'zustand/shallow';
 import { CatppuccinAccentColorName, OBSVideoSettings, OBSScene, OBSSource, catppuccinAccentColorsHexMap } from '@/types';
-import { CustomButton as Button } from '@/components/ui/CustomButton';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AddToContextButton } from '@/components/common/AddToContextButton';
 import { LockToggle } from '@/components/common/LockToggle';
-import { TextInput } from '@/components/common/TextInput';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import useConnectionsStore from '@/store/connectionsStore';
 import { useLockStore } from '@/store/lockStore';
@@ -47,29 +48,15 @@ export const ObsMainControls: React.FC = () => {
   const [openSources, setOpenSources] = useState(true);
   const [openVideo, setOpenVideo] = useState(true);
   const [openStats, setOpenStats] = useState(false);
-  // Use Zustand for OBS state with shallow equality
-  const {
-    scenes,
-    currentProgramScene,
-    sources,
-    streamStatus,
-    recordStatus,
-    videoSettings: initialVideoSettings,
-    editableSettings,
-    setEditableSettings: storeSetEditableSettings,
-  } = useConnectionsStore(
-    (state) => ({
-      scenes: state.scenes,
-      currentProgramScene: state.currentProgramScene,
-      sources: state.sources,
-      streamStatus: state.streamStatus,
-      recordStatus: state.recordStatus,
-      videoSettings: state.videoSettings,
-      editableSettings: state.editableSettings,
-      setEditableSettings: state.setEditableSettings,
-    }),
-    shallow
-  );
+  // Use individual selectors to avoid shallow equality issues
+  const scenes = useConnectionsStore((state) => state.scenes);
+  const currentProgramScene = useConnectionsStore((state) => state.currentProgramScene);
+  const sources = useConnectionsStore((state) => state.sources);
+  const streamStatus = useConnectionsStore((state) => state.streamStatus);
+  const recordStatus = useConnectionsStore((state) => state.recordStatus);
+  const initialVideoSettings = useConnectionsStore((state) => state.videoSettings);
+  const editableSettings = useConnectionsStore((state) => state.editableSettings);
+  const storeSetEditableSettings = useConnectionsStore((state) => state.setEditableSettings);
   const [isLoading, setIsLoading] = React.useState(false);
 
   const [isVideoSettingsLoading, setIsVideoSettingsLoading] = useState(false);
@@ -133,12 +120,11 @@ export const ObsMainControls: React.FC = () => {
   };
 
   // Resolution and FPS dropdown handlers
-  const handleBaseResolutionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedLabel = e.target.value;
-    setSelectedBaseResolution(selectedLabel);
+  const handleBaseResolutionChange = (value: string) => {
+    setSelectedBaseResolution(value);
 
-    if (selectedLabel !== 'Custom' && editableSettings) {
-      const resolution = COMMON_RESOLUTIONS.find((res: { label: string; width: number; height: number }) => res.label === selectedLabel);
+    if (value !== 'Custom' && editableSettings) {
+      const resolution = COMMON_RESOLUTIONS.find((res: { label: string; width: number; height: number }) => res.label === value);
       if (resolution) {
         storeSetEditableSettings({
           ...editableSettings,
@@ -149,12 +135,11 @@ export const ObsMainControls: React.FC = () => {
     }
   };
 
-  const handleOutputResolutionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedLabel = e.target.value;
-    setSelectedOutputResolution(selectedLabel);
+  const handleOutputResolutionChange = (value: string) => {
+    setSelectedOutputResolution(value);
 
-    if (selectedLabel !== 'Custom' && editableSettings) {
-      const resolution = COMMON_RESOLUTIONS.find((res: { label: string; width: number; height: number }) => res.label === selectedLabel);
+    if (value !== 'Custom' && editableSettings) {
+      const resolution = COMMON_RESOLUTIONS.find((res: { label: string; width: number; height: number }) => res.label === value);
       if (resolution) {
         storeSetEditableSettings({
           ...editableSettings,
@@ -165,12 +150,11 @@ export const ObsMainControls: React.FC = () => {
     }
   };
 
-  const handleFPSChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedLabel = e.target.value;
-    setSelectedFPS(selectedLabel);
+  const handleFPSChange = (value: string) => {
+    setSelectedFPS(value);
 
-    if (selectedLabel !== 'Custom' && editableSettings) {
-      const fps = COMMON_FPS.find((fps: { label: string; numerator: number; denominator: number }) => fps.label === selectedLabel);
+    if (value !== 'Custom' && editableSettings) {
+      const fps = COMMON_FPS.find((fps: { label: string; numerator: number; denominator: number }) => fps.label === value);
       if (fps) {
         storeSetEditableSettings({
           ...editableSettings,
@@ -242,14 +226,17 @@ export const ObsMainControls: React.FC = () => {
   };
 
   const handleSetCurrentScene = (sceneName: string) => {
+    if (!obsService) return;
     handleAction(() => obsService.call('SetCurrentProgramScene', { sceneName }));
   };
 
   const toggleSourceVisibility = (sceneName: string, sceneItemId: number, enabled: boolean) => {
+    if (!obsService || !sceneName) return;
     handleAction(() => obsService.call('SetSceneItemEnabled', { sceneName, sceneItemId, sceneItemEnabled: !enabled }));
   };
 
   const toggleStream = () => {
+    if (!obsService) return;
     if (streamStatus?.outputActive) {
       handleAction(() => obsService.call('StopStream'));
     } else {
@@ -258,6 +245,7 @@ export const ObsMainControls: React.FC = () => {
   };
 
   const toggleRecord = () => {
+    if (!obsService) return;
     if (recordStatus?.outputActive) {
       handleAction(() => obsService.call('StopRecord'));
     } else {
@@ -279,12 +267,11 @@ export const ObsMainControls: React.FC = () => {
   const accentColor = catppuccinAccentColorsHexMap[accentColorName || 'sky'] || '#89b4fa';
 
   return (
-    <div className="space-y-2 max-w-4xl mx-auto p-0 sm:p-1">
+    <div className="p-4 space-y-4 max-w-4xl mx-auto">
       {/* Stream & Record Section */}
       <CollapsibleCard
         title="Stream & Record"
         emoji="📡"
-        accentColor={accentColor}
         className="relative group"
         isOpen={openStream}
         onToggle={() => setOpenStream(!openStream)}
@@ -296,14 +283,18 @@ export const ObsMainControls: React.FC = () => {
           <Button
             onClick={toggleStream}
             disabled={isLocked(STREAM_RECORD_LOCK)}
-            className={`w-full sm:flex-1 ${streamStatus?.outputActive ? 'bg-destructive hover:bg-destructive/90' : 'bg-green-500 hover:bg-green-600'}`}
+            variant={streamStatus?.outputActive ? "destructive" : "default"}
+            className="w-full sm:flex-1"
+            size="sm"
           >
             {streamStatus?.outputActive ? 'Stop Streaming' : 'Start Streaming'}
           </Button>
           <Button
             onClick={toggleRecord}
             disabled={isLocked(STREAM_RECORD_LOCK)}
-            className={`flex-1 ${recordStatus?.outputActive ? 'bg-destructive hover:bg-destructive/90' : 'bg-blue-500 hover:bg-blue-600'}`}
+            variant={recordStatus?.outputActive ? "destructive" : "accent"}
+            className="flex-1"
+            size="sm"
           >
             {recordStatus?.outputActive ? 'Stop Recording' : 'Start Recording'}
           </Button>
@@ -312,218 +303,212 @@ export const ObsMainControls: React.FC = () => {
           Stream: {streamStatus?.outputActive ? '🟢 Live' : '🔴 Stopped'} | Record: {recordStatus?.outputActive ? '🟢 Recording' : '🔴 Stopped'}
         </div>
       </CollapsibleCard>
-
-      {/* Scenes Section */}
-      <CollapsibleCard
-        title="Scenes"
-        emoji="🎬"
-        accentColor={accentColor}
-        className="relative group"
-        isOpen={openScenes}
-        onToggle={() => setOpenScenes(!openScenes)}
-      >
-        <div className="absolute top-1 right-1 sm:right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
-          <LockToggle lockKey="scenes" />
-        </div>
-        <ul className="space-y-1 sm:space-y-1.5">
-          {scenes.map((scene: OBSScene) => (
-            <li key={scene.sceneName} className="flex flex-col xs:flex-row items-stretch xs:items-center justify-between gap-1">
-              <span className={`truncate text-sm py-1 xs:py-0 ${scene.sceneName === currentProgramScene ? 'font-bold text-accent' : ''}`}>{scene.sceneName}</span>
-              <div className="flex items-center gap-1 self-end xs:self-center">
-                <Button
-                  onClick={() => handleSetCurrentScene(scene.sceneName)}
-                  disabled={isLocked('scenes') || scene.sceneName === currentProgramScene}
-                  variant="secondary"
-                  size="sm"
-                >
-                  {scene.sceneName === currentProgramScene ? 'Active' : 'Switch'}
-                </Button>
-                <AddToContextButton
-                  contextText={`OBS Scene: '${scene.sceneName}'${scene.sceneName === currentProgramScene ? ' (currently active)' : ''}`}
-                  onAddToContext={addSystemMessageToChat}
-                  disabled={isLocked('scenes')}
-                  title={`Add scene '${scene.sceneName}' to chat context`}
-                />
-              </div>
-            </li>
-          ))}
-        </ul>
-      </CollapsibleCard>
-
-      {/* Sources Section */}
-      <CollapsibleCard
-        title="Sources"
-        emoji="🖼️"
-        accentColor={accentColor}
-        className="relative group"
-        isOpen={openSources}
-        onToggle={() => setOpenSources(!openSources)}
-      >
-        <div className="absolute top-1 right-1 sm:right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
-          <LockToggle lockKey="sources" />
-        </div>
-        <ul className="space-y-1 sm:space-y-1.5">
-          {sources.map((source: OBSSource) => (
-            <li key={source.sceneItemId} className="flex flex-col xs:flex-row items-stretch xs:items-center justify-between gap-1">
-              <span className="truncate text-sm py-1 xs:py-0">{source.sourceName}</span>
-              <div className="flex items-center gap-1 self-end xs:self-center">
-                <Button
-                  onClick={() => {
-                    if (currentProgramScene) toggleSourceVisibility(currentProgramScene, source.sceneItemId, source.sceneItemEnabled);
-                  }}
-                  disabled={isLocked('sources') || !currentProgramScene}
-                  variant={source.sceneItemEnabled ? 'default' : 'secondary'}
-                  size="sm"
-                >
-                  {source.sceneItemEnabled ? 'Hide' : 'Show'}
-                </Button>
-                <AddToContextButton
-                  contextText={`OBS Source: '${source.sourceName}' is ${source.sceneItemEnabled ? 'visible' : 'hidden'} in scene '${currentProgramScene || ''}'`}
-                  onAddToContext={addSystemMessageToChat}
-                  disabled={isLocked('sources') || !currentProgramScene}
-                  title={`Add source '${source.sourceName}' to chat context`}
-                />
-              </div>
-            </li>
-          ))}
-        </ul>
-      </CollapsibleCard>
-
-      {/* Video Settings Section */}
-      <CollapsibleCard
-        title="Video Settings"
-        emoji="🎥"
-        accentColor={accentColor}
-        className="relative group"
-        isOpen={openVideo}
-        onToggle={() => setOpenVideo(!openVideo)}
-      >
-        <div className="absolute top-1 right-1 sm:right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
-          <LockToggle lockKey={VIDEO_SETTINGS_LOCK} />
-        </div>
-        <div className="flex flex-col gap-2 sm:gap-1">
-          {/* Base Resolution */}
-          <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-1">
-            <label htmlFor="base-resolution-select" className="w-full xs:w-36 text-xs shrink-0">Base (Canvas) Resolution</label>
-            <div className="flex-grow grid grid-cols-2 gap-1">
-              <select
-                id="base-resolution-select"
-                className="input input-sm text-xs w-full focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
-                value={selectedBaseResolution}
-                onChange={handleBaseResolutionChange}
-                disabled={isLocked(VIDEO_SETTINGS_LOCK)}
-              >
-                {COMMON_RESOLUTIONS.map((res: any) => (
-                  <option key={res.label} value={res.label}>{res.label}</option>
-                ))}
-                <option value="Custom">Custom</option>
-              </select>
-              {selectedBaseResolution === 'Custom' && (
-                <TextInput
-                  value={customBaseResolution}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleCustomResolutionChange(e.target.value, 'base')}
-                  disabled={isLocked(VIDEO_SETTINGS_LOCK)}
-                  placeholder="e.g. 1920x1080"
-                  className="input input-sm text-xs w-full"
-                  size="sm"
-                />
-              )}
+    
+          {/* Scenes Section */}
+          <CollapsibleCard
+            title="Scenes"
+            emoji="🎬"
+            className="relative group"
+            isOpen={openScenes}
+            onToggle={() => setOpenScenes(!openScenes)}
+          >
+            <div className="absolute top-1 right-1 sm:right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
+              <LockToggle lockKey="scenes" />
             </div>
-          </div>
-          {/* Output Resolution */}
-          <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-1">
-            <label htmlFor="output-resolution-select" className="w-full xs:w-36 text-xs shrink-0">Output (Scaled) Resolution</label>
-            <div className="flex-grow grid grid-cols-2 gap-1">
-              <select
-                id="output-resolution-select"
-                className="input input-sm text-xs w-full focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
-                value={selectedOutputResolution}
-                onChange={handleOutputResolutionChange}
-                disabled={isLocked(VIDEO_SETTINGS_LOCK)}
-              >
-                {COMMON_RESOLUTIONS.map((res: any) => (
-                  <option key={res.label} value={res.label}>{res.label}</option>
-                ))}
-                <option value="Custom">Custom</option>
-              </select>
-              {selectedOutputResolution === 'Custom' && (
-                <TextInput
-                  value={customOutputResolution}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleCustomResolutionChange(e.target.value, 'output')}
-                  disabled={isLocked(VIDEO_SETTINGS_LOCK)}
-                  placeholder="e.g. 1280x720"
-                  className="input input-sm text-xs w-full"
-                  size="sm"
-                />
-              )}
-            </div>
-          </div>
-          {/* Frame Rate */}
-          <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-1">
-            <label htmlFor="fps-select" className="w-full xs:w-36 text-xs shrink-0">Frame Rate</label>
-            <div className="flex-grow grid grid-cols-2 gap-1">
-              <select
-                id="fps-select"
-                className="input input-sm text-xs w-full focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
-                value={selectedFPS}
-                onChange={handleFPSChange}
-                disabled={isLocked(VIDEO_SETTINGS_LOCK)}
-            >
-              {COMMON_FPS.map((fps: any) => (
-                <option key={fps.label} value={fps.label}>{fps.label}</option>
+            <ul className="space-y-1.5">
+              {scenes.map((scene: OBSScene) => (
+                <li key={scene.sceneName} className="flex flex-col sm:flex-row items-center justify-between gap-2">
+                  <span className={`truncate text-sm ${scene.sceneName === currentProgramScene ? 'font-bold text-accent' : ''}`}>{scene.sceneName}</span>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      onClick={() => handleSetCurrentScene(scene.sceneName)}
+                      disabled={isLocked('scenes') || scene.sceneName === currentProgramScene}
+                      variant="outline"
+                      size="sm"
+                    >
+                      {scene.sceneName === currentProgramScene ? 'Active' : 'Switch'}
+                    </Button>
+                    <AddToContextButton
+                      contextText={`OBS Scene: '${scene.sceneName}'${scene.sceneName === currentProgramScene ? ' (currently active)' : ''}`}
+                      onAddToContext={addSystemMessageToChat}
+                      disabled={isLocked('scenes')}
+                      title={`Add scene '${scene.sceneName}' to chat context`}
+                    />
+                  </div>
+                </li>
               ))}
-              <option value="Custom">Custom</option>
-            </select>
-            {selectedFPS === 'Custom' && (
-              <TextInput
-                value={customFPS}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleCustomFPSChange(e.target.value)}
-                disabled={isLocked(VIDEO_SETTINGS_LOCK)}
-                placeholder="e.g. 30/1"
-                className="input input-sm text-xs w-full"
-                size="sm"
-              />
-            )}
+            </ul>
+          </CollapsibleCard>
+    
+          {/* Sources Section */}
+          <CollapsibleCard
+            title="Sources"
+            emoji="🖼️"
+            className="relative group"
+            isOpen={openSources}
+            onToggle={() => setOpenSources(!openSources)}
+          >
+            <div className="absolute top-1 right-1 sm:right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
+              <LockToggle lockKey="sources" />
             </div>
-          </div>
-          <div className="flex justify-start items-center gap-1 mt-2 sm:mt-1">
-            <Button
-              onClick={handleSaveVideoSettings}
-              disabled={isLocked(VIDEO_SETTINGS_LOCK) || isVideoSettingsLoading || !editableSettings}
-              variant="default"
-              size="sm"
-              className="w-full xs:w-auto"
-            >
-              {isVideoSettingsLoading ? <LoadingSpinner size={4} /> : 'Save Settings'}
-            </Button>
-          </div>
+            <ul className="space-y-1.5">
+              {sources.map((source: OBSSource) => (
+                <li key={source.sceneItemId} className="flex flex-col sm:flex-row items-center justify-between gap-2">
+                  <span className="truncate text-sm">{source.sourceName}</span>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      onClick={() => {
+                        if (currentProgramScene) toggleSourceVisibility(currentProgramScene, source.sceneItemId, source.sceneItemEnabled);
+                      }}
+                      disabled={isLocked('sources') || !currentProgramScene}
+                      variant={source.sceneItemEnabled ? 'default' : 'outline'}
+                      size="sm"
+                    >
+                      {source.sceneItemEnabled ? 'Hide' : 'Show'}
+                    </Button>
+                    <AddToContextButton
+                      contextText={`OBS Source: '${source.sourceName}' is ${source.sceneItemEnabled ? 'visible' : 'hidden'} in scene '${currentProgramScene || ''}'`}
+                      onAddToContext={addSystemMessageToChat}
+                      disabled={isLocked('sources') || !currentProgramScene}
+                      title={`Add source '${source.sourceName}' to chat context`}
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </CollapsibleCard>
+    
+          {/* Video Settings Section */}
+          <CollapsibleCard
+            title="Video Settings"
+            emoji="🎥"
+            className="relative group"
+            isOpen={openVideo}
+            onToggle={() => setOpenVideo(!openVideo)}
+          >
+            <div className="absolute top-1 right-1 sm:right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
+              <LockToggle lockKey={VIDEO_SETTINGS_LOCK} />
+            </div>
+            <div className="space-y-3">
+              {/* Base Resolution */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                <label className="w-full sm:w-40 text-sm font-medium shrink-0">Base (Canvas) Resolution</label>
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Select value={selectedBaseResolution} onValueChange={handleBaseResolutionChange} disabled={isLocked(VIDEO_SETTINGS_LOCK)}>
+                    <SelectTrigger className="text-sm">
+                      <SelectValue placeholder="Select resolution" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COMMON_RESOLUTIONS.map((res) => (
+                        <SelectItem key={res.label} value={res.label}>
+                          {res.label}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="Custom">Custom</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {selectedBaseResolution === 'Custom' && (
+                    <Input
+                      value={customBaseResolution}
+                      onChange={(e) => handleCustomResolutionChange(e.target.value, 'base')}
+                      disabled={isLocked(VIDEO_SETTINGS_LOCK)}
+                      placeholder="e.g. 1920x1080"
+                      className="text-sm"
+                    />
+                  )}
+                </div>
+              </div>
+    
+              {/* Output Resolution */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                <label className="w-full sm:w-40 text-sm font-medium shrink-0">Output (Scaled) Resolution</label>
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Select value={selectedOutputResolution} onValueChange={handleOutputResolutionChange} disabled={isLocked(VIDEO_SETTINGS_LOCK)}>
+                    <SelectTrigger className="text-sm">
+                      <SelectValue placeholder="Select resolution" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COMMON_RESOLUTIONS.map((res) => (
+                        <SelectItem key={res.label} value={res.label}>
+                          {res.label}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="Custom">Custom</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {selectedOutputResolution === 'Custom' && (
+                    <Input
+                      value={customOutputResolution}
+                      onChange={(e) => handleCustomResolutionChange(e.target.value, 'output')}
+                      disabled={isLocked(VIDEO_SETTINGS_LOCK)}
+                      placeholder="e.g. 1280x720"
+                      className="text-sm"
+                    />
+                  )}
+                </div>
+              </div>
+    
+              {/* Frame Rate */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                <label className="w-full sm:w-40 text-sm font-medium shrink-0">Frame Rate</label>
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Select value={selectedFPS} onValueChange={handleFPSChange} disabled={isLocked(VIDEO_SETTINGS_LOCK)}>
+                    <SelectTrigger className="text-sm">
+                      <SelectValue placeholder="Select FPS" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COMMON_FPS.map((fps) => (
+                        <SelectItem key={fps.label} value={fps.label}>
+                          {fps.label}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="Custom">Custom</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {selectedFPS === 'Custom' && (
+                    <Input
+                      value={customFPS}
+                      onChange={(e) => handleCustomFPSChange(e.target.value)}
+                      disabled={isLocked(VIDEO_SETTINGS_LOCK)}
+                      placeholder="e.g. 30/1"
+                      className="text-sm"
+                    />
+                  )}
+                </div>
+              </div>
+    
+              <div className="flex justify-start pt-2 border-t">
+                <Button
+                  onClick={handleSaveVideoSettings}
+                  disabled={isLocked(VIDEO_SETTINGS_LOCK) || isVideoSettingsLoading || !editableSettings}
+                  size="sm"
+                >
+                  {isVideoSettingsLoading ? <LoadingSpinner size={4} /> : 'Save Settings'}
+                </Button>
+              </div>
+            </div>
+          </CollapsibleCard>
+    
+          {/* Stats Section */}
+          <CollapsibleCard
+            title="OBS Statistics"
+            emoji="📊"
+            className="relative group"
+            isOpen={openStats}
+            onToggle={() => setOpenStats(!openStats)}
+          >
+            <div className="absolute top-1 right-1 sm:right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
+              <LockToggle lockKey="stats" />
+            </div>
+            {streamStatus ? (
+              <div className="text-sm space-y-1">
+                <div>Status: {streamStatus.outputActive ? '🟢 Live' : '🔴 Stopped'}</div>
+                <div>Stream Time: {Math.floor((streamStatus.outputDuration || 0) / 60000)}:{Math.floor(((streamStatus.outputDuration || 0) % 60000) / 1000).toString().padStart(2, '0')}</div>
+                <div>Bytes Sent: {(streamStatus.outputBytes || 0).toLocaleString()}</div>
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground">No stats available</div>
+            )}
+          </CollapsibleCard>
         </div>
-      </CollapsibleCard>
-
-      {/* Stats Section */}
-      <CollapsibleCard
-        title="OBS Statistics"
-        emoji="📊"
-        accentColor={accentColor}
-        className="relative group"
-        isOpen={openStats}
-        onToggle={() => setOpenStats(!openStats)}
-      >
-        <div className="absolute top-1 right-1 sm:right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex gap-1">
-          <LockToggle lockKey="stats" />
-        </div>
-        {streamStatus ? (
-          <div className="text-xs space-y-0.5 sm:space-y-1">
-            <div>CPU Usage: Not Available</div>
-            <div>Memory Usage: Not Available</div>
-            <div>FPS: {streamStatus.renderTotalFrames > 0 ? (streamStatus.renderTotalFrames / (streamStatus.outputDuration / 1000)).toFixed(1) : '0.0'}</div>
-            <div>Dropped Frames: {streamStatus.outputSkippedFrames || 0}</div>
-            <div>Stream Time: {streamStatus.outputTimecode || '00:00:00'}</div>
-          </div>
-        ) : (
-          <div className="text-xs text-muted-foreground">No stats available</div>
-        )}
-      </CollapsibleCard>
-    </div>
-  );
-};
+      );

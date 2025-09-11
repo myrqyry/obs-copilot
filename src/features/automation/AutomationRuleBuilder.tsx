@@ -1,6 +1,6 @@
 import React from 'react';
+import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/Modal';
-import { CustomButton as Button } from '@/components/ui/CustomButton';
 import { useAutomationRuleBuilder } from '@/hooks/useAutomationRuleBuilder';
 import { TriggerStep } from './TriggerStep';
 import { ConditionsStep } from './ConditionsStep';
@@ -48,17 +48,19 @@ export const AutomationRuleBuilder: React.FC<AutomationRuleBuilderProps> = ({
         <div className="flex items-center space-x-2 mb-6">
             {['trigger', 'conditions', 'actions', 'review'].map((step, index) => (
                 <React.Fragment key={step}>
-                    <button
+                    <Button
                         onClick={() => setCurrentStep(step as any)}
+                        variant={currentStep === step ? "default" : "outline"}
+                        size="sm"
                         className={cn(
-                            "flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium transition-colors",
+                            "w-8 h-8 rounded-full text-sm font-medium transition-colors flex items-center justify-center p-0",
                             currentStep === step
                                 ? "bg-accent text-accent-foreground"
                                 : "bg-muted text-muted-foreground hover:bg-muted/80"
                         )}
                     >
                         {index + 1}
-                    </button>
+                    </Button>
                     {index < 3 && (
                         <div className={cn(
                             "w-8 h-0.5 transition-colors",
@@ -110,18 +112,19 @@ export const AutomationRuleBuilder: React.FC<AutomationRuleBuilderProps> = ({
                                     const currentIndex = steps.indexOf(currentStep);
                                     setCurrentStep(steps[currentIndex - 1] as any);
                                 }}
-                                variant="secondary"
+                                variant="outline"
+                                size="sm"
                             >
                                 Previous
                             </Button>
                         )}
                     </div>
-
+    
                     <div className="space-x-2">
-                        <Button onClick={onClose} variant="secondary">
+                        <Button onClick={onClose} variant="outline" size="sm">
                             Cancel
                         </Button>
-
+    
                         {currentStep !== 'review' ? (
                             <Button
                                 onClick={() => {
@@ -129,11 +132,12 @@ export const AutomationRuleBuilder: React.FC<AutomationRuleBuilderProps> = ({
                                     const currentIndex = steps.indexOf(currentStep);
                                     setCurrentStep(steps[currentIndex + 1] as any);
                                 }}
+                                size="sm"
                             >
                                 Next
                             </Button>
                         ) : (
-                            <Button onClick={handleSave}>
+                            <Button onClick={handleSave} size="sm">
                                 {editingRule ? 'Update Rule' : 'Create Rule'}
                             </Button>
                         )}

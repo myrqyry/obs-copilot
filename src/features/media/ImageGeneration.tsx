@@ -121,7 +121,6 @@ const ImageGeneration: React.FC = () => {
         <CollapsibleCard
             title="Image Generation (Gemini)"
             emoji="🎨"
-            accentColor={accentColor}
             isOpen={openImageGeneration}
             onToggle={() => setOpenImageGeneration(!openImageGeneration)}
         >
@@ -162,7 +161,7 @@ const ImageGeneration: React.FC = () => {
                         <select
                             value={model}
                             onChange={(e) => setModel(e.target.value)}
-                            className="w-full p-2 border rounded text-sm"
+                            className="w-full p-2 border-border rounded text-sm"
                         >
                             <option value="gemini-2.5-flash-image-preview">Gemini 2.5 Flash (Fast, Good Quality)</option>
                             <option value="imagen-4.0-fast-generate-001">Imagen 4.0 (High Quality)</option>
@@ -203,7 +202,7 @@ const ImageGeneration: React.FC = () => {
                                         onChange={(e) => setNumberOfImages(parseInt(e.target.value, 10))}
                                         min="1"
                                         max="4"
-                                        className="w-full p-2 border rounded text-sm"
+                                        className="w-full p-2 border-border rounded text-sm"
                                     />
                                 </div>
 
@@ -213,7 +212,7 @@ const ImageGeneration: React.FC = () => {
                                     <select
                                         value={aspectRatio}
                                         onChange={(e) => setAspectRatio(e.target.value)}
-                                        className="w-full p-2 border rounded text-sm"
+                                        className="w-full p-2 border-border rounded text-sm"
                                         disabled={model.startsWith('gemini')}
                                     >
                                         {ASPECT_RATIOS.map(ratio => (
@@ -230,7 +229,7 @@ const ImageGeneration: React.FC = () => {
                                     <select
                                         value={imageFormat}
                                         onChange={(e) => setImageFormat(e.target.value)}
-                                        className="w-full p-2 border rounded text-sm"
+                                        className="w-full p-2 border-border rounded text-sm"
                                         disabled={model.startsWith('gemini')}
                                     >
                                         {IMAGE_FORMATS.map(format => (
@@ -247,7 +246,7 @@ const ImageGeneration: React.FC = () => {
                                     <select
                                         value={personGeneration}
                                         onChange={(e) => setPersonGeneration(e.target.value)}
-                                        className="w-full p-2 border rounded text-sm"
+                                        className="w-full p-2 border-border rounded text-sm"
                                         disabled={model.startsWith('gemini')}
                                     >
                                         {PERSON_GENERATION_OPTIONS.map(option => (

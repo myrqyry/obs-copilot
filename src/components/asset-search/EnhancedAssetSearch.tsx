@@ -1,13 +1,13 @@
 // src/components/asset-search/EnhancedAssetSearch.tsx
 import React, { useState, useMemo, useCallback } from 'react';
 import { useGenericApiSearch } from '@/hooks/useGenericApiSearch';
-import { CustomButton as Button } from '@/components/ui/CustomButton';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { CardContent } from '@/components/ui/Card';
 import { CollapsibleCard } from '@/components/common/CollapsibleCard';
 import { FaviconDropdown } from '@/components/common/FaviconDropdown';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { Modal } from '@/components/ui/Modal';
-import { TextInput } from '@/components/common/TextInput';
 import { toast } from '@/components/ui/toast';
 import { copyToClipboard } from '@/utils/persistence';
 import { generateSourceName } from '@/utils/obsSourceHelpers';
@@ -232,10 +232,10 @@ export const EnhancedAssetSearch: React.FC<EnhancedAssetSearchProps> = ({
           alt={item.title} 
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" 
         />
-        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
-          <div className="text-white text-xs">
+        <div className="absolute inset-0 bg-muted/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+          <div className="text-background text-xs">
             <p className="truncate font-medium">{item.title}</p>
-            <p className="truncate text-gray-300">by {item.author}</p>
+            <p className="truncate text-muted-foreground">by {item.author}</p>
           </div>
         </div>
       </div>
@@ -337,39 +337,41 @@ export const EnhancedAssetSearch: React.FC<EnhancedAssetSearchProps> = ({
         <CardContent className="px-3 pb-3 pt-2">
           {/* Search Form */}
           <form onSubmit={handleSearch} className="flex items-center gap-2 mb-2">
-            <TextInput
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={`Search for ${title.toLowerCase()}...`}
-              className="flex-grow"
-            />
-            <FaviconDropdown
-              options={apiOptionsForDropdown.map(cfg => ({ label: cfg.label, value: cfg.value, domain: cfg.domain }))}
-              value={selectedApi}
-              onChange={handleApiChange}
-              className="min-w-[120px]"
-            />
-            <Button type="submit" disabled={loading || !query.trim()} size="sm">
-              {loading ? 'Searching...' : 'Search'}
-            </Button>
+              <Input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={`Search for ${title.toLowerCase()}...`}
+                  className="flex-grow"
+              />
+              <FaviconDropdown
+                  options={apiOptionsForDropdown.map(cfg => ({ label: cfg.label, value: cfg.value, domain: cfg.domain }))}
+                  value={selectedApi}
+                  onChange={handleApiChange}
+                  className="min-w-[120px]"
+              />
+              <Button type="submit" disabled={loading || !query.trim()} size="sm">
+                  {loading ? 'Searching...' : 'Search'}
+              </Button>
           </form>
 
           {/* Advanced Filters Toggle */}
           {showFilters && selectedConfig && selectedConfig.supportsFilters && selectedConfig.supportsFilters.length > 0 && (
-            <div className="flex items-center gap-2 mb-2">
-              <button
-                type="button"
-                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                className="text-xs text-primary hover:text-primary/80 transition-colors"
-              >
-                {showAdvancedFilters ? 'Hide' : 'Show'} Advanced Filters
-              </button>
-              {selectedConfig.requiresAuth && (
-                <span className="text-xs text-warning bg-warning/10 px-2 py-1 rounded border border-warning/20">
-                  🔑 API Key Required
-                </span>
-              )}
-            </div>
+              <div className="flex items-center gap-2 mb-2">
+                  <Button
+                      type="button"
+                      onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2 text-xs"
+                  >
+                      {showAdvancedFilters ? 'Hide' : 'Show'} Advanced Filters
+                  </Button>
+                  {selectedConfig.requiresAuth && (
+                      <span className="text-xs text-warning bg-warning/10 px-2 py-1 rounded border border-warning/20">
+                          🔑 API Key Required
+                      </span>
+                  )}
+              </div>
           )}
 
           {/* Advanced Filters */}

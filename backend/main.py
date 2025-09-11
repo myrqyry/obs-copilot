@@ -8,9 +8,9 @@ from fastapi.responses import JSONResponse
 from fastapi_mcp import FastApiMCP  # Import FastApiMCP
 from dotenv import load_dotenv # Import load_dotenv
 
-from .auth import get_api_key
-from .api.routes import gemini, assets, overlays, proxy_7tv, proxy_emotes
-from .middleware import logging_middleware
+from auth import get_api_key
+from api.routes import gemini, assets, overlays, proxy_7tv, proxy_emotes
+from middleware import logging_middleware
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
