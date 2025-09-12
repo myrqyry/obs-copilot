@@ -100,6 +100,55 @@ app.include_router(proxy_7tv.router, prefix="/api/proxy", tags=["proxy"])
 app.include_router(proxy_emotes.router, prefix="/api/proxy/emotes", tags=["proxy_emotes"])
 
 
+# Global exception handlers
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi import Request
+import logging
+
+logger = logging.getLogger(__name__)
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    logger.error(f"HTTP {exc.status_code} error at {request.url.path}: {exc.detail}", extra={
+        "method": request.method,
+        "client": request.client.host if request.client else None
+    })
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail, "code": "HTTP_ERROR"},
+        headers=exc.headers if exc.headers else {}
+    )
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    logger.warning(f"Validation error at {request.url.path}: {exc.errors()}", extra={
+        "method": request.method,
+        "client": request.client.host if request.client else None
+    })
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": "Invalid request data",
+            "errors": exc.errors(),
+            "code": "VALIDATION_ERROR"
+        }
+    )
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled exception at {request.url.path}: {str(exc)}", exc_info=True, extra={
+        "method": request.method,
+        "client": request.client.host if request.client else None
+    })
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "An unexpected error occurred. Please try again later.",
+            "code": "INTERNAL_SERVER_ERROR"
+        }
+    )
+
 @app.get("/secure", operation_id="get_secure_data")
 def read_secure_data(api_key: str = Depends(get_api_key)):
     """A secure endpoint that requires an API key."""

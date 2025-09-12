@@ -5,6 +5,13 @@ from unittest.mock import Mock, AsyncMock, patch
 from fastapi.testclient import TestClient
 from backend.main import app
 
+VALID_API_KEY = "dev-key"
+
+@pytest.fixture(autouse=True)
+def override_api_keys(monkeypatch):
+    """Fixture to set the BACKEND_API_KEY environment variable for tests."""
+    monkeypatch.setenv("BACKEND_API_KEY", VALID_API_KEY)
+
 
 class TestOrchestrator:
     """Test orchestration capabilities."""
@@ -39,7 +46,7 @@ class TestOrchestrator:
                 "message": "!scene",
                 "context": {"user_id": "test_user"}
             },
-            headers={"Authorization": "Bearer test_key"}
+            headers={"X-API-KEY": VALID_API_KEY}
         )
 
         assert response.status_code == 200
@@ -111,7 +118,7 @@ class TestOrchestrator:
                 "scene_name": "Main Scene",
                 "rule_id": "test_scene_switch"
             },
-            headers={"Authorization": "Bearer test_key"}
+            headers={"X-API-KEY": VALID_API_KEY}
         )
 
         if response.status_code == 200:

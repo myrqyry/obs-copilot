@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useAudioStore } from '@/store/audioStore';
 import useSettingsStore from '@/store/settingsStore';
 import { toast } from '@/components/ui/toast';
-import useApiKeyStore, { ApiService } from '@/store/apiKeyStore';
 import { CardContent } from '@/components/ui/Card';
 import { CustomButton as Button } from '@/components/ui/CustomButton';
 import { TextInput } from '@/components/common/TextInput';
@@ -73,12 +72,7 @@ const MusicGeneration: React.FC = () => {
 
     // Music generation handler: just calls store action
     const handleGenerateMusic = () => {
-        // Always get the latest Gemini API key from Zustand store
-        const currentGeminiApiKey = useApiKeyStore.getState().getApiKeyOverride(ApiService.GEMINI);
-        if (!currentGeminiApiKey) {
-            toast({ title: 'Error', description: 'Gemini API key is missing. Please set it in the Connections tab.', variant: 'destructive' });
-            return;
-        }
+        // API key handled by backend proxy
         const config = {
             bpm,
             temperature,
@@ -90,7 +84,6 @@ const MusicGeneration: React.FC = () => {
             muteDrums,
             onlyBassAndDrums,
             musicGenerationMode,
-            geminiApiKey: currentGeminiApiKey,
         };
         startMusicGeneration(musicPrompt, config);
     };

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useConnectionManagerStore } from '@/store/connectionManagerStore';
 import useSettingsStore from '@/store/settingsStore';
-import useApiKeyStore, { ApiService } from '@/store/apiKeyStore';
 import { toast } from '@/components/ui/toast';
 import { ObsClientImpl as ObsClient } from '@/services/obsClient';
 import { catppuccinAccentColorsHexMap } from '@/types';
@@ -44,7 +43,6 @@ const ImageGeneration: React.FC = () => {
     const { obsServiceInstance, currentProgramScene, isConnected } = useConnectionManagerStore();
     const accentColorName = useSettingsStore(state => state.theme.accent);
     const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
-    const geminiApiKey = useApiKeyStore(state => state.getApiKeyOverride(ApiService.GEMINI));
 
     const handleImageUpload = (file: File, base64: string) => {
         setUploadedImage({
@@ -64,11 +62,6 @@ const ImageGeneration: React.FC = () => {
     const handleGenerateImage = async () => {
         if (!prompt.trim()) {
             setError('Please enter a prompt');
-            return;
-        }
-
-        if (!geminiApiKey) {
-            setError('Gemini API key is missing. Please set it in the Connections tab.');
             return;
         }
 

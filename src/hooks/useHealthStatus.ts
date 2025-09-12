@@ -19,22 +19,15 @@ export const useHealthStatus = (): HealthStatus => {
   const [isChecking, setIsChecking] = useState<boolean>(false);
 
   // Get status from stores
-  const { geminiApiKey } = useSettingsStore();
   const { isConnected: obsConnected, connectionError: obsError } = useConnectionsStore();
 
   // Mock MCP health status - replace with actual MCP health check
   const [mcpStatus] = useState<ServiceStatus>('healthy');
 
   const checkGeminiHealth = useCallback(async (): Promise<ServiceStatus> => {
-    if (!geminiApiKey) return 'unknown';
-
     try {
-      // Mock Gemini health check - replace with actual API call
-      const response = await fetch('/api/health/gemini', {
-        headers: {
-          'Authorization': `Bearer ${geminiApiKey}`,
-        },
-      });
+      // Check backend Gemini proxy health (no auth needed - backend handles it)
+      const response = await fetch('/api/health/gemini');
 
       if (response.ok) {
         const data = await response.json();
@@ -45,7 +38,7 @@ export const useHealthStatus = (): HealthStatus => {
       console.error('Gemini health check failed:', error);
       return 'critical';
     }
-  }, [geminiApiKey]);
+  }, []);
 
   const checkOBSHealth = useCallback(async (): Promise<ServiceStatus> => {
     if (obsError) return 'critical';
@@ -119,9 +112,7 @@ export const useHealthStatus = (): HealthStatus => {
   };
 
   // Get current status values
-  const [geminiStatus] = useState<ServiceStatus>(
-    geminiApiKey ? 'unknown' : 'unknown'
-  );
+  const [geminiStatus] = useState<ServiceStatus>('unknown');
   const [obsStatus] = useState<ServiceStatus>(
     obsConnected ? 'unknown' : 'unknown'
   );

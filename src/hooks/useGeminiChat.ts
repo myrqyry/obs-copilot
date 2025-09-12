@@ -16,7 +16,6 @@ import { aiSdk5Config } from '@/config';
 export const useGeminiChat = (
   onRefreshData: (() => Promise<void>) | undefined,
   setErrorMessage: (message: string | null) => void,
-  geminiApiKey: string | undefined,
 ) => {
   const isConnected = useConnectionsStore((state) => state.isConnected);
   const obs = useConnectionsStore((state) => state.obs);
@@ -33,13 +32,10 @@ export const useGeminiChat = (
 
   // Effect to initialize Gemini client status (guarded, mount-only)
   useEffect(() => {
-    // On mount, set the initialized flag if an API key is present and the flag isn't already set.
-    // Avoid reacting to every geminiApiKey/isGeminiClientInitialized change to prevent update loops.
-    if (geminiApiKey) {
-      const current = useChatStore.getState().isGeminiClientInitialized;
-      if (!current) {
-        useChatStore.getState().actions.setGeminiClientInitialized(true);
-      }
+    // API key handled by backend - assume client is always initialized
+    const current = useChatStore.getState().isGeminiClientInitialized;
+    if (!current) {
+      useChatStore.getState().actions.setGeminiClientInitialized(true);
     }
 
     // Intentionally do not auto-deinitialize on unmount here to avoid accidental toggling.
@@ -167,18 +163,7 @@ export const useGeminiChat = (
     const userMessageText = chatInputValue.trim();
     const hasObsIntent = /\b(scene|source|filter|stream|record|obs|hide|show|volume|mute|transition)\b/i.test(userMessageText);
 
-    if (!geminiApiKey) {
-      const errorMsg = handleAppError('Gemini chat', new Error('Missing API key'), "Gemini API key is missing. Please set it in the Settings tab.");
-      useUiStore.getState().addError({
-        message: errorMsg,
-        source: 'useGeminiChat',
-        level: 'critical',
-        details: { hasObsIntent }
-      });
-      setErrorMessage(errorMsg);
-      chatActions.addMessage({ role: 'system', text: errorMsg });
-      return;
-    }
+    // API key handled by backend proxy
     
     if (!isConnected && hasObsIntent && !useGoogleSearch) {
       const errorMsg = handleAppError('Gemini chat OBS', new Error('Not connected'), "Hey! I'm not connected to OBS right now, so I can't perform that OBS action. Please connect OBS and try again when you're ready.");
@@ -272,7 +257,7 @@ export const useGeminiChat = (
 } finally {
   setIsLoading(false);
 }
-}, [isLoading, geminiApiKey, isConnected, useGoogleSearch, chatActions, scenes, sources, currentProgramScene, setErrorMessage, onRefreshData, handleObsActionWithDataParts]);
+}, [isLoading, isConnected, useGoogleSearch, chatActions, scenes, sources, currentProgramScene, setErrorMessage, onRefreshData, handleObsActionWithDataParts]);
 
   return {
     isLoading,

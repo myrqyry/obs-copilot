@@ -29,7 +29,6 @@ interface LayoutState {
 export interface SettingsState extends Omit<ThemeState, 'theme'>, LayoutState {
   obsUrl: string;
   obsPassword?: string;
-  geminiApiKey?: string;
   extraDarkMode: boolean;
   streamerBotHost: string;
   streamerBotPort: string;
@@ -44,7 +43,6 @@ export interface SettingsState extends Omit<ThemeState, 'theme'>, LayoutState {
   // Add other settings here as you implement them
   setObsUrl: (url: string) => void;
   setObsPassword: (password: string) => void;
-  setGeminiApiKey: (key: string) => void;
   setExtraDarkMode: (value: boolean) => void;
   setStreamerBotHost: (host: string) => void;
   setStreamerBotPort: (port: string) => void;
@@ -96,7 +94,6 @@ const useSettingsStore = create<SettingsState>()(
       flipSides: false,
       obsUrl: 'ws://localhost:4455',
       obsPassword: '',
-      geminiApiKey: '',
       streamerBotHost: 'localhost',
       streamerBotPort: '8080',
       twitchClientId: '',
@@ -119,7 +116,6 @@ const useSettingsStore = create<SettingsState>()(
       setFlipSides: (flipped) => set({ flipSides: flipped }),
       setObsUrl: (url) => set({ obsUrl: url }),
       setObsPassword: (password) => set({ obsPassword: password }),
-      setGeminiApiKey: (key) => set({ geminiApiKey: key }),
       setExtraDarkMode: (value) => set({ extraDarkMode: value }),
       setStreamerBotHost: (host) => set({ streamerBotHost: host }),
       setStreamerBotPort: (port) => set({ streamerBotPort: port }),
@@ -129,9 +125,9 @@ const useSettingsStore = create<SettingsState>()(
       setTwitchRefreshToken: (token) => set({ twitchRefreshToken: token }),
       setTwitchChatPluginEnabled: (enabled) => set({ twitchChatPluginEnabled: enabled }),
       setAutomationPluginEnabled: (enabled) => set({ automationPluginEnabled: enabled }),
-  setStreamingAssetsPluginEnabled: (enabled) => set({ streamingAssetsPluginEnabled: enabled }),
-  setCreatePluginEnabled: (enabled) => set({ createPluginEnabled: enabled }),
-  setTabOrder: (order: string[]) => set({ tabOrder: order }),
+      setStreamingAssetsPluginEnabled: (enabled) => set({ streamingAssetsPluginEnabled: enabled }),
+      setCreatePluginEnabled: (enabled) => set({ createPluginEnabled: enabled }),
+      setTabOrder: (order: string[]) => set({ tabOrder: order }),
       autoApplySuggestions: true,
       customChatBackground: '',
       bubbleFillOpacity: 0.7,

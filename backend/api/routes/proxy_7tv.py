@@ -1,13 +1,16 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 import httpx
 from urllib.parse import quote
+from ..models import CosmeticsRequest
+from ..auth import get_api_key
 
 router = APIRouter()
 
 
 @router.get('/7tv/cosmetics')
-async def get_7tv_cosmetics(user_identifier: str):
+async def get_7tv_cosmetics(request: CosmeticsRequest = Depends(), api_key: str = Depends(get_api_key)):
     """Proxy to 7tv cosmetics endpoint. Returns {} when 7tv responds 404 so the browser won't log a network 404."""
+    user_identifier = request.user_identifier
     url = f"https://7tv.io/v2/cosmetics?user_identifier={quote(user_identifier)}"
     async with httpx.AsyncClient(timeout=5.0) as client:
         try:

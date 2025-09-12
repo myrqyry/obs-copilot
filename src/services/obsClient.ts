@@ -175,15 +175,26 @@ export class ObsClientImpl {
     }
   }
 
-  private processCommandQueue() {
+  private async processCommandQueue() {
       const queue = this.commandQueue;
       this.commandQueue = [];
       console.log(`[DEBUG] Processing ${queue.length} queued OBS commands`); // Queue processing log
-      queue.forEach(command => {
-        this.call(command.method, command.params)
-          .then(command.resolve)
-          .catch(command.reject);
-      });
+      for (const command of queue) {
+        try {
+          const result = await this.call(command.method, command.params);
+          command.resolve(result);
+        } catch (error) {
+          console.error(`[DEBUG] Queued OBS command failed: ${command.method}`, error);
+          const errorMsg = handleAppError(`Queued OBS ${command.method}`, error, `Failed to process queued command: ${command.method}`);
+          useUiStore.getState().addError({
+            message: errorMsg,
+            source: 'obsClient',
+            level: 'error',
+            details: { method: command.method, params: command.params, error }
+          });
+          command.reject(new ObsError(errorMsg));
+        }
+      }
     }
 
   call<T = any>(method: string, params?: Record<string, any>): Promise<T> {

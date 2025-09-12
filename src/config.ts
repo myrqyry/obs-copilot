@@ -1,4 +1,3 @@
-import { GEMINI_API_KEY_ENV_VAR } from './constants';
 import { logger } from './utils/logger';
 
 const config = {
@@ -13,14 +12,6 @@ export const aiSdk5Config = {
   enableAgenticLoop: import.meta.env.VITE_AI_SDK5_AGENTIC_LOOP === 'true' || false,
   enableSpeechUnification: import.meta.env.VITE_AI_SDK5_SPEECH === 'true' || false,
   enableTypesSafeTools: import.meta.env.VITE_AI_SDK5_TOOLS === 'true' || false,
-};
-
-export const getGeminiApiKey = (): string => {
-  const apiKey = import.meta.env[GEMINI_API_KEY_ENV_VAR] || '';
-  if (!apiKey) {
-    logger.warn(`Warning: ${GEMINI_API_KEY_ENV_VAR} is not set. Gemini features will be disabled.`);
-  }
-  return apiKey;
 };
 
 export default config;

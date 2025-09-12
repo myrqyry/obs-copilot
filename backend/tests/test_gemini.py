@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from backend.main import app
 from backend.api.routes.gemini import get_gemini_client
 
-VALID_API_KEY = "test-api-key"
+VALID_API_KEY = "dev-key"
 
 # Create a mock Gemini client
 mock_gemini_client = MagicMock()
@@ -38,8 +38,8 @@ app.dependency_overrides[get_gemini_client] = override_get_gemini_client
 
 @pytest.fixture(autouse=True)
 def override_api_keys(monkeypatch):
-    """Fixture to set the API_KEYS environment variable for tests."""
-    monkeypatch.setenv("API_KEYS", VALID_API_KEY)
+    """Fixture to set the BACKEND_API_KEY environment variable for tests."""
+    monkeypatch.setenv("BACKEND_API_KEY", VALID_API_KEY)
     # Also mock the GEMINI_API_KEY as it's checked by the real get_gemini_client
     # which is no longer called, but good practice to have it for other tests.
     monkeypatch.setenv("GEMINI_API_KEY", "not-a-real-key")

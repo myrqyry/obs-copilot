@@ -1,8 +1,10 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Depends
 import httpx
 from urllib.parse import quote
 import time
 from typing import Optional
+from ..models import EmoteRequest
+from ..auth import get_api_key
 
 router = APIRouter()
 
@@ -208,7 +210,7 @@ def _normalize_7tv(raw):
 
 
 @router.get('/bttv/global')
-async def bttv_global():
+async def bttv_global(api_key: str = Depends(get_api_key)):
     key = 'bttv:global'
     cached = _cache_get(key)
     if cached is not None:
@@ -228,7 +230,10 @@ async def bttv_global():
 
 
 @router.get('/bttv/channel')
-async def bttv_channel(twitch_id: str = Query(...)):
+async def bttv_channel(request: EmoteRequest = Depends(), api_key: str = Depends(get_api_key)):
+    twitch_id = request.twitch_id
+    if not twitch_id:
+        raise HTTPException(status_code=400, detail="twitch_id required for BTTV channel emotes")
     key = f'bttv:channel:{twitch_id}'
     cached = _cache_get(key)
     if cached is not None:
@@ -250,7 +255,7 @@ async def bttv_channel(twitch_id: str = Query(...)):
 
 
 @router.get('/ffz/global')
-async def ffz_global():
+async def ffz_global(api_key: str = Depends(get_api_key)):
     key = 'ffz:global'
     cached = _cache_get(key)
     if cached is not None:
@@ -270,7 +275,10 @@ async def ffz_global():
 
 
 @router.get('/ffz/channel')
-async def ffz_channel(channel_name: str = Query(...)):
+async def ffz_channel(request: EmoteRequest = Depends(), api_key: str = Depends(get_api_key)):
+    channel_name = request.channel_name
+    if not channel_name:
+        raise HTTPException(status_code=400, detail="channel_name required for FFZ channel emotes")
     key = f'ffz:channel:{channel_name}'
     cached = _cache_get(key)
     if cached is not None:
@@ -292,7 +300,7 @@ async def ffz_channel(channel_name: str = Query(...)):
 
 
 @router.get('/7tv/global')
-async def seven_tv_global():
+async def seven_tv_global(api_key: str = Depends(get_api_key)):
     key = '7tv:global'
     cached = _cache_get(key)
     if cached is not None:
@@ -316,7 +324,10 @@ async def seven_tv_global():
 
 
 @router.get('/7tv/channel')
-async def seven_tv_channel(twitch_id: str = Query(...)):
+async def seven_tv_channel(request: EmoteRequest = Depends(), api_key: str = Depends(get_api_key)):
+    twitch_id = request.twitch_id
+    if not twitch_id:
+        raise HTTPException(status_code=400, detail="twitch_id required for 7TV channel emotes")
     key = f'7tv:channel:{twitch_id}'
     cached = _cache_get(key)
     if cached is not None:

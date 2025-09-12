@@ -3,13 +3,13 @@ from httpx import AsyncClient, ASGITransport, Response, Request
 from unittest.mock import patch, AsyncMock
 from backend.main import app
 
-VALID_API_KEY = "test-api-key"
+VALID_API_KEY = "dev-key"
 GIPHY_API_KEY = "test-giphy-key"
 
 @pytest.fixture(autouse=True)
 def override_api_keys(monkeypatch):
     """Fixture to set environment variables for tests."""
-    monkeypatch.setenv("API_KEYS", VALID_API_KEY)
+    monkeypatch.setenv("BACKEND_API_KEY", VALID_API_KEY)
     monkeypatch.setenv("GIPHY_API_KEY", GIPHY_API_KEY)
 
 @pytest.mark.asyncio

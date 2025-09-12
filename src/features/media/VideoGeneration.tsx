@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import useSettingsStore from '@/store/settingsStore';
-import useApiKeyStore, { ApiService } from '@/store/apiKeyStore';
 import { geminiService } from '@/services/geminiService';
 import { CardContent } from '@/components/ui/Card';
 import { CustomButton as Button } from '@/components/ui/CustomButton';
@@ -27,7 +26,6 @@ const VideoGeneration: React.FC = () => {
 
     const accentColorName = useSettingsStore(state => state.theme.accent);
     const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
-    const geminiApiKey = useApiKeyStore(state => state.getApiKeyOverride(ApiService.GEMINI));
 
     const ASPECT_RATIOS = [
         { value: '16:9', label: 'Widescreen (16:9)' },
@@ -53,10 +51,7 @@ const VideoGeneration: React.FC = () => {
         setDownloadUrl(null);
 
         try {
-            if (!geminiApiKey) {
-                throw new Error('Gemini API key is missing. Please set it in the Connections tab.');
-            }
-
+            // API key handled by backend proxy
             // Generate video using geminiService
             const videoUrls = await geminiService.generateVideo(prompt, {
                 model,

@@ -19,7 +19,6 @@ import { handleAppError, createToastError } from '@/lib/errorUtils';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from '../../lib/canvasUtils';
 import { geminiService } from '@/services/geminiService';
-import useApiKeyStore, { ApiService } from '@/store/apiKeyStore';
 import { CollapsibleCard } from '@/components/common/CollapsibleCard';
 import { ImageUpload } from '@/components/common/ImageUpload';
 import { ImageUploadResult } from '@/types/audio';
@@ -68,7 +67,6 @@ export const AIImageEditor: React.FC = () => {
     const [showGeneratedImages, setShowGeneratedImages] = useState(false);
 
     const { obsServiceInstance, isConnected, currentProgramScene } = useConnectionManagerStore();
-    const geminiApiKey = useApiKeyStore(state => state.getApiKeyOverride(ApiService.GEMINI)) || import.meta.env.VITE_GEMINI_API_KEY || '';
 
     useEffect(() => {
         return () => {
@@ -310,11 +308,7 @@ export const AIImageEditor: React.FC = () => {
             return;
         }
 
-        if (!geminiApiKey) {
-            setAiError('Gemini API key is missing. Please set it in the Connections tab.');
-            return;
-        }
-
+        // API key handled by backend proxy
         setAiLoading(true);
         setAiError(null);
         setGeneratedImages([]);
@@ -356,11 +350,7 @@ export const AIImageEditor: React.FC = () => {
             return;
         }
 
-        if (!geminiApiKey) {
-            setAiError('Gemini API key is missing. Please set it in the Connections tab.');
-            return;
-        }
-
+        // API key handled by backend proxy
         setAiLoading(true);
         setAiError(null);
 
@@ -940,7 +930,7 @@ export const AIImageEditor: React.FC = () => {
                                 {showAiPanel && !aiLoading && (
                                     <Button 
                                         onClick={handleGenerateImage}
-                                        disabled={!aiPrompt || !geminiApiKey}
+                                        disabled={!aiPrompt}
                                         className="mt-4 text-xs"
                                         size="sm"
                                     >

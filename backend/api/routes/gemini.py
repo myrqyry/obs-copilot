@@ -11,28 +11,25 @@ from google import genai
 from google.genai import types
 from google.genai.errors import APIError
 
-try:
-    from .auth import get_api_key
-except ImportError:
-    from auth import get_api_key
+from ..auth import get_api_key
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # Pydantic models remain the same
 class EnhancedImageGenerateRequest(BaseModel):
-    prompt: str
-    model: str = "imagen-4.0-fast-generate-001"
-    imageFormat: str = "png"
-    aspectRatio: str = "1:1"
-    personGeneration: str = "allow_adult"
-    imageInput: Optional[str] = None
-    imageInputMimeType: Optional[str] = None
+    prompt: str = Field(..., min_length=1, max_length=1000)
+    model: str = Field("imagen-4.0-fast-generate-001", regex=r"^(imagen-4\.0-(fast-)?generate-001|gemini-2\.5-flash-image-preview)$")
+    imageFormat: str = Field("png", regex=r"^(png|jpeg|webp)$")
+    aspectRatio: str = Field("1:1", regex=r"^(1:1|3:4|4:3|9:16|16:9)$")
+    personGeneration: str = Field("allow_adult", regex=r"^(allow_adult|dont_allow)$")
+    imageInput: Optional[str] = Field(None, max_length=5000000)  # ~5MB base64 limit
+    imageInputMimeType: Optional[str] = Field(None, regex=r"^image/(jpeg|png|gif|webp)$")
 
 class StreamRequest(BaseModel):
-    prompt: str
-    model: str = "gemini-2.5-flash"
-    history: Optional[List[Dict]] = None
+    prompt: str = Field(..., min_length=1, max_length=1000)
+    model: str = Field("gemini-2.5-flash", regex=r"^(gemini-2\.5-(flash|pro)|gemini-2\.0-(flash|pro))$")
+    history: Optional[List[Dict]] = Field(None, max_items=50)
 
 def get_gemini_client():
     api_key = os.getenv("GEMINI_API_KEY")
@@ -62,8 +59,8 @@ def stream_generator(response):
     finally:
         yield f"data: {json.dumps({'type': 'usage', 'data': {'total_tokens': total_tokens}})}\n\n"
 
-@router.post("/stream", dependencies=[Depends(get_api_key)])
-def stream_content(request: StreamRequest, client: genai.Client = Depends(get_gemini_client)):
+@router.post("/stream")
+def stream_content(request: StreamRequest, client: genai.Client = Depends(get_gemini_client), api_key: str = Depends(get_api_key)):
     # Corrected implementation using client.models.generate_content_stream
     try:
         contents = []
@@ -87,8 +84,8 @@ def stream_content(request: StreamRequest, client: genai.Client = Depends(get_ge
         logger.error(f"Unexpected error in stream_content endpoint: {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred.")
 
-@router.post("/generate-image-enhanced", dependencies=[Depends(get_api_key)])
-def generate_image_enhanced(request: EnhancedImageGenerateRequest, client: genai.Client = Depends(get_gemini_client)):
+@router.post("/generate-image-enhanced")
+def generate_image_enhanced(request: EnhancedImageGenerateRequest, client: genai.Client = Depends(get_gemini_client), api_key: str = Depends(get_api_key)):
     # Corrected synchronous implementation
     try:
         if request.imageInput and request.imageInputMimeType:

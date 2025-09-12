@@ -4,10 +4,8 @@ import httpx
 from fastapi import APIRouter, HTTPException, Request, Depends, status
 from fastapi.responses import Response
 from urllib.parse import urlparse
-try:
-    from .auth import get_api_key
-except Exception:
-    from auth import get_api_key
+from ..auth import get_api_key
+from ..models import SearchRequest, ImageProxyRequest  # Assuming these exist
 
 router = APIRouter()
 
@@ -81,7 +79,7 @@ API_CONFIGS = {
 
 
 @router.get("/search/{api_name}")
-async def search_assets(api_name: str, request: Request):
+async def search_assets(api_name: str, request: SearchRequest = Depends(), api_key: str = Depends(get_api_key)):
     """
     A generic proxy endpoint to search various third-party asset APIs.
     This version includes more robust key handling and error reporting.
@@ -102,12 +100,14 @@ async def search_assets(api_name: str, request: Request):
         api_key = os.getenv(key_env_variable)
         # Don't fail if API key is missing in development mode
 
-    # Forward all query parameters from the frontend request
-    params = {**config.get("default_params", {}), **dict(request.query_params)}
-
-    # Standardize the main search query parameter from 'query' to 'q' for Giphy/Tenor
-    if "query" in params:
-        params["q"] = params.pop("query")
+    # Use validated query parameters from SearchRequest
+    params = {**config.get("default_params", {})}
+    if request.query:
+        params["q"] = request.query  # Standardize to 'q' for most APIs
+    if request.page:
+        params["page"] = request.page
+    if request.limit:
+        params["per_page"] = request.limit  # or adjust based on API
 
     headers = {}
     if api_key: # Only add API key if it exists
@@ -156,15 +156,13 @@ ALLOWED_IMAGE_DOMAINS = [
 ]
 
 @router.get("/proxy-image")
-async def proxy_image(image_url: str):
+async def proxy_image(request: ImageProxyRequest, api_key: str = Depends(get_api_key)):
     """
     Proxies an image URL to bypass CORS issues, with SSRF protection.
     """
+    image_url = str(request.image_url)
     try:
         parsed_url = urlparse(image_url)
-        if not parsed_url.scheme or not parsed_url.netloc:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid URL provided.")
-
         if parsed_url.hostname not in ALLOWED_IMAGE_DOMAINS:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Image source is not allowed.")
 
