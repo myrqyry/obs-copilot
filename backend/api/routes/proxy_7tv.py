@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 import httpx
 from urllib.parse import quote
 from ..models import CosmeticsRequest
-from ..auth import get_api_key
+from auth import get_api_key
 
 router = APIRouter()
 

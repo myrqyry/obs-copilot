@@ -4,7 +4,7 @@ from urllib.parse import quote
 import time
 from typing import Optional
 from ..models import EmoteRequest
-from ..auth import get_api_key
+from auth import get_api_key
 
 router = APIRouter()
 

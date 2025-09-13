@@ -24,17 +24,17 @@ except Exception as e:
 # Pydantic models remain the same
 class EnhancedImageGenerateRequest(BaseModel):
     prompt: str = Field(..., min_length=1, max_length=1000)
-    model: str = Field("imagen-4.0-fast-generate-001", regex=r"^(imagen-4\.0-(fast-)?generate-001|gemini-2\.5-flash-image-preview)$")
-    imageFormat: str = Field("png", regex=r"^(png|jpeg|webp)$")
-    aspectRatio: str = Field("1:1", regex=r"^(1:1|3:4|4:3|9:16|16:9)$")
-    personGeneration: str = Field("allow_adult", regex=r"^(allow_adult|dont_allow)$")
+    model: str = Field("imagen-4.0-fast-generate-001", pattern=r"^(imagen-4\.0-(fast-)?generate-001|gemini-2\.5-flash-image-preview)$")
+    imageFormat: str = Field("png", pattern=r"^(png|jpeg|webp)$")
+    aspectRatio: str = Field("1:1", pattern=r"^(1:1|3:4|4:3|9:16|16:9)$")
+    personGeneration: str = Field("allow_adult", pattern=r"^(allow_adult|dont_allow)$")
     imageInput: Optional[str] = Field(None, max_length=5000000)  # ~5MB base64 limit
-    imageInputMimeType: Optional[str] = Field(None, regex=r"^image/(jpeg|png|gif|webp)$")
+    imageInputMimeType: Optional[str] = Field(None, pattern=r"^image/(jpeg|png|gif|webp)$")
 
 class StreamRequest(BaseModel):
     prompt: str = Field(..., min_length=1, max_length=1000)
-    model: str = Field("gemini-2.5-flash", regex=r"^(gemini-2\.5-(flash|pro)|gemini-2\.0-(flash|pro))$")
-    history: Optional[List[Dict]] = Field(None, max_items=50)
+    model: str = Field("gemini-2.5-flash", pattern=r"^(gemini-2\.5-(flash|pro)|gemini-2\.0-(flash|pro))$")
+    history: Optional[List[Dict]] = Field(None, max_length=50)
 
 def get_gemini_client():
     if gemini_client is None:

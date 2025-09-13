@@ -5,7 +5,7 @@ import re
 class SearchRequest(BaseModel):
     """Validation for asset search queries."""
     query: str = Field(..., min_length=1, max_length=200, description="Search query")
-    api_name: str = Field(..., regex=r"^(giphy|tenor|pixabay|pexels|unsplash|tenor_stickers|wallhaven|iconfinder|iconify|emoji-api)$")
+    api_name: str = Field(..., pattern=r"^(giphy|tenor|pixabay|pexels|unsplash|tenor_stickers|wallhaven|iconfinder|iconify|emoji-api)$")
     page: Optional[int] = Field(None, ge=1, le=100)
     limit: Optional[int] = Field(None, ge=1, le=50)
 

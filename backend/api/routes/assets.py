@@ -4,8 +4,8 @@ import httpx
 from fastapi import APIRouter, HTTPException, Request, Depends, status
 from fastapi.responses import Response
 from urllib.parse import urlparse
-from ..auth import get_api_key
-from ..models import SearchRequest, ImageProxyRequest  # Assuming these exist
+from auth import get_api_key
+from api.models import SearchRequest, ImageProxyRequest
 
 router = APIRouter()
 

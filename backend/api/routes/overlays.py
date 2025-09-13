@@ -3,7 +3,7 @@ from fastapi.responses import StreamingResponse, JSONResponse
 import asyncio
 import json
 from ..models import StreamRequest, PublishRequest
-from ..auth import get_api_key
+from auth import get_api_key
 
 router = APIRouter()
 
