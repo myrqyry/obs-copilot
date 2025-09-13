@@ -65,73 +65,34 @@ function runCommand(command, options = {}) {
   }
 }
 
-function getPythonExecutable(venvPath) {
-  const isWindows = process.platform === 'win32';
-  const pyInVenv = isWindows
-    ? path.join(venvPath, 'Scripts', 'python.exe')
-    : path.join(venvPath, 'bin', 'python');
-
-  // Use the virtual environment's Python if it exists
-  if (fs.existsSync(pyInVenv)) {
-    return pyInVenv;
+function ensurePoetry() {
+  try {
+    runCommand('poetry --version');
+    logSuccess('Poetry found');
+    return true;
+  } catch (error) {
+    logError('Poetry not found. Please install it first:');
+    console.log('  curl -sSL https://install.python-poetry.org | python3 -');
+    process.exit(1);
   }
-
-  // Fall back to system Python
-  return isWindows ? 'python' : 'python3';
 }
 
-async function ensureVenv() {
-  const repoRoot = process.cwd();
-  const venvRel = path.join('backend', 'venv');
-  const venvPath = path.resolve(repoRoot, venvRel);
+async function installDependencies() {
+  const pyprojectPath = path.join(process.cwd(), 'backend', 'pyproject.toml');
 
-  if (!fs.existsSync(venvPath)) {
-    logInfo('Creating Python virtual environment...');
-    
-    // Try python3 first, then python
-    const pythonCommands = ['python3', 'python'];
-    let venvCreated = false;
-    
-    for (const pyCmd of pythonCommands) {
-      try {
-        runCommand(`${pyCmd} -m venv "${venvPath}"`);
-        logSuccess(`Virtual environment created at ${venvRel}`);
-        venvCreated = true;
-        break;
-      } catch (error) {
-        logWarning(`Failed to create venv with ${pyCmd}, trying next...`);
-      }
-    }
-    
-    if (!venvCreated) {
-      logError('Failed to create virtual environment. Please ensure Python is installed.');
-      process.exit(1);
-    }
-  } else {
-    logInfo(`Using existing virtual environment at ${venvRel}`);
-  }
-
-  return venvPath;
-}
-
-async function installDependencies(venvPath) {
-  const pythonExec = getPythonExecutable(venvPath);
-  const requirementsPath = path.join('backend', 'requirements.txt');
-  
-  if (!fs.existsSync(requirementsPath)) {
-    logWarning(`Requirements file not found at ${requirementsPath}`);
+  if (!fs.existsSync(pyprojectPath)) {
+    logWarning(`pyproject.toml not found at ${pyprojectPath}`);
     return false;
   }
 
   try {
-    logInfo('Installing Python dependencies...');
-    runCommand(`"${pythonExec}" -m pip install --upgrade pip`);
-    runCommand(`"${pythonExec}" -m pip install -r "${requirementsPath}"`);
+    logInfo('Installing Python dependencies with Poetry...');
+    runCommand('poetry install', { cwd: path.join(process.cwd(), 'backend') });
     logSuccess('Dependencies installed successfully');
     return true;
   } catch (error) {
     logWarning('Failed to install dependencies. You may need to install them manually:');
-    console.log(`  ${pythonExec} -m pip install -r ${requirementsPath}`);
+    console.log('  cd backend && poetry install');
     return false;
   }
 }
@@ -156,8 +117,7 @@ function checkPortInUse(port) {
   });
 }
 
-async function startUvicorn(venvPath) {
-  const pythonExec = getPythonExecutable(venvPath);
+async function startUvicorn() {
   let port = process.env.BACKEND_PORT || process.env.PORT || '8000';
   const host = process.env.BACKEND_HOST || '0.0.0.0';
 
@@ -166,48 +126,46 @@ async function startUvicorn(venvPath) {
     logWarning('Port 8000 is in use, trying port 8001...');
     port = '8001';
   }
-  
+
   const enableReload = (process.env.BACKEND_RELOAD || 'true').toLowerCase() !== 'false';
 
-  const uvicornArgsBase = [
-    '-m', 'uvicorn',
-    'backend.main:app',
+  const uvicornArgs = [
+    'run',
+    'uvicorn',
+    'main:app',
     '--port', port,
-    '--host', host,
-    '--app-dir', path.join(process.cwd(), 'backend')
+    '--host', host
   ];
 
   // Conditionally add reload args to avoid consuming many file watchers when not desired
-  const uvicornArgs = enableReload
-    ? uvicornArgsBase.concat([
-        '--reload',
-        '--reload-dir', path.join(process.cwd(), 'backend'),
-        '--reload-exclude', '**/venv/**',
-        '--reload-exclude', '**/__pycache__/**',
-        '--reload-exclude', '**/*.pyc',
-        '--reload-exclude', '**/*.pyo',
-        '--reload-exclude', '**/.pytest_cache/**',
-        '--reload-exclude', '**/.mypy_cache/**',
-        '--reload-exclude', '**/.coverage',
-        '--reload-exclude', '**/htmlcov/**',
-        '--reload-exclude', '**/.tox/**',
-        '--reload-exclude', '**/tests/**',
-        '--reload-exclude', '**/.env*',
-        '--reload-exclude', '**/*.log',
-        '--reload-exclude', '**/.DS_Store',
-        '--reload-exclude', '**/Thumbs.db',
-        '--reload-exclude', '**/*.swp',
-        '--reload-exclude', '**/*.swo',
-        '--reload-exclude', '**/*~'
-      ])
-    : uvicornArgsBase;
+  if (enableReload) {
+    uvicornArgs.push(
+      '--reload',
+      '--reload-dir', '.',
+      '--reload-exclude', '**/__pycache__/**',
+      '--reload-exclude', '**/*.pyc',
+      '--reload-exclude', '**/*.pyo',
+      '--reload-exclude', '**/.pytest_cache/**',
+      '--reload-exclude', '**/.mypy_cache/**',
+      '--reload-exclude', '**/.coverage',
+      '--reload-exclude', '**/htmlcov/**',
+      '--reload-exclude', '**/.tox/**',
+      '--reload-exclude', '**/.env*',
+      '--reload-exclude', '**/*.log',
+      '--reload-exclude', '**/.DS_Store',
+      '--reload-exclude', '**/Thumbs.db',
+      '--reload-exclude', '**/*.swp',
+      '--reload-exclude', '**/*.swo',
+      '--reload-exclude', '**/*~'
+    );
+  }
 
   logInfo(`Starting backend server at http://${host}:${port}`);
-  logInfo(`Using Python: ${pythonExec}`);
-  logInfo(`Uvicorn args: ${uvicornArgs.join(' ')}`);
+  logInfo(`Using Poetry to run uvicorn`);
 
-  const child = spawn(pythonExec, uvicornArgs, { 
+  const child = spawn('poetry', uvicornArgs, {
     stdio: 'inherit',
+    cwd: path.join(process.cwd(), 'backend'),
     env: { ...process.env, FORCE_COLOR: '1' }
   });
 
@@ -236,16 +194,16 @@ async function startUvicorn(venvPath) {
 async function main() {
   try {
     console.log(`\n${COLORS.bright}🚀 Starting OBS Copilot Backend${COLORS.reset}\n`);
-    
-    // 1. Ensure virtual environment exists
-    const venvPath = await ensureVenv();
-    
+
+    // 1. Ensure Poetry is installed
+    ensurePoetry();
+
     // 2. Install dependencies (best effort)
-    await installDependencies(venvPath);
-    
+    await installDependencies();
+
     // 3. Start the backend server
-    startUvicorn(venvPath);
-    
+    startUvicorn();
+
   } catch (error) {
     logError('An unexpected error occurred', error);
     process.exit(1);

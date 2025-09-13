@@ -30,7 +30,7 @@ echo -e "${GREEN}✓ Found Node.js $NODE_VERSION and npm $NPM_VERSION${NC}"
 
 # Install frontend dependencies
 echo -e "\n${YELLOW}📦 Installing frontend dependencies...${NC}"
-npm install
+pnpm install
 
 # Check if installation was successful
 if [ $? -ne 0 ]; then
@@ -51,8 +51,8 @@ fi
 
 echo -e "\n${GREEN}🎉 Development environment setup completed successfully!${NC}"
 echo -e "\n${BLUE}Next steps:${NC}"
-echo -e "1. Start the development server: ${YELLOW}npm run dev${NC}"
+echo -e "1. Start the development server: ${YELLOW}pnpm dev${NC}"
 echo -e "   - Frontend will be available at ${YELLOW}http://localhost:5173${NC}"
 echo -e "   - Backend API will be available at ${YELLOW}http://localhost:8000${NC}"
-echo -e "\n2. For production build: ${YELLOW}npm run build${NC}"
+echo -e "\n2. For production build: ${YELLOW}pnpm build${NC}"
 echo -e "\n${BLUE}Happy coding! 🚀${NC}"
