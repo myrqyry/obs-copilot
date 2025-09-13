@@ -3,7 +3,7 @@ import logging
 import json
 import os
 from typing import Optional, List, Dict
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.responses import StreamingResponse
 # Corrected imports according to guidelines
@@ -11,10 +11,15 @@ from google import genai
 from google.genai import types
 from google.genai.errors import APIError
 
-from ..auth import get_api_key
-
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# Module-level singleton client
+gemini_client = None
+try:
+    gemini_client = genai.Client()
+except Exception as e:
+    logger.error(f"Failed to initialize Gemini client: {e}", exc_info=True)
 
 # Pydantic models remain the same
 class EnhancedImageGenerateRequest(BaseModel):
@@ -32,14 +37,12 @@ class StreamRequest(BaseModel):
     history: Optional[List[Dict]] = Field(None, max_items=50)
 
 def get_gemini_client():
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
+    if gemini_client is None:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="GEMINI_API_KEY not configured",
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Gemini service unavailable"
         )
-    # Corrected client initialization
-    return genai.Client(api_key=api_key)
+    return gemini_client
 
 def stream_generator(response):
     # This generator is now synchronous as per the guidelines
@@ -54,13 +57,13 @@ def stream_generator(response):
         logger.error(f"Gemini API error during streaming: {e}")
         yield f"data: {json.dumps({'type': 'error', 'data': f'AI service error: {e.message}'})}\n\n"
     except Exception as e:
-        logger.error(f"Unexpected error during streaming: {e}")
+        logger.error(f"Unexpected error during streaming: {e}", exc_info=True)
         yield f"data: {json.dumps({'type': 'error', 'data': 'An unexpected error occurred during streaming.'})}\n\n"
     finally:
         yield f"data: {json.dumps({'type': 'usage', 'data': {'total_tokens': total_tokens}})}\n\n"
 
 @router.post("/stream")
-def stream_content(request: StreamRequest, client: genai.Client = Depends(get_gemini_client), api_key: str = Depends(get_api_key)):
+def stream_content(request: StreamRequest, client: genai.Client = Depends(get_gemini_client)):
     # Corrected implementation using client.models.generate_content_stream
     try:
         contents = []
@@ -85,7 +88,7 @@ def stream_content(request: StreamRequest, client: genai.Client = Depends(get_ge
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred.")
 
 @router.post("/generate-image-enhanced")
-def generate_image_enhanced(request: EnhancedImageGenerateRequest, client: genai.Client = Depends(get_gemini_client), api_key: str = Depends(get_api_key)):
+def generate_image_enhanced(request: EnhancedImageGenerateRequest, client: genai.Client = Depends(get_gemini_client)):
     # Corrected synchronous implementation
     try:
         if request.imageInput and request.imageInputMimeType:
