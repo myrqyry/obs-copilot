@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button.radix";
+import { Button } from "@/components/ui";
 
 interface SocialIcon {
   Icon: React.ComponentType<any>;

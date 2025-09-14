@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { CustomButton as Button } from '@/components/ui/CustomButton';
+import { Button } from "@/components/ui";
 import { Upload, X } from 'lucide-react';
 
 interface ImageUploadProps {

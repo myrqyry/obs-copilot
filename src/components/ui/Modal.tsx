@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { CustomButton as Button } from '@/components/ui/CustomButton';
+import { Button } from "@/components/ui";
 import { usePortal } from '@/lib/portalUtils'; // Import the new usePortal hook
 
 interface ModalAction {

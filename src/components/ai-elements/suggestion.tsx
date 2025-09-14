@@ -1,6 +1,6 @@
 'use client';
 
-import { CustomButton as Button } from '@/components/ui/CustomButton';
+import { Button } from "@/components/ui";
 import {
   ScrollArea,
   ScrollBar,

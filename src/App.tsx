@@ -7,16 +7,11 @@ import './utils/gsapTest';
 import ComprehensiveErrorBoundary from './components/common/ComprehensiveErrorBoundary';
 import { Header } from './components/layout/Header';
 import { TabNavigation } from './components/layout/TabNavigation';
-import { TooltipProvider } from './contexts/TooltipContext';
+import { TooltipProvider } from "@/components/ui";
 import { ConnectionProvider } from './features/connections/ConnectionProvider';
 import useSettingsStore from './store/settingsStore';
 import { usePlugins } from './hooks/usePlugins';
-import { useTheme } from './hooks/useTheme'; // Register GSAP plugins for animations
- try {
-   gsap.registerPlugin(MorphSVGPlugin);
- } catch (error) {
-   console.warn('GSAP plugin registration failed:', error);
- }
+import { useTheme } from './hooks/useTheme';
 
  import TwitchCallback from './features/auth/TwitchCallback';
 

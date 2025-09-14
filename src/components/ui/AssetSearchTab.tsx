@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { EnhancedAssetSearch } from '@/components/asset-search/EnhancedAssetSearch';
 import { ASSET_SEARCH_CONFIGS } from '@/config/assetSearchConfigs';
 import { StandardApiItem, AssetModalActions } from '@/types/assetSearch';
-import { CustomButton as Button } from '@/components/ui/CustomButton';
+import { Button } from "@/components/ui";
 import { toast } from '@/components/ui/toast';
 import { copyToClipboard } from '@/utils/persistence';
 import SecureHtmlRenderer from '@/components/ui/SecureHtmlRenderer';

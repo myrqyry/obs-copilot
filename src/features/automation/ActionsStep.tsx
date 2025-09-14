@@ -1,5 +1,5 @@
 import React from 'react';
-import { CustomButton as Button } from '@/components/ui/CustomButton';
+import { Button } from "@/components/ui";
 import { AutomationAction, FileExistsActionData, FolderExistsActionData, StreamerBotActionData } from '@/types/automation';
 import { ObsAction, SetCurrentProgramSceneAction } from '@/types/obsActions';
 import useConnectionsStore from '@/store/connectionsStore';

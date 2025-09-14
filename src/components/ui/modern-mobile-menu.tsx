@@ -111,7 +111,7 @@ const InteractiveMenu: React.FC<InteractiveMenuProps> = ({ items, accentColor })
 
 export {InteractiveMenu}
 "use client";
-import { Button } from "@/components/ui/button.radix";
+import { Button } from "@/components/ui";
 import { X, Menu } from "lucide-react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 

@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import useSettingsStore from '@/store/settingsStore';
 import { geminiService } from '@/services/geminiService';
 import { CardContent } from '@/components/ui/Card';
-import { CustomButton as Button } from '@/components/ui/CustomButton';
+import { Button } from "@/components/ui";
 import { CollapsibleCard } from '@/components/common/CollapsibleCard';
 import { catppuccinAccentColorsHexMap } from '@/types';
-import Tooltip from '@/components/ui/Tooltip';
+import { Tooltip } from "@/components/ui";
 import { gsap } from 'gsap';
 import { prefersReducedMotion } from '@/lib/utils';
 

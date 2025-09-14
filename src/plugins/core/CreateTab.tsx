@@ -2,7 +2,7 @@
 import React from 'react';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import { CardContent } from '@/components/ui/Card';
-import { CustomButton as Button } from '@/components/ui/CustomButton';
+import { Button } from "@/components/ui";
 import ImageGenerator from '../../features/media/ImageGeneration';
 import MusicGenerator from '../../features/media/MusicGeneration';
 import TTSGenerator from '../../features/media/SpeechGeneration';

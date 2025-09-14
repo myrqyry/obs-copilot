@@ -1,6 +1,6 @@
 import React from 'react';
 import { OBSSource } from '@/types';
-import Tooltip from '@/components/ui/Tooltip';
+import { Tooltip } from "@/components/ui";
 
 interface SourcePromptProps {
     prompt: string;

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { FaviconIcon } from '@/components/common/FaviconIcon';
-import Tooltip from '@/components/ui/Tooltip';
+import { Tooltip } from "@/components/ui";
 import { SecureHtmlRenderer } from '@/components/ui/SecureHtmlRenderer';
 
 interface CollapsibleCardProps {

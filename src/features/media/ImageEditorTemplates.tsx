@@ -1,6 +1,6 @@
 // src/features/media/ImageEditorTemplates.tsx
 import React from 'react';
-import { CustomButton as Button } from '@/components/ui/CustomButton';
+import { Button } from "@/components/ui";
 import { CardContent } from '@/components/ui/Card';
 import { Sparkles, Users, Globe, BookOpen, Camera, Palette } from 'lucide-react';
 

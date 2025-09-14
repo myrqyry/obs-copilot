@@ -11,7 +11,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import { gsap } from 'gsap';
 import { getRandomSuggestions } from '@/constants/chatSuggestions';
 import useSettingsStore from '@/store/settingsStore';
-import Tooltip from '@/components/ui/Tooltip';
+import { Tooltip } from "@/components/ui";
 import { Message, MessageContent } from '@/components/ai-elements';
 import { Sources, SourcesTrigger, SourcesContent, Source } from '@/components/ai-elements/source';
 

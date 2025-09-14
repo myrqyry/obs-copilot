@@ -8,7 +8,7 @@ import { generateSourceName } from '@/utils/obsSourceHelpers';
 import { copyToClipboard } from '@/utils/persistence';
 import { CardContent } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
-import { CustomButton as Button } from '@/components/ui/CustomButton';
+import { Button } from "@/components/ui";
 import { CollapsibleCard } from '@/components/common/CollapsibleCard';
 import { TextInput } from '@/components/common/TextInput';
 import { ImageUpload } from '@/components/common/ImageUpload';

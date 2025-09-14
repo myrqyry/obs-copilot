@@ -3,7 +3,7 @@
 import * as React from "react";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui";
 import { Cross2Icon } from "@radix-ui/react-icons";
 
 const TRANSITION = {

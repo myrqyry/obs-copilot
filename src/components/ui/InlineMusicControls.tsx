@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAudioStore } from '@/store/audioStore';
-import { CustomButton as Button } from '@/components/ui/CustomButton';
+import { Button } from "@/components/ui";
 import MusicVisualizer from '@/components/common/MusicVisualizer';
 
 const PlayIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>;

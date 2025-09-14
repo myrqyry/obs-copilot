@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useAudioStore } from '@/store/audioStore';
-import { CustomButton as Button } from '@/components/ui/CustomButton';
+import { Button } from "@/components/ui";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 
 const AudioOutputSelector: React.FC = () => {

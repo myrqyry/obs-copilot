@@ -1,4 +1,4 @@
-import Tooltip from '@/components/ui/Tooltip';
+import { Tooltip } from "@/components/ui";
 
 import React, { useRef, useEffect } from 'react';
 import { gsap } from 'gsap';

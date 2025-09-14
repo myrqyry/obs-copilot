@@ -11,7 +11,7 @@ import {
   DialogTrigger,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { CustomButton as Button } from '@/components/ui/CustomButton';
+import { Button } from "@/components/ui";
 import useSettingsStore from '@/store/settingsStore';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

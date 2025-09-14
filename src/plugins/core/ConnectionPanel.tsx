@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
-import { CustomButton as Button } from '@/components/ui/CustomButton';
+import { Button } from "@/components/ui";
 import { ConnectionStatusIcon } from './ConnectionStatusIcon';
 import { ConnectionProfile, ObsConnectionProfile, StreamerbotConnectionProfile } from '@/types/connections';
 import useConnectionsStore from '@/store/connectionsStore';

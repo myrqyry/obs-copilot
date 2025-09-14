@@ -1,8 +1,8 @@
 import '@testing-library/jest-dom';
 import * as zustand from 'zustand';
-import { jest } from '@jest/globals';
+import { vi, beforeEach } from 'vitest';
 
-const { create: actualCreate, ...rest } = jest.requireActual('zustand');
+const { create: actualCreate, ...rest } = zustand;
 
 const stores = new Set();
 
@@ -19,4 +19,4 @@ beforeEach(() => {
   });
 });
 
-jest.spyOn(zustand, 'create').mockImplementation(create);
+vi.spyOn(zustand, 'create').mockImplementation(create);

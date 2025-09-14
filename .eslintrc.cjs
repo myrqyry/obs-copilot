@@ -15,7 +15,7 @@ module.exports = {
     'eslint:recommended',
     'plugin:react/recommended',
     'plugin:react-hooks/recommended',
-    'prettier'
+    'plugin:prettier/recommended'
   ],
   overrides: [
     {
@@ -24,7 +24,8 @@ module.exports = {
       // applies consistently for all TS/TSX files.
       extends: [
         'plugin:@typescript-eslint/recommended',
-        'plugin:@typescript-eslint/recommended-requiring-type-checking'
+        'plugin:@typescript-eslint/recommended-requiring-type-checking',
+        'plugin:prettier/recommended'
       ],
       rules: {
         // TypeScript-specific overrides can go here
@@ -34,6 +35,7 @@ module.exports = {
   rules: {
     // project-specific overrides
     '@typescript-eslint/explicit-module-boundary-types': 'off',
-    'react/react-in-jsx-scope': 'off'
+    'react/react-in-jsx-scope': 'off',
+    'prettier/prettier': 'error'
   }
 };
