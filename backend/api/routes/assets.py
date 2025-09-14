@@ -1,11 +1,15 @@
 # backend/api/routes/assets.py
 import os
+import logging
 import httpx
 from fastapi import APIRouter, HTTPException, Request, Depends, status
 from fastapi.responses import Response
 from urllib.parse import urlparse
 from auth import get_api_key
 from api.models import SearchRequest, ImageProxyRequest
+
+logger = logging.getLogger(__name__)
+router = APIRouter()
 
 router = APIRouter()
 
@@ -118,6 +122,7 @@ async def search_assets(api_name: str, request: SearchRequest = Depends(), api_k
 
     async with httpx.AsyncClient() as client:
         try:
+            logger.info(f"Searching {api_name} API with query: {request.query}")
             response = await client.get(
                 config["base_url"], params=params, headers=headers, timeout=10.0
             )
@@ -128,16 +133,27 @@ async def search_assets(api_name: str, request: SearchRequest = Depends(), api_k
             
             # If a dataPath is defined, try to extract the data from that path
             if data_path:
-                return data.get(data_path, [])
+                result = data.get(data_path, [])
+                logger.info(f"Retrieved {len(result)} results from {api_name}")
+                return result
             
+            logger.info(f"Retrieved data from {api_name}")
             return data
         except httpx.HTTPStatusError as e:
+            logger.error(f"HTTP error from {api_name} API: {e.response.status_code} - {e.response.text}")
             # Forward the exact error from the external API (e.g., Giphy)
             raise HTTPException(
                 status_code=e.response.status_code,
                 detail=f"Error from {api_name} API: {e.response.text}",
             )
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error from {api_name} API: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Invalid response from {api_name} API: {str(e)}",
+            )
         except Exception as e:
+            logger.error(f"Unexpected error in {api_name} search: {str(e)}", exc_info=True)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"An unexpected error occurred: {str(e)}",
@@ -162,8 +178,10 @@ async def proxy_image(request: ImageProxyRequest, api_key: str = Depends(get_api
     """
     image_url = str(request.image_url)
     try:
+        logger.info(f"Proxying image from: {image_url}")
         parsed_url = urlparse(image_url)
         if parsed_url.hostname not in ALLOWED_IMAGE_DOMAINS:
+            logger.warning(f"Blocked unauthorized image domain: {parsed_url.hostname}")
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Image source is not allowed.")
 
         # Use httpx with follow_redirects=False to prevent redirect-based SSRF
@@ -173,15 +191,19 @@ async def proxy_image(request: ImageProxyRequest, api_key: str = Depends(get_api
 
             content_type = real_response.headers.get("Content-Type", "application/octet-stream")
             if not content_type.startswith("image/"):
+                 logger.warning(f"Non-image content type: {content_type} for URL {image_url}")
                  raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="URL does not point to a valid image.")
 
+            logger.info(f"Successfully proxied image from {image_url}")
             return Response(content=real_response.content, media_type=content_type)
     except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP error proxying image {image_url}: {e.response.status_code} - {e.response.text}")
         raise HTTPException(
             status_code=e.response.status_code,
             detail=f"Error fetching image from {image_url}: {e.response.text}",
         )
     except Exception as e:
+        logger.error(f"Unexpected error proxying image {image_url}: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An unexpected error occurred while proxying image: {str(e)}",

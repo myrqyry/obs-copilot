@@ -126,18 +126,16 @@
   .animated-title-gradient {
     background: linear-gradient(135deg,
         var(--dynamic-accent) 0%,
-        var(--dynamic-secondary-accent) 15%,
-        var(--dynamic-accent) 30%,
-        var(--dynamic-secondary-accent) 45%,
-        var(--dynamic-accent) 60%,
-        var(--dynamic-secondary-accent) 75%,
-        var(--dynamic-accent) 90%,
-        var(--dynamic-secondary-accent) 100%);
-    background-size: 400% 400%;
+        color-mix(in srgb, var(--dynamic-accent) 70%, var(--dynamic-secondary-accent)) 20%,
+        var(--dynamic-secondary-accent) 40%,
+        color-mix(in srgb, var(--dynamic-secondary-accent) 70%, var(--dynamic-accent)) 60%,
+        var(--dynamic-accent) 80%,
+        color-mix(in srgb, var(--dynamic-accent) 70%, var(--dynamic-secondary-accent)) 100%);
+    background-size: 300% 300%;
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    animation: gradient-shift 12s ease-in-out infinite;
+    animation: gradient-shift 16s ease-in-out infinite;
   }
 
   /* Subtle breathing glow used by title and logo containers */

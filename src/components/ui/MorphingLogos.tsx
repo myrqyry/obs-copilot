@@ -30,17 +30,35 @@ const MorphingLogos: React.FC<MorphingLogosProps> = ({ accentColor, secondaryAcc
         safeGsapSet(morphingPath, { attr: { d: paths.gemini } });
 
         // Create morph tween and store ref so it can be cleaned up
-        morphTweenRef.current = safeGsapTo(morphingPath, {
-            duration: 2.8,
-            ease: 'power2.inOut',
-            morphSVG: {
-                shape: paths.obs,
-                origin: '24 24'
-            },
-            repeat: -1,
-            repeatDelay: 1.2,
-            yoyo: true
-        });
+        let morphSuccess = true;
+        try {
+            morphTweenRef.current = safeGsapTo(morphingPath, {
+                duration: 2.8,
+                ease: 'power2.inOut',
+                morphSVG: {
+                    shape: paths.obs,
+                    origin: '24 24'
+                },
+                repeat: -1,
+                repeatDelay: 1.2,
+                yoyo: true
+            });
+        } catch (error) {
+            morphSuccess = false;
+            console.warn('MorphSVG failed, using fallback animation:', error);
+        }
+
+        if (!morphSuccess) {
+            // Fallback: scale animation instead of morph
+            morphTweenRef.current = safeGsapTo(morphingPath, {
+                duration: 2.8,
+                ease: 'power2.inOut',
+                scale: 1.1,
+                repeat: -1,
+                repeatDelay: 1.2,
+                yoyo: true
+            });
+        }
 
         // Continuous slow rotation for polish (store ref)
         rotationTweenRef.current = safeGsapTo(morphingPath, {
@@ -50,6 +68,18 @@ const MorphingLogos: React.FC<MorphingLogosProps> = ({ accentColor, secondaryAcc
             repeat: -1,
             transformOrigin: '24 24'
         });
+
+        // Additional fallback polish: subtle opacity pulse if morph failed
+        if (!morphSuccess) {
+            safeGsapTo(morphingPath, {
+                duration: 4,
+                ease: 'power2.inOut',
+                opacity: 0.9,
+                repeat: -1,
+                yoyo: true,
+                delay: 0.5
+            });
+        }
 
         // Cleanup function to kill tweens when component unmounts
         return () => {
@@ -107,8 +137,8 @@ const MorphingLogos: React.FC<MorphingLogosProps> = ({ accentColor, secondaryAcc
         // Animate offsets to mimic the text's background-position shift; avoid immediateRender
         // to prevent abrupt jumps when the tween is recreated.
         offsetAnimationRef.current = safeGsapTo([stop1, stop2], {
-            duration: 12,
-            ease: "steps(100, jump-end)",
+            duration: 16,
+            ease: "none",
             attr: {
                 offset: (index: number) => (index === 0 ? '100%' : '0%')
             },

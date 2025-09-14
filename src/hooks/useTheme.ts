@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import useSettingsStore from '@/store/settingsStore';
 import { Theme, CatppuccinAccentColorName } from '@/types/themes';
 import { themes } from '@/themes';
@@ -8,6 +8,21 @@ const getTheme = (name: string): Theme | undefined => {
 };
 
 export const useTheme = () => {
+  const [isSystemDark, setIsSystemDark] = useState(false);
+
+  // Detect system theme
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    setIsSystemDark(mediaQuery.matches);
+
+    const handleChange = (e: MediaQueryListEvent) => {
+      setIsSystemDark(e.matches);
+    };
+
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
   // Use individual selectors to prevent re-renders
   const themeSettings = useSettingsStore((state) => state.theme);
   const setTheme = useSettingsStore((state) => state.setTheme);
@@ -17,11 +32,27 @@ export const useTheme = () => {
   const setUserChatBubble = useSettingsStore((state) => state.setUserChatBubble);
   const setModelChatBubble = useSettingsStore((state) => state.setModelChatBubble);
   
-  // Get the actual theme object based on stored theme name
-  const currentTheme = getTheme(themeSettings.name);
+  // If base is 'system', override with detected system theme
+  const effectiveBase = themeSettings.base === 'system' ? (isSystemDark ? 'dark' : 'light') : themeSettings.base;
+  
+  // Get theme name variant based on effective base (assume themes have -light/-dark suffixes or select accordingly)
+  let themeName = themeSettings.name;
+  if (effectiveBase === 'light' && !themeName.includes('light')) {
+    themeName = themeName.replace(/-dark$/, '-light') || `${themeSettings.name}-light`;
+  } else if (effectiveBase === 'dark' && !themeName.includes('dark')) {
+    themeName = themeName.replace(/-light$/, '-dark') || `${themeSettings.name}-dark`;
+  }
+  
+  // Get the actual theme object
+  const currentTheme = getTheme(themeName) || getTheme(themeSettings.name);
   
   useEffect(() => {
     if (currentTheme) {
+      // Update store base if system
+      if (themeSettings.base === 'system') {
+        setThemeBase(effectiveBase);
+      }
+      
       applyTheme(currentTheme);
       
       // Fallback: if current accent colors don't exist in the new theme, reset to first available
@@ -45,12 +76,12 @@ export const useTheme = () => {
         }
       }
     }
-  }, [themeSettings.name, themeSettings.accent, themeSettings.secondaryAccent]); // React to theme changes
+  }, [currentTheme, themeSettings.accent, themeSettings.secondaryAccent, isSystemDark, effectiveBase]); // React to theme and system changes
 
   const handleSetTheme = (themeName: string) => {
     if (themeName === 'system') {
       setThemeBase('system');
-      // Keep current theme name but set base to system
+      // Theme base will be dynamically set based on system preference
     } else {
       const selectedTheme = getTheme(themeName);
       if (selectedTheme) {
@@ -61,7 +92,7 @@ export const useTheme = () => {
     }
   };
 
-  return { theme: currentTheme, themeSettings, setTheme: handleSetTheme };
+  return { theme: currentTheme, themeSettings, setTheme: handleSetTheme, isSystemDark };
 };
 
 export const applyTheme = (theme: Theme) => {
