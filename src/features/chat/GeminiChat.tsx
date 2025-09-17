@@ -9,6 +9,7 @@ import { ChatMessage, CatppuccinAccentColorName } from '@/types';
 import { geminiService } from '@/services/geminiService';
 import { handleAppError } from '@/lib/errorUtils';
 import useUiStore from '@/store/uiStore';
+import type { ChatBackgroundType, ChatPattern } from '@/types/chatBackground';
 import { Session } from '@google/genai';
 
 interface GeminiChatProps {
@@ -32,25 +33,27 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
     const messages: ChatMessage[] = useChatStore((state: ChatState) => state.geminiMessages);
     const isGeminiClientInitialized = useChatStore((state: ChatState) => state.isGeminiClientInitialized);
     const chatActions = useChatStore((state: ChatState) => state.actions);
-    const geminiApiKey = useSettingsStore((state) => state.geminiApiKey);
     const extraDarkMode = useSettingsStore((state) => state.extraDarkMode);
     const flipSides = useSettingsStore((state) => state.flipSides);
     const accentColorName = useSettingsStore((state) => state.theme.accent);
     const userChatBubble = useSettingsStore((state) => state.theme.userChatBubble);
     const modelChatBubble = useSettingsStore((state) => state.theme.modelChatBubble);
+    const customChatBackground = useSettingsStore((state) => state.customChatBackground);
+    const chatBackgroundType = useSettingsStore((state) => state.chatBackgroundType);
+    const chatPattern = useSettingsStore((state) => state.chatPattern);
     // Add missing type
     const userChatBubbleColorName = userChatBubble as CatppuccinAccentColorName;
     const modelChatBubbleColorName = modelChatBubble as CatppuccinAccentColorName;
     
     // Now call your custom hook unconditionally
     const {
-        isLoading,
-        useGoogleSearch,
-        setUseGoogleSearch,
-        handleAddToContext,
-        handleSend,
-        handleRegenerate,
-    } = useGeminiChat(onRefreshData, setErrorMessage, geminiApiKey);
+            isLoading,
+            useGoogleSearch,
+            setUseGoogleSearch,
+            handleAddToContext,
+            handleSend,
+            handleRegenerate,
+        } = useGeminiChat(onRefreshData, setErrorMessage);
 
     const onAddMessage = chatActions.addMessage;
     const chatInputRef = useRef<HTMLTextAreaElement>(null);
@@ -277,7 +280,9 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
                     handleRegenerate={memoizedHandleRegenerate}
                     userChatBubbleColorName={userChatBubbleColorName}
                     modelChatBubbleColorName={modelChatBubbleColorName}
-                    customChatBackground=""
+                    chatBackgroundType={chatBackgroundType}
+                    chatPattern={chatPattern}
+                    customChatBackground={customChatBackground || ''}
                 />
                 <ChatInput
                     chatInputValue={chatInputValue}

@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
 import { CatppuccinAccentColorName } from '@/types/themes';
+import type { ChatBackgroundType, ChatPattern } from '@/types/chatBackground';
 
 interface ThemeState {
   theme: {
@@ -77,6 +78,10 @@ export interface SettingsState extends Omit<ThemeState, 'theme'>, LayoutState {
   // Order of plugin tab ids (controls navigation order)
   tabOrder: string[];
   setTabOrder: (order: string[]) => void;
+  chatBackgroundType: ChatBackgroundType;
+  chatPattern?: ChatPattern;
+  setChatBackgroundType: (type: ChatBackgroundType) => void;
+  setChatPattern: (pattern: ChatPattern) => void;
 }
 
 const useSettingsStore = create<SettingsState>()(
@@ -128,6 +133,14 @@ const useSettingsStore = create<SettingsState>()(
       setStreamingAssetsPluginEnabled: (enabled) => set({ streamingAssetsPluginEnabled: enabled }),
       setCreatePluginEnabled: (enabled) => set({ createPluginEnabled: enabled }),
       setTabOrder: (order: string[]) => set({ tabOrder: order }),
+      chatBackgroundType: 'image' as const,
+      chatPattern: {
+        name: 'wavy',
+        backColor: '#667eea',
+        frontColor: '#764ba2',
+        opacity: 0.1,
+        spacing: '100px'
+      },
       autoApplySuggestions: true,
       customChatBackground: '',
       bubbleFillOpacity: 0.7,
@@ -140,6 +153,8 @@ const useSettingsStore = create<SettingsState>()(
       setChatBubbleBlendMode: (value) => set({ chatBubbleBlendMode: value }),
       setBackgroundOpacity: (value) => set({ backgroundOpacity: value }),
       setChatBackgroundBlendMode: (value) => set({ chatBackgroundBlendMode: value }),
+      setChatBackgroundType: (type) => set({ chatBackgroundType: type }),
+      setChatPattern: (pattern) => set({ chatPattern: pattern }),
     }),
     {
       name: 'obs-copilot-settings',

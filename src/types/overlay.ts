@@ -21,6 +21,7 @@ export interface GeneratedCode {
 }
 
 export interface OverlayConfig {
+  id: string;
   templateName: string;
   customizations: OverlayCustomization;
   generatedCode: GeneratedCode;

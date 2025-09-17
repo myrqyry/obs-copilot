@@ -1,4 +1,8 @@
-<!doctype html>
+// src/lib/chatOverlayUtils.ts
+import type { ChatBackgroundType, ChatPattern } from '@/types/chatBackground';
+import { generatePatternCSS } from './backgroundPatterns';
+
+export const baseChatOverlayHTML = `<!doctype html>
 <html>
 <head>
   <meta charset="utf-8" />
@@ -95,7 +99,7 @@
     }
 
     function connectSSE(){
-      const url = `/api/overlays/stream?channel=${encodeURIComponent(channel)}` + (token ? `&token=${encodeURIComponent(token)}` : '');
+      const url = \`/api/overlays/stream?channel=\${encodeURIComponent(channel)}\` + (token ? \`&token=\${encodeURIComponent(token)}\` : '');
       const es = new EventSource(url);
       es.onmessage = (ev) => {
         try{
@@ -113,4 +117,49 @@
     connectSSE();
   </script>
 </body>
-</html>
+</html>`;
+
+export function generateChatOverlayHTML(
+  type: ChatBackgroundType,
+  customBg: string | undefined,
+  pattern: ChatPattern | undefined
+): string {
+  let backgroundStyle = '';
+  if (type === 'image' && customBg) {
+    backgroundStyle = `
+      background-image: url(${customBg});
+      background-size: cover;
+      background-attachment: fixed;
+      background-position: center;
+    `;
+  } else if (type === 'css' && pattern) {
+    const cssImage = generatePatternCSS(pattern);
+    backgroundStyle = `
+      background-image: ${cssImage};
+      background-size: ${pattern.spacing};
+      background-repeat: repeat;
+    `;
+  }
+  return baseChatOverlayHTML.replace('/* BACKGROUND-STYLE */', backgroundStyle);
+}
+
+export async function saveChatOverlayHTML(html: string): Promise<void> {
+  if (!('showDirectoryPicker' in window)) {
+    console.warn('File System Access API not supported');
+    return;
+  }
+  try {
+    // Get or create public/overlays directory
+    const root = await navigator.storage.getDirectory();
+    const publicDir = await root.getDirectoryHandle('public', { create: true });
+    const overlaysDir = await publicDir.getDirectoryHandle('overlays', { create: true });
+    const fileHandle = await overlaysDir.getFileHandle('chat-overlay.html', { create: true });
+    const writable = await fileHandle.createWritable();
+    await writable.write(html);
+    await writable.close();
+    console.log('Chat overlay HTML saved successfully');
+  } catch (err) {
+    console.error('Failed to save chat overlay HTML:', err);
+    throw err;
+  }
+}

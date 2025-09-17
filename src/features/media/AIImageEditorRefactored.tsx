@@ -1,4 +1,4 @@
-// ImageEditor.tsx
+// src/features/media/AIImageEditor.tsx
 import * as React from "react";
 import { useRef, useEffect, useCallback } from "react";
 import { toast } from "@/components/ui/toast";
@@ -7,25 +7,37 @@ import { Tooltip } from "@/components/ui/Tooltip";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/common/TextInput";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Crop, Download, ImagePlus, Scissors, Text, Filter, RefreshCcw, RotateCcw, FlipHorizontal, FlipVertical } from 'lucide-react';
+import { 
+  Crop, Download, ImagePlus, Scissors, Text, Filter, RefreshCcw, RotateCcw, FlipHorizontal, 
+  FlipVertical, Sparkles, Wand2, Layers, Users, Globe, MessageSquare, Type, Image as ImageIcon,
+  Edit3, Shuffle, Eye, EyeOff
+} from 'lucide-react';
 import { generateSourceName } from '@/utils/obsSourceHelpers';
 import { useConnectionManagerStore } from '@/store/connectionManagerStore';
 import { ObsClientImpl as ObsClient } from '@/services/obsClient';
 import { handleAppError, createToastError } from '@/lib/errorUtils';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from '../../lib/canvasUtils';
+import { geminiService } from '@/services/geminiService';
+import { CollapsibleCard } from '@/components/common/CollapsibleCard';
+import { ImageUpload } from '@/components/common/ImageUpload';
+import { ImageUploadResult } from '@/types/audio';
+import { ImageEditorTemplates } from './ImageEditorTemplates';
 import { 
   useImageEditorStore, 
   useImageEditorInput, 
-  useImageEditorManipulation 
+  useImageEditorManipulation, 
+  useImageEditorAI 
 } from '@/store/imageEditorStore';
+import { useUIStateStore } from '@/store/uiStateStore';
 
-export const ImageEditor: React.FC = () => {
+export const AIImageEditor: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     
-    // Use store selectors
+    // Use store selectors for different aspects of the image editor
     const inputState = useImageEditorInput();
     const manipulationState = useImageEditorManipulation();
+    const aiState = useImageEditorAI();
     const {
         outputUrl,
         setOutputImage,
@@ -41,6 +53,7 @@ export const ImageEditor: React.FC = () => {
         canRedo,
     } = useImageEditorStore();
     
+    const { openModal, closeModal } = useUIStateStore();
     const { obsServiceInstance, isConnected, currentProgramScene } = useConnectionManagerStore();
 
     useEffect(() => {
@@ -48,8 +61,9 @@ export const ImageEditor: React.FC = () => {
             if (inputState.inputUrl) URL.revokeObjectURL(inputState.inputUrl);
             if (outputUrl) URL.revokeObjectURL(outputUrl);
             if (inputState.currentImage) URL.revokeObjectURL(inputState.currentImage);
+            aiState.generatedImages.forEach(url => URL.revokeObjectURL(url));
         };
-    }, [inputState.inputUrl, outputUrl, inputState.currentImage]);
+    }, [inputState.inputUrl, outputUrl, inputState.currentImage, aiState.generatedImages]);
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -145,6 +159,23 @@ export const ImageEditor: React.FC = () => {
         }
     }, [setLoading, inputState.setCurrentImage]);
 
+    const handleBackgroundRemoval = useCallback(async () => {
+        if (!inputState.currentImage) return;
+        
+        setLoading(true);
+        try {
+            // Simple background removal simulation - just show the original image
+            // In a real implementation, you would use a service like remove.bg API
+            toast({ title: "Background Removal", description: "Background removal feature would be implemented with an external service." });
+            // For now, just keep the current image
+            inputState.setCurrentImage(inputState.currentImage);
+        } catch (err) {
+            console.error("Background removal failed:", err);
+            toast({ variant: "destructive", title: "Background removal failed", description: err instanceof Error ? err.message : String(err) });
+        }
+        setLoading(false);
+    }, [inputState.currentImage, setLoading, inputState.setCurrentImage]);
+
     const onCropComplete = useCallback((croppedArea: any, croppedAreaPixels: any) => {
         manipulationState.setCroppedAreaPixels(croppedAreaPixels);
     }, [manipulationState.setCroppedAreaPixels]);
@@ -218,9 +249,58 @@ export const ImageEditor: React.FC = () => {
         const newRotation = (manipulationState.rotation + degrees) % 360;
         manipulationState.updateRotation(newRotation);
         if (manipulationState.isCropping) {
+            // If cropping, we need to apply the rotation
             await applyManipulation(inputState.currentImage, { crop: { croppedAreaPixels: manipulationState.croppedAreaPixels, rotation: newRotation } });
         }
     }, [manipulationState.rotation, manipulationState.isCropping, inputState.currentImage, manipulationState.croppedAreaPixels, applyManipulation, manipulationState.updateRotation]);
+
+    // AI Image Generation
+    const handleGenerateImage = async () => {
+        if (!aiState.aiPrompt.trim()) {
+            aiState.setAiError('Please enter a prompt');
+            return;
+        }
+
+        // API key handled by backend proxy
+        aiState.setAiLoading(true);
+        aiState.setAiError(null);
+        aiState.setGeneratedImages([]);
+
+        try {
+            const imageInput = aiState.uploadedImages.length > 0 
+                ? { data: aiState.uploadedImages[0].data, mimeType: aiState.uploadedImages[0].mimeType } 
+                : undefined;
+
+            const generatedImageUrls = await geminiService.generateImage(aiState.aiPrompt, {
+                model: aiState.aiModel,
+                numberOfImages: aiState.numberOfImages,
+                outputMimeType: 'image/png',
+                aspectRatio: aiState.aspectRatio,
+                personGeneration: 'allow_adult',
+                imageInput,
+            });
+
+            aiState.setGeneratedImages(generatedImageUrls);
+            aiState.setShowGeneratedImages(true);
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to generate image';
+            aiState.setAiError(errorMessage);
+            console.error('Image generation error:', err);
+        } finally {
+            aiState.setAiLoading(false);
+        }
+    };
+
+    const handleUseGeneratedImage = (imageUrl: string) => {
+        inputState.setCurrentImage(imageUrl);
+        aiState.setShowGeneratedImages(false);
+        toast({ title: "Image Applied", description: "Generated image applied to editor." });
+    };
+
+    const handleUploadImages = (images: ImageUploadResult[]) => {
+        aiState.setUploadedImages(images);
+        toast({ title: "Images Uploaded", description: `${images.length} image(s) uploaded for AI processing.` });
+    };
 
     // OBS Integration
     const handleAddToOBS = async () => {
@@ -231,8 +311,16 @@ export const ImageEditor: React.FC = () => {
 
         try {
             setLoading(true);
-            const sourceName = generateSourceName('Edited Image');
+            const sourceName = generateSourceName('AI Generated Image');
             
+            // Convert data URL to blob
+            const response = await fetch(inputState.currentImage);
+            const blob = await response.blob();
+            
+            // Create a file from the blob
+            const file = new File([blob], 'ai-generated-image.png', { type: 'image/png' });
+            
+            // Upload to OBS
             await obsServiceInstance.call('CreateInput', {
                 inputName: sourceName,
                 inputKind: 'image_source',
@@ -255,7 +343,7 @@ export const ImageEditor: React.FC = () => {
     return (
         <div className="space-y-6 p-6">
             <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Image Editor</h2>
+                <h2 className="text-2xl font-bold">AI Image Editor</h2>
                 <div className="flex gap-2">
                     <Button
                         variant="outline"
@@ -324,8 +412,7 @@ export const ImageEditor: React.FC = () => {
             {/* Controls */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Basic Manipulations */}
-                <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Basic Manipulations</h3>
+                <CollapsibleCard title="Basic Manipulations" defaultOpen>
                     <div className="space-y-4">
                         {/* Crop Controls */}
                         <div className="space-y-2">
@@ -437,103 +524,110 @@ export const ImageEditor: React.FC = () => {
                             Reset All
                         </Button>
                     </div>
-                </div>
+                </CollapsibleCard>
 
-                {/* Text Overlay */}
-                <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Text Overlay</h3>
+                {/* AI Features */}
+                <CollapsibleCard title="AI Features" defaultOpen>
                     <div className="space-y-4">
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Text</label>
-                            <TextInput
-                                value={manipulationState.textOverlay}
-                                onChange={(e) => manipulationState.updateTextOverlay(
-                                    e.target.value,
-                                    manipulationState.textColor,
-                                    manipulationState.textSize,
-                                    manipulationState.textX,
-                                    manipulationState.textY
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant={aiState.showAiPanel ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => aiState.setShowAiPanel(!aiState.showAiPanel)}
+                            >
+                                <Sparkles className="w-4 h-4 mr-2" />
+                                AI Panel
+                            </Button>
+                        </div>
+
+                        {aiState.showAiPanel && (
+                            <div className="space-y-4 p-4 border rounded-lg">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">AI Prompt</label>
+                                    <TextInput
+                                        value={aiState.aiPrompt}
+                                        onChange={(e) => aiState.setAiPrompt(e.target.value)}
+                                        placeholder="Describe the image you want to generate..."
+                                        className="w-full"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">Model</label>
+                                        <Select value={aiState.aiModel} onValueChange={aiState.setAiModel}>
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="gemini-2.5-flash-image-preview">Gemini 2.5 Flash</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">Aspect Ratio</label>
+                                        <Select value={aiState.aspectRatio} onValueChange={aiState.setAspectRatio}>
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="1:1">1:1 (Square)</SelectItem>
+                                                <SelectItem value="16:9">16:9 (Widescreen)</SelectItem>
+                                                <SelectItem value="4:3">4:3 (Standard)</SelectItem>
+                                                <SelectItem value="3:2">3:2 (Photo)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        onClick={handleGenerateImage}
+                                        disabled={aiState.aiLoading || !aiState.aiPrompt.trim()}
+                                        className="flex-1"
+                                    >
+                                        {aiState.aiLoading ? (
+                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                                        ) : (
+                                            <Wand2 className="w-4 h-4 mr-2" />
+                                        )}
+                                        Generate Image
+                                    </Button>
+                                </div>
+
+                                {aiState.aiError && (
+                                    <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
+                                        {aiState.aiError}
+                                    </div>
                                 )}
-                                placeholder="Enter text to overlay..."
-                            />
-                        </div>
 
-                        <div className="grid grid-cols-2 gap-2">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Color</label>
-                                <input
-                                    type="color"
-                                    value={manipulationState.textColor}
-                                    onChange={(e) => manipulationState.updateTextOverlay(
-                                        manipulationState.textOverlay,
-                                        e.target.value,
-                                        manipulationState.textSize,
-                                        manipulationState.textX,
-                                        manipulationState.textY
-                                    )}
-                                    className="w-full h-10 border rounded"
-                                />
+                                {aiState.generatedImages.length > 0 && (
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">Generated Images</label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {aiState.generatedImages.map((url, index) => (
+                                                <div key={index} className="relative group">
+                                                    <img
+                                                        src={url}
+                                                        alt={`Generated ${index + 1}`}
+                                                        className="w-full h-24 object-cover rounded border"
+                                                    />
+                                                    <Button
+                                                        size="sm"
+                                                        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        onClick={() => handleUseGeneratedImage(url)}
+                                                    >
+                                                        Use This Image
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Size</label>
-                                <input
-                                    type="number"
-                                    value={manipulationState.textSize}
-                                    onChange={(e) => manipulationState.updateTextOverlay(
-                                        manipulationState.textOverlay,
-                                        manipulationState.textColor,
-                                        Number(e.target.value),
-                                        manipulationState.textX,
-                                        manipulationState.textY
-                                    )}
-                                    className="w-full h-10 border rounded px-2"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">X Position</label>
-                                <input
-                                    type="number"
-                                    value={manipulationState.textX}
-                                    onChange={(e) => manipulationState.updateTextOverlay(
-                                        manipulationState.textOverlay,
-                                        manipulationState.textColor,
-                                        manipulationState.textSize,
-                                        Number(e.target.value),
-                                        manipulationState.textY
-                                    )}
-                                    className="w-full h-10 border rounded px-2"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Y Position</label>
-                                <input
-                                    type="number"
-                                    value={manipulationState.textY}
-                                    onChange={(e) => manipulationState.updateTextOverlay(
-                                        manipulationState.textOverlay,
-                                        manipulationState.textColor,
-                                        manipulationState.textSize,
-                                        manipulationState.textX,
-                                        Number(e.target.value)
-                                    )}
-                                    className="w-full h-10 border rounded px-2"
-                                />
-                            </div>
-                        </div>
-
-                        <Button
-                            onClick={handleApplyTextOverlay}
-                            disabled={!manipulationState.textOverlay.trim()}
-                            className="w-full"
-                        >
-                            <Text className="w-4 h-4 mr-2" />
-                            Apply Text Overlay
-                        </Button>
+                        )}
                     </div>
-                </div>
+                </CollapsibleCard>
             </div>
 
             {/* Input Modal */}
@@ -557,6 +651,10 @@ export const ImageEditor: React.FC = () => {
                         <ImagePlus className="w-4 h-4 mr-2" />
                         Choose File
                     </Button>
+                    <ImageUpload
+                        onImagesUploaded={handleUploadImages}
+                        maxImages={5}
+                    />
                 </div>
             </Modal>
         </div>

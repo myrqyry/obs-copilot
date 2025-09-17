@@ -3,12 +3,13 @@ import { motion } from 'framer-motion';
 import { ChatMessageItem } from './ChatMessageItem';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ChatMessage, CatppuccinAccentColorName } from '@/types';
+import type { ChatBackgroundType, ChatPattern } from '@/types/chatBackground';
+import { generatePatternCSS } from '@/lib/backgroundPatterns';
 
 interface MessageListProps {
     messages: ChatMessage[];
     isLoading: boolean;
     handleSuggestionClick: (prompt: string) => void;
-    accentColorName?: CatppuccinAccentColorName;
     obsSources: any[] | undefined;
     handleAddToContext: (text: string) => void;
     extraDarkMode: boolean;
@@ -16,6 +17,8 @@ interface MessageListProps {
     handleRegenerate: (messageId: string) => void;
     userChatBubbleColorName: CatppuccinAccentColorName;
     modelChatBubbleColorName: CatppuccinAccentColorName;
+    chatBackgroundType?: ChatBackgroundType;
+    chatPattern?: ChatPattern;
     customChatBackground: string;
 }
 
@@ -23,12 +26,13 @@ export const MessageList: React.FC<MessageListProps> = ({
     messages,
     isLoading,
     handleSuggestionClick,
-    accentColorName,
     obsSources,
     handleAddToContext,
     extraDarkMode,
     flipSides,
     handleRegenerate,
+    chatBackgroundType = 'image',
+    chatPattern,
     userChatBubbleColorName,
     modelChatBubbleColorName,
     customChatBackground,
@@ -40,7 +44,23 @@ export const MessageList: React.FC<MessageListProps> = ({
     }, [messages]);
 
     return (
-        <div className="flex-grow p-2 space-y-2 overflow-y-auto relative z-10">
+        <div
+            className={`flex-grow p-2 space-y-2 overflow-y-auto relative z-10 ${
+                chatBackgroundType === 'image' ? 'bg-cover bg-fixed bg-center' : ''
+            }`}
+            style={
+                chatBackgroundType === 'image'
+                    ? { backgroundImage: `url(${customChatBackground})` }
+                    : chatPattern
+                    ? {
+                        backgroundImage: generatePatternCSS(chatPattern),
+                        backgroundSize: 'cover',
+                        backgroundAttachment: 'fixed',
+                        backgroundPosition: 'center'
+                      }
+                    : {}
+            }
+        >
             {messages.map((msg, idx) => (
                 <motion.div
                     key={msg.id || idx}
@@ -51,7 +71,6 @@ export const MessageList: React.FC<MessageListProps> = ({
                     <ChatMessageItem
                         message={msg}
                         onSuggestionClick={handleSuggestionClick}
-                        accentColorName={accentColorName}
                         obsSources={msg.type === "source-prompt" ? obsSources : undefined}
                         onAddToContext={handleAddToContext}
                         extraDarkMode={extraDarkMode}
