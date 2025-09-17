@@ -1,7 +1,7 @@
 // src/components/asset-search/EnhancedAssetSearch.tsx
 import React, { useState, useMemo, useCallback } from 'react';
 import { useGenericApiSearch } from '@/hooks/useGenericApiSearch';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
 import { CardContent } from '@/components/ui/Card';
 import { CollapsibleCard } from '@/components/common/CollapsibleCard';

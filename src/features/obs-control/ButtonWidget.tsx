@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { obsClient } from '@/services/obsClient';
 import { UniversalWidgetConfig } from '@/types/universalWidget';
 import { useWidgetStore } from './widgetStore';

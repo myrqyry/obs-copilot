@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Textarea } from '@/components/ui/textarea';
 import { EnhancedAssetSearch } from '@/components/asset-search/EnhancedAssetSearch';
 import { getAllAssetConfigs } from '@/config/assetSearchConfigs';

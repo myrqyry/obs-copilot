@@ -1,6 +1,6 @@
 import React from 'react';
 import { ObsWidgetConfig } from '@/types/obs';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { ObsSliderWidget } from '@/features/obs-control/ObsSliderWidget';
 import { ObsKnobWidget } from '@/features/obs-control/ObsKnobWidget';
 import { executeObsWidgetAction } from '@/services/actionMapper';

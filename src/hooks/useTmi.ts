@@ -348,7 +348,7 @@ export const useTmi = () => {
       const el = listRef.current;
       if (el) {
         const { scrollTop, scrollHeight, clientHeight } = el;
-        setIsAtBottom(scrollTop + clientHeight >= scrollHeight - 5);
+        setIsAtBottom(scrollTop + clientHeight >= scrollHeight - 100);
       }
     };
 

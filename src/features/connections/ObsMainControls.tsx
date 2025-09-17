@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { shallow } from 'zustand/shallow';
 import { CatppuccinAccentColorName, OBSVideoSettings, OBSScene, OBSSource, catppuccinAccentColorsHexMap } from '@/types';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AddToContextButton } from '@/components/common/AddToContextButton';

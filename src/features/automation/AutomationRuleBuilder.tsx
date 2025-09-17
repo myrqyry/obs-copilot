@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { useAutomationRuleBuilder } from '@/hooks/useAutomationRuleBuilder';
 import { TriggerStep } from './TriggerStep';

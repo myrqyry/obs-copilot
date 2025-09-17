@@ -20,6 +20,8 @@ export const TwitchMessageItem: React.FC<TwitchMessageItemProps> = ({
     if (!badges) return null;
     return (
       <>
+        {badges.broadcaster && <span className="ml-1 bg-purple-600 text-xs px-1 rounded text-white">Broadcaster</span>}
+        {badges.partner && <span className="ml-1 bg-blue-600 text-xs px-1 rounded text-white">Partner</span>}
         {badges.moderator && <span className="ml-1 bg-purple-500 text-xs px-1 rounded text-white">Mod</span>}
         {badges.subscriber && <span className="ml-1 bg-green-500 text-xs px-1 rounded text-white">Sub</span>}
         {badges.vip && <span className="ml-1 bg-orange-500 text-xs px-1 rounded text-white">VIP</span>}
@@ -33,7 +35,7 @@ export const TwitchMessageItem: React.FC<TwitchMessageItemProps> = ({
     ...(pendingPaint ? { opacity: 0.7 } : {})
   };
 
-  const formattedTime = new Date(timestamp).toLocaleTimeString();
+  const formattedTime = new Date(timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
   const sanitizedMessageHtml = adjustHtmlForSizeAndLazy(messageHtml, emoteSize);
 

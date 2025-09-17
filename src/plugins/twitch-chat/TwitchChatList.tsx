@@ -81,7 +81,7 @@ export const TwitchChatList: React.FC<TwitchChatListProps> = ({
   return (
     <div
       ref={listRef}
-      className="h-[50vh] md:h-80 w-full overflow-auto border p-2 bg-white dark:bg-gray-900 text-black dark:text-white scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800"
+      className="flex-1 min-h-[50vh] max-h-[70vh] w-full overflow-auto border p-2 bg-white dark:bg-gray-900 text-black dark:text-white scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800"
       role="log"
       aria-live="polite"
       aria-label="Twitch chat messages"
