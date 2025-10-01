@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { gsap } from 'gsap';
 import { X, AlertTriangle, Info, CheckCircle, Clock, Eye, EyeOff } from 'lucide-react';
 import { format } from 'date-fns';
 import useUiStore from '@/store/uiStore';
@@ -30,6 +30,18 @@ const ErrorViewer: React.FC<ErrorViewerProps> = ({ isOpen, onClose, className })
     showAuthedOnly: false,
   });
   const [expandedLog, setExpandedLog] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+        gsap.to(containerRef.current, { display: 'flex', opacity: 1, duration: 0.2 });
+        gsap.fromTo(modalRef.current, { scale: 0.9, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.2, ease: 'power2.out' });
+    } else {
+        gsap.to(modalRef.current, { scale: 0.9, opacity: 0, duration: 0.2, ease: 'power2.in' });
+        gsap.to(containerRef.current, { opacity: 0, duration: 0.2, onComplete: () => gsap.set(containerRef.current, { display: 'none' }) });
+    }
+  }, [isOpen]);
 
   const handleRetry = useCallback((error: ErrorObject) => {
     if (error.retry) {
@@ -97,21 +109,15 @@ const ErrorViewer: React.FC<ErrorViewerProps> = ({ isOpen, onClose, className })
     return format(new Date(timestamp), 'MMM dd, HH:mm:ss');
   };
 
-  if (!isOpen) return null;
-
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
+    <div
+        ref={containerRef}
+        style={{ display: 'none', opacity: 0 }}
         className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
         onClick={onClose}
       >
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.9, opacity: 0 }}
+        <div
+          ref={modalRef}
           className={`bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] overflow-hidden ${className || ''}`}
           onClick={(e: React.MouseEvent) => e.stopPropagation()}
         >

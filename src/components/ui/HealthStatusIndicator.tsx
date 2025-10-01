@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { motion } from 'framer-motion';
+import React, { useMemo, useRef, useEffect } from 'react';
+import { gsap } from 'gsap';
 import { Activity, CheckCircle, AlertTriangle, XCircle, RefreshCw } from 'lucide-react';
 import { useHealthStatus } from '@/hooks/useHealthStatus';
 
@@ -9,6 +9,7 @@ interface HealthStatusIndicatorProps {
 
 const HealthStatusIndicator: React.FC<HealthStatusIndicatorProps> = ({ className }) => {
   const { gemini, obs, mcp, overall, lastChecked, isChecking, refreshHealth } = useHealthStatus();
+  const iconRef = useRef<HTMLDivElement>(null);
 
   const statusConfig = {
     healthy: {
@@ -72,6 +73,12 @@ const HealthStatusIndicator: React.FC<HealthStatusIndicatorProps> = ({ className
   const currentStatus = statusConfig[overall];
   const StatusIcon = currentStatus.icon;
 
+  useEffect(() => {
+    if (iconRef.current) {
+        gsap.fromTo(iconRef.current, { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.2, ease: 'power2.out' });
+    }
+  }, [overall]);
+
   const timeAgo = useMemo(() => {
     if (!lastChecked) return 'Never';
 
@@ -110,16 +117,12 @@ const HealthStatusIndicator: React.FC<HealthStatusIndicatorProps> = ({ className
         role="status"
         aria-live="polite"
       >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.2 }}
-        >
+        <div ref={iconRef}>
           <StatusIcon
             className={`w-5 h-5 ${currentStatus.color}`}
             aria-hidden="true"
           />
-        </motion.div>
+        </div>
 
         <span className={`text-sm font-medium ${currentStatus.color}`}>
           {currentStatus.label}

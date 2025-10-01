@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { gsap } from 'gsap';
 import { ChatMessageItem } from './ChatMessageItem';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ChatMessage, CatppuccinAccentColorName } from '@/types';
@@ -38,9 +38,20 @@ export const MessageList: React.FC<MessageListProps> = ({
     customChatBackground,
 }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const messageRefs = useRef<(HTMLDivElement | null)[]>([]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        if (messageRefs.current.length > 0) {
+            const lastMessage = messageRefs.current[messageRefs.current.length - 1];
+            if (lastMessage) {
+                gsap.fromTo(
+                    lastMessage,
+                    { opacity: 0, y: 10 },
+                    { opacity: 1, y: 0, duration: 0.3 }
+                );
+            }
+        }
     }, [messages]);
 
     return (
@@ -62,12 +73,7 @@ export const MessageList: React.FC<MessageListProps> = ({
             }
         >
             {messages.map((msg, idx) => (
-                <motion.div
-                    key={msg.id || idx}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                >
+                <div key={msg.id || idx} ref={(el) => (messageRefs.current[idx] = el)}>
                     <ChatMessageItem
                         message={msg}
                         onSuggestionClick={handleSuggestionClick}
@@ -81,7 +87,7 @@ export const MessageList: React.FC<MessageListProps> = ({
                         modelChatBubbleColorName={modelChatBubbleColorName}
                         customChatBackground={customChatBackground}
                     />
-                </motion.div>
+                </div>
             ))}
             {isLoading && (
                 <div className="flex justify-center items-center py-4">

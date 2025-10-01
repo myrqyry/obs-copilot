@@ -1,16 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui";
 import { Cross2Icon } from "@radix-ui/react-icons";
-
-const TRANSITION = {
-  type: "spring",
-  bounce: 0.05,
-  duration: 0.3,
-};
 
 interface PopoverContextType {
   isOpen: boolean;
@@ -58,17 +51,15 @@ const PopoverRoot = React.forwardRef<HTMLDivElement, PopoverRootProps>(
 
     return (
       <PopoverContext.Provider value={popoverLogic}>
-        <MotionConfig transition={TRANSITION}>
-          <div
-            ref={_ref}
-            className={cn(
-              "relative flex items-center justify-center isolate",
-              className
-            )}
-          >
-            {children}
-          </div>
-        </MotionConfig>
+        <div
+          ref={_ref}
+          className={cn(
+            "relative flex items-center justify-center isolate",
+            className
+          )}
+        >
+          {children}
+        </div>
       </PopoverContext.Provider>
     );
   }
@@ -89,24 +80,19 @@ interface PopoverTriggerProps {
 
 const PopoverTrigger = React.forwardRef<HTMLButtonElement, PopoverTriggerProps>(
   ({ children, className, variant = "outline" }, _ref) => {
-    const { openPopover, uniqueId } = usePopover();
+    const { openPopover } = usePopover();
 
     return (
-      <motion.div key="button" layoutId={`popover-${uniqueId}`}>
+      <div key="button">
         <Button
           ref={_ref}
           variant={variant}
           className={className}
           onClick={openPopover}
         >
-          <motion.span
-            layoutId={`popover-label-${uniqueId}`}
-            className="text-sm"
-          >
-            {children}
-          </motion.span>
+          <span className="text-sm">{children}</span>
         </Button>
-      </motion.div>
+      </div>
     );
   }
 );
@@ -117,10 +103,35 @@ interface PopoverContentProps {
   className?: string;
 }
 
+import { gsap } from "gsap";
+
 const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
   ({ children, className }, _ref) => {
-    const { isOpen, closePopover, uniqueId } = usePopover();
+    const { isOpen, closePopover } = usePopover();
     const contentRef = React.useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+      const currentRef = contentRef.current;
+      if (isOpen) {
+        gsap.set(currentRef, { display: 'block' });
+        gsap.to(currentRef, {
+          opacity: 1,
+          scale: 1,
+          duration: 0.2,
+          ease: "power2.out",
+        });
+      } else {
+        gsap.to(currentRef, {
+          opacity: 0,
+          scale: 0.9,
+          duration: 0.2,
+          ease: "power2.in",
+          onComplete: () => {
+            gsap.set(currentRef, { display: 'none' });
+          },
+        });
+      }
+    }, [isOpen]);
 
     React.useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
@@ -131,37 +142,34 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
           closePopover();
         }
       };
-      document.addEventListener("mousedown", handleClickOutside);
+      if (isOpen) {
+        document.addEventListener("mousedown", handleClickOutside);
+      }
       return () =>
         document.removeEventListener("mousedown", handleClickOutside);
-    }, [closePopover]);
+    }, [isOpen, closePopover]);
 
     React.useEffect(() => {
       const handleKeyDown = (event: KeyboardEvent) => {
         if (event.key === "Escape") closePopover();
       };
-      document.addEventListener("keydown", handleKeyDown);
+      if (isOpen) {
+        document.addEventListener("keydown", handleKeyDown);
+      }
       return () => document.removeEventListener("keydown", handleKeyDown);
-    }, [closePopover]);
+    }, [isOpen, closePopover]);
 
     return (
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            ref={contentRef}
-            layoutId={`popover-${uniqueId}`}
-            className={cn(
-              "absolute z-50 min-w-[200px] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md outline-none",
-              className
-            )}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-          >
-            {children}
-          </motion.div>
+      <div
+        ref={contentRef}
+        style={{ display: 'none', opacity: 0, scale: 0.9 }}
+        className={cn(
+          "absolute z-50 min-w-[200px] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md outline-none",
+          className
         )}
-      </AnimatePresence>
+      >
+        {children}
+      </div>
     );
   }
 );

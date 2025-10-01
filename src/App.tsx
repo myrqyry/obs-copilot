@@ -1,5 +1,5 @@
  // src/App.tsx
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { Suspense, useRef, useState, useCallback } from 'react';
 import { gsap } from 'gsap';
 import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
 // Import GSAP test for development verification
@@ -12,15 +12,14 @@ import { ConnectionProvider } from './features/connections/ConnectionProvider';
 import useSettingsStore from './store/settingsStore';
 import { usePlugins } from './hooks/usePlugins';
 import { useTheme } from './hooks/useTheme';
+import TwitchCallback from './features/auth/TwitchCallback';
+import { LoadingSpinner } from './components/common/LoadingSpinner';
 
- import TwitchCallback from './features/auth/TwitchCallback';
-
-const App: React.FC = () => {
+const App: React.FC = React.memo(() => {
     const plugins = usePlugins();
     const [activeTab, setActiveTab] = useState<string>('gemini');
     
     const headerRef = useRef<HTMLDivElement>(null);
-    const theme = useSettingsStore((state) => state.theme);
     const flipSides = useSettingsStore((state) => state.flipSides);
     
     // Initialize and apply themes
@@ -29,22 +28,6 @@ const App: React.FC = () => {
     const handleTabChange = useCallback((tabId: string) => {
         setActiveTab(tabId);
     }, []);
-     useEffect(() => {
-       const root = window.document.documentElement;
-       root.classList.remove('light', 'dark');
-
-       if (theme.base === 'system') {
-         const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-         root.classList.add(systemTheme);
-       } else {
-         // Ensure theme.base is a string before adding it
-         if (typeof theme.base === 'string') {
-           root.classList.add(theme.base);
-         }
-       }
-     }, [theme.base]);
-
-     
  
      const renderTabContent = () => {
          const activePlugin = plugins.find(p => p.id === activeTab);
@@ -72,7 +55,9 @@ const App: React.FC = () => {
                         />
                         <div className="flex flex-grow overflow-hidden">
                             <div className={`flex-grow overflow-y-auto px-1 sm:px-2 pb-1 transition-all duration-300 ease-in-out ${flipSides ? 'order-last' : 'order-first'}`}>
-                                {renderTabContent()}
+                                <Suspense fallback={<div className="flex justify-center items-center h-full"><LoadingSpinner /></div>}>
+                                    {renderTabContent()}
+                                </Suspense>
                             </div>
                          </div>
                      </div>
