@@ -11,15 +11,15 @@ interface ThemeState {
     base: 'light' | 'dark' | 'system';
     accent: CatppuccinAccentColorName;
     secondaryAccent: CatppuccinAccentColorName;
-    userChatBubble: string;
-    modelChatBubble: string;
+    userChatBubble: CatppuccinAccentColorName;
+    modelChatBubble: CatppuccinAccentColorName;
   };
   setTheme: (themeName: string) => void;
   setThemeBase: (base: 'light' | 'dark' | 'system') => void;
   setAccent: (accent: CatppuccinAccentColorName) => void;
   setSecondaryAccent: (secondaryAccent: CatppuccinAccentColorName) => void;
-  setUserChatBubble: (color: string) => void;
-  setModelChatBubble: (color: string) => void;
+  setUserChatBubble: (color: CatppuccinAccentColorName) => void;
+  setModelChatBubble: (color: CatppuccinAccentColorName) => void;
 }
 
 interface LayoutState {
@@ -38,8 +38,8 @@ export interface SettingsState extends Omit<ThemeState, 'theme'>, LayoutState {
     base: 'light' | 'dark' | 'system';
     accent: CatppuccinAccentColorName;
     secondaryAccent: CatppuccinAccentColorName;
-    userChatBubble: string;
-    modelChatBubble: string;
+    userChatBubble: CatppuccinAccentColorName;
+    modelChatBubble: CatppuccinAccentColorName;
   };
   // Add other settings here as you implement them
   setObsUrl: (url: string) => void;

@@ -236,6 +236,13 @@ export const useGeminiChat = (
         }
       } catch (err) {
         logger.warn('No valid action found in response:', err);
+        const errorMsg = handleAppError('Gemini chat action parsing', err, 'Failed to parse AI action.');
+        useUiStore.getState().addError({
+            message: errorMsg,
+            source: 'useGeminiChat',
+            level: 'error',
+            details: { response: fullResponse, error: err }
+        });
       }
 
       chatActions.replaceMessage(modelMessageId, { role: 'model', text: displayText });

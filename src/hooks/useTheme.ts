@@ -68,11 +68,11 @@ export const useTheme = () => {
         }
         
         if (!availableColors.includes(themeSettings.userChatBubble)) {
-          setUserChatBubble(availableColors[0]);
+          setUserChatBubble(availableColors[0] as CatppuccinAccentColorName);
         }
         
         if (!availableColors.includes(themeSettings.modelChatBubble)) {
-          setModelChatBubble(availableColors[1] || availableColors[0]);
+          setModelChatBubble((availableColors[1] || availableColors[0]) as CatppuccinAccentColorName);
         }
       }
     }
