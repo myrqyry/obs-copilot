@@ -1,4 +1,6 @@
+/* src/index.css */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 
 @tailwind base;
 @tailwind components;
@@ -6,149 +8,628 @@
 
 @layer base {
   :root {
-    --background: 240 20% 15%;
-    /* Catppuccin Mocha Base */
-    --foreground: 226 66% 88%;
-    /* Catppuccin Mocha Text - restored to proper light color for main UI */
+    /* Define initial semantic colors using Catppuccin Mocha hex values.
+       These are then overridden by `App.tsx` based on user theme selection.
+       Using HSL values here to align with custom properties. */
+    --background: 240 20% 15%; /* ctp-base */
+    --foreground: 226 66% 88%; /* ctp-text */
 
-    --card: 233 12% 31%;
-    /* Catppuccin Mocha Surface1 */
-    --card-foreground: 226 66% 88%;
-    /* Catppuccin Mocha Text */
+    --card: 233 12% 31%; /* ctp-surface1 */
+    --card-foreground: 226 66% 88%; /* ctp-text */
 
-    --popover: 233 12% 31%;
-    /* Catppuccin Mocha Surface1 */
-    --popover-foreground: 226 66% 88%;
-    /* Catppuccin Mocha Text */
+    --popover: 233 12% 31%; /* ctp-surface1 */
+    --popover-foreground: 226 66% 88%; /* ctp-text */
 
-    --primary: 270 80% 85%;
-    /* Catppuccin Mocha Mauve */
-    --primary-foreground: 240 20% 15%;
-    /* Catppuccin Mocha Base (for contrast) */
+    --primary: 270 80% 85%; /* ctp-mauve (default accent) */
+    --primary-foreground: 240 20% 15%; /* ctp-base */
 
-    --secondary: 237 13% 23%;
-    /* Catppuccin Mocha Surface0 */
-    --secondary-foreground: 227 27% 75%;
-    /* Catppuccin Mocha Subtext0 */
+    --secondary: 237 13% 23%; /* ctp-surface0 */
+    --secondary-foreground: 227 27% 75%; /* ctp-subtext0 */
 
-    --muted: 230 11% 48%;
-    /* Catppuccin Mocha Overlay0 */
-    --muted-foreground: 225 42% 86%;
-    /* Catppuccin Mocha Subtext1 */
+    --muted: 230 11% 48%; /* ctp-overlay0 */
+    --muted-foreground: 225 42% 86%; /* ctp-subtext1 */
 
-    --accent: 169 56% 76%;
-    /* Catppuccin Mocha Teal */
-    --accent-foreground: 240 20% 15%;
-    /* Catppuccin Mocha Base (for contrast) */
+    --accent: 169 56% 76%; /* ctp-teal */
+    --accent-foreground: 240 20% 15%; /* ctp-base */
 
-    --destructive: 340 82% 81%;
-    /* Catppuccin Mocha Red */
-    --destructive-foreground: 240 20% 15%;
-    /* Catppuccin Mocha Base (for contrast) */
+    --destructive: 340 82% 81%; /* ctp-red */
+    --destructive-foreground: 240 20% 15%; /* ctp-base */
 
-    --border: 233 11% 39%;
-    /* Catppuccin Mocha Surface2 */
-    --input: 237 13% 23%;
-    /* Catppuccin Mocha Surface0 */
-    --ring: 270 80% 85%;
-    /* Catppuccin Mocha Mauve (Primary Accent) */
+    --info: 217 91% 76%; /* ctp-blue */
+    --info-foreground: 240 20% 15%; /* ctp-base */
 
-    --radius: 0.75rem;
-    /* 12px, matches original rounded-lg */
+    --border: 233 11% 39%; /* ctp-surface2 */
+    --input: 237 13% 23%; /* ctp-surface0 */
+    --ring: 270 80% 85%; /* ctp-mauve (Primary Accent) */
+
+    --radius: 0.75rem; /* 12px, matches original rounded-lg */
+    --component-border-color: var(--border);
+    --component-inactive-color: var(--muted-foreground);
+    --component-bg: var(--card);
+    --component-shadow: var(--border);
+    --component-active-bg: var(--secondary);
+    --component-line-inactive-color: var(--border);
+    --component-active-color-default: var(--accent-foreground);
+
+    /* Enhanced accent color variables for better integration */
+    --accent-glow: hsl(var(--accent) / 0.3);
+    --primary-glow: hsl(var(--primary) / 0.3);
+    --accent-subtle: hsl(var(--accent) / 0.1);
+    --primary-subtle: hsl(var(--primary) / 0.1);
+    --gradient-primary-accent: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+    --gradient-accent-primary: linear-gradient(135deg, hsl(var(--accent)), hsl(var(--primary)));
+    --shadow-accent: 0 4px 20px hsl(var(--accent) / 0.2);
+    --shadow-primary: 0 4px 20px hsl(var(--primary) / 0.2);
+    
+    /* Overlay and warning variables for template support */
+    --warning: 43 74% 66%; /* ctp-yellow */
+    --warning-foreground: 240 20% 15%; /* ctp-base */
+    --warning-glow: hsl(var(--warning) / 0.3);
+    --destructive-glow: hsl(var(--destructive) / 0.3);
+    --destructive-subtle: hsl(var(--destructive) / 0.1);
+    --background-overlay: hsl(var(--background) / 0.8);
+    --shadow-lg: hsl(var(--foreground) / 0.4);
+    
+    /* Dynamic accent variables with fallbacks to prevent theme transition issues */
+    --dynamic-accent: #94e2d5; /* fallback to ctp-teal */
+    --dynamic-secondary-accent: #cba6f7; /* fallback to ctp-mauve */
   }
 
-  * {
-    @apply border-border;
+  /* ============================================================
+     Chat bubble / message CSS override strategy
+
+     Important background:
+     - We avoid using !important on chat bubble backgrounds/borders so that
+       inline styles (React's style={{}}) and dynamically computed colors
+       (set at the component level) can override them reliably.
+     - Using !important here previously caused inline styles to be ignored
+       because the stylesheet forced higher precedence. To allow per-message
+       theming (and to let user-configured colors apply), these rules are
+       intentionally disabled below.
+     - If you need a stylesheet-level default, use regular declarations
+       (no !important) or increase specificity only as required, rather
+       than using !important which breaks inline-style precedence.
+     ============================================================ */
+
+  /* The following rules used to include !important which prevented
+     inline styles from applying (e.g. when setting style={{ backgroundColor }}).
+     They are preserved here as commented blocks so future maintainers can see
+     the previous overrides, but they are intentionally inactive.
+
+  .chat-message.bg-card {
+    background-color: var(--card) !important;
   }
 
+  .chat-message.border-border {
+    border-color: var(--border) !important;
+  }
+  */
+
+  /* Recommended: If you need defaults, use non-!important fallbacks so inline
+     styles still work. Example:
+
+  .chat-message.bg-card {
+    background-color: var(--card);
+  }
+
+  .chat-message.border-border {
+    border-color: var(--border);
+  }
+  */
+
+  /* Global class for dynamic accent colors (used by MorphingLogos and AnimatedTitleLogos) */
+  .dynamic-accent-gradient {
+    background: radial-gradient(circle, var(--dynamic-accent), var(--dynamic-secondary-accent));
+  }
+
+  /* Global class for the animated title gradient */
+  .animated-title-gradient {
+    background: linear-gradient(135deg,
+        var(--dynamic-accent) 0%,
+        color-mix(in srgb, var(--dynamic-accent) 70%, var(--dynamic-secondary-accent)) 20%,
+        var(--dynamic-secondary-accent) 40%,
+        color-mix(in srgb, var(--dynamic-secondary-accent) 70%, var(--dynamic-accent)) 60%,
+        var(--dynamic-accent) 80%,
+        color-mix(in srgb, var(--dynamic-accent) 70%, var(--dynamic-secondary-accent)) 100%);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: gradient-shift 16s ease-in-out infinite;
+  }
+
+  /* Subtle breathing glow used by title and logo containers */
+  @keyframes subtle-glow {
+    0% { filter: drop-shadow(0 6px 12px rgba(0,0,0,0.12)); }
+    50% { filter: drop-shadow(0 10px 26px rgba(0,0,0,0.14)); }
+    100% { filter: drop-shadow(0 6px 12px rgba(0,0,0,0.12)); }
+  }
+
+  /* A small utility to apply a slow, subtle colored glow using semantic accent variables */
+  .animated-glow {
+    box-shadow: 0 8px 28px hsl(var(--accent) / 0.08), 0 2px 10px hsl(var(--primary) / 0.04);
+    transition: box-shadow 0.35s ease;
+    animation: subtle-glow 8s ease-in-out infinite;
+  }
+
+  /* Logo-specific helper — when applied to the SVG container it will subtly pulse the gradient's visible glow */
+  /* logo-animated-gradient intentionally omitted (use .animated-glow on parent containers) */
+  /* New: global layout elements that consume theme variables */
+  .app-header, header, .site-header {
+    background: var(--nav-bg);
+    color: var(--nav-foreground);
+    border-bottom: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-primary);
+  }
+  /* add breathing room under the title bar */
+  .app-header, header, .site-header {
+    padding-bottom: 0.5rem;
+  }
+
+  .primary-gradient-accent {
+    background: var(--nav-accent-gradient);
+    color: var(--button-text);
+  }
+
+  /* Primary nav helper: use CSS variable for the top gradient indicator (subtle) */
+  nav[aria-label='Primary'].prime-nav::before {
+    background: var(--nav-accent-gradient);
+    opacity: 0.18; /* make it subtle */
+    pointer-events: none;
+  }
+
+  /* Subtle accent overlay used by header and other surfaces to add theme color without heavy saturation */
+  .subtle-accent-overlay {
+    position: absolute;
+    inset: 0;
+    opacity: 0.06;
+    pointer-events: none;
+    background: var(--nav-accent-gradient);
+    mix-blend-mode: overlay;
+  }
+
+  /* Utility class to apply the current accent color (converted to HSL by applyTheme) */
+  .accent-color {
+    color: hsl(var(--accent));
+  }
+
+  /* Buttons and actionable UI - avoid styling all native <button> elements to prevent UI control overrides
+     Only apply the themed button treatment to components opting into it via .btn or .button */
+  .btn, .button, .themed-button {
+    background: linear-gradient(180deg, var(--button-bg), var(--button-bg-accent));
+    color: var(--button-text);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-accent);
+    transition: transform 0.12s ease, box-shadow 0.18s ease, opacity 0.12s ease;
+  }
+
+  .btn:hover, .button:hover, .themed-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px hsl(var(--accent) / 0.24);
+  }
+
+  /* Tabs / Navigation */
+  .tabs, .tab-list, nav[role='tablist'] {
+    background: var(--nav-bg);
+    color: hsl(var(--tab-inactive-text));
+    border-radius: calc(var(--radius) + 2px);
+  }
+
+  .tab, .tab-button {
+    color: hsl(var(--tab-inactive-text));
+    background: transparent;
+    transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+  }
+
+  /* Icon coloring for tabs - use CSS variables so theme updates apply immediately */
+  .tab-item .tab-icon {
+    color: inherit;
+    transition: color 0.18s ease, transform 0.12s ease;
+  }
+
+  /* Ensure SVGs used as icons inherit the surrounding color so theme color applies */
+  .tab-item .tab-icon svg,
+  .tab-item .tab-icon path,
+  .tab-item .tab-icon g {
+    fill: currentColor !important;
+    stroke: currentColor !important;
+    color: inherit !important;
+  }
+
+  /* Ensure tabs don't shrink and avoid wrapping during animated width/drag operations */
+  .tab-item {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .tab-item[data-active='true'] .tab-icon,
+  .tab-item[aria-selected='true'] .tab-icon {
+    color: hsl(var(--tab-active-text));
+  }
+
+  .tab[aria-selected='true'], .tab-button.active {
+    color: hsl(var(--tab-active-text));
+    background: var(--tab-active-bg);
+    box-shadow: var(--shadow-accent);
+    border-radius: calc(var(--radius) - 2px);
+  }
+
+  /* Cards use semantic card variables */
+  .card, .panel {
+    background: hsl(var(--component-bg));
+    color: hsl(var(--card-foreground));
+    border: 1px solid hsl(var(--component-border-color));
+    border-radius: var(--radius);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+  }
+
+  /* Links and badges should use accent color */
+  a, .link {
+    color: hsl(var(--accent));
+    text-decoration: underline;
+  }
+
+  .badge, .accent-pill {
+    background: linear-gradient(90deg, hsl(var(--accent)), hsl(var(--primary)));
+    color: hsl(var(--accent-foreground));
+    border-radius: 999px;
+    padding: 0.125rem 0.5rem;
+    font-weight: 600;
+  }
+
+  /* Focus ring - unify across components */
+  :focus {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+/* Make tab focus less intrusive: remove global circular outline and provide a subtle rectangular focus-visible state
+   - keep keyboard accessibility by using :focus-visible
+   - avoid a round/filled circle around icons when tabs are clicked */
+.tab-item:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.tab-item:focus-visible {
+  /* subtle rectangular ring that matches accent; uses HSL component tokens */
+  outline: none;
+  box-shadow: 0 0 0 4px hsl(var(--accent) / 0.12), 0 2px 8px hsl(var(--accent) / 0.06);
+  border-radius: 8px;
+}
+
+  /* App-level root background and main split panels */
+  .app-root {
+    background: linear-gradient(135deg, hsl(var(--background)), hsl(var(--card)));
+    color: hsl(var(--foreground));
+    min-height: 100vh;
+  }
+
+  .main-panel {
+    background: transparent;
+    color: inherit;
+  }
+
+  /* Make header & nav use themed variables */
+  header, .app-header, .site-header {
+    background: linear-gradient(90deg, hsl(var(--nav-bg)), color-mix(in srgb, hsl(var(--nav-bg)) 92%, transparent));
+    color: hsl(var(--nav-foreground));
+    border-bottom: 1px solid hsl(var(--border) / 0.6);
+  }
+
+  nav.prime-nav {
+    background: hsl(var(--nav-bg) / 0.85);
+    color: hsl(var(--nav-foreground));
+    /* Remove default bottom border so the tabs area appears cleaner */
+    border-bottom: none;
+    /* Prevent layout overflow/scrollbars when animating or dragging tabs */
+    overflow: hidden;
+    contain: layout paint;
+  }
+
+  /* Panels and sidebars should use card variables for consistent look */
+  .sidebar, .panel, .workspace {
+    background: hsl(var(--component-bg));
+    color: hsl(var(--card-foreground));
+    border: 1px solid hsl(var(--component-border-color) / 0.7);
+    border-radius: calc(var(--radius));
+  }
+  .theme {
+    --color-chart-2: var(--color-chart-2);
+    --color-chart-3: var(--color-chart-3);
+    --color-chart-4: var(--color-chart-4);
+    --color-chart-5: var(--color-chart-5);
+  }
+  .dark {
+    --component-inactive-color: var(--muted-foreground);
+    --component-bg: var(--card);
+    --component-shadow: var(--border);
+    --component-active-bg: var(--secondary);
+    --component-line-inactive-color: var(--muted-foreground);
+    --component-active-color-default: var(--accent-foreground);
+  }
+}
+
+/* Chat bubble variable-driven defaults and tuned visuals */
+.chat-message {
+  /* CSS variable fallbacks (inline styles on elements will override these) */
+  --bubble-bg: rgba(30,30,46,0.5);
+  --bubble-border: hsl(var(--accent));
+  --bubble-text: hsl(var(--accent));
+  --bubble-radius: 0.75rem;
+  --bubble-border-width: 1.5px;
+  --bubble-shadow: 0 6px 20px rgba(0,0,0,0.14);
+
+  background-color: var(--bubble-bg);
+  border-color: var(--bubble-border);
+  color: var(--bubble-text);
+  border-width: var(--bubble-border-width);
+  border-style: solid;
+  border-radius: var(--bubble-radius);
+  box-shadow: var(--bubble-shadow);
+  transition: background 0.28s, border-color 0.28s, box-shadow 0.28s, transform 0.18s;
+}
+
+/* Glassy variant used when custom background is present */
+.chat-bubble-glass {
+  backdrop-filter: blur(6px) saturate(120%);
+  background-color: rgba(255,255,255,0.06);
+}
+.chat-bubble-glass-extra-dark {
+  backdrop-filter: blur(6px) saturate(120%);
+  background-color: rgba(8,8,12,0.6);
+}
+
+/* Pop/hover polish for bubbles */
+.chat-message.group:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+}
+
+  /* ChatBubblePreview-specific styles */
+  .tab-preview-icon {
+    background: color-mix(in srgb, hsl(var(--accent)) 90%, transparent);
+    border: 1px solid hsl(var(--border) / 0.6);
+    width: 18px;
+    height: 18px;
+    border-radius: 6px;
+  }
+
+  .preview-bubble {
+    transition: transform 0.28s cubic-bezier(0.2,0.8,0.2,1), background 0.28s, border-color 0.28s;
+  }
+
+  /* small utility to visually indicate swapping animation for preview */
+  .preview-swap-enter {
+    transform: translateX(0);
+  }
+
+
+
+@layer base {
+  /* Removed global border application to avoid conflicts */
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', sans-serif;
   }
 
-  /* Custom scrollbar styles using new variables */
+  /* Custom Scrollbar Styles */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 12px;
+    height: 12px;
   }
 
   ::-webkit-scrollbar-track {
-    background: hsl(var(--muted) / 0.5);
+    background: hsl(var(--card));
+    border-radius: 10px;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: hsl(var(--secondary-foreground) / 0.5);
-    border-radius: 4px;
+    background: hsl(var(--muted));
+    border-radius: 10px;
+    border: 3px solid hsl(var(--card));
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--secondary-foreground) / 0.7);
+    background: hsl(var(--primary));
   }
+}
 
-  .glow {
-    box-shadow: 0 0 5px hsl(var(--primary)), 0 0 10px hsl(var(--primary)), 0 0 15px hsl(var(--primary));
-  }
-
-  /* Smooth tab transitions */
-  .tab-transition {
-    transition: opacity 0.2s ease-out, transform 0.2s ease-out;
-    will-change: opacity, transform;
-  }
-
-  /* Prevent layout shift during tab transitions */
-  .tab-content-container {
-    min-height: 400px;
-    contain: layout style;
-    will-change: contents;
-  }
-
-  /* Smooth height transitions for dynamic content */
-  .height-transition {
-    transition: height 0.2s ease-out;
-    will-change: height;
-  }
-
-  /* Optimize tab content rendering */
-  .tab-content {
-    backface-visibility: hidden;
-    transform: translateZ(0);
-  }
-
-  /* Reduce motion for users who prefer it */
-  @media (prefers-reduced-motion: reduce) {
-
-    .tab-transition,
-    .height-transition {
-      transition: none;
+@theme inline {
+  @keyframes iconBounce {
+  0%, 100% {
+    transform: translateY(0);
     }
-
-    .tab-content-container {
-      will-change: auto;
+  20% {
+    transform: translateY(-0.3em);
+    }
+  40% {
+    transform: translateY(0);
+    }
+  60% {
+    transform: translateY(-0.1em);
+    }
+  80% {
+    transform: translateY(0);
     }
   }
+}
 
-  /* SVG scaling and rendering styles for streaming assets */
-  .svg-container svg {
-    width: 100% !important;
-    height: 100% !important;
-    max-width: 100% !important;
-    max-height: 100% !important;
-    fill: currentColor !important;
-    stroke: currentColor !important;
-  }
+/* Added snippet from modern-mobile-menu demo (keeps keyframes and component vars) */
+@theme inline {
+  --color-chart-2: var(--color-chart-2);
+  --color-chart-3: var(--color-chart-3);
+  --color-chart-4: var(--color-chart-4);
+  --color-chart-5: var(--color-chart-5);
+}
 
-  .svg-modal-container svg {
-    width: 100% !important;
-    height: 100% !important;
-    max-width: 8rem !important;
-    max-height: 8rem !important;
-    fill: currentColor !important;
-    stroke: currentColor !important;
-  }
+:root {
+  --component-inactive-color: var(--muted-foreground);
+  --component-bg: var(--card);
+  --component-shadow: var(--border);
+  --component-active-bg: var(--secondary);
+  --component-line-inactive-color: var(--border);
+  --component-active-color-default: var(--accent-foreground);
+}
 
-  /* Ensure SVG icons inherit color properly */
-  .svg-container,
-  .svg-modal-container {
-    color: inherit;
+.dark {
+  --component-inactive-color: var(--muted-foreground);
+  --component-bg: var(--card);
+  --component-shadow: var(--border);
+  --component-active-bg: var(--secondary);
+  --component-line-inactive-color: var(--muted-foreground);
+  --component-active-color-default: var(--accent-foreground);
+}
+
+
+@keyframes iconBounce {
+  0%, 100% {
+    transform: translateY(0);
   }
+  20% {
+    transform: translateY(-0.3em);
+  }
+  40% {
+    transform: translateY(0);
+  }
+  60% {
+    transform: translateY(-0.1em);
+  }
+  80% {
+    transform: translateY(0);
+  }
+}
+
+/* End of modern-mobile-menu additions */
+
+/* modern-mobile-menu component styles */
+.menu {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  background: transparent;
+}
+
+.menu__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  color: hsl(var(--component-inactive-color));
+  transition: color 0.22s ease, transform 0.12s ease;
+}
+
+.menu__item:hover {
+  transform: translateY(-2px);
+}
+
+.menu__icon .MuiSvgIcon-root, .menu__icon .icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: inherit;
+  transition: transform 0.18s ease;
+}
+
+.menu__text {
+  display: inline-block;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transform-origin: left center;
+  transition: transform 0.28s cubic-bezier(.2,.9,.2,1), opacity 0.18s ease;
+  opacity: 0;
+  transform: translateX(-6px) scaleX(0.95);
+}
+
+.menu__text.active {
+  opacity: 1;
+  transform: translateX(0) scaleX(1);
+}
+
+/* underline/line that animates from icon to text width */
+.menu__item::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  width: 0px;
+  height: 2px;
+  background: hsl(var(--component-active-color-default));
+  border-radius: 2px;
+  transform: translateX(-50%);
+  transition: width 0.28s cubic-bezier(.2,.9,.2,1), background 0.2s ease;
+}
+
+.menu__item.active::after {
+  width: var(--lineWidth, 40px);
+}
+
+.menu__item.active {
+  color: hsl(var(--component-active-color-default));
+}
+
+/* respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .menu__text, .menu__item::after, .menu__item {
+    transition: none !important;
+  }
+}
+
+/* Tabs: adopt mobile-menu label reveal + underline styling */
+.tab-item {
+  position: relative;
+  transition: color 0.22s ease, transform 0.12s ease;
+  color: hsl(var(--component-inactive-color));
+}
+
+.tab-item .tab-label {
+  display: inline-block;
+  transform-origin: left center;
+  transition: transform 0.28s cubic-bezier(.2,.9,.2,1), opacity 0.18s ease;
+  opacity: 0;
+  transform: translateX(-6px) scaleX(0.95);
+}
+.tab-item .tab-label.active {
+  opacity: 1;
+  transform: translateX(0) scaleX(1);
+}
+
+.tab-item::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  width: 0px;
+  height: 2px;
+  background: hsl(var(--component-active-color-default));
+  border-radius: 2px;
+  transform: translateX(-50%);
+  transition: width 0.28s cubic-bezier(.2,.9,.2,1), background 0.2s ease;
+}
+
+.tab-item[data-active='true']::after,
+.tab-item.active::after {
+  width: var(--lineWidth, 40px);
+}
+
+.tab-item[data-active='true'] {
+  color: hsl(var(--component-active-color-default));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-item, .tab-item::after, .tab-item .tab-label {
+    transition: none !important;
+  }
+}
+
+/* Animated gradient shift for title */
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }

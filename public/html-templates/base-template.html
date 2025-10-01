@@ -1,0 +1,269 @@
+<!--
+  NOTE: Files in the public directory are served at the root path.
+  Reference this template as /html-templates/base-template.html (NOT /public/html-templates/base-template.html)
+  Example usage:
+    /html-templates/base-template.html?config=...
+-->
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>OBS Template</title>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: transparent;
+        }
+
+        .template-container {
+            box-sizing: border-box;
+            padding: 32px;
+            border-radius: 16px;
+            border: 2px solid var(--border, #45475a);
+            background: var(--background, rgba(30, 30, 46, 0.9));
+            color: var(--text, #cdd6f4);
+            box-shadow: 0 4px 32px rgba(0, 0, 0, 0.2);
+            max-width: 90vw;
+            max-height: 90vh;
+            margin: 32px auto;
+            transition: box-shadow 0.3s;
+        }
+
+        .template-title {
+            font-size: 2.2em;
+            font-weight: bold;
+            color: var(--primary, #a6e3a1);
+            margin-bottom: 0.2em;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .template-subtitle {
+            font-size: 1.2em;
+            color: var(--secondary, #94e2d5);
+            margin-bottom: 0.8em;
+        }
+
+        .template-body {
+            font-size: 1.1em;
+            color: var(--text, #cdd6f4);
+        }
+
+        /* Animations */
+        .glow {
+            box-shadow: 0 0 16px 4px var(--accent, #89dceb), 0 0 64px 8px var(--accent, #89dceb);
+        }
+
+        .rainbow {
+            animation: rainbow 2s linear infinite;
+        }
+
+        @keyframes rainbow {
+            0% {
+                filter: hue-rotate(0deg);
+            }
+
+            100% {
+                filter: hue-rotate(360deg);
+            }
+        }
+
+        .pulse {
+            animation: pulse 1.2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.04);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        /* Layouts */
+        .overlay {
+            position: absolute;
+            top: 5%;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: auto;
+            z-index: 9999;
+            background: var(--background, rgba(30, 30, 46, 0.97));
+        }
+
+        .fullscreen #close-btn {
+            position: absolute;
+            top: 24px;
+            right: 32px;
+            background: var(--accent, #89dceb);
+            color: #222;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 1.5em;
+            cursor: pointer;
+            z-index: 10000;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            transition: background 0.2s;
+        }
+
+        .fullscreen #close-btn:hover {
+            background: #f38ba8;
+            color: #fff;
+        }
+
+        .sidebar {
+            position: absolute;
+            top: 0;
+            right: 0;
+            height: 100vh;
+            width: 350px;
+        }
+
+        .corner {
+            position: absolute;
+        }
+
+        .corner.top-left {
+            top: 24px;
+            left: 24px;
+        }
+
+        .corner.top-right {
+            top: 24px;
+            right: 24px;
+        }
+
+        .corner.bottom-left {
+            bottom: 24px;
+            left: 24px;
+        }
+
+        .corner.bottom-right {
+            bottom: 24px;
+            right: 24px;
+        }
+    </style>
+    <script>
+        function setVars(vars) {
+            for (const key in vars) {
+                if (vars[key]) {
+                    document.documentElement.style.setProperty('--' + key, vars[key]);
+                }
+            }
+        }
+        function closeFullscreen() {
+            const container = document.getElementById('template-container');
+            if (container.classList.contains('fullscreen')) {
+                container.style.display = 'none';
+            }
+        }
+        window.onload = function () {
+            const params = new URLSearchParams(window.location.search);
+            const config = JSON.parse(decodeURIComponent(params.get('config') || '{}'));
+
+            // Set CSS variables for colors
+            setVars({
+                primary: config.colors?.primary,
+                secondary: config.colors?.secondary,
+                accent: config.colors?.accent,
+                background: config.colors?.background,
+                text: config.colors?.text,
+                border: config.colors?.border,
+            });
+
+            // Layout
+            let layout = config.layout || 'overlay';
+            let container = document.getElementById('template-container');
+            container.classList.add(layout);
+
+            // Add close button if fullscreen
+            if (layout === 'fullscreen') {
+                if (!document.getElementById('close-btn')) {
+                    const btn = document.createElement('button');
+                    btn.id = 'close-btn';
+                    btn.title = 'Close';
+                    btn.innerHTML = '&times;';
+                    btn.onclick = closeFullscreen;
+                    container.appendChild(btn);
+                }
+                // ESC key closes fullscreen
+                document.addEventListener('keydown', function (e) {
+                    if (e.key === 'Escape') closeFullscreen();
+                });
+            }
+
+            // Corner position
+            if (layout === 'corner') {
+                let pos = config.position || 'bottom-right';
+                container.classList.add(pos);
+            }
+
+            // Animations
+            if (config.animations?.enabled) {
+                if (config.animations.effects?.glow > 0) {
+                    container.classList.add('glow');
+                    container.style.boxShadow = `0 0 ${8 * config.animations.effects.glow}px ${2 * config.animations.effects.glow}px var(--accent, #89dceb)`;
+                }
+                if (config.animations.effects?.rainbow) {
+                    container.classList.add('rainbow');
+                }
+                if (config.animations.effects?.pulse) {
+                    container.classList.add('pulse');
+                }
+            }
+
+            // Custom HTML/CSS
+            if (config.customHtml) {
+                document.getElementById('custom-html').innerHTML = config.customHtml;
+                document.getElementById('default-content').style.display = 'none';
+            }
+            if (config.customCss) {
+                const style = document.createElement('style');
+                style.innerHTML = config.customCss;
+                document.head.appendChild(style);
+            }
+
+            // Set content if not using customHtml
+            if (!config.customHtml && config.content) {
+                if (config.content.title) document.getElementById('template-title').textContent = config.content.title;
+                if (config.content.subtitle) document.getElementById('template-subtitle').textContent = config.content.subtitle;
+                if (config.content.body) document.getElementById('template-body').innerHTML = config.content.body;
+            }
+        };
+    </script>
+</head>
+
+<body>
+    <div id="template-container" class="template-container">
+        <div id="custom-html"></div>
+        <div id="default-content">
+            <div id="template-title" class="template-title"></div>
+            <div id="template-subtitle" class="template-subtitle"></div>
+            <div id="template-body" class="template-body"></div>
+        </div>
+    </div>
+</body>
+
+</html>

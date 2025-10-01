@@ -1,49 +1,49 @@
-
-import { defineConfig, loadEnv } from 'vite';
+// vite.config.ts
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { fileURLToPath, URL } from 'node:url';
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => {
-  // Load env file based on mode (development, production)
-  // and the current working directory.
-  // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
-  const env = loadEnv(mode, (process as any).cwd(), '');
-
-  return {
-    plugins: [react()],
-    define: {
-      // Expose environment variables to your client-side code
-      // IMPORTANT: Ensure API_KEY is set in your build environment (e.g., Netlify settings)
-      // For local development, you can use a .env.local file (e.g., VITE_GEMINI_API_KEY=your_actual_key_here)
-      'process.env.API_KEY': JSON.stringify(env.API_KEY),
-      'process.env.VITE_GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY),
-      // You can define other environment variables here if needed
-      // 'process.env.NODE_ENV': JSON.stringify(mode),
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
-    server: {
-      port: 5173, // Use Vite's default port for consistency
+  },
+  server: {
+    port: 5173,
+    host: true, // bind on all interfaces for LAN testing
+    proxy: {
+      '/api': {
+        // Backend dev helper usually listens on 8000 in this environment.
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+      },
     },
-    build: {
-      outDir: 'dist', // Optional: specify output directory
-      rollupOptions: {
-        // Optimize GSAP for production builds
-        external: [],
-        output: {
-          manualChunks: {
-            gsap: ['gsap'],
-          }
-        }
-      }
+    // Ignore Python/backend artifacts during frontend dev
+    watch: {
+      ignored: [
+        '**/backend/**',
+        '**/__pycache__/**',
+        '**/.pytest_cache/**',
+        '**/.mypy_cache/**',
+        '**/*.pyc',
+        '**/*.pyo',
+      ],
+      usePolling: false,
+      interval: 1000,
     },
-    optimizeDeps: {
-      // Ensure GSAP is properly optimized for development
-      include: ['gsap'],
-      force: true
-    },
-    resolve: {
-      alias: {
-        // Remove problematic GSAP alias that was causing warnings
-      }
-    }
-  };
+  },
+  preview: {
+    port: 4173,
+  },
+  optimizeDeps: {
+    include: ['buffer'],
+  },
+  define: {
+    // Some libraries reference global or globalThis.Buffer; we ensure references don't crash before polyfills load.
+    'globalThis.Buffer': 'globalThis.Buffer',
+  },
 });

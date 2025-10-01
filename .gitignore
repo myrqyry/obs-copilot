@@ -7,10 +7,25 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# Dependencies
+node_modules/
+
+# Build outputs
+/dist
+/dist-ssr
+/dist-node
+/build
+/out
+
+# Cache and temp files
+.cache/
+.temp/
+.tmp/
+/tmp
+/temp
+*.tmp
+*.temp
+*.tsbuildinfo
 
 # Editor directories and files
 .vscode/*
@@ -21,4 +36,78 @@ dist-ssr
 *.ntvs*
 *.njsproj
 *.sln
-*.sw?
+*.swp
+*.swo
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Testing
+/coverage
+.nyc_output
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local development
+.netlify
+netlify/edge-functions
+netlify/functions
+.kilocode/*
+.cursorignore
+*/__pycache__/*
+
+# AppMap
+/tmp/appmap/
+
+# Data and cache
+/dataref
+/cache
+*.cache
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+desktop.ini
+.DS_Store
+
+# IDE specific files
+.idea/
+.kilocode
+.vscode/
+*.sublime-*
+
+# Build tool specific
+.vite/
+.eslintcache
+
+# Backend specific
+AGENTS.md
+/backend/venv/*
+/backend/__pycache__/*
+.github/copilot-instructions.md
+.clinerules/obscopilotrules.md
+.github/copilot-instructions.md
+backend/api/routes/__pycache__/*
+.playwright-mcp/*
+*/__pycache__/*
+*.pyc
+backend/tests/__pycache__/test_gemini.cpython-312-pytest-7.4.4.pyc
+.clinerules/
+.kilocode/
+.playwright-mcp/
+.pytest_cache/
+.cursorignore
+backend/api/routes/__pycache__/
+*.pyc
+backend/api/routes/__pycache__/gemini.cpython-312.pyc

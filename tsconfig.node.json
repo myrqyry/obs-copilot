@@ -1,11 +1,18 @@
 {
   "compilerOptions": {
-    "composite": true,
-    "skipLibCheck": true,
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "allowSyntheticDefaultImports": true,
-    "strict": true
+  "module": "esnext",
+  "esModuleInterop": true,
+  "allowJs": true,
+  "checkJs": false,
+  "outDir": "./dist-node",
+  "rootDir": "./",
+  "strict": false,
+  "target": "ESNext",
+  "moduleResolution": "node",
+  "resolveJsonModule": true,
+  "types": ["node"],
+  "composite": true
   },
-  "include": ["vite.config.ts", "postcss.config.js", "tailwind.config.js"]
+  "include": ["proxy.cjs", "verify-proxy.js"],
+  "exclude": ["node_modules", "dist", "build", "src"]
 }
