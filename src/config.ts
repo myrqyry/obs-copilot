@@ -1,10 +1,16 @@
-import { logger } from './utils/logger';
+import { z } from 'zod';
 
-const config = {
-  API_URL: import.meta.env.VITE_API_URL || '',
-  UNSPLASH_ACCESS_KEY: import.meta.env.VITE_UNSPLASH_ACCESS_KEY || '',
-  // Add other environment variables as needed
-};
+const configSchema = z.object({
+  API_URL: z.string().url(),
+  UNSPLASH_ACCESS_KEY: z.string().min(1),
+  GEMINI_API_KEY: z.string().min(1),
+});
+
+const config = configSchema.parse({
+  API_URL: import.meta.env.VITE_API_URL,
+  UNSPLASH_ACCESS_KEY: import.meta.env.VITE_UNSPLASH_ACCESS_KEY,
+  GEMINI_API_KEY: import.meta.env.VITE_GEMINI_API_KEY,
+});
 
 // AI SDK 5 feature flags for gradual adoption
 export const aiSdk5Config = {
