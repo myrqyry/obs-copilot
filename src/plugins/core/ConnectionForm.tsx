@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { ConnectionProfile, ObsConnectionProfile, StreamerbotConnectionProfile, ConnectionType } from '@/types/connections';
+import type { ConnectionProfile, ObsConnectionProfile, ConnectionType } from '@/types/connections';
 import { nanoid } from 'nanoid';
 
 // Helper function for URL validation
@@ -22,7 +22,7 @@ const isValidObsUrl = (url: string): boolean => {
 };
 
 interface ConnectionFormProps {
-  onSave: (profile: ConnectionProfile) => void; // Now accepts full ConnectionProfile
+  onSave: (profile: ConnectionProfile) => void;
   initialProfile?: ConnectionProfile;
 }
 
@@ -31,8 +31,6 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({ onSave, initialProfile 
   const [type, setType] = useState<ConnectionType>(initialProfile?.type || 'obs');
   const [obsUrl, setObsUrl] = useState<string>('');
   const [obsPassword, setObsPassword] = useState<string>('');
-  const [streamerBotHost, setStreamerBotHost] = useState<string>('');
-  const [streamerBotPort, setStreamerBotPort] = useState<string>('');
 
   const { toast } = useToast();
 
@@ -43,9 +41,6 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({ onSave, initialProfile 
       if (initialProfile.type === 'obs') {
         setObsUrl((initialProfile as ObsConnectionProfile).url);
         setObsPassword((initialProfile as ObsConnectionProfile).password || '');
-      } else {
-        setStreamerBotHost((initialProfile as StreamerbotConnectionProfile).host);
-        setStreamerBotPort((initialProfile as StreamerbotConnectionProfile).port.toString());
       }
     }
   }, [initialProfile]);
@@ -55,7 +50,7 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({ onSave, initialProfile 
     e.preventDefault();
 
     let newProfile: ConnectionProfile | null = null;
-    const commonProps = { name, type, id: initialProfile?.id || nanoid() }; // Generate ID if new
+    const commonProps = { name, type, id: initialProfile?.id || nanoid() };
 
     if (type === 'obs') {
       newProfile = {
@@ -64,22 +59,6 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({ onSave, initialProfile 
         url: obsUrl,
         password: obsPassword,
       } as ObsConnectionProfile;
-    } else if (type === 'streamerbot') {
-      const portNumber = parseInt(streamerBotPort, 10);
-      if (isNaN(portNumber)) {
-        toast({
-          title: "Error",
-          description: "Streamer.bot port must be a number.",
-          variant: "destructive"
-        });
-        return;
-      }
-      newProfile = {
-        ...commonProps,
-        type: 'streamerbot',
-        host: streamerBotHost,
-        port: portNumber,
-      } as StreamerbotConnectionProfile;
     }
 
     if (newProfile) {
@@ -93,8 +72,6 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({ onSave, initialProfile 
         setName('');
         setObsUrl('');
         setObsPassword('');
-        setStreamerBotHost('');
-        setStreamerBotPort('');
         setType('obs');
       }
     }
@@ -126,7 +103,6 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({ onSave, initialProfile 
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="obs">OBS Studio</SelectItem>
-                <SelectItem value="streamerbot">Streamer.bot</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -166,32 +142,6 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({ onSave, initialProfile 
                 />
               </div>
             </>
-          )}
-
-          {type === 'streamerbot' && (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="streamerbot-host">Host</Label>
-                <Input
-                  id="streamerbot-host"
-                  placeholder="localhost"
-                  value={streamerBotHost}
-                  onChange={(e) => setStreamerBotHost(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="streamerbot-port">Port</Label>
-                <Input
-                  id="streamerbot-port"
-                  placeholder="8080"
-                  value={streamerBotPort}
-                  onChange={(e) => setStreamerBotPort(e.target.value)}
-                  type="number"
-                  required
-                />
-              </div>
-            </div>
           )}
 
           <Button type="submit">

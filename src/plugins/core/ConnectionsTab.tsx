@@ -12,7 +12,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui";
-import useSettingsStore from '@/store/settingsStore';
+import useTwitchStore from '@/store/twitchStore';
+import useStreamerbotStore from '@/store/streamerbotStore';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -32,7 +33,14 @@ export const ConnectionsTab: React.FC = () => {
     setTwitchClientSecret,
     setTwitchAccessToken,
     setTwitchRefreshToken,
-  } = useSettingsStore();
+  } = useTwitchStore();
+
+  const {
+    streamerBotHost,
+    streamerBotPort,
+    setStreamerBotHost,
+    setStreamerBotPort,
+  } = useStreamerbotStore();
 
   const [editingProfile, setEditingProfile] = useState<ConnectionProfile | undefined>(undefined);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -140,6 +148,20 @@ export const ConnectionsTab: React.FC = () => {
                 ) : (
                     <Button onClick={handleTwitchLogin}>Login with Twitch</Button>
                 )}
+            </div>
+        </div>
+
+        <div className="streamerbot-connection">
+            <h2 className="text-xl font-semibold mb-4">Streamer.bot Connection</h2>
+            <div className="border p-4 rounded-md shadow-sm space-y-4">
+                <div>
+                    <Label htmlFor="streamerbot-host">Host</Label>
+                    <Input id="streamerbot-host" value={streamerBotHost} onChange={(e) => setStreamerBotHost(e.target.value)} />
+                </div>
+                <div>
+                    <Label htmlFor="streamerbot-port">Port</Label>
+                    <Input id="streamerbot-port" type="text" value={streamerBotPort} onChange={(e) => setStreamerBotPort(e.target.value)} />
+                </div>
             </div>
         </div>
       </div>
