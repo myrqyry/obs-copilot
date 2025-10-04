@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import useSettingsStore from './settingsStore';
+import useThemeStore from './themeStore';
 import { OverlayConfig } from '@/types/overlay';
 import { generateOverlay } from '@/services/overlayService';
 import { generateChatOverlayHTML, saveChatOverlayHTML } from '@/lib/chatOverlayUtils';
@@ -67,14 +67,14 @@ export const useOverlaysStore = create<OverlaysStore>((set, get) => ({
 
   regenerateChatOverlay: async () => {
     const { setLoading, setError } = get();
-    const settings = useSettingsStore.getState();
+    const themeSettings = useThemeStore.getState();
     setLoading(true);
     setError(null);
     try {
       const html = generateChatOverlayHTML(
-        settings.chatBackgroundType,
-        settings.customChatBackground,
-        settings.chatPattern
+        themeSettings.chatBackgroundType,
+        themeSettings.customChatBackground,
+        themeSettings.chatPattern
       );
       await saveChatOverlayHTML(html);
     } catch (err) {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAudioStore } from '@/store/audioStore';
-import useSettingsStore from '@/store/settingsStore';
+import useThemeStore from '@/store/themeStore';
 import { toast } from '@/components/ui/toast';
 import { CardContent } from '@/components/ui/Card';
 import { Button } from "@/components/ui";
@@ -67,7 +67,7 @@ const MusicGeneration: React.FC = () => {
     const [musicGenerationMode, setMusicGenerationMode] = useState('QUALITY');
     const [openMusicGeneration, setOpenMusicGeneration] = useState(true);
 
-    const accentColorName = useSettingsStore(state => state.theme.accent);
+    const accentColorName = useThemeStore(state => state.theme.accent);
     const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
 
     // Music generation handler: just calls store action

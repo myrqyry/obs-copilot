@@ -9,7 +9,7 @@ import { LockToggle } from '@/components/common/LockToggle';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import useConnectionsStore from '@/store/connectionsStore';
 import { useLockStore } from '@/store/lockStore';
-import useSettingsStore from '@/store/settingsStore';
+import useThemeStore from '@/store/themeStore';
 import { useChatStore } from '@/store/chatStore';
 import { COMMON_RESOLUTIONS, COMMON_FPS } from '@/constants';
 import { CollapsibleCard } from '@/components/common/CollapsibleCard';
@@ -41,7 +41,7 @@ export const ObsMainControls: React.FC = () => {
     });
   };
   const { actions: { addSystemMessageToChat, setGlobalErrorMessage: setErrorMessage } } = useChatStore();
-  const accentColorName = useSettingsStore((state: { theme: { accent: CatppuccinAccentColorName } }) => state.theme.accent);
+  const accentColorName = useThemeStore((state: { theme: { accent: CatppuccinAccentColorName } }) => state.theme.accent);
   // Collapsible state for each section
   const [openStream, setOpenStream] = useState(true);
   const [openScenes, setOpenScenes] = useState(true);
