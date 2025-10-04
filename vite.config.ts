@@ -43,7 +43,7 @@ export default defineConfig({
     include: ['buffer'],
   },
   define: {
-    // Some libraries reference global or globalThis.Buffer; we ensure references don't crash before polyfills load.
-    'globalThis.Buffer': 'globalThis.Buffer',
+    global: 'globalThis',
+    'process.env': {},
   },
 });
