@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import axios from 'axios';
-import useTwitchStore from '@/store/twitchStore';
+import useSettingsStore from '@/store/settingsStore';
 
 const TwitchCallback: React.FC = () => {
   const {
@@ -8,7 +8,7 @@ const TwitchCallback: React.FC = () => {
     twitchClientSecret,
     setTwitchAccessToken,
     setTwitchRefreshToken,
-  } = useTwitchStore();
+  } = useSettingsStore();
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);

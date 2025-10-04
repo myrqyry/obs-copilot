@@ -3,7 +3,6 @@ import React, { createContext, useEffect, useMemo, useCallback, useState } from 
 import { ObsClientImpl } from '@/services/obsClient';
 import { StreamerBotService } from '@/services/streamerBotService';
 import useConnectionsStore from '@/store/connectionsStore';
-import useStreamerbotStore from '@/store/streamerbotStore';
 import { useAutomationStore } from '@/store/automationStore';
 import { useChatStore } from '@/store/chatStore';
 import { toast } from '@/components/ui/toast';
@@ -29,7 +28,6 @@ export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     // --- 2. Get State and Actions from Zustand Stores ---
     // Note how each store is called according to its structure
     const { connectToObs, disconnectFromObs } = useConnectionsStore();
-    const { streamerBotHost, streamerBotPort } = useStreamerbotStore();
     const { setStreamerBotServiceInstance } = useAutomationStore(state => state.actions);
     const { addMessage } = useChatStore(state => state.actions);
 
@@ -88,17 +86,14 @@ export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         if (savedSettings.autoConnect && savedSettings.obsUrl) { // Use obsUrl
             connectToObs(savedSettings.obsUrl, savedSettings.obsPassword); // Use obsUrl and obsPassword
         }
-
-        if (streamerBotHost && streamerBotPort) {
-            handleStreamerBotConnect(streamerBotHost, streamerBotPort);
-        }
+        // We can add auto-connect for Streamer.bot here later if needed.
 
         // Define cleanup logic
         return () => {
             disconnectFromObs(); // Use the store's disconnectFromObs
             streamerBotService.disconnect();
         };
-    }, [streamerBotService, setStreamerBotServiceInstance, connectToObs, disconnectFromObs, handleStreamerBotConnect, streamerBotHost, streamerBotPort]);
+    }, [streamerBotService, setStreamerBotServiceInstance, connectToObs, disconnectFromObs]);
 
     // --- 5. Provide Context to Children ---
     const contextValue = useMemo(() => ({

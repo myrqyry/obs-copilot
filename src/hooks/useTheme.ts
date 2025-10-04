@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import useThemeStore from '@/store/themeStore';
+import useSettingsStore from '@/store/settingsStore';
 import { Theme, CatppuccinAccentColorName } from '@/types/themes';
 import { themes } from '@/themes';
 
@@ -24,13 +24,13 @@ export const useTheme = () => {
   }, []);
 
   // Use individual selectors to prevent re-renders
-  const themeSettings = useThemeStore((state) => state.theme);
-  const setTheme = useThemeStore((state) => state.setTheme);
-  const setThemeBase = useThemeStore((state) => state.setThemeBase);
-  const setAccent = useThemeStore((state) => state.setAccent);
-  const setSecondaryAccent = useThemeStore((state) => state.setSecondaryAccent);
-  const setUserChatBubble = useThemeStore((state) => state.setUserChatBubble);
-  const setModelChatBubble = useThemeStore((state) => state.setModelChatBubble);
+  const themeSettings = useSettingsStore((state) => state.theme);
+  const setTheme = useSettingsStore((state) => state.setTheme);
+  const setThemeBase = useSettingsStore((state) => state.setThemeBase);
+  const setAccent = useSettingsStore((state) => state.setAccent);
+  const setSecondaryAccent = useSettingsStore((state) => state.setSecondaryAccent);
+  const setUserChatBubble = useSettingsStore((state) => state.setUserChatBubble);
+  const setModelChatBubble = useSettingsStore((state) => state.setModelChatBubble);
   
   // If base is 'system', override with detected system theme
   const effectiveBase = themeSettings.base === 'system' ? (isSystemDark ? 'dark' : 'light') : themeSettings.base;
@@ -229,8 +229,8 @@ export const applyTheme = (theme: Theme) => {
   root.style.setProperty('--nav-foreground', `hsl(${hexToHsl(themeMapping['card-foreground'])})`);
 
   // Set dynamic accent colors for animations and gradients (theme-aware)
-  const userAccent = useThemeStore.getState().theme.accent;
-  const userSecondaryAccent = useThemeStore.getState().theme.secondaryAccent;
+  const userAccent = useSettingsStore.getState().theme.accent;
+  const userSecondaryAccent = useSettingsStore.getState().theme.secondaryAccent;
   const currentAccentColor = theme.accentColors?.[userAccent] || accentColor;
   const currentSecondaryAccentColor = theme.accentColors?.[userSecondaryAccent] || primaryColor;
   root.style.setProperty('--dynamic-accent', currentAccentColor);

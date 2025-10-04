@@ -3,8 +3,6 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import useSettingsStore from '../../store/settingsStore';
-import useThemeStore from '../../store/themeStore';
-import useTwitchStore from '../../store/twitchStore';
 import { useOverlaysStore } from '../../store/overlaysStore';
 import { CollapsibleCard } from '@/components/common/CollapsibleCard';
 import { ThemeChooser } from '@/components/common/ThemeChooser';
@@ -23,15 +21,6 @@ const SettingsTab: React.FC = () => {
     const {
         flipSides,
         setFlipSides,
-        automationPluginEnabled,
-        setAutomationPluginEnabled,
-        streamingAssetsPluginEnabled,
-        setStreamingAssetsPluginEnabled,
-        createPluginEnabled,
-        setCreatePluginEnabled,
-    } = useSettingsStore();
-
-    const {
         theme: currentTheme,
         setAccent,
         setSecondaryAccent,
@@ -41,18 +30,23 @@ const SettingsTab: React.FC = () => {
         chatBackgroundType,
         customChatBackground,
         chatPattern,
-        setUserChatBubble,
-        setModelChatBubble,
-        extraDarkMode,
-        setExtraDarkMode,
-        bubbleFillOpacity,
-        chatBubbleBlendMode,
-    } = useThemeStore();
+    twitchChatPluginEnabled,
+    setTwitchChatPluginEnabled,
+    automationPluginEnabled,
+    setAutomationPluginEnabled,
+    streamingAssetsPluginEnabled,
+    setStreamingAssetsPluginEnabled,
+    createPluginEnabled,
+    setCreatePluginEnabled,
+    setUserChatBubble,
+    setModelChatBubble,
+    extraDarkMode,
+    setExtraDarkMode,
+    // preview-related settings (restored)
+    bubbleFillOpacity,
+    chatBubbleBlendMode,
 
-    const {
-        twitchChatPluginEnabled,
-        setTwitchChatPluginEnabled,
-    } = useTwitchStore();
+    } = useSettingsStore();
     const { regenerateChatOverlay } = useOverlaysStore();
     const { theme } = useTheme();
 

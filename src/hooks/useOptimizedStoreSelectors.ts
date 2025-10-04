@@ -1,5 +1,7 @@
+
 import useConnectionsStore, { ConnectionState } from '@/store/connectionsStore';
 import { useChatStore, ChatState } from '@/store/chatStore';
+import useSettingsStore, { SettingsState } from '@/store/settingsStore';
 import { OBSData } from '@/types';
 
 /**
@@ -14,6 +16,11 @@ export const useConnectionState = (): ConnectionState => {
 // Combined chat state selector with proper memoization
 export const useChatState = (): ChatState => {
     return useChatStore();
+};
+
+// Combined settings state selector
+export const useSettingsState = (): SettingsState => {
+    return useSettingsStore();
 };
 
 // Memoized selector for OBS data to prevent unnecessary recalculations

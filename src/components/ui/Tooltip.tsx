@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { usePortal } from '@/lib/portalUtils';
-import useThemeStore from '@/store/themeStore';
+import useSettingsStore from '@/store/settingsStore';
 import { catppuccinAccentColorsHexMap, catppuccinMochaColors } from '@/types';
 import { useTooltip } from '@/contexts/TooltipContext';
 
@@ -95,8 +95,8 @@ const Tooltip: React.FC<TooltipProps> = ({
     };
 
     // Theme and mode
-    const accentColorName = useThemeStore(state => state.theme.accent);
-    const themeFromStore = useThemeStore(state => state.theme.base);
+    const accentColorName = useSettingsStore(state => state.theme.accent);
+    const themeFromStore = useSettingsStore(state => state.theme.base);
     const isDarkModeActive = themeFromStore === 'dark' || (themeFromStore === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     const accentColor = catppuccinAccentColorsHexMap[accentColorName] || catppuccinMochaColors.mauve;
     const textColor = isDarkModeActive ? accentColor : catppuccinMochaColors.crust;

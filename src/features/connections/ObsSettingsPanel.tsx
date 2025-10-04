@@ -3,11 +3,11 @@ import { Button } from "@/components/ui";
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import useObsStore from '@/store/obsStore';
+import useSettingsStore from '@/store/settingsStore';
 import useConnectionsStore from '@/store/connectionsStore';
 
 const ObsSettingsPanel: React.FC = () => {
-    const { obsUrl, obsPassword, setObsUrl, setObsPassword } = useObsStore();
+    const { obsUrl, obsPassword, setObsUrl, setObsPassword } = useSettingsStore();
     const { isConnected, connectToObs, disconnectFromObs } = useConnectionsStore();
 
     const handleConnect = () => {
