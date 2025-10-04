@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import useSettingsStore from '@/store/settingsStore';
 import useConnectionsStore from '@/store/connectionsStore';
 
 export type ServiceStatus = 'healthy' | 'degraded' | 'critical' | 'unknown';

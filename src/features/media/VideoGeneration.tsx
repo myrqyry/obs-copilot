@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import useThemeStore from '@/store/themeStore';
+import useSettingsStore from '@/store/settingsStore';
 import { geminiService } from '@/services/geminiService';
 import { CardContent } from '@/components/ui/Card';
 import { Button } from "@/components/ui";
@@ -24,7 +24,7 @@ const VideoGeneration: React.FC = () => {
     const [personGeneration, setPersonGeneration] = useState('allow_adult');
     const [numberOfVideos, setNumberOfVideos] = useState(1);
 
-    const accentColorName = useThemeStore(state => state.theme.accent);
+    const accentColorName = useSettingsStore(state => state.theme.accent);
     const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
 
     const ASPECT_RATIOS = [

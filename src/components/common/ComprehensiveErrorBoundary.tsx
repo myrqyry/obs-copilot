@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { logger } from '@/utils/logger';
+import ErrorFallback from './ErrorFallback';
 
 interface Props {
     children: ReactNode;
@@ -155,73 +156,24 @@ class ComprehensiveErrorBoundary extends Component<Props, State> {
     };
 
     private renderFallbackUI = () => {
-        const { fallback, name, isolate } = this.props;
-        const { error, errorId } = this.state;
+        const { fallback } = this.props;
+        const { error } = this.state;
 
-        // Use custom fallback if provided
         if (fallback) {
             return fallback;
         }
 
-        // Default fallback UI
-        const containerClass = isolate 
-            ? 'inline-block p-4 border border-destructive/20 rounded-md bg-destructive/10 text-destructive'
-            : 'flex flex-col items-center justify-center min-h-[200px] p-8 border border-destructive/20 rounded-lg bg-destructive/10 text-destructive';
+        if (error) {
+            return (
+                <ErrorFallback
+                    error={error}
+                    resetErrorBoundary={this.resetErrorBoundary}
+                />
+            );
+        }
 
-        return (
-            <div className={containerClass}>
-                <div className="text-center">
-                    <div className="text-lg font-semibold mb-2">
-                        {isolate ? '⚠️ Component Error' : '🚨 Something went wrong'}
-                    </div>
-                    <div className="text-sm mb-4">
-                        {isolate 
-                            ? `The ${name || 'component'} encountered an error and couldn't render.`
-                            : 'We encountered an unexpected error. Please try again.'
-                        }
-                    </div>
-                    
-                    {process.env.NODE_ENV === 'development' && error && (
-                        <details className="mb-4 text-left">
-                            <summary className="cursor-pointer font-medium">
-                                Error Details (Development)
-                            </summary>
-                            <div className="mt-2 p-3 bg-destructive/10 rounded border text-xs font-mono">
-                                <div><strong>Error:</strong> {error.message}</div>
-                                {errorId && (
-                                    <div className="mt-1"><strong>ID:</strong> {errorId}</div>
-                                )}
-                                {error.stack && (
-                                    <div className="mt-2">
-                                        <strong>Stack:</strong>
-                                        <pre className="whitespace-pre-wrap mt-1">
-                                            {error.stack}
-                                        </pre>
-                                    </div>
-                                )}
-                            </div>
-                        </details>
-                    )}
-
-                    <div className="flex gap-2 justify-center">
-                        <button
-                            onClick={this.handleRetry}
-                            className="px-4 py-2 bg-destructive text-destructive-foreground rounded hover:bg-destructive/90 transition-colors text-sm"
-                        >
-                            Try Again
-                        </button>
-                        {!isolate && (
-                            <button
-                                onClick={this.handleReload}
-                                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors text-sm"
-                            >
-                                Reload Page
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </div>
-        );
+        // This should not be reached if hasError is true, but as a safeguard:
+        return <div>An unknown error occurred.</div>;
     };
 
     render() {

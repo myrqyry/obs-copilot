@@ -11,7 +11,7 @@
     "type": "git",
     "url": "git+https://github.com/myrqyry/obs-copilot.git"
   },
-  "license": "MIT",
+  "license": "ISC",
   "author": "",
   "type": "module",
   "main": "src/App.tsx",
