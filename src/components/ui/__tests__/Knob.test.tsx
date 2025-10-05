@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import { Knob } from '../Knob'; // Assuming Knob.tsx is in the same directory
 
 describe('Knob', () => {
@@ -15,7 +16,7 @@ describe('Knob', () => {
   });
 
   it('calls onChange when value changes', () => {
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
     render(<Knob id="volume-knob" label="Volume" min={0} max={100} value={50} onChange={handleChange} />);
     const knob = screen.getByRole('slider');
     fireEvent.change(knob, { target: { value: '75' } });
@@ -23,7 +24,7 @@ describe('Knob', () => {
   });
 
   it('calls onChangeEnd when value commit (mouse up) occurs', () => {
-    const handleChangeEnd = jest.fn();
+    const handleChangeEnd = vi.fn();
     render(<Knob id="pan-knob" label="Pan" min={-100} max={100} value={0} onChange={() => {}} onChangeEnd={handleChangeEnd} />);
     const knob = screen.getByRole('slider');
     fireEvent.mouseUp(knob, { target: { value: '20' } });

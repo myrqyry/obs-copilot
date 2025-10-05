@@ -1,22 +1,29 @@
 import '@testing-library/jest-dom';
-import * as zustand from 'zustand';
-import { vi, beforeEach } from 'vitest';
+import { vi } from 'vitest';
 
-const { create: actualCreate, ...rest } = zustand;
+// Mock Zustand to reset stores after each test
+vi.mock('zustand');
 
-const stores = new Set();
-
-const create = (...args) => {
-  const store = actualCreate(...args);
-  const initialState = store.getState();
-  stores.add({ store, initialState });
-  return store;
-};
-
-beforeEach(() => {
-  stores.forEach(({ store, initialState }) => {
-    store.setState(initialState, true);
-  });
+// Polyfill for browser APIs not present in JSDOM
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation(query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(), // deprecated
+    removeListener: vi.fn(), // deprecated
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
 });
 
-vi.spyOn(zustand, 'create').mockImplementation(create);
+Object.defineProperty(window, 'ResizeObserver', {
+    writable: true,
+    value: vi.fn().mockImplementation(() => ({
+        observe: vi.fn(),
+        unobserve: vi.fn(),
+        disconnect: vi.fn(),
+    })),
+});

@@ -1,12 +1,11 @@
 import React, { useEffect } from 'react';
 import { gsap } from 'gsap';
 import { TwitchMessageItem } from './TwitchMessageItem';
-import type { TwitchMessage } from '@/hooks/useTmi';
+import type { ChatMessage } from '@/features/chat/core/types';
 
 interface TwitchChatListProps {
-  messages: TwitchMessage[];
+  messages: ChatMessage[];
   emoteSize: number;
-  adjustHtmlForSizeAndLazy: (html: string, size: number) => string;
   listRef: React.RefObject<HTMLDivElement>;
   autoScroll: boolean;
   newMessageAtTop: boolean;
@@ -16,7 +15,6 @@ interface TwitchChatListProps {
 export const TwitchChatList: React.FC<TwitchChatListProps> = ({
   messages,
   emoteSize,
-  adjustHtmlForSizeAndLazy,
   listRef,
   autoScroll,
   newMessageAtTop,
@@ -55,7 +53,7 @@ export const TwitchChatList: React.FC<TwitchChatListProps> = ({
     }
   }, [messages, autoScroll, newMessageAtTop, isAtBottom, listRef]);
 
-  // Lazy loader observer
+  // Lazy loader observer (simplified, as HTML is pre-rendered)
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const observer = new IntersectionObserver((entries) => {
@@ -91,7 +89,6 @@ export const TwitchChatList: React.FC<TwitchChatListProps> = ({
           key={message.id}
           message={message}
           emoteSize={emoteSize}
-          adjustHtmlForSizeAndLazy={adjustHtmlForSizeAndLazy}
         />
       ))}
     </div>

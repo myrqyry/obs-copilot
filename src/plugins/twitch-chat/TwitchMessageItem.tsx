@@ -1,19 +1,18 @@
 import React from 'react';
 import { SecureHtmlRenderer } from '@/components/ui/SecureHtmlRenderer';
-import type { TwitchMessage, TmiTags } from '@/hooks/useTmi';
+import type { ChatMessage } from '@/features/chat/core/types';
+import type { TmiTags } from '@/hooks/useTmi';
 
 interface TwitchMessageItemProps {
-  message: TwitchMessage;
+  message: ChatMessage;
   emoteSize: number;
-  adjustHtmlForSizeAndLazy: (html: string, size: number) => string;
 }
 
 export const TwitchMessageItem: React.FC<TwitchMessageItemProps> = ({
   message,
   emoteSize,
-  adjustHtmlForSizeAndLazy
 }) => {
-  const { user, messageHtml, nameColor, namePaintStyle, pendingPaint, tags, timestamp } = message;
+  const { user, html, tags, timestamp } = message;
 
   const renderBadges = (tags?: TmiTags) => {
     const badges = tags?.badges;
@@ -30,28 +29,37 @@ export const TwitchMessageItem: React.FC<TwitchMessageItemProps> = ({
   };
 
   const userStyle: React.CSSProperties = {
-    color: nameColor ?? undefined,
-    ...namePaintStyle,
-    ...(pendingPaint ? { opacity: 0.7 } : {})
+    color: user.color ?? undefined,
+    ...user.paintStyle,
   };
 
   const formattedTime = new Date(timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-  const sanitizedMessageHtml = adjustHtmlForSizeAndLazy(messageHtml, emoteSize);
+  // Create a dynamic style for emotes
+  const emoteStyle = `
+    .emote {
+      height: ${emoteSize}px;
+      width: ${emoteSize}px;
+      margin: -0.2rem 0.1rem;
+      vertical-align: middle;
+      display: inline-block;
+    }
+  `;
 
   return (
     <div data-msg-id={message.id} className="mb-2">
+      <style>{emoteStyle}</style>
       <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-start text-sm leading-relaxed">
         <span
           className="font-bold text-blue-600 mr-1 min-w-0 truncate"
           style={userStyle}
         >
-          {user}:
+          {user.displayName}:
         </span>
         {renderBadges(tags)}
         <span className="text-xs text-gray-500 ml-2">({formattedTime})</span>
         <SecureHtmlRenderer
-          htmlContent={sanitizedMessageHtml}
+          htmlContent={html}
           className="ml-2"
         />
       </div>
