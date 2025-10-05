@@ -7,14 +7,14 @@ import useEmoteWallStore from '@/store/emoteWallStore';
 const EmoteWallTab: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const engine = useEmoteWall(containerRef);
-  const { enabled, setEnabled, animationStyle } = useEmoteWallStore();
+  const { enabled, setEnabled, animationStyle, physicsEnabled } = useEmoteWallStore();
 
   // Pass config to engine
   React.useEffect(() => {
     if (engine) {
-      engine.setConfig({ enabled, animationStyle });
+      engine.setConfig({ enabled, animationStyle, physicsEnabled });
     }
-  }, [engine, enabled, animationStyle]);
+  }, [engine, enabled, animationStyle, physicsEnabled]);
 
   return (
     <div className="flex flex-col h-full">

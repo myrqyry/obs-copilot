@@ -4,6 +4,7 @@ import { ChatEngine } from '@/features/chat/core/ChatEngine';
 import { ChatMessage } from '@/features/chat/core/types';
 import { EmoteEngine } from '@/features/chat/core/EmoteEngine';
 import { AnimationEngine } from '../effects/AnimationEngine';
+import { PhysicsEngine } from '../effects/PhysicsEngine';
 import { EmoteRenderer } from './EmoteRenderer';
 import { EmoteInstance, EmoteWallConfig } from './types';
 
@@ -14,12 +15,14 @@ export class EmoteWallEngine {
 
   // Engines
   private animationEngine: AnimationEngine;
+  private physicsEngine: PhysicsEngine;
   private emoteRenderer: EmoteRenderer;
   private emoteParser: EmoteEngine;
 
   constructor(container: HTMLElement) {
     this.scene = container;
     this.animationEngine = new AnimationEngine();
+    this.physicsEngine = new PhysicsEngine(this.scene);
     this.emoteRenderer = new EmoteRenderer(this.scene);
     this.emoteParser = new EmoteEngine();
 
@@ -59,22 +62,36 @@ export class EmoteWallEngine {
       const emoteId = `ew-${nanoid()}`;
       const element = this.emoteRenderer.renderEmote(emoteData.url, emoteId);
 
-      // Position randomly within the container
-      const x = Math.random() * (this.scene.offsetWidth - 64);
-      const y = Math.random() * (this.scene.offsetHeight - 64);
+      const x = Math.random() * (this.scene.offsetWidth - element.offsetWidth);
+      const y = Math.random() * (this.scene.offsetHeight - element.offsetHeight);
       element.style.left = `${x}px`;
       element.style.top = `${y}px`;
 
-      // Animate its entrance
-      const animation = this.animationEngine.createEmoteEntrance(element, this.config?.animationStyle || 'bounce');
+      const shouldUsePhysics = this.config?.physicsEnabled;
+      const animationStyle = this.config?.animationStyle || 'bounce';
 
-      // Remove the emote from the DOM after a delay
-      animation.then(() => {
-        setTimeout(() => {
-          element.remove();
-          this.activeEmotes.delete(emoteId);
-        }, 5000); // Emote disappears after 5 seconds
-      });
+      if (animationStyle === 'physics' && shouldUsePhysics) {
+        // If style is 'physics', add directly to physics engine
+        this.physicsEngine.addEmotePhysics(element);
+      } else {
+        // Otherwise, perform GSAP animation first
+        const animation = this.animationEngine.createEmoteEntrance(element, animationStyle);
+        animation.then(() => {
+          // After animation, if physics is enabled, add it to the simulation
+          if (shouldUsePhysics) {
+            this.physicsEngine.addEmotePhysics(element);
+          }
+        });
+      }
+
+      // Schedule removal from DOM and physics simulation
+      setTimeout(() => {
+        element.remove();
+        this.activeEmotes.delete(emoteId);
+        if (shouldUsePhysics) {
+          this.physicsEngine.removeEmote(emoteId);
+        }
+      }, 10000); // Emote disappears after 10 seconds
 
       this.activeEmotes.set(emoteId, { id: emoteId, element });
     });
