@@ -5,6 +5,7 @@ import { ChatMessage } from '@/features/chat/core/types';
 import { EmoteEngine } from '@/features/chat/core/EmoteEngine';
 import { AnimationEngine } from '../effects/AnimationEngine';
 import { PhysicsEngine } from '../effects/PhysicsEngine';
+import { ParticleSystem } from '../effects/ParticleSystem';
 import { EmoteRenderer } from './EmoteRenderer';
 import { EmoteInstance, EmoteWallConfig } from './types';
 
@@ -16,6 +17,7 @@ export class EmoteWallEngine {
   // Engines
   private animationEngine: AnimationEngine;
   private physicsEngine: PhysicsEngine;
+  private particleSystem: ParticleSystem;
   private emoteRenderer: EmoteRenderer;
   private emoteParser: EmoteEngine;
 
@@ -23,9 +25,11 @@ export class EmoteWallEngine {
     this.scene = container;
     this.animationEngine = new AnimationEngine();
     this.physicsEngine = new PhysicsEngine(this.scene);
+    this.particleSystem = new ParticleSystem(this.scene);
     this.emoteRenderer = new EmoteRenderer(this.scene);
     this.emoteParser = new EmoteEngine();
 
+    this.particleSystem.start();
     this.setupEventListeners();
   }
 
@@ -69,19 +73,32 @@ export class EmoteWallEngine {
 
       const shouldUsePhysics = this.config?.physicsEnabled;
       const animationStyle = this.config?.animationStyle || 'bounce';
+      const useEffects = this.config?.effects;
+
+      // Trigger particle explosion on creation
+      if (useEffects?.explosions) {
+        const imgElement = element.querySelector('img');
+        if (imgElement) {
+          this.particleSystem.createEmoteExplosion({ x, y }, imgElement);
+        }
+      }
+
+      // Add trail effect if enabled
+      if (useEffects?.trails) {
+        this.particleSystem.createTrailEffect(element);
+      }
+
+      const onAnimationComplete = () => {
+        if (shouldUsePhysics) {
+          this.physicsEngine.addEmotePhysics(element);
+        }
+      };
 
       if (animationStyle === 'physics' && shouldUsePhysics) {
-        // If style is 'physics', add directly to physics engine
-        this.physicsEngine.addEmotePhysics(element);
+        onAnimationComplete();
       } else {
-        // Otherwise, perform GSAP animation first
         const animation = this.animationEngine.createEmoteEntrance(element, animationStyle);
-        animation.then(() => {
-          // After animation, if physics is enabled, add it to the simulation
-          if (shouldUsePhysics) {
-            this.physicsEngine.addEmotePhysics(element);
-          }
-        });
+        animation.then(onAnimationComplete);
       }
 
       // Schedule removal from DOM and physics simulation
@@ -91,7 +108,10 @@ export class EmoteWallEngine {
         if (shouldUsePhysics) {
           this.physicsEngine.removeEmote(emoteId);
         }
-      }, 10000); // Emote disappears after 10 seconds
+        if (useEffects?.trails) {
+          this.particleSystem.removeTrailEffect(emoteId);
+        }
+      }, this.config?.emoteDuration || 10000);
 
       this.activeEmotes.set(emoteId, { id: emoteId, element });
     });
