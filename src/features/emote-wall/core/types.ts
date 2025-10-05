@@ -10,5 +10,10 @@ export interface EmoteWallConfig {
   enabled: boolean;
   animationStyle: AnimationStyle;
   physicsEnabled: boolean;
-  // Configuration properties will be expanded in later phases
+  emoteDuration: number;
+  effects: {
+    explosions: boolean;
+    trails: boolean;
+    // Future effects can be added here
+  };
 }
