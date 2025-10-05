@@ -1,4 +1,5 @@
 import Matter from 'matter-js';
+import { PhysicsConfig } from '../presets/StylePresets';
 
 export class PhysicsEngine {
   private engine: Matter.Engine;
@@ -15,6 +16,10 @@ export class PhysicsEngine {
 
     this.setupBoundaries(container);
     this.startPhysics();
+  }
+
+  public updateWorldProperties(config: PhysicsConfig) {
+    this.engine.gravity.y = config.gravity;
   }
 
   private setupBoundaries(container: HTMLElement) {
