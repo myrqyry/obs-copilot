@@ -8,11 +8,13 @@ import { PhysicsEngine } from '../effects/PhysicsEngine';
 import { ParticleSystem } from '../effects/ParticleSystem';
 import { EmoteRenderer } from './EmoteRenderer';
 import { EmoteInstance, EmoteWallConfig } from './types';
+import { EmoteWallTheme } from '../presets/StylePresets';
 
 export class EmoteWallEngine {
   private scene: HTMLElement;
   private activeEmotes: Map<string, EmoteInstance> = new Map();
   private config: EmoteWallConfig | null = null;
+  private currentTheme: EmoteWallTheme | null = null;
 
   // Engines
   private animationEngine: AnimationEngine;
@@ -30,11 +32,21 @@ export class EmoteWallEngine {
     this.emoteParser = new EmoteEngine();
 
     this.particleSystem.start();
-    this.setupEventListeners();
   }
 
   public setConfig(config: EmoteWallConfig) {
     this.config = config;
+    if (config.theme.id !== this.currentTheme?.id) {
+      this.applyTheme(config.theme);
+    }
+  }
+
+  private applyTheme(theme: EmoteWallTheme) {
+    this.currentTheme = theme;
+    // Apply background
+    this.scene.style.background = theme.environment.background;
+    // Update physics properties
+    this.physicsEngine.updateWorldProperties(theme.physics.config);
   }
 
   public connectToChat(chatEngine: ChatEngine) {
@@ -50,13 +62,10 @@ export class EmoteWallEngine {
     });
   }
 
-  private setupEventListeners() {
-    // Placeholder for event listeners
-  }
-
   private async processMessage(message: ChatMessage) {
-    if (!this.config?.enabled) return;
+    if (!this.config?.enabled || !this.currentTheme) return;
 
+    const theme = this.currentTheme;
     const parsed = await this.emoteParser.parseMessage(message.raw, message.tags?.['room-id']);
     const emotes = parsed.emotes;
 
@@ -71,33 +80,36 @@ export class EmoteWallEngine {
       element.style.left = `${x}px`;
       element.style.top = `${y}px`;
 
-      const shouldUsePhysics = this.config?.physicsEnabled;
-      const animationStyle = this.config?.animationStyle || 'bounce';
-      const useEffects = this.config?.effects;
-
       // Trigger particle explosion on creation
-      if (useEffects?.explosions) {
+      if (theme.particles.explosionEnabled) {
         const imgElement = element.querySelector('img');
         if (imgElement) {
-          this.particleSystem.createEmoteExplosion({ x, y }, imgElement);
+          this.particleSystem.createEmoteExplosion({ x, y }, imgElement, {
+            count: theme.particles.explosionCount,
+            power: theme.particles.explosionPower,
+            lifespan: theme.particles.explosionLifespan,
+          });
         }
       }
 
       // Add trail effect if enabled
-      if (useEffects?.trails) {
-        this.particleSystem.createTrailEffect(element);
+      if (theme.particles.trailEnabled) {
+        this.particleSystem.createTrailEffect(element, {
+            color: theme.particles.trailColor,
+            lifespan: theme.particles.trailLifespan,
+        });
       }
 
       const onAnimationComplete = () => {
-        if (shouldUsePhysics) {
-          this.physicsEngine.addEmotePhysics(element);
+        if (theme.physics.enabled) {
+          this.physicsEngine.addEmotePhysics(element, theme.physics.config);
         }
       };
 
-      if (animationStyle === 'physics' && shouldUsePhysics) {
+      if (theme.emotes.animationStyle === 'physics' && theme.physics.enabled) {
         onAnimationComplete();
       } else {
-        const animation = this.animationEngine.createEmoteEntrance(element, animationStyle);
+        const animation = this.animationEngine.createEmoteEntrance(element, theme.emotes.animationStyle);
         animation.then(onAnimationComplete);
       }
 
@@ -105,13 +117,13 @@ export class EmoteWallEngine {
       setTimeout(() => {
         element.remove();
         this.activeEmotes.delete(emoteId);
-        if (shouldUsePhysics) {
+        if (theme.physics.enabled) {
           this.physicsEngine.removeEmote(emoteId);
         }
-        if (useEffects?.trails) {
+        if (theme.particles.trailEnabled) {
           this.particleSystem.removeTrailEffect(emoteId);
         }
-      }, this.config?.emoteDuration || 10000);
+      }, theme.emotes.duration);
 
       this.activeEmotes.set(emoteId, { id: emoteId, element });
     });
