@@ -1,15 +1,13 @@
+import React from 'react';
 import tmi from 'tmi.js';
-import _ from 'lodash';
-import * as emoteService from '@/services/chatEmoteService';
-import twitchResolver from '@/services/twitchResolver';
-import TwitchEmoticons from '@mkody/twitch-emoticons';
 import { handleAppError } from '@/lib/errorUtils';
 import useUiStore from '@/store/uiStore';
-
+import * as emoteService from '@/services/chatEmoteService';
+import twitchResolver from '@/services/twitchResolver';
 import type { ChatProvider, ChatMessage, ChatUser } from '../core/types';
-import type { TmiTags, TwitchMessage } from '@/hooks/useTmi'; // Re-using this for now
 
-const { EmoteFetcher, EmoteParser } = TwitchEmoticons;
+// This was in useTmi.ts, moving it here since that file is deleted.
+export type TmiTags = Record<string, string | undefined> & { emotes?: Record<string, string[]>; badges?: Record<string, string> };
 
 let seq = 0;
 const makeId = () => `m_${Date.now().toString(36)}_${seq++}`;
@@ -19,10 +17,6 @@ export class TwitchProvider extends EventTarget implements ChatProvider {
   private client: tmi.Client | null = null;
   private channel: string | null = null;
   private messageHistory: ChatMessage[] = [];
-  private emoteMap: Map<string, { src: string }> = new Map();
-  private emoteFetcher: any | null = null;
-  private emoteParser: any | null = null;
-  private fetchedUsers: Set<string> = new Set();
   private maxMessages: number = 200;
 
   constructor() {
@@ -39,7 +33,6 @@ export class TwitchProvider extends EventTarget implements ChatProvider {
 
     try {
       await this.client.connect();
-      await this.preloadEmotes(channel);
       this.dispatchEvent(new CustomEvent('connected'));
     } catch (err) {
       const errorMsg = handleAppError('TwitchProvider connect', err, `Failed to connect to Twitch for channel ${channel}`);
@@ -55,8 +48,6 @@ export class TwitchProvider extends EventTarget implements ChatProvider {
       this.client = null;
       this.channel = null;
       this.messageHistory = [];
-      this.emoteMap.clear();
-      this.fetchedUsers.clear();
       this.dispatchEvent(new CustomEvent('disconnected'));
     }
   }
@@ -73,56 +64,33 @@ export class TwitchProvider extends EventTarget implements ChatProvider {
     return [...this.messageHistory];
   }
 
-  private async preloadEmotes(channel: string): Promise<void> {
-    try {
-        const combined = await emoteService.getCombinedEmotes(undefined, channel);
-        this.emoteMap = new Map(Object.entries(combined || {}).map(([k, v]: any) => [k, { src: v.src || v.url || '' }]));
-
-        this.emoteFetcher = new EmoteFetcher();
-        await Promise.all([
-          this.emoteFetcher.fetchBTTVEmotes(),
-          this.emoteFetcher.fetchSevenTVEmotes(),
-          this.emoteFetcher.fetchFFZEmotes(),
-        ]);
-        this.emoteParser = new EmoteParser(this.emoteFetcher, { template: '<img class="emote" alt="{name}" src="{link}">' });
-
-    } catch (e) {
-      const errorMsg = handleAppError('TwitchProvider emote preload', e, 'Failed to preload emotes');
-      useUiStore.getState().addError({ message: errorMsg, source: 'TwitchProvider', level: 'error', details: { channel, error: e } });
-    }
-  }
-
   private async handleMessage(channel: string, tags: tmi.ChatUserstate, message: string, self: boolean): Promise<void> {
     if (self) return;
 
     const tmiTags = (tags || {}) as TmiTags;
-    const html = emoteService.generateSafeMessageHtml(message, tmiTags, this.emoteMap, this.emoteParser);
 
-    const user: ChatUser = {
+    let user: ChatUser = {
         id: tmiTags['user-id'],
         name: tmiTags.username || 'unknown',
         displayName: tmiTags['display-name'] || tmiTags.username || 'unknown',
         color: tmiTags.color,
         badges: tmiTags.badges,
-        paintStyle: null,
     };
+
+    user = await this.enrichUser(user, tmiTags);
 
     const chatMessage: ChatMessage = {
       id: makeId(),
       user,
       raw: message,
-      html,
+      html: message, // The raw message is passed here. Emote parsing will happen later.
       timestamp: Date.now(),
       tags: tmiTags,
       isAction: message.startsWith('\u0001ACTION'),
     };
 
-    // Asynchronously fetch additional user details (color, paint)
-    this.enrichUser(user, tmiTags).then(enrichedUser => {
-        const finalMessage = { ...chatMessage, user: enrichedUser };
-        this.addMessageToHistory(finalMessage);
-        this.dispatchEvent(new CustomEvent('message', { detail: finalMessage }));
-    });
+    this.addMessageToHistory(chatMessage);
+    this.dispatchEvent(new CustomEvent('message', { detail: chatMessage }));
   }
 
   private async enrichUser(user: ChatUser, tags: TmiTags): Promise<ChatUser> {
@@ -136,7 +104,7 @@ export class TwitchProvider extends EventTarget implements ChatProvider {
                 if (color) enrichedUser.color = color;
             }
         } catch (e) {
-            // Log error but don't block
+            console.error('Failed to fetch FFZ color', e);
         }
     }
 
@@ -161,7 +129,7 @@ export class TwitchProvider extends EventTarget implements ChatProvider {
             }
         }
     } catch(e) {
-        // Log error but don't block
+        console.error('Failed to fetch 7TV cosmetics', e);
     }
 
     return enrichedUser;
