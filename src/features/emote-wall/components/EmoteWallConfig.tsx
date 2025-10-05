@@ -9,9 +9,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 
 const EmoteWallConfig: React.FC = () => {
-  const { animationStyle, setAnimationStyle } = useEmoteWallStore();
+  const { animationStyle, setAnimationStyle, physicsEnabled, setPhysicsEnabled } = useEmoteWallStore();
 
   const animationOptions: AnimationStyle[] = ['bounce', 'slide', 'epic', 'physics'];
 
@@ -36,6 +37,14 @@ const EmoteWallConfig: React.FC = () => {
               ))}
             </SelectContent>
           </Select>
+        </div>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="physics-enabled">Enable Physics</Label>
+          <Switch
+            id="physics-enabled"
+            checked={physicsEnabled}
+            onCheckedChange={setPhysicsEnabled}
+          />
         </div>
       </div>
     </div>
