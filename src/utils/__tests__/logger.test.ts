@@ -1,26 +1,28 @@
+import { vi, describe, beforeEach, afterEach, it, expect } from 'vitest';
+
 let logger: typeof import('../logger').logger;
-let consoleDebug: jest.SpyInstance;
-let consoleInfo: jest.SpyInstance;
-let consoleWarn: jest.SpyInstance;
-let consoleError: jest.SpyInstance;
+let consoleDebug: vi.SpyInstance;
+let consoleInfo: vi.SpyInstance;
+let consoleWarn: vi.SpyInstance;
+let consoleError: vi.SpyInstance;
 
 describe('Logger', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     // Spy on console methods and provide a mock implementation to avoid logging to the console during tests.
-    consoleDebug = jest.spyOn(console, 'debug').mockImplementation(() => {});
-    consoleInfo = jest.spyOn(console, 'info').mockImplementation(() => {});
-    consoleWarn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+    consoleDebug = vi.spyOn(console, 'debug').mockImplementation(() => {});
+    consoleInfo = vi.spyOn(console, 'info').mockImplementation(() => {});
+    consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     // Reset modules to ensure we get a fresh instance of the logger
-    jest.resetModules();
-    const mod = require('../logger');
+    vi.resetModules();
+    const mod = await import('../logger');
     logger = mod.logger;
   });
 
   afterEach(() => {
     // Restore original console methods
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('should log debug messages', () => {
