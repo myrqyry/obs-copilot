@@ -9,7 +9,9 @@ export class EmoteRenderer {
     emoteElement.src = emoteUrl;
     emoteElement.id = emoteId;
     emoteElement.style.position = 'absolute';
-    // More rendering logic will be added later
+    emoteElement.style.width = '64px'; // A default size, can be configured later
+    emoteElement.style.height = '64px';
+    emoteElement.style.objectFit = 'contain';
     this.container.appendChild(emoteElement);
     return emoteElement;
   }
