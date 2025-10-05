@@ -63,5 +63,6 @@ export const corePlugins: TabPlugin[] = [
 
 import { twitchChatPlugin } from './twitch-chat';
 import { automationPlugin } from './automation';
+import { emoteWallPlugin } from './emote-wall';
 
-export const allPlugins = [...corePlugins, twitchChatPlugin, automationPlugin];
+export const allPlugins = [...corePlugins, twitchChatPlugin, automationPlugin, emoteWallPlugin];
