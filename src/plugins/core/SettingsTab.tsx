@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import useSettingsStore from '../../store/settingsStore';
 import { useOverlaysStore } from '../../store/overlaysStore';
 import { CollapsibleCard } from '@/components/common/CollapsibleCard';
@@ -38,6 +38,18 @@ const SettingsTab: React.FC = () => {
     setStreamingAssetsPluginEnabled,
     createPluginEnabled,
     setCreatePluginEnabled,
+    connectionsPluginEnabled,
+    setConnectionsPluginEnabled,
+    obsStudioPluginEnabled,
+    setObsStudioPluginEnabled,
+    geminiPluginEnabled,
+    setGeminiPluginEnabled,
+    settingsPluginEnabled,
+    setSettingsPluginEnabled,
+    advancedPluginEnabled,
+    setAdvancedPluginEnabled,
+    emoteWallPluginEnabled,
+    setEmoteWallPluginEnabled,
     setUserChatBubble,
     setModelChatBubble,
     extraDarkMode,
@@ -350,6 +362,54 @@ Regenerate Chat Overlay for OBS
                             id="create-plugin"
                             checked={createPluginEnabled}
                             onCheckedChange={setCreatePluginEnabled}
+                        />
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <Label htmlFor="connections-plugin">Connections</Label>
+                        <Switch
+                            id="connections-plugin"
+                            checked={connectionsPluginEnabled}
+                            onCheckedChange={setConnectionsPluginEnabled}
+                        />
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <Label htmlFor="obs-studio-plugin">OBS Studio</Label>
+                        <Switch
+                            id="obs-studio-plugin"
+                            checked={obsStudioPluginEnabled}
+                            onCheckedChange={setObsStudioPluginEnabled}
+                        />
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <Label htmlFor="gemini-plugin">Gemini</Label>
+                        <Switch
+                            id="gemini-plugin"
+                            checked={geminiPluginEnabled}
+                            onCheckedChange={setGeminiPluginEnabled}
+                        />
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <Label htmlFor="settings-plugin">Settings</Label>
+                        <Switch
+                            id="settings-plugin"
+                            checked={settingsPluginEnabled}
+                            onCheckedChange={setSettingsPluginEnabled}
+                        />
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <Label htmlFor="advanced-plugin">Advanced</Label>
+                        <Switch
+                            id="advanced-plugin"
+                            checked={advancedPluginEnabled}
+                            onCheckedChange={setAdvancedPluginEnabled}
+                        />
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <Label htmlFor="emote-wall-plugin">Emote Wall</Label>
+                        <Switch
+                            id="emote-wall-plugin"
+                            checked={emoteWallPluginEnabled}
+                            onCheckedChange={setEmoteWallPluginEnabled}
                         />
                     </div>
                 </div>

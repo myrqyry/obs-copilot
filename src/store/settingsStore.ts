@@ -75,6 +75,18 @@ export interface SettingsState extends Omit<ThemeState, 'theme'>, LayoutState {
   setStreamingAssetsPluginEnabled: (enabled: boolean) => void;
   createPluginEnabled: boolean;
   setCreatePluginEnabled: (enabled: boolean) => void;
+  connectionsPluginEnabled: boolean;
+  setConnectionsPluginEnabled: (enabled: boolean) => void;
+  obsStudioPluginEnabled: boolean;
+  setObsStudioPluginEnabled: (enabled: boolean) => void;
+  geminiPluginEnabled: boolean;
+  setGeminiPluginEnabled: (enabled: boolean) => void;
+  settingsPluginEnabled: boolean;
+  setSettingsPluginEnabled: (enabled: boolean) => void;
+  advancedPluginEnabled: boolean;
+  setAdvancedPluginEnabled: (enabled: boolean) => void;
+  emoteWallPluginEnabled: boolean;
+  setEmoteWallPluginEnabled: (enabled: boolean) => void;
   // Order of plugin tab ids (controls navigation order)
   tabOrder: string[];
   setTabOrder: (order: string[]) => void;
@@ -110,8 +122,14 @@ const useSettingsStore = create<SettingsState>()(
   // New toggles to allow disabling these tabs/plugins
   streamingAssetsPluginEnabled: true,
   createPluginEnabled: true,
+  connectionsPluginEnabled: true,
+  obsStudioPluginEnabled: true,
+  geminiPluginEnabled: true,
+  settingsPluginEnabled: true,
+  advancedPluginEnabled: true,
+  emoteWallPluginEnabled: true,
   // Default tab order uses the core plugin ids in the current default sequence
-  tabOrder: ['connections','obs-studio','gemini','create','streaming-assets','settings','advanced','twitch-chat','automation'],
+  tabOrder: ['connections','obs-studio','gemini','create','streaming-assets','settings','advanced','twitch-chat','automation','emote-wall'],
       setTheme: (name) => set((state) => ({ theme: { ...state.theme, name } })),
       setThemeBase: (base) => set((state) => ({ theme: { ...state.theme, base } })),
       setAccent: (accent) => set((state) => ({ theme: { ...state.theme, accent } })),
@@ -132,6 +150,13 @@ const useSettingsStore = create<SettingsState>()(
       setAutomationPluginEnabled: (enabled) => set({ automationPluginEnabled: enabled }),
       setStreamingAssetsPluginEnabled: (enabled) => set({ streamingAssetsPluginEnabled: enabled }),
       setCreatePluginEnabled: (enabled) => set({ createPluginEnabled: enabled }),
+      setConnectionsPluginEnabled: (enabled) => set({ connectionsPluginEnabled: enabled }),
+      setObsStudioPluginEnabled: (enabled) => set({ obsStudioPluginEnabled: enabled }),
+      setGeminiPluginEnabled: (enabled) => set({ geminiPluginEnabled: enabled }),
+      setSettingsPluginEnabled: (enabled) => set({ settingsPluginEnabled: enabled }),
+      setAdvancedPluginEnabled: (enabled) => set({ advancedPluginEnabled: enabled }),
+      setEmoteWallPluginEnabled: (enabled) => set({ emoteWallPluginEnabled: enabled }),
+      setSettingsPluginEnabled: (enabled) => set({ settingsPluginEnabled: enabled }),
       setTabOrder: (order: string[]) => set({ tabOrder: order }),
       chatBackgroundType: 'image' as const,
       chatPattern: {

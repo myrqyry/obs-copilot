@@ -11,6 +11,7 @@ import { handleAppError } from '@/lib/errorUtils';
 import useUiStore from '@/store/uiStore';
 import type { ChatBackgroundType, ChatPattern } from '@/types/chatBackground';
 import { Session } from '@google/genai';
+import { Card } from '@/components/ui/Card';
 
 interface GeminiChatProps {
     onRefreshData?: () => Promise<void>;
@@ -267,7 +268,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
 
     return (
         <div className="flex flex-col h-full">
-            <div className="bg-card text-foreground border-border rounded-lg shadow-sm p-4 flex flex-col h-full">
+            <Card className="p-4 flex flex-col h-full">
                 <MessageList
                     messages={messages}
                     isLoading={isLoading}
@@ -299,7 +300,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
                     onImageSelect={handleImageSelect}
                     chatInputRef={chatInputRef}
                 />
-            </div>
+            </Card>
         </div>
     );
 };

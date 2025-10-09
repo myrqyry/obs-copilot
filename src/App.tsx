@@ -65,6 +65,6 @@ const App: React.FC = React.memo(() => {
             </TooltipProvider>
          </ComprehensiveErrorBoundary>
      );
- };
+ });
 
  export default App;

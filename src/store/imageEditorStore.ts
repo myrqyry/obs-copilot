@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
+import { shallow } from 'zustand/shallow';
 
 export interface ImageUploadResult {
   id: string;
@@ -348,67 +349,76 @@ export const useImageEditorStore = create<ImageEditorState>()(
 
 // Selectors for common use cases
 export const useImageEditorInput = () => {
-  return useImageEditorStore((state) => ({
-    inputUrl: state.inputUrl,
-    inputBlob: state.inputBlob,
-    currentImage: state.currentImage,
-    setInputImage: state.setInputImage,
-    setCurrentImage: state.setCurrentImage,
-  }));
+  return useImageEditorStore(
+    (state) => ({
+      inputUrl: state.inputUrl,
+      inputBlob: state.inputBlob,
+      currentImage: state.currentImage,
+      setInputImage: state.setInputImage,
+      setCurrentImage: state.setCurrentImage,
+    }),
+    shallow
+  );
 };
 
 export const useImageEditorManipulation = () => {
-  return useImageEditorStore((state) => ({
-    crop: state.crop,
-    zoom: state.zoom,
-    rotation: state.rotation,
-    aspect: state.aspect,
-    isCropping: state.isCropping,
-    width: state.width,
-    height: state.height,
-    flipH: state.flipH,
-    flipV: state.flipV,
-    filter: state.filter,
-    updateCrop: state.updateCrop,
-    updateZoom: state.updateZoom,
-    updateRotation: state.updateRotation,
-    updateAspect: state.updateAspect,
-    setIsCropping: state.setIsCropping,
-    updateDimensions: state.updateDimensions,
-    setFlipH: state.setFlipH,
-    setFlipV: state.setFlipV,
-    setFilter: state.setFilter,
-    resetManipulationStates: state.resetManipulationStates,
-  }));
+  return useImageEditorStore(
+    (state) => ({
+      crop: state.crop,
+      zoom: state.zoom,
+      rotation: state.rotation,
+      aspect: state.aspect,
+      isCropping: state.isCropping,
+      width: state.width,
+      height: state.height,
+      flipH: state.flipH,
+      flipV: state.flipV,
+      filter: state.filter,
+      updateCrop: state.updateCrop,
+      updateZoom: state.updateZoom,
+      updateRotation: state.updateRotation,
+      updateAspect: state.updateAspect,
+      setIsCropping: state.setIsCropping,
+      updateDimensions: state.updateDimensions,
+      setFlipH: state.setFlipH,
+      setFlipV: state.setFlipV,
+      setFilter: state.setFilter,
+      resetManipulationStates: state.resetManipulationStates,
+    }),
+    shallow
+  );
 };
 
 export const useImageEditorAI = () => {
-  return useImageEditorStore((state) => ({
-    aiPrompt: state.aiPrompt,
-    aiLoading: state.aiLoading,
-    aiError: state.aiError,
-    generatedImages: state.generatedImages,
-    showAiPanel: state.showAiPanel,
-    aiModel: state.aiModel,
-    aspectRatio: state.aspectRatio,
-    numberOfImages: state.numberOfImages,
-    characterConsistency: state.characterConsistency,
-    multiImageFusion: state.multiImageFusion,
-    worldKnowledge: state.worldKnowledge,
-    uploadedImages: state.uploadedImages,
-    showGeneratedImages: state.showGeneratedImages,
-    setAiPrompt: state.setAiPrompt,
-    setAiLoading: state.setAiLoading,
-    setAiError: state.setAiError,
-    setGeneratedImages: state.setGeneratedImages,
-    setShowAiPanel: state.setShowAiPanel,
-    setAiModel: state.setAiModel,
-    setAspectRatio: state.setAspectRatio,
-    setNumberOfImages: state.setNumberOfImages,
-    setCharacterConsistency: state.setCharacterConsistency,
-    setMultiImageFusion: state.setMultiImageFusion,
-    setWorldKnowledge: state.setWorldKnowledge,
-    setUploadedImages: state.setUploadedImages,
-    setShowGeneratedImages: state.setShowGeneratedImages,
-  }));
+  return useImageEditorStore(
+    (state) => ({
+      aiPrompt: state.aiPrompt,
+      aiLoading: state.aiLoading,
+      aiError: state.aiError,
+      generatedImages: state.generatedImages,
+      showAiPanel: state.showAiPanel,
+      aiModel: state.aiModel,
+      aspectRatio: state.aspectRatio,
+      numberOfImages: state.numberOfImages,
+      characterConsistency: state.characterConsistency,
+      multiImageFusion: state.multiImageFusion,
+      worldKnowledge: state.worldKnowledge,
+      uploadedImages: state.uploadedImages,
+      showGeneratedImages: state.showGeneratedImages,
+      setAiPrompt: state.setAiPrompt,
+      setAiLoading: state.setAiLoading,
+      setAiError: state.setAiError,
+      setGeneratedImages: state.setGeneratedImages,
+      setShowAiPanel: state.setShowAiPanel,
+      setAiModel: state.setAiModel,
+      setAspectRatio: state.setAspectRatio,
+      setNumberOfImages: state.setNumberOfImages,
+      setCharacterConsistency: state.setCharacterConsistency,
+      setMultiImageFusion: state.setMultiImageFusion,
+      setWorldKnowledge: state.setWorldKnowledge,
+      setUploadedImages: state.setUploadedImages,
+      setShowGeneratedImages: state.setShowGeneratedImages,
+    }),
+    shallow
+  );
 };

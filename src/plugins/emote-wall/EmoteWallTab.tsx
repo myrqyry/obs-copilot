@@ -2,19 +2,21 @@ import React, { useRef } from 'react';
 import EmoteWall from '@/features/emote-wall/components/EmoteWall';
 import EmoteWallConfig from '@/features/emote-wall/components/EmoteWallConfig';
 import { useEmoteWall } from '@/features/emote-wall/hooks/useEmoteWall';
+import { useEmoteWallConfig } from '@/store/emoteWallStore';
 import useEmoteWallStore from '@/store/emoteWallStore';
 
 const EmoteWallTab: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const engine = useEmoteWall(containerRef);
-  const { enabled, setEnabled, animationStyle, physicsEnabled } = useEmoteWallStore();
+  const { enabled, theme } = useEmoteWallConfig();
+  const { setEnabled } = useEmoteWallStore();
 
   // Pass config to engine
   React.useEffect(() => {
     if (engine) {
-      engine.setConfig({ enabled, animationStyle, physicsEnabled });
+      engine.setConfig({ enabled, theme });
     }
-  }, [engine, enabled, animationStyle, physicsEnabled]);
+  }, [engine, enabled, theme]);
 
   return (
     <div className="flex flex-col h-full">

@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useUniversalWidgetStore } from '@/store/widgetsStore';
 import { obsClient } from '@/services/obsClient';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/Button';
 import type { UniversalWidgetConfig } from '@/types/universalWidget';
 
 interface AudioFilterWidgetProps {
@@ -96,68 +99,75 @@ const AudioFilterWidget: React.FC<AudioFilterWidgetProps> = ({ config, id }) => 
   }, [filters, sourceName, id]);
 
   return (
-    <div className="p-4 bg-gray-800 rounded-lg shadow-lg max-w-sm mx-auto">
-      <h3 className="text-white text-lg font-bold mb-2">Audio Filter: {sourceName}</h3>
+    <div className="p-4 bg-card rounded-lg shadow-lg max-w-sm mx-auto">
+      <h3 className="text-foreground text-lg font-bold mb-2">Audio Filter: {sourceName}</h3>
       <div className="mb-4">
-        <select
+        <Select
           value={selectedFilter}
-          onChange={(e) => setSelectedFilter(e.target.value)}
-          className="w-full p-2 bg-gray-700 text-white rounded mb-2"
+          onValueChange={setSelectedFilter}
         >
-          <option value="">Select Filter</option>
-          {filters.map((filter, index) => (
-            <option key={index} value={String(filter.type || '')}>
-              {String(filter.type || 'Unknown Filter')}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="w-full mb-2">
+            <SelectValue placeholder="Select Filter" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Select Filter</SelectItem>
+            {filters.map((filter, index) => (
+              <SelectItem key={index} value={String(filter.type || '')}>
+                {String(filter.type || 'Unknown Filter')}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         {selectedFilter && (
           <div className="space-y-2">
             {Object.entries(filterParams).map(([key, value]) => (
-              <input
+              <Input
                 key={key}
                 type="number"
                 placeholder={key}
                 value={String(value || '')}
                 onChange={(e) => setFilterParams({ ...filterParams, [key]: Number(e.target.value) })}
-                className="w-full p-1 bg-gray-700 text-white rounded"
               />
             ))}
-            <button
+            <Button
               onClick={() => updateFilterParams(filterParams)}
-              className="w-full p-2 bg-blue-500 text-white rounded"
+              className="w-full"
             >
               Update Params
-            </button>
+            </Button>
           </div>
         )}
       </div>
       <div className="space-y-1">
-        <button
+        <Button
           onClick={() => addFilter('noise_suppression')}
-          className="w-full p-2 bg-green-500 text-white rounded"
+          className="w-full"
+          variant="success"
         >
           Add Noise Suppression
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => addFilter('gain')}
-          className="w-full p-2 bg-green-500 text-white rounded"
+          className="w-full"
+          variant="success"
         >
           Add Gain
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => addFilter('compressor')}
-          className="w-full p-2 bg-green-500 text-white rounded"
+          className="w-full"
+          variant="success"
         >
           Add Compressor
-        </button>
+        </Button>
         {selectedFilter && (
-          <button
+          <Button
             onClick={() => removeFilter(selectedFilter)}
-            className="w-full p-2 bg-red-500 text-white rounded"
+            className="w-full"
+            variant="destructive"
           >
             Remove Filter
-          </button>
+          </Button>
         )}
       </div>
     </div>

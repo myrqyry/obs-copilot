@@ -55,9 +55,7 @@
       ]
     }
   },
-  "include": [
-    "src"
-  ],
+  "include": ["src", "src/__mocks__", "src/__tests__", "vite.config.ts", "vitest.config.ts"],
   "exclude": [
     "node_modules",
     "node_modules/obs-websocket-js",

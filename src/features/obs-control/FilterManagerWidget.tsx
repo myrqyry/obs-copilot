@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useUniversalWidgetStore } from '@/store/widgetsStore';
 import { obsClient } from '@/services/obsClient';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/Button';
 import type { UniversalWidgetConfig } from '@/types/universalWidget';
 
 interface Filter {
@@ -82,42 +84,50 @@ const FilterManagerWidget: React.FC<FilterManagerWidgetProps> = ({ config, id })
   };
 
   return (
-    <div className="p-4 bg-gray-800 rounded-lg shadow-lg max-w-sm mx-auto">
-      <h3 className="text-white text-lg font-bold mb-2">Filter Manager</h3>
+    <div className="p-4 bg-card rounded-lg shadow-lg max-w-sm mx-auto">
+      <h3 className="text-foreground text-lg font-bold mb-2">Filter Manager</h3>
       <div className="mb-4">
-        <select
+        <Select
           value={selectedFilterType}
-          onChange={(e) => setSelectedFilterType(e.target.value)}
-          className="w-full p-2 bg-gray-700 text-white rounded mb-2"
+          onValueChange={setSelectedFilterType}
         >
-          <option value="">Select Filter Type</option>
-          <option value="crop">Crop</option>
-          <option value="color">Color Key</option>
-          <option value="sharpen">Sharpen</option>
-          <option value="blur">Blur</option>
-        </select>
-        <button
-          onClick={() => addFilter(selectedFilterType)}
-          disabled={loading || !selectedFilterType}
-          className="w-full p-2 bg-green-500 text-white rounded disabled:bg-gray-500 mb-2"
+          <SelectTrigger className="w-full mb-2">
+            <SelectValue placeholder="Select Filter Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Select Filter Type</SelectItem>
+            <SelectItem value="noise_suppression">Noise Suppression</SelectItem>
+            <SelectItem value="gain">Gain</SelectItem>
+            <SelectItem value="compressor">Compressor</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button
+          onClick={handleAddFilter}
+          disabled={!selectedFilterType}
+          className="w-full mb-2"
+          variant="success"
         >
-          {loading ? 'Adding...' : 'Add Filter'}
-        </button>
+          Add Filter
+        </Button>
       </div>
       <div className="space-y-2 max-h-60 overflow-y-auto">
-        {filters.map((filter) => (
-          <div key={filter.filterName} className="p-2 bg-gray-700 rounded space-y-1">
-            <div className="text-white text-sm mb-1">{filter.filterName} ({filter.filterType})</div>
-            <button
-              onClick={() => removeFilter(filter.filterName)}
-              className="w-full p-1 bg-red-500 text-white rounded text-xs"
-            >
-              Remove
-            </button>
-            {/* Simple settings editor - expand as needed */}
-            <div className="text-xs text-gray-300">Settings: {JSON.stringify(filter.settings)}</div>
-          </div>
-        ))}
+        {filters.length === 0 ? (
+          <div className="text-muted-foreground text-sm text-center">No filters added.</div>
+        ) : (
+          filters.map((filter, index) => (
+            <div key={filter.filterName} className="p-2 bg-input rounded space-y-1">
+              <div className="text-foreground text-sm mb-1">{filter.filterName} ({filter.filterType})</div>
+              <Button
+                onClick={() => handleRemoveFilter(filter.filterName)}
+                className="w-full text-xs"
+                variant="destructive"
+              >
+                Remove
+              </Button>
+              <div className="text-xs text-muted-foreground">Settings: {JSON.stringify(filter.settings)}</div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

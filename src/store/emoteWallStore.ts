@@ -5,8 +5,10 @@ import { DefaultThemes } from '@/features/emote-wall/presets/StylePresets';
 interface EmoteWallState {
   enabled: boolean;
   themeId: string;
+  channel: string;
   setEnabled: (enabled: boolean) => void;
   setThemeId: (themeId: string) => void;
+  setChannel: (channel: string) => void;
 }
 
 const useEmoteWallStore = create<EmoteWallState>()(
@@ -14,8 +16,10 @@ const useEmoteWallStore = create<EmoteWallState>()(
     (set) => ({
       enabled: false,
       themeId: 'default', // Default theme
+      channel: '', // Initialize channel
       setEnabled: (enabled) => set({ enabled }),
       setThemeId: (themeId) => set({ themeId }),
+      setChannel: (channel) => set({ channel }),
     }),
     {
       name: 'obs-copilot-emote-wall-settings',

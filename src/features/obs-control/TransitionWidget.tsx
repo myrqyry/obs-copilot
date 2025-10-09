@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useUniversalWidgetStore } from '@/store/widgetsStore';
 import { obsClient } from '@/services/obsClient';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/Button';
 import type { UniversalWidgetConfig } from '@/types/universalWidget';
 
 interface TransitionWidgetProps extends UniversalWidgetConfig {
@@ -49,39 +52,39 @@ const TransitionWidget: React.FC<TransitionWidgetProps> = ({ config, id }) => {
   };
 
   return (
-    <div className="p-4 bg-gray-800 rounded-lg shadow-lg max-w-sm mx-auto">
-      <h3 className="text-white text-lg font-bold mb-2">Transition Widget</h3>
+    <div className="p-4 bg-card rounded-lg shadow-lg max-w-sm mx-auto">
+      <h3 className="text-foreground text-lg font-bold mb-2">Transition Widget</h3>
       <div className="space-y-2 mb-4">
-        <select
+        <Select
           value={selectedTransition}
-          onChange={(e) => setSelectedTransition(e.target.value)}
-          className="w-full p-2 bg-gray-700 text-white rounded"
+          onValueChange={setSelectedTransition}
         >
-          <option value="">Select Transition</option>
-          {transitions.map((trans) => (
-            <option key={trans} value={trans}>
-              {trans}
-            </option>
-          ))}
-        </select>
-        <input
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select Transition" />
+          </SelectTrigger>
+          <SelectContent>
+            {transitions.map((transition) => (
+              <SelectItem key={transition.transitionName} value={transition.transitionName}>
+                {transition.transitionName}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Input
           type="number"
+          value={transitionDuration}
+          onChange={(e) => setTransitionDuration(Number(e.target.value))}
           placeholder="Duration (ms)"
-          value={duration}
-          onChange={(e) => setDuration(Number(e.target.value))}
-          className="w-full p-2 bg-gray-700 text-white rounded"
-          min="0"
         />
-        <button
-          onClick={() => setTransition(selectedTransition, duration)}
-          disabled={loading || !selectedTransition}
-          className="w-full p-2 bg-primary hover:bg-primary/90 text-white rounded disabled:bg-muted disabled:text-muted-foreground transition-colors"
-        >
-          {loading ? 'Applying...' : 'Apply Transition'}
-        </button>
-      </div>
-      <div className="text-gray-300 text-sm">
-        Current: {selectedTransition || 'None'} - {duration}ms
+      <Button
+        onClick={handleSetTransition}
+        disabled={!obsClient.isConnected()}
+        className="w-full mt-4"
+      >
+        Set Transition
+      </Button>
+      <div className="text-muted-foreground text-sm">
+        Current Transition: {currentTransition} ({currentTransitionDuration}ms)
       </div>
     </div>
   );

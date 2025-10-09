@@ -3,8 +3,9 @@ import * as React from "react";
 import { useRef, useState, useEffect, useCallback } from "react";
 import { toast } from "@/components/ui/toast";
 import { Modal } from "@/components/ui/Modal";
-import { Tooltip } from "@/components/ui"";
-import { Button } from "@/components/ui"";
+import { Tooltip } from "@/components/ui";
+import { Button } from "@/components/ui";
+import { Card } from "@/components/ui/Card";
 import { TextInput } from "@/components/common/TextInput";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Crop, Download, ImagePlus, Scissors, Text, Filter, RefreshCcw, RotateCcw, FlipHorizontal, FlipVertical } from 'lucide-react';
@@ -277,7 +278,7 @@ export const ImageEditor: React.FC = () => {
     }, [rotation, isCropping, currentImage, croppedAreaPixels, applyManipulation]);
 
     return (
-        <div className="w-full bg-card rounded-lg border border-border shadow-sm">
+        <Card className="w-full rounded-lg border border-border shadow-sm">
             <div className="flex flex-col lg:flex-row gap-6 p-6">
                 {/* Left Panel: Controls */}
                 <div className="lg:w-80 space-y-6">
@@ -566,7 +567,7 @@ export const ImageEditor: React.FC = () => {
                     <img src={currentImage} alt="Input Preview" className="max-w-full max-h-[70vh] mx-auto rounded shadow" />
                 </Modal>
             )}
-        </div>
+        </Card>
     );
 };
 

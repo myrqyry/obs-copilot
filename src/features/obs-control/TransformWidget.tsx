@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useUniversalWidgetStore } from '@/store/widgetsStore';
 import { obsClient } from '@/services/obsClient';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/Button';
 import type { UniversalWidgetConfig } from '@/types/universalWidget';
 
 interface TransformWidgetProps extends UniversalWidgetConfig {
@@ -67,86 +70,74 @@ const TransformWidget: React.FC<TransformWidgetProps> = ({ config, id }) => {
   };
 
   return (
-    <div className="p-4 bg-gray-800 rounded-lg shadow-lg max-w-sm mx-auto">
-      <h3 className="text-white text-lg font-bold mb-2">Transform Widget</h3>
+    <div className="p-4 bg-card rounded-lg shadow-lg max-w-sm mx-auto">
+      <h3 className="text-foreground text-lg font-bold mb-2">Transform Widget</h3>
       <div className="space-y-2 mb-4">
         <div className="grid grid-cols-2 gap-2">
-          <label className="text-gray-300">X Position:</label>
-          <input
-            type="number"
-            value={xPos}
-            onChange={(e) => setXPos(Number(e.target.value))}
-            className="p-1 bg-gray-700 text-white rounded"
-          />
-          <label className="text-gray-300">Y Position:</label>
-          <input
-            type="number"
-            value={yPos}
-            onChange={(e) => setYPos(Number(e.target.value))}
-            className="p-1 bg-gray-700 text-white rounded"
-          />
-          <label className="text-gray-300">Rotation:</label>
-          <input
-            type="number"
-            value={rotation}
-            onChange={(e) => setRotation(Number(e.target.value))}
-            className="p-1 bg-gray-700 text-white rounded"
-          />
-          <label className="text-gray-300">Scale X:</label>
-          <input
-            type="number"
-            value={scaleX}
-            onChange={(e) => setScaleX(Number(e.target.value))}
-            className="p-1 bg-gray-700 text-white rounded"
-            step="0.1"
-          />
-          <label className="text-gray-300">Scale Y:</label>
-          <input
-            type="number"
-            value={scaleY}
-            onChange={(e) => setScaleY(Number(e.target.value))}
-            className="p-1 bg-gray-700 text-white rounded"
-            step="0.1"
-          />
-          <label className="text-gray-300">Crop Left:</label>
-          <input
-            type="number"
-            value={cropLeft}
-            onChange={(e) => setCropLeft(Number(e.target.value))}
-            className="p-1 bg-gray-700 text-white rounded"
-          />
-          <label className="text-gray-300">Crop Right:</label>
-          <input
-            type="number"
-            value={cropRight}
-            onChange={(e) => setCropRight(Number(e.target.value))}
-            className="p-1 bg-gray-700 text-white rounded"
-          />
-          <label className="text-gray-300">Crop Top:</label>
-          <input
-            type="number"
-            value={cropTop}
-            onChange={(e) => setCropTop(Number(e.target.value))}
-            className="p-1 bg-gray-700 text-white rounded"
-          />
-          <label className="text-gray-300">Crop Bottom:</label>
-          <input
-            type="number"
-            value={cropBottom}
-            onChange={(e) => setCropBottom(Number(e.target.value))}
-            className="p-1 bg-gray-700 text-white rounded"
-          />
-        </div>
-        <button
-          onClick={updateTransform}
-          disabled={loading}
-          className="w-full p-2 bg-primary hover:bg-primary/90 text-white rounded disabled:bg-muted disabled:text-muted-foreground mt-4 transition-colors"
-        >
-          {loading ? 'Applying...' : 'Apply Transform'}
-        </button>
+          <Label>X Position:</Label>
+        <Input
+          type="number"
+          value={transform.positionX}
+          onChange={(e) => handleTransformChange('positionX', Number(e.target.value))}
+        />
+        <Label>Y Position:</Label>
+        <Input
+          type="number"
+          value={transform.positionY}
+          onChange={(e) => handleTransformChange('positionY', Number(e.target.value))}
+        />
+        <Label>Rotation:</Label>
+        <Input
+          type="number"
+          value={transform.rotation}
+          onChange={(e) => handleTransformChange('rotation', Number(e.target.value))}
+        />
+        <Label>Scale X:</Label>
+        <Input
+          type="number"
+          value={transform.scaleX}
+          onChange={(e) => handleTransformChange('scaleX', Number(e.target.value))}
+        />
+        <Label>Scale Y:</Label>
+        <Input
+          type="number"
+          value={transform.scaleY}
+          onChange={(e) => handleTransformChange('scaleY', Number(e.target.value))}
+        />
+        <Label>Crop Left:</Label>
+        <Input
+          type="number"
+          value={transform.cropLeft}
+          onChange={(e) => handleTransformChange('cropLeft', Number(e.target.value))}
+        />
+        <Label>Crop Right:</Label>
+        <Input
+          type="number"
+          value={transform.cropRight}
+          onChange={(e) => handleTransformChange('cropRight', Number(e.target.value))}
+        />
+        <Label>Crop Top:</Label>
+        <Input
+          type="number"
+          value={transform.cropTop}
+          onChange={(e) => handleTransformChange('cropTop', Number(e.target.value))}
+        />
+        <Label>Crop Bottom:</Label>
+        <Input
+          type="number"
+          value={transform.cropBottom}
+          onChange={(e) => handleTransformChange('cropBottom', Number(e.target.value))}
+        />
       </div>
-      <div className="text-gray-300 text-sm">
-        Scene: {sceneName} - Item: {sceneItemId}
+      <Button
+        onClick={handleApplyTransform}
+        disabled={!obsClient.isConnected() || !sourceName}
+        className="w-full mt-4"
+      >
+        Apply Transform
+      </Button>
+      <div className="text-muted-foreground text-sm">
+        Current Source: {sourceName || 'None Selected'}
       </div>
     </div>
   );

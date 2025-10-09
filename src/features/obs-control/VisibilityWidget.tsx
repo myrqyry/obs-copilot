@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useUniversalWidgetStore } from '@/store/widgetsStore';
 import { obsClient } from '@/services/obsClient';
 import gsap from 'gsap';
+import { Button } from '@/components/ui/Button';
 import type { UniversalWidgetConfig } from '@/types/universalWidget';
 
 interface VisibilityWidgetProps extends UniversalWidgetConfig {
@@ -36,16 +37,17 @@ const VisibilityWidget: React.FC<VisibilityWidgetProps> = ({ config, id }) => {
   };
 
   return (
-    <div className="p-4 bg-gray-800 rounded-lg shadow-lg max-w-sm mx-auto">
-      <h3 className="text-white text-lg font-bold mb-2">Visibility Widget</h3>
-      <button
-        className={`w-full p-2 rounded text-white visibility-btn ${isVisible ? 'bg-green-500' : 'bg-red-500'} disabled:bg-gray-500`}
+    <div className="p-4 bg-card rounded-lg shadow-lg max-w-sm mx-auto">
+      <h3 className="text-foreground text-lg font-bold mb-2">Visibility Widget</h3>
+      <Button
+        className="w-full visibility-btn"
         onClick={toggleVisibility}
         disabled={loading}
+        variant={isVisible ? 'default' : 'destructive'}
       >
         {loading ? 'Applying...' : (isVisible ? 'Visible' : 'Hidden')}
-      </button>
-      <div className="text-gray-300 text-sm mt-2">
+      </Button>
+      <div className="text-muted-foreground text-sm mt-2">
         Scene: {sceneName} - Item: {sceneItemId}
       </div>
     </div>

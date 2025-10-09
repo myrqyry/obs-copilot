@@ -13,6 +13,6 @@
   "types": ["node"],
   "composite": true
   },
-  "include": ["proxy.cjs", "verify-proxy.js"],
+  "include": ["proxy.cjs", "verify-proxy.js", "scripts/**/*.js", "tailwind/**/*.js", "*.js", "*.cjs"],
   "exclude": ["node_modules", "dist", "build", "src"]
 }

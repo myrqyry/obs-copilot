@@ -2,6 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useUniversalWidgetStore } from '@/store/widgetsStore';
 import { obsClient } from '@/services/obsClient';
 import type { UniversalWidgetConfig } from '@/types/universalWidget';
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/Button';
 import type { AudioConfig } from '@/types/universalWidget'; // Extended for Phase 3
 
 interface AudioVolumeWidgetProps {
@@ -131,57 +135,55 @@ const AudioVolumeWidget: React.FC<AudioVolumeWidgetProps> = ({ config, id }) => 
   }, [isSync]);
 
   return (
-    <div className="p-4 bg-gray-800 rounded-lg shadow-lg max-w-sm mx-auto">
-      <h3 className="text-white text-lg font-bold mb-2">Audio Volume: {sourceName}</h3>
+    <div className="p-4 bg-card rounded-lg shadow-lg max-w-sm mx-auto">
+      <h3 className="text-foreground text-lg font-bold mb-2">Audio Volume: {sourceName}</h3>
       
       {/* Volume Slider */}
       <div className="mb-4">
-        <label className="text-gray-300 mb-1 block">Volume ({volume.toFixed(1)} dB)</label>
-        <input
-          type="range"
+        <Label className="mb-1 block">Volume ({volume.toFixed(1)} dB)</Label>
+        <Slider
           min={config.valueMapping?.min || -60}
           max={config.valueMapping?.max || 0}
           step={config.valueMapping?.step || 0.1}
-          value={volume}
-          onChange={(e) => setVolume(Number(e.target.value))}
-          onMouseUp={(e) => handleVolumeChange(Number((e.target as HTMLInputElement).value))}
-          className="w-full slider slider-primary"
+          value={[volume]}
+          onValueChange={([newValue]) => setVolume(newValue)}
+          onValueCommit={([newValue]) => handleVolumeChange(newValue)}
+          className="w-full"
         />
       </div>
 
       {/* Mute Button */}
       <div className="mb-4">
-        <button
+        <Button
           onClick={handleMuteToggle}
-          className={`px-4 py-2 rounded ${isMuted ? 'bg-destructive hover:bg-destructive/90' : 'bg-accent hover:bg-accent/90'} text-white transition-colors`}
+          variant={isMuted ? 'destructive' : 'default'}
+          className="w-full"
         >
           {isMuted ? 'Unmute' : 'Mute'}
-        </button>
+        </Button>
       </div>
 
       {/* Balance Slider */}
       <div className="mb-4">
-        <label className="text-muted-foreground mb-1 block">Balance ({balance})</label>
-        <input
-          type="range"
-          min="-100"
-          max="100"
-          step="1"
-          value={balance}
-          onChange={(e) => setBalance(Number(e.target.value))}
-          onMouseUp={(e) => handleBalanceChange(Number((e.target as HTMLInputElement).value))}
-          className="w-full slider slider-secondary"
+        <Label className="mb-1 block">Balance ({balance})</Label>
+        <Slider
+          min={-100}
+          max={100}
+          step={1}
+          value={[balance]}
+          onValueChange={([newValue]) => setBalance(newValue)}
+          onValueCommit={([newValue]) => handleBalanceChange(newValue)}
+          className="w-full"
         />
       </div>
 
       {/* Sync Toggle */}
       <div className="mb-4">
-        <label className="text-gray-300 mb-1 block">Sync Channels</label>
-        <input
-          type="checkbox"
+        <Label className="mb-1 block">Sync Channels</Label>
+        <Switch
           checked={isSync}
-          onChange={handleSyncToggle}
-          className="toggle toggle-primary"
+          onCheckedChange={handleSyncToggle}
+          id="sync-channels"
         />
       </div>
     </div>

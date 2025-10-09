@@ -30,6 +30,7 @@ import {
   useImageEditorAI 
 } from '@/store/imageEditorStore';
 import { useUIStateStore } from '@/store/uiStateStore';
+import { Card } from '@/components/ui/Card';
 
 export const AIImageEditor: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -411,7 +412,7 @@ export const AIImageEditor: React.FC = () => {
     };
 
     return (
-        <div className="w-full bg-card rounded-lg border border-border shadow-sm">
+        <Card className="w-full rounded-lg border border-border shadow-sm">
             <div className="flex flex-col lg:flex-row gap-6 p-6">
                 {/* Left Panel: Controls */}
                 <div className="lg:w-80 space-y-6">
@@ -485,14 +486,18 @@ export const AIImageEditor: React.FC = () => {
                                 {/* AI Model Selector */}
                                 <div>
                                     <label className="block text-xs font-medium mb-1">Model</label>
-                                    <select
+                                    <Select
                                         value={aiModel}
-                                        onChange={(e) => setAiModel(e.target.value)}
-                                        className="w-full p-2 border rounded text-xs bg-background"
+                                        onValueChange={(value) => setAiModel(value)}
                                     >
-                                        <option value="gemini-2.5-flash-image-preview">Gemini 2.5 Flash (Fast, Good Quality)</option>
-                                        <option value="imagen-4.0-fast-generate-001">Imagen 4.0 (High Quality)</option>
-                                    </select>
+                                        <SelectTrigger className="w-full text-xs">
+                                            <SelectValue placeholder="Select Model" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="gemini-2.5-flash-image-preview">Gemini 2.5 Flash (Fast, Good Quality)</SelectItem>
+                                            <SelectItem value="imagen-4.0-fast-generate-001">Imagen 4.0 (High Quality)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </div>
 
                                 {/* Advanced AI Options */}
@@ -548,29 +553,33 @@ export const AIImageEditor: React.FC = () => {
                                             <div className="grid grid-cols-2 gap-2">
                                                 <div>
                                                     <label className="block text-xs font-medium mb-1">Count</label>
-                                                    <input
+                                                    <Input
                                                         type="number"
                                                         value={numberOfImages}
                                                         onChange={(e) => setNumberOfImages(parseInt(e.target.value) || 1)}
                                                         min="1"
                                                         max="4"
-                                                        className="w-full p-1 border rounded text-xs bg-background"
+                                                        className="w-full text-xs"
                                                     />
                                                 </div>
                                                 <div>
                                                     <label className="block text-xs font-medium mb-1">Aspect</label>
-                                                    <select
+                                                    <Select
                                                         value={aspectRatio}
-                                                        onChange={(e) => setAspectRatio(e.target.value)}
-                                                        className="w-full p-1 border rounded text-xs bg-background"
+                                                        onValueChange={(value) => setAspectRatio(value)}
                                                         disabled={aiModel.startsWith('gemini')}
                                                     >
-                                                        <option value="1:1">1:1 Square</option>
-                                                        <option value="16:9">16:9 Widescreen</option>
-                                                        <option value="9:16">9:16 Vertical</option>
-                                                        <option value="3:4">3:4 Portrait</option>
-                                                        <option value="4:3">4:3 Standard</option>
-                                                    </select>
+                                                        <SelectTrigger className="w-full text-xs">
+                                                            <SelectValue placeholder="Aspect Ratio" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="1:1">1:1 Square</SelectItem>
+                                                            <SelectItem value="16:9">16:9 Widescreen</SelectItem>
+                                                            <SelectItem value="9:16">9:16 Vertical</SelectItem>
+                                                            <SelectItem value="3:4">3:4 Portrait</SelectItem>
+                                                            <SelectItem value="4:3">4:3 Standard</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
                                                 </div>
                                             </div>
                                         </>
@@ -943,7 +952,7 @@ export const AIImageEditor: React.FC = () => {
                     <img src={currentImage} alt="Input Preview" className="max-w-full max-h-[70vh] mx-auto rounded shadow" />
                 </Modal>
             )}
-        </div>
+        </Card>
     );
 };
 

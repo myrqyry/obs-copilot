@@ -4,12 +4,18 @@ import useSettingsStore from '@/store/settingsStore';
 import { TabPlugin } from '@/types/plugins';
 
 export const usePlugins = () => {
-  const { twitchChatPluginEnabled, automationPluginEnabled, streamingAssetsPluginEnabled, createPluginEnabled } = useSettingsStore();
+  const { twitchChatPluginEnabled, automationPluginEnabled, streamingAssetsPluginEnabled, createPluginEnabled, connectionsPluginEnabled, obsStudioPluginEnabled, geminiPluginEnabled, settingsPluginEnabled, advancedPluginEnabled, emoteWallPluginEnabled } = useSettingsStore();
 
   const filteredPlugins = useMemo(() => {
     console.log('usePlugins filtering:', {
       twitchChatPluginEnabled,
       automationPluginEnabled,
+      connectionsPluginEnabled,
+      obsStudioPluginEnabled,
+      geminiPluginEnabled,
+      settingsPluginEnabled,
+      advancedPluginEnabled,
+      emoteWallPluginEnabled,
       allPluginsCount: allPlugins.length
     });
 
@@ -31,6 +37,30 @@ export const usePlugins = () => {
       plugins = plugins.filter((plugin) => plugin.id !== 'create');
     }
 
+    if (!connectionsPluginEnabled) {
+      plugins = plugins.filter((plugin) => plugin.id !== 'connections');
+    }
+
+    if (!obsStudioPluginEnabled) {
+      plugins = plugins.filter((plugin) => plugin.id !== 'obs-studio');
+    }
+
+    if (!geminiPluginEnabled) {
+      plugins = plugins.filter((plugin) => plugin.id !== 'gemini');
+    }
+
+    if (!settingsPluginEnabled) {
+      plugins = plugins.filter((plugin) => plugin.id !== 'settings');
+    }
+
+    if (!advancedPluginEnabled) {
+      plugins = plugins.filter((plugin) => plugin.id !== 'advanced');
+    }
+
+    if (!emoteWallPluginEnabled) {
+      plugins = plugins.filter((plugin) => plugin.id !== 'emote-wall');
+    }
+
   const tabOrder = useSettingsStore.getState().tabOrder as string[] | undefined;
 
   if (!tabOrder || tabOrder.length === 0) return plugins;
@@ -50,7 +80,7 @@ export const usePlugins = () => {
     Object.keys(byOrder).forEach(k => ordered.push(byOrder[k]));
 
     return ordered;
-  }, [twitchChatPluginEnabled, automationPluginEnabled, streamingAssetsPluginEnabled, createPluginEnabled, useSettingsStore((s) => s.tabOrder)]);
+  }, [twitchChatPluginEnabled, automationPluginEnabled, streamingAssetsPluginEnabled, createPluginEnabled, connectionsPluginEnabled, obsStudioPluginEnabled, geminiPluginEnabled, settingsPluginEnabled, advancedPluginEnabled, emoteWallPluginEnabled, useSettingsStore((s) => s.tabOrder)]);
 
   console.log('usePlugins returning:', filteredPlugins.map(p => p.id));
   return filteredPlugins;
