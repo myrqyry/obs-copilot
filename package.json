@@ -30,7 +30,13 @@
     "test:ui": "vitest --ui",
     "test:watch": "vitest --watch",
     "test:ci": "vitest run --coverage",
-    "test:file": "vitest --testPathPattern"
+    "test:file": "vitest --testPathPattern",
+    "dev:debug": "concurrently \"pnpm:frontend:dev\" \"pnpm:backend:dev\" \"pnpm:mock-obs\"",
+    "mock-obs": "node scripts/mock-obs-server.js",
+    "test:e2e": "playwright test",
+    "analyze": "vite-bundle-analyzer",
+    "lint:fix": "eslint . --fix && prettier --write .",
+    "type-check": "tsc --noEmit"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.1",

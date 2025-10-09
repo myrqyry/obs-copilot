@@ -222,6 +222,25 @@ export interface StreamerBotActionDescriptor {
 }
 
 /**
+ * Configuration for creating a new action in Streamer.bot
+ */
+export interface StreamerBotActionConfig {
+    /** The name of the action to create */
+    name: string;
+    /** The group to place the action in */
+    group?: string;
+    /** Whether the action should be enabled by default */
+    enabled?: boolean;
+    /** The list of sub-actions or commands to execute */
+    actions: Array<{
+        /** The type of sub-action (e.g., 'SendMessage', 'PlaySound') */
+        type: string;
+        /** Arguments specific to the sub-action type */
+        args: Record<string, any>;
+    }>;
+}
+
+/**
  * Response from listing actions
  */
 export interface ActionListResponse {
