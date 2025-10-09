@@ -1,65 +1,34 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
-/**
- * Lightweight compatibility shim for the missing apiKeyStore.
- * Provides the minimal API used across the codebase:
- *  - default export: useApiKeyStore (Zustand store)
- *  - named exports: ApiService (enum), ApiServiceName (type)
- *
- * This intentionally implements a simple in-browser override store.
- * If you already have a more featureful implementation, replace this file with it.
- */
-
-/* Known services used in the UI. Extend as needed. */
-export enum ApiService {
-  GEMINI = 'GEMINI',
-  CHUTES = 'CHUTES',
-  GIPHY = 'GIPHY',
-  IMGUR = 'IMGUR',
-  PEXELS = 'PEXELS',
-  PIXABAY = 'PIXABAY',
-  ICONFINDER = 'ICONFINDER',
-  DEVIANTART = 'DEVIANTART',
-  IMGFLIP = 'IMGFLIP',
-  TENOR = 'TENOR',
-  WALLHAVEN = 'WALLHAVEN',
-  OPENEMOJI = 'OPENEMOJI',
-  UNSPLASH = 'UNSPLASH',
+export interface ApiKeyState {
+  GIPHY_API_KEY: string;
+  TENOR_API_KEY: string;
+  ICONFINDER_API_KEY: string;
+  PEXELS_API_KEY: string;
+  PIXABAY_API_KEY: string;
+  DEVIANTART_CLIENT_ID: string;
+  UNSPLASH_ACCESS_KEY: string;
+  setApiKey: (key: keyof Omit<ApiKeyState, 'setApiKey'>, value: string) => void;
 }
 
-/* Type alias used by UI code */
-export type ApiServiceName = keyof typeof ApiService;
-
-interface ApiKeyState {
-  overrides: Partial<Record<string, string>>;
-  setApiKey: (service: ApiServiceName, key: string) => void;
-  clearApiKey: (service: ApiServiceName) => void;
-  getApiKeyOverride: (service: ApiServiceName) => string | undefined;
-  getAllOverrides: () => Partial<Record<string, string>>;
-}
-
-/* Minimal zustand store */
-const useApiKeyStore = create<ApiKeyState>((set, get) => ({
-  overrides: {},
-  setApiKey(service, key) {
-    set((state) => {
-      const overrides = { ...(state.overrides || {}), [service]: key };
-      return { overrides };
-    });
-  },
-  clearApiKey(service) {
-    set((state) => {
-      const overrides = { ...(state.overrides || {}) };
-      delete overrides[service];
-      return { overrides };
-    });
-  },
-  getApiKeyOverride(service) {
-    return get().overrides?.[service];
-  },
-  getAllOverrides() {
-    return get().overrides || {};
-  },
-}));
+const useApiKeyStore = create<ApiKeyState>()(
+  persist(
+    (set) => ({
+      GIPHY_API_KEY: '',
+      TENOR_API_KEY: '',
+      ICONFINDER_API_KEY: '',
+      PEXELS_API_KEY: '',
+      PIXABAY_API_KEY: '',
+      DEVIANTART_CLIENT_ID: '',
+      UNSPLASH_ACCESS_KEY: '',
+      setApiKey: (key, value) => set({ [key]: value }),
+    }),
+    {
+      name: 'api-key-storage', // name of the item in the storage (must be unique)
+      storage: createJSONStorage(() => localStorage), // (optional) by default, 'localStorage' is used
+    }
+  )
+);
 
 export default useApiKeyStore;
