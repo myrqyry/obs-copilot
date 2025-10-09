@@ -28,6 +28,7 @@ import {
   EventSubscription,
   FileExistsResponse,
   FolderExistsResponse,
+  StreamerBotActionConfig,
 } from '../types/streamerbot';
 
 type Command<T = any> = {
@@ -504,6 +505,55 @@ export class StreamerBotService {
       }
       return this.queueOrExecute('_sendRequest', request);
   }
+
+  // ==================== ENHANCED API METHODS ====================
+
+  /**
+   * Executes a Streamer.bot action by its name with optional arguments.
+   * A simplified wrapper around doAction.
+   */
+  async executeCommand(commandName: string, args?: Record<string, any>): Promise<RunActionResponse | void> {
+    if (!commandName) {
+      throw new Error('Command name must be provided.');
+    }
+    // Re-use the existing doAction method which correctly handles queuing
+    return this.doAction({ name: commandName }, args);
+  }
+
+  /**
+   * Creates a new custom action in Streamer.bot.
+   */
+  async createCustomAction(actionConfig: StreamerBotActionConfig): Promise<unknown> {
+    // Use _sendRequest for custom raw requests as 'CreateAction' is not a standard client method
+    return this._sendRequest({
+      request: 'CreateAction',
+      action: actionConfig,
+    });
+  }
+
+  /**
+   * Sets up advanced event handlers for common Twitch events.
+   */
+  setupAdvancedEventHandlers(): void {
+    logger.info('Setting up advanced event handlers for Twitch...');
+    this.on('Twitch.Follow', this.handleTwitchFollow);
+    this.on('Twitch.Sub', this.handleTwitchSubscription);
+    this.on('Twitch.Raid', this.handleTwitchRaid);
+  }
+
+  private handleTwitchFollow = (data: any): void => {
+    logger.info(`New follower detected: ${data?.user_name}`, data);
+    // Example of how to use executeCommand:
+    // this.executeCommand('NewFollowerAlert', { user: data.user_name });
+  };
+
+  private handleTwitchSubscription = (data: any): void => {
+    logger.info(`New subscription detected: ${data?.user_name}`, data);
+  };
+
+  private handleTwitchRaid = (data: any): void => {
+    logger.info(`Raid detected from ${data?.from_broadcaster_user_name}`, data);
+  };
 
   // ... (rest of the methods)
 

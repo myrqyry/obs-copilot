@@ -2,17 +2,38 @@ import base64
 import logging
 import json
 import os
+import hashlib
 from typing import Optional, List, Dict
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.responses import StreamingResponse
-# Corrected imports according to guidelines
 from google import genai
 from google.genai import types
 from google.genai.errors import APIError
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+class GeminiCache:
+    def __init__(self, max_size: int = 100):
+        self._cache = {}
+        self._max_size = max_size
+
+    def get_cache_key(self, prompt: str, model: str, **kwargs) -> str:
+        cache_data = {"prompt": prompt, "model": model, **kwargs}
+        return hashlib.sha256(json.dumps(cache_data, sort_keys=True).encode()).hexdigest()
+
+    def get(self, key: str) -> Optional[dict]:
+        return self._cache.get(key)
+
+    def set(self, key: str, value: dict):
+        if len(self._cache) >= self._max_size:
+            # Simple FIFO cache eviction
+            oldest_key = next(iter(self._cache))
+            del self._cache[oldest_key]
+        self._cache[key] = value
+
+gemini_cache = GeminiCache()
 
 # Module-level singleton client
 gemini_client = None
@@ -45,7 +66,6 @@ def get_gemini_client():
     return gemini_client
 
 def stream_generator(response):
-    # This generator is now synchronous as per the guidelines
     total_tokens = 0
     try:
         for chunk in response:
@@ -64,7 +84,6 @@ def stream_generator(response):
 
 @router.post("/stream")
 def stream_content(request: StreamRequest, client: genai.Client = Depends(get_gemini_client)):
-    # Corrected implementation using client.models.generate_content_stream
     try:
         contents = []
         if request.history:
@@ -89,8 +108,18 @@ def stream_content(request: StreamRequest, client: genai.Client = Depends(get_ge
 
 @router.post("/generate-image-enhanced")
 def generate_image_enhanced(request: EnhancedImageGenerateRequest, client: genai.Client = Depends(get_gemini_client)):
-    # Corrected synchronous implementation
+    cache_key_params = request.dict(exclude_none=True)
+    prompt_for_key = cache_key_params.pop('prompt', '')
+    model_for_key = cache_key_params.pop('model', '')
+    cache_key = gemini_cache.get_cache_key(prompt=prompt_for_key, model=model_for_key, **cache_key_params)
+
+    cached_response = gemini_cache.get(cache_key)
+    if cached_response:
+        logger.info(f"Returning cached response for image generation prompt: {request.prompt[:50]}...")
+        return cached_response
+
     try:
+        final_result = None
         if request.imageInput and request.imageInputMimeType:
             image_bytes = base64.b64decode(request.imageInput)
             image_input_part = types.Part.from_bytes(data=image_bytes, mime_type=request.imageInputMimeType)
@@ -108,7 +137,7 @@ def generate_image_enhanced(request: EnhancedImageGenerateRequest, client: genai
                         "data": base64.b64encode(part.inline_data.data).decode(),
                         "mime_type": part.inline_data.mime_type
                     })
-            return {"images": images_data, "model": request.model}
+            final_result = {"images": images_data, "model": request.model}
         else:
             # Logic for image generation
             result = client.models.generate_images(
@@ -122,7 +151,10 @@ def generate_image_enhanced(request: EnhancedImageGenerateRequest, client: genai
                 ),
             )
             images = [{"data": base64.b64encode(img.image.image_bytes).decode(), "mime_type": f"image/{request.imageFormat}"} for img in result.generated_images]
-            return {"images": images, "model": request.model}
+            final_result = {"images": images, "model": request.model}
+
+        gemini_cache.set(cache_key, final_result)
+        return final_result
 
     except APIError as e:
         logger.error(f"Gemini API error in image generation: {e}")

@@ -7,6 +7,48 @@ import type { ConnectionProfile } from '@/types/connections';
 import { StreamerBotError } from '@/types/streamerbot'; // Import StreamerBotError
 import { toast } from '@/components/ui/toast';
 
+// Helper function to sanitize OBS WebSocket URLs
+const sanitizeOBSUrl = (input: string): { url: string; error?: string } => {
+  if (!input || !input.trim()) {
+    return { url: '', error: 'URL cannot be empty' };
+  }
+
+  try {
+    let url = input.trim();
+
+    // Ensure a protocol exists for the URL constructor
+    if (!url.includes('://')) {
+      url = `ws://${url}`;
+    }
+
+    // Convert HTTP(S) to WebSocket protocols
+    url = url.replace(/^http:\/\//, 'ws://').replace(/^https:\/\//, 'wss://');
+
+    const parsed = new URL(url);
+
+    // Replace common dev server port with OBS default
+    if (parsed.port === '5173') {
+      parsed.port = '4455';
+    }
+
+    // Set default port for localhost or local IPs if not specified
+    if (!parsed.port && (parsed.hostname === 'localhost' || parsed.hostname.startsWith('127.') || parsed.hostname.endsWith('.local'))) {
+      parsed.port = '4455';
+    }
+
+    // Clean path, query, and fragment, as OBS connects to the root
+    parsed.pathname = '/';
+    parsed.search = '';
+    parsed.hash = '';
+
+    return { url: parsed.toString() };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return { url: '', error: `Invalid WebSocket URL format: ${message}` };
+  }
+};
+
+
 // Combined state for live connections and saved profiles
 export interface ConnectionState {
   // Live OBS Connection State
@@ -37,6 +79,7 @@ export interface ConnectionState {
   disconnectFromObs: () => Promise<void>;
   connectToStreamerBot: (host: string, port: number) => Promise<void>;
   disconnectFromStreamerBot: () => Promise<void>;
+  cleanup: () => void; // Action to clean up all listeners
 
   // Actions related to profile management
   addConnectionProfile: (profile: ConnectionProfile) => void;
@@ -63,6 +106,7 @@ const useConnectionsStore = create<ConnectionState>()(
     (set, get) => {
       const obsClient = ObsClientImpl.getInstance();
       const streamerBotService = StreamerBotService.getInstance();
+      const obsCleanupFunctions: (() => void)[] = [];
       
       const setupStreamerBotListeners = () => {
         streamerBotService.setLifecycleCallbacks({
@@ -81,7 +125,7 @@ const useConnectionsStore = create<ConnectionState>()(
       // Set up listeners immediately
       setupStreamerBotListeners();
 
-      obsClient.addStatusListener((status: ConnectionStatus) => {
+      const statusUnsub = obsClient.addStatusListener((status: ConnectionStatus) => {
         set({
           isConnected: status === 'connected',
           isLoading: status === 'connecting' || status === 'reconnecting',
@@ -150,22 +194,26 @@ const useConnectionsStore = create<ConnectionState>()(
           console.log('[DEBUG] Initial data fetch promises created'); // Fetch end log
         }
       });
+      obsCleanupFunctions.push(statusUnsub);
 
       // Event listeners for OBS updates
-      obsClient.on('SceneListChanged', ({ scenes }) => {
+      obsCleanupFunctions.push(obsClient.on('SceneListChanged', ({ scenes }) => {
         set({ scenes });
-      });
-      obsClient.on('CurrentProgramSceneChanged', ({ sceneName }) => {
+      }));
+      obsCleanupFunctions.push(obsClient.on('CurrentProgramSceneChanged', ({ sceneName }) => {
         set({ currentProgramScene: sceneName });
-        // Note: Don't overwrite the global sources list with scene items
-        // Scene items are different from sources - they're instances of sources in a scene
-      });
-      obsClient.on('StreamStateChanged', (data: OBSStreamStatus) => {
+      }));
+      obsCleanupFunctions.push(obsClient.on('StreamStateChanged', (data: OBSStreamStatus) => {
         set({ streamStatus: data });
-      });
-      obsClient.on('RecordStateChanged', (data: OBSRecordStatus) => {
+      }));
+      obsCleanupFunctions.push(obsClient.on('RecordStateChanged', (data: OBSRecordStatus) => {
         set({ recordStatus: data });
-      });
+      }));
+
+      const cleanup = () => {
+        obsCleanupFunctions.forEach(fn => fn());
+        obsCleanupFunctions.length = 0;
+      };
 
       return {
         // Live OBS Connection State
@@ -190,84 +238,20 @@ const useConnectionsStore = create<ConnectionState>()(
         // Saved Connection Profiles Management
         connectionProfiles: [],
         activeConnectionId: null,
+        cleanup,
 
         // Actions related to live connections
         connectToObs: async (url: string, password?: string) => {
           set({ isLoading: true, connectionError: null });
 
-          const sanitize = (raw: string): { url: string | null; reason?: string } => {
-            let input = raw.trim();
-            if (!input) return { url: null, reason: 'Empty URL' };
+          const { url: sanitized, error: reason } = sanitizeOBSUrl(url);
 
-            // If user pasted something like current page location + path (dev server), strip everything
-            // Examples of bad inputs seen: ws://localhost:5173/myrqyry , ws://localhost:5173/192.1....
-            // Strategy: parse, keep only scheme, host, port; enforce port != 5173; default port 4455 if host is localhost and no port.
-            // Accept forms: ws(s)://host[:port] , http(s)://host[:port] , host[:port]
-            try {
-              if (/^localhost$/i.test(input)) input = 'ws://localhost:4455';
-              else if (/^[^/:]+:\d+$/.test(input)) input = 'ws://' + input; // bare host:port
-              else if (/^[\w.-]+$/.test(input)) input = 'ws://' + input; // bare hostname
-
-              if (input.startsWith('http://')) input = 'ws://' + input.slice(7);
-              else if (input.startsWith('https://')) input = 'wss://' + input.slice(8);
-
-              if (!input.startsWith('ws://') && !input.startsWith('wss://')) {
-                // Fallback: assume ws://
-                input = 'ws://' + input.replace(/^\/*/, '');
-              }
-
-              const u = new URL(input);
-
-              // If dev server port or page origin port used -> replace with 4455 (OBS default)
-              if (u.port === '5173') {
-                u.port = '4455';
-              }
-
-              // Remove any path/query/hash (OBS websocket root only) - STRICT: reject if original had non-root path
-              if (u.pathname !== '/') {
-                // Check if original input had path; if so, reject as invalid for WebSocket
-                if (raw.includes('/') && !raw.match(/^ws[s]?:\/\//)) {
-                  return { url: null, reason: 'Invalid WebSocket URL: paths not allowed (e.g., no "/myrqyry/")' };
-                }
-                u.pathname = '/';
-              }
-              u.search = '';
-              u.hash = '';
-
-              // If no explicit port, set default 4455 for localhost or 4455 if host looks local (ends with .local or is 127.*)
-              if (!u.port) {
-                if (u.hostname === 'localhost' || /^127\./.test(u.hostname)) {
-                  u.port = '4455';
-                }
-              }
-
-              // Enhanced validation: host must be valid hostname or IPv4
-              const ipv4Re = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/;
-              const hostnameRe = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/; // Standard hostname regex
-              
-              // Allow common valid hostnames
-              const isValidHostname = ipv4Re.test(u.hostname) ||
-                                    hostnameRe.test(u.hostname) ||
-                                    u.hostname === 'localhost' ||
-                                    u.hostname.endsWith('.local');
-              
-              if (!isValidHostname) {
-                return { url: null, reason: 'Invalid host: must be valid hostname/IP (e.g., localhost, 127.0.0.1, example.com)' };
-              }
-
-              return { url: u.toString() };
-            } catch (e) {
-              return { url: null, reason: 'Malformed URL' };
-            }
-          };
-
-          const { url: sanitized, reason } = sanitize(url);
           if (!sanitized) {
-            console.log('[DEBUG] Sanitize failed:', { input: url, reason }); // Validation log
-            set({ isLoading: false, connectionError: `Invalid OBS URL: ${reason}`, isConnected: false });
+            const errorMsg = `Invalid OBS URL: ${reason}`;
+            set({ isLoading: false, connectionError: errorMsg, isConnected: false });
             toast({
               title: "Connection Failed",
-              description: `Invalid OBS URL: ${reason}`,
+              description: errorMsg,
               variant: "destructive"
             });
             return;
@@ -280,13 +264,11 @@ const useConnectionsStore = create<ConnectionState>()(
               variant: "default"
             });
           }
-          console.log('[DEBUG] Sanitized URL parsed:', { hostname: new URL(sanitized).hostname, pathname: new URL(sanitized).pathname }); // URL parsing log
 
           try {
             await obsClient.connect(sanitized, password);
             set({ isLoading: false, isConnected: true, connectionError: null });
           } catch (error: any) {
-            console.log('[DEBUG] ObsError instanceof check:', { errorName: error?.name, isObsError: error instanceof ObsError }); // ObsError check log
             const errorMsg = error instanceof ObsError ? error.message : `Connection failed: ${error.message || 'Unknown error'}`;
             set({ connectionError: errorMsg, isLoading: false, isConnected: false });
             toast({
@@ -298,15 +280,11 @@ const useConnectionsStore = create<ConnectionState>()(
         },
 
         disconnectFromObs: async () => {
-          // On refresh/unmount we don't want to erase the last-known scenes/sources
-          // so the UI can still show them. Provide an explicit clear action below
-          // if the user intentionally wants to remove persisted OBS data.
           await obsClient.disconnect();
           set({
             isConnected: false,
             connectionError: null,
             isLoading: false,
-            // keep scenes/sources/currentProgramScene intact to preserve last-known values
             streamStatus: null,
             recordStatus: null,
             videoSettings: null,
@@ -338,7 +316,6 @@ const useConnectionsStore = create<ConnectionState>()(
             isStreamerBotConnected: false,
             streamerBotConnectionError: null,
             isStreamerBotLoading: false,
-            // activeConnectionId will be set to null if the disconnected profile was active
           });
         },
 
@@ -403,5 +380,22 @@ const useConnectionsStore = create<ConnectionState>()(
     }
   )
 );
+
+// Selector hook for optimized re-renders
+export const createConnectionSelectors = () => ({
+  isConnected: (state: ConnectionState) => state.isConnected,
+  isLoading: (state: ConnectionState) => state.isLoading,
+  connectionError: (state: ConnectionState) => state.connectionError,
+  scenes: (state: ConnectionState) => state.scenes,
+  currentProgramScene: (state: ConnectionState) => state.currentProgramScene,
+  sources: (state: ConnectionState) => state.sources,
+  streamStatus: (state: ConnectionState) => state.streamStatus,
+  recordStatus: (state: ConnectionState) => state.recordStatus,
+  videoSettings: (state: ConnectionState) => state.videoSettings,
+  isStreamerBotConnected: (state: ConnectionState) => state.isStreamerBotConnected,
+  streamerBotConnectionError: (state: ConnectionState) => state.streamerBotConnectionError,
+  activeConnectionId: (state: ConnectionState) => state.activeConnectionId,
+  connectionProfiles: (state: ConnectionState) => state.connectionProfiles,
+});
 
 export default useConnectionsStore;
