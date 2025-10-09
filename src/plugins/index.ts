@@ -1,6 +1,7 @@
 import { TabPlugin } from '@/types/plugins';
 import ConnectionsTab from './core/ConnectionsTab';
 import NewObsStudioTab from './core/NewObsStudioTab';
+import ObsControlsTab from './core/ObsControlsTab'; // New import
 import CreateTab from './core/CreateTab';
 import StreamingAssetsTab from './core/StreamingAssetsTab';
 import SettingsTab from './core/SettingsTab';
@@ -13,6 +14,7 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import ImageIcon from '@mui/icons-material/Image';
 import SettingsIcon from '@mui/icons-material/Settings';
 import BuildIcon from '@mui/icons-material/Build';
+import DashboardIcon from '@mui/icons-material/Dashboard'; // New icon
 
 const GeminiTab = lazy(() => import('./core/GeminiTab'));
 
@@ -28,6 +30,12 @@ export const corePlugins: TabPlugin[] = [
     name: 'OBS Studio',
     icon: (props: any) => React.createElement(MovieIcon, props),
     component: NewObsStudioTab,
+  },
+  {
+    id: 'obs-controls', // New tab
+    name: 'OBS Controls',
+    icon: (props: any) => React.createElement(DashboardIcon, props),
+    component: ObsControlsTab,
   },
   {
     id: 'gemini',
