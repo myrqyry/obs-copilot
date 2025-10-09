@@ -16,7 +16,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import BuildIcon from '@mui/icons-material/Build';
 import DashboardIcon from '@mui/icons-material/Dashboard'; // New icon
 
-const GeminiTab = lazy(() => import('./core/GeminiTab'));
+const GenerateTab = lazy(() => import('./core/GenerateTab'));
 
 export const corePlugins: TabPlugin[] = [
   {
@@ -39,9 +39,9 @@ export const corePlugins: TabPlugin[] = [
   },
   {
     id: 'gemini',
-    name: 'Gemini',
-    icon: (props: any) => React.createElement(DeveloperBoardIcon, props),
-    component: GeminiTab,
+    name: 'Generate',
+    icon: (props: any) => React.createElement(AutoAwesomeIcon, props),
+    component: GenerateTab,
   },
   {
     id: 'create',

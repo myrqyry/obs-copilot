@@ -9,7 +9,8 @@ from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.responses import StreamingResponse
 from google import genai
 from google.genai import types
-from google.genai.errors import APIError
+from google.genai.errors import APIError as GenaiAPIError
+from google.api_core.exceptions import APIError
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -56,6 +57,13 @@ class StreamRequest(BaseModel):
     prompt: str = Field(..., min_length=1, max_length=1000)
     model: str = Field("gemini-2.5-flash", pattern=r"^(gemini-2\.5-(flash|pro)|gemini-2\.0-(flash|pro))$")
     history: Optional[List[Dict]] = Field(None, max_length=50)
+
+class SpeechGenerateRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=5000)
+    isMultiSpeaker: bool = Field(False)
+    voice: str = Field("Kore")
+    speaker1Voice: str = Field("Kore")
+    speaker2Voice: str = Field("Puck")
 
 def get_gemini_client():
     if gemini_client is None:
@@ -161,4 +169,69 @@ def generate_image_enhanced(request: EnhancedImageGenerateRequest, client: genai
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"AI service error: {e.message}")
     except Exception as e:
         logger.error(f"Unexpected error in image generation: {e}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred.")
+
+
+@router.post("/generate-speech")
+async def generate_speech(request: SpeechGenerateRequest, client: genai.Client = Depends(get_gemini_client)):
+    """Generate speech using Gemini TTS models"""
+    try:
+        config = types.GenerateContentConfig(
+            response_modalities=["AUDIO"],
+        )
+
+        if request.isMultiSpeaker:
+            # Multi-speaker configuration
+            config.speech_config = types.SpeechConfig(
+                multi_speaker_voice_config=types.MultiSpeakerVoiceConfig(
+                    speaker_voice_configs=[
+                        types.SpeakerVoiceConfig(
+                            speaker='Speaker1',
+                            voice_config=types.VoiceConfig(
+                                prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                                    voice_name=request.speaker1Voice,
+                                )
+                            ),
+                        ),
+                        types.SpeakerVoiceConfig(
+                            speaker='Speaker2',
+                            voice_config=types.VoiceConfig(
+                                prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                                    voice_name=request.speaker2Voice,
+                                )
+                            ),
+                        )
+                    ]
+                )
+            )
+        else:
+            # Single speaker configuration
+            config.speech_config = types.SpeechConfig(
+                voice_config=types.VoiceConfig(
+                    prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                        voice_name=request.voice,
+                    )
+                )
+            )
+
+        response = client.models.generate_content(
+            model="gemini-2.5-flash-preview-tts",
+            contents=request.text,
+            config=config
+        )
+
+        # Extract audio data
+        audio_data = response.candidates[0].content.parts[0].inline_data.data
+
+        return {
+            "audioData": base64.b64encode(audio_data).decode(),
+            "format": "wav",
+            "model": "gemini-2.5-flash-preview-tts"
+        }
+
+    except (APIError, GenaiAPIError) as e:
+        logger.error(f"Gemini API error in speech generation: {e}")
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"AI service error: {e.message}")
+    except Exception as e:
+        logger.error(f"Unexpected error in speech generation: {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred.")
