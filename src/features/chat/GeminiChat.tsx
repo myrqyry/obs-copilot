@@ -126,7 +126,10 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
           case 'SetScene':
             if (action.args?.sceneName) {
               const result = await obs.call('SetCurrentProgramScene', { 'sceneName': action.args.sceneName });
-              console.log(`Successfully switched to scene: ${action.args.sceneName}`);
+              // Add validation:
+              if (result.currentProgramSceneName !== action.args.sceneName) {
+                throw new Error(`Scene switch failed - expected ${action.args.sceneName}, got ${result.currentProgramSceneName}`);
+              }
               return result;
             }
             break;
@@ -264,6 +267,16 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
             // AI client state is initialized (hook now manages internal client)
         }
     }, [isGeminiClientInitialized]);
+
+    // Add cleanup in useEffect:
+    useEffect(() => {
+      return () => {
+        if (liveSession) {
+          liveSession.close?.();
+          setLiveSession(null);
+        }
+      };
+    }, [liveSession]);
 
 
     return (
