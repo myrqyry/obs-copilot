@@ -1,56 +1,37 @@
 import base64
 import logging
 import json
-import os
-import hashlib
-from typing import Optional, List, Dict
+import asyncio
+from typing import Optional, List, Dict, AsyncGenerator
 from pydantic import BaseModel, Field
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, Request
 from fastapi.responses import StreamingResponse
 from google import genai
 from google.genai import types
 from google.genai.errors import APIError as GenaiAPIError
 from google.api_core.exceptions import APIError
 
+# Rate limiting
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+# Local imports
+from services.gemini_service import gemini_service
+from config import settings
+
 logger = logging.getLogger(__name__)
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
-class GeminiCache:
-    def __init__(self, max_size: int = 100):
-        self._cache = {}
-        self._max_size = max_size
-
-    def get_cache_key(self, prompt: str, model: str, **kwargs) -> str:
-        cache_data = {"prompt": prompt, "model": model, **kwargs}
-        return hashlib.sha256(json.dumps(cache_data, sort_keys=True).encode()).hexdigest()
-
-    def get(self, key: str) -> Optional[dict]:
-        return self._cache.get(key)
-
-    def set(self, key: str, value: dict):
-        if len(self._cache) >= self._max_size:
-            # Simple FIFO cache eviction
-            oldest_key = next(iter(self._cache))
-            del self._cache[oldest_key]
-        self._cache[key] = value
-
-gemini_cache = GeminiCache()
-
-# Module-level singleton client
-gemini_client = None
-try:
-    gemini_client = genai.Client()
-except Exception as e:
-    logger.error(f"Failed to initialize Gemini client: {e}", exc_info=True)
-
-# Pydantic models remain the same
+# --- Pydantic Models ---
+# (Models remain the same as they are for request body validation)
 class EnhancedImageGenerateRequest(BaseModel):
     prompt: str = Field(..., min_length=1, max_length=1000)
     model: str = Field("imagen-4.0-fast-generate-001", pattern=r"^(imagen-4\.0-(fast-)?generate-001|gemini-2\.5-flash-image-preview)$")
     imageFormat: str = Field("png", pattern=r"^(png|jpeg|webp)$")
     aspectRatio: str = Field("1:1", pattern=r"^(1:1|3:4|4:3|9:16|16:9)$")
     personGeneration: str = Field("allow_adult", pattern=r"^(allow_adult|dont_allow)$")
-    imageInput: Optional[str] = Field(None, max_length=5000000)  # ~5MB base64 limit
+    imageInput: Optional[str] = Field(None, max_length=5000000)
     imageInputMimeType: Optional[str] = Field(None, pattern=r"^image/(jpeg|png|gif|webp)$")
 
 class StreamRequest(BaseModel):
@@ -65,18 +46,46 @@ class SpeechGenerateRequest(BaseModel):
     speaker1Voice: str = Field("Kore")
     speaker2Voice: str = Field("Puck")
 
+# --- Gemini Client Dependency ---
+# Using a function to initialize the client once on startup
+gemini_client = None
+def _initialize_gemini_client():
+    global gemini_client
+    try:
+        # Use API key from centralized settings
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+        gemini_client = genai.GenerativeModel
+        logger.info("Gemini client initialized successfully.")
+    except Exception as e:
+        logger.error(f"FATAL: Failed to initialize Gemini client: {e}", exc_info=True)
+        # No client, so dependent endpoints will fail.
+        gemini_client = None
+
+_initialize_gemini_client()
+
 def get_gemini_client():
     if gemini_client is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Gemini service unavailable"
+            detail="Gemini service is not configured or available."
         )
     return gemini_client
 
-def stream_generator(response):
+# --- Asynchronous Streaming Logic ---
+async def _async_stream_generator(response_iterator: any) -> AsyncGenerator[str, None]:
+    """
+    Wraps a synchronous iterator from the Gemini SDK into an async generator,
+    preventing it from blocking the event loop.
+    """
+    loop = asyncio.get_event_loop()
     total_tokens = 0
     try:
-        for chunk in response:
+        while True:
+            # Run the blocking next() call in a thread
+            chunk = await loop.run_in_executor(None, next, response_iterator, None)
+            if chunk is None:  # Reached the end of the iterator
+                break
+
             if chunk.text:
                 yield f"data: {json.dumps({'type': 'chunk', 'data': chunk.text})}\n\n"
             if hasattr(chunk, 'usage_metadata') and chunk.usage_metadata:
@@ -90,54 +99,47 @@ def stream_generator(response):
     finally:
         yield f"data: {json.dumps({'type': 'usage', 'data': {'total_tokens': total_tokens}})}\n\n"
 
+# --- API Endpoints ---
 @router.post("/stream")
-def stream_content(request: StreamRequest, client: genai.Client = Depends(get_gemini_client)):
+@limiter.limit("20/minute")
+async def stream_content(request: Request, stream_request: StreamRequest, client: genai.GenerativeModel = Depends(get_gemini_client)):
     try:
+        model = client(stream_request.model)
         contents = []
-        if request.history:
-            for msg in request.history:
+        if stream_request.history:
+            for msg in stream_request.history:
                 role = "user" if msg['role'] == "user" else "model"
                 contents.append(types.Content(role=role, parts=[types.Part.from_text(p['text']) for p in msg['parts']]))
         
-        contents.append(types.Content(role="user", parts=[types.Part.from_text(request.prompt)]))
+        contents.append(types.Content(role="user", parts=[types.Part.from_text(stream_request.prompt)]))
 
-        response_stream = client.models.generate_content_stream(
-            model=request.model,
-            contents=contents
+        # The initial call is blocking, so run it in the executor
+        response_stream = await gemini_service.run_in_executor(
+            model.generate_content,
+            contents=contents,
+            stream=True
         )
         
-        return StreamingResponse(stream_generator(response_stream), media_type="text/event-stream")
-    except APIError as e:
-        logger.error(f"Gemini API error in stream_content endpoint: {e}")
+        return StreamingResponse(_async_stream_generator(response_stream), media_type="text/event-stream")
+    except (APIError, GenaiAPIError) as e:
+        logger.error(f"Gemini API error in stream_content: {e}")
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"AI service error: {e.message}")
+    except HTTPException:
+        raise # Re-raise HTTPExceptions from the service (e.g., timeout)
     except Exception as e:
-        logger.error(f"Unexpected error in stream_content endpoint: {e}", exc_info=True)
+        logger.error(f"Unexpected error in stream_content: {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred.")
 
-@router.post("/generate-image-enhanced")
-def generate_image_enhanced(request: EnhancedImageGenerateRequest, client: genai.Client = Depends(get_gemini_client)):
-    cache_key_params = request.dict(exclude_none=True)
-    prompt_for_key = cache_key_params.pop('prompt', '')
-    model_for_key = cache_key_params.pop('model', '')
-    cache_key = gemini_cache.get_cache_key(prompt=prompt_for_key, model=model_for_key, **cache_key_params)
-
-    cached_response = gemini_cache.get(cache_key)
-    if cached_response:
-        logger.info(f"Returning cached response for image generation prompt: {request.prompt[:50]}...")
-        return cached_response
-
+def _sync_generate_image(client: genai.GenerativeModel, request: EnhancedImageGenerateRequest):
+    """Synchronous helper for image generation to be run in an executor."""
     try:
-        final_result = None
         if request.imageInput and request.imageInputMimeType:
+            # Image editing/remixing logic
             image_bytes = base64.b64decode(request.imageInput)
-            image_input_part = types.Part.from_bytes(data=image_bytes, mime_type=request.imageInputMimeType)
+            image_part = types.Part.from_bytes(data=image_bytes, mime_type=request.imageInputMimeType)
+            model = client("gemini-2.5-flash-image-preview")
+            response = model.generate_content(contents=[image_part, request.prompt])
             
-            # Logic for image editing
-            request.model = "gemini-2.5-flash-image-preview"
-            response = client.models.generate_content(
-                model=request.model,
-                contents=[image_input_part, request.prompt],
-            )
             images_data = []
             for part in response.candidates[0].content.parts:
                 if part.inline_data:
@@ -145,93 +147,69 @@ def generate_image_enhanced(request: EnhancedImageGenerateRequest, client: genai
                         "data": base64.b64encode(part.inline_data.data).decode(),
                         "mime_type": part.inline_data.mime_type
                     })
-            final_result = {"images": images_data, "model": request.model}
+            return {"images": images_data, "model": "gemini-2.5-flash-image-preview"}
         else:
-            # Logic for image generation
-            result = client.models.generate_images(
-                model=request.model,
-                prompt=request.prompt,
-                config=dict(
+            # Standard image generation
+            model = client(request.model)
+            result = model.generate_content(
+                request.prompt,
+                generation_config=dict(
                     number_of_images=1,
-                    output_mime_type=f"image/{request.imageFormat}",
-                    person_generation=request.personGeneration,
-                    aspect_ratio=request.aspectRatio,
+                    response_mime_type=f"image/{request.imageFormat}",
                 ),
             )
-            images = [{"data": base64.b64encode(img.image.image_bytes).decode(), "mime_type": f"image/{request.imageFormat}"} for img in result.generated_images]
-            final_result = {"images": images, "model": request.model}
+            # Assuming the new SDK structure might return a single image part
+            img_part = result.candidates[0].content.parts[0]
+            img_bytes = img_part.inline_data.data
+            images = [{"data": base64.b64encode(img_bytes).decode(), "mime_type": img_part.inline_data.mime_type}]
+            return {"images": images, "model": request.model}
+    except (APIError, GenaiAPIError, ValueError) as e:
+        # Catch specific, expected errors from the SDK
+        logger.error(f"Gemini SDK error in _sync_generate_image: {e}")
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"AI service error: {str(e)}")
 
-        gemini_cache.set(cache_key, final_result)
+
+@router.post("/generate-image-enhanced")
+@limiter.limit("10/minute")
+async def generate_image_enhanced(request: Request, image_request: EnhancedImageGenerateRequest, client: genai.GenerativeModel = Depends(get_gemini_client)):
+    try:
+        # Run the entire synchronous generation logic in the executor
+        final_result = await gemini_service.run_in_executor(
+            _sync_generate_image, client, image_request
+        )
         return final_result
-
-    except APIError as e:
-        logger.error(f"Gemini API error in image generation: {e}")
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"AI service error: {e.message}")
+    except HTTPException:
+        raise # Re-raise HTTPExceptions from the service or helper
     except Exception as e:
-        logger.error(f"Unexpected error in image generation: {e}", exc_info=True)
+        logger.error(f"Unexpected error in generate_image_enhanced endpoint: {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred.")
 
 
 @router.post("/generate-speech")
-async def generate_speech(request: SpeechGenerateRequest, client: genai.Client = Depends(get_gemini_client)):
-    """Generate speech using Gemini TTS models"""
+@limiter.limit("30/minute")
+async def generate_speech(request: Request, speech_request: SpeechGenerateRequest, client: genai.GenerativeModel = Depends(get_gemini_client)):
     try:
-        config = types.GenerateContentConfig(
-            response_modalities=["AUDIO"],
+        model = client("gemini-2.5-flash-preview-tts")
+        # The SDK call is blocking, so we run it in the executor
+        response = await gemini_service.run_in_executor(
+            model.generate_content,
+            speech_request.text,
+            generation_config=types.GenerationConfig(response_mime_type="audio/wav")
         )
 
-        if request.isMultiSpeaker:
-            # Multi-speaker configuration
-            config.speech_config = types.SpeechConfig(
-                multi_speaker_voice_config=types.MultiSpeakerVoiceConfig(
-                    speaker_voice_configs=[
-                        types.SpeakerVoiceConfig(
-                            speaker='Speaker1',
-                            voice_config=types.VoiceConfig(
-                                prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                                    voice_name=request.speaker1Voice,
-                                )
-                            ),
-                        ),
-                        types.SpeakerVoiceConfig(
-                            speaker='Speaker2',
-                            voice_config=types.VoiceConfig(
-                                prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                                    voice_name=request.speaker2Voice,
-                                )
-                            ),
-                        )
-                    ]
-                )
-            )
-        else:
-            # Single speaker configuration
-            config.speech_config = types.SpeechConfig(
-                voice_config=types.VoiceConfig(
-                    prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                        voice_name=request.voice,
-                    )
-                )
-            )
-
-        response = client.models.generate_content(
-            model="gemini-2.5-flash-preview-tts",
-            contents=request.text,
-            config=config
-        )
-
-        # Extract audio data
-        audio_data = response.candidates[0].content.parts[0].inline_data.data
+        audio_part = response.candidates[0].content.parts[0]
+        audio_data = audio_part.inline_data.data
 
         return {
             "audioData": base64.b64encode(audio_data).decode(),
             "format": "wav",
             "model": "gemini-2.5-flash-preview-tts"
         }
-
     except (APIError, GenaiAPIError) as e:
         logger.error(f"Gemini API error in speech generation: {e}")
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"AI service error: {e.message}")
+    except HTTPException:
+        raise # Re-raise timeout errors etc.
     except Exception as e:
         logger.error(f"Unexpected error in speech generation: {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred.")

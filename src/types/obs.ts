@@ -122,3 +122,28 @@ export interface OBSTemplate {
 }
 
 // Any other OBS related interfaces needed globally
+
+// --- Types for Enhanced WebSocket Connection Management ---
+
+export interface OBSConnectionState {
+  isConnected: boolean;
+  isConnecting: boolean;
+  error: string | null;
+  lastHeartbeat: Date | null;
+  connectionAttempts: number;
+}
+
+export interface OBSWebSocketConfig {
+  url: string;
+  password?: string;
+  autoReconnect: boolean;
+  reconnectInterval: number; // in milliseconds
+  maxReconnectAttempts: number;
+}
+
+export interface OBSCommand {
+  type: 'scene' | 'source' | 'filter' | 'recording' | 'streaming' | 'general';
+  action: string; // Corresponds to an obs-websocket-js method name
+  parameters: Record<string, any>;
+  timeout?: number; // Optional timeout for this specific command
+}
