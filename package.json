@@ -18,7 +18,7 @@
   "scripts": {
     "frontend": "vite",
     "frontend:dev": "vite",
-    "backend:setup": "cd backend && poetry install",
+    "backend:setup": "cd backend && poetry install --no-root",
     "backend:dev": "cd backend && PYTHONPATH=$(pwd)/backend poetry run uvicorn main:app --reload --host 0.0.0.0 --port 8000",
     "dev": "concurrently \"pnpm:frontend:dev\" \"pnpm:backend:dev\"",
     "setup": "pnpm install",

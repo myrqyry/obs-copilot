@@ -241,9 +241,54 @@ export class ObsClientImpl {
     return this.status;
   }
 
+  // --- Full State Method for AI Context ---
+  async getFullState(): Promise<any> {
+    if (!this.isConnected()) {
+      logger.warn('[OBS] Cannot get full state, not connected.');
+      // Return a default, disconnected state structure
+      return {
+        current_scene: '',
+        available_scenes: [],
+        active_sources: [],
+        streaming_status: false,
+        recording_status: false,
+        recent_commands: [], // This would be managed by a higher-level service
+      };
+    }
+    try {
+      const [sceneList, programScene, streamStatus, recordStatus, inputList] = await Promise.all([
+        this.getSceneList(),
+        this.getCurrentProgramScene(),
+        this.getStreamStatus(),
+        this.getRecordStatus(),
+        this.getInputList(),
+      ]);
+
+      return {
+        current_scene: programScene.currentProgramSceneName,
+        available_scenes: sceneList.scenes.map((s: any) => s.sceneName),
+        active_sources: inputList.inputs.filter((i: any) => i.inputKind !== 'scene'), // Simplified for context
+        streaming_status: streamStatus.outputActive,
+        recording_status: recordStatus.outputActive,
+        recent_commands: [], // Placeholder, to be implemented elsewhere
+      };
+    } catch (error) {
+      handleAppError('OBS getFullState', error, 'Failed to retrieve full OBS state.');
+      // Return a sensible default on error to prevent crashing consumers
+      return {
+        current_scene: '',
+        available_scenes: [],
+        active_sources: [],
+        streaming_status: false,
+        recording_status: false,
+        recent_commands: [],
+      };
+    }
+  }
+
   // --- Convenience Methods ---
   getSceneList() {
-    return this.call('GetSceneList');
+    return this.call<{ scenes: { sceneName: string }[] }>('GetSceneList');
   }
 
   getCurrentProgramScene() {
