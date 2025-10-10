@@ -1,6 +1,8 @@
 
 import { obsClient } from './obsClient';
 import { logger } from '@/utils/logger';
+import { debounce } from '@/lib/utils';
+import { useWidgetsStore } from '@/store/widgetsStore';
 import type {
   ObsEventPayload,
   CurrentSceneChangedEvent,
@@ -12,8 +14,13 @@ import type {
 class EventSubscriptionManager {
   private widgetSubscriptions = new Map<string, Set<string>>(); // widgetId -> set of events
   private eventCallbacks = new Map<string, Map<string, (data: ObsEventPayload, widgetId?: string) => void>>(); // event -> widgetId -> callback
+  private debouncedVolumeHandler: (data: InputVolumeChangedEvent) => void;
 
   constructor() {
+    this.debouncedVolumeHandler = debounce((data: InputVolumeChangedEvent) => {
+      this.handleWidgetEvent('InputVolumeChanged', data as ObsEventPayload);
+    }, 150); // Debounce volume updates to avoid flooding state
+
     // Initialize event listeners
     this.initializeEventListeners();
   }
@@ -33,8 +40,8 @@ class EventSubscriptionManager {
 
     // Subscribe to input volume changed
     obsClient.on('InputVolumeChanged', (data: InputVolumeChangedEvent) => {
-      logger.info(`Input ${data.inputName} volume changed to: ${data.inputVolumeDb}`);
-      this.handleWidgetEvent('InputVolumeChanged', data as ObsEventPayload);
+      // This event fires very rapidly; use the debounced handler.
+      this.debouncedVolumeHandler(data);
     });
 
     // Add more event subscriptions as needed
@@ -75,7 +82,7 @@ class EventSubscriptionManager {
       const callback = (_data: ObsEventPayload, wid?: string) => {
         if (wid === widgetId) {
           // Update widget state via store
-          // useWidgetsStore.getState().updateWidgetState(widgetId, { value: _data, lastUpdated: Date.now() });
+          useWidgetsStore.getState().updateWidgetState(widgetId, { value: _data, lastUpdated: Date.now() });
         }
       };
 

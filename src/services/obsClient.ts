@@ -49,6 +49,9 @@ export class ObsClientImpl {
   private connectOptions: { address: string; password?: string } | null = null;
   private statusListeners: Set<(status: ConnectionStatus) => void> = new Set();
   private reconnectTimeout: NodeJS.Timeout | null = null;
+  private connectionLock = false;
+  private stateCache: { state: any; timestamp: number } | null = null;
+  private readonly CACHE_TTL_MS = 2000; // Cache state for 2 seconds
 
   private constructor() {
     this.obs = new (OBSWebSocket as any)();
@@ -84,7 +87,7 @@ export class ObsClientImpl {
     this.obs.on('Identified', () => {
       logger.info('[OBS] Identified: Socket is ready.');
       this.retryCount = 0; // Reset retry counter on successful connection
-      if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
+      this.cleanupReconnectTimeout();
       this.setStatus('connected');
       this.processCommandQueue();
     });
@@ -110,10 +113,34 @@ export class ObsClientImpl {
       this.setStatus('reconnecting');
       this.handleReconnect();
     });
+
+    // --- Cache Invalidation Listeners ---
+    const eventsToInvalidateCache: string[] = [
+      'CurrentProgramSceneChanged', 'SceneListChanged',
+      'InputCreated', 'InputRemoved', 'InputNameChanged',
+      'StreamStateChanged', 'RecordStateChanged',
+    ];
+    for (const event of eventsToInvalidateCache) {
+      this.obs.on(event, () => {
+        logger.info(`[OBS Cache] Invalidating cache due to event: ${event}`);
+        this.invalidateCache();
+      });
+    }
+  }
+
+  private invalidateCache() {
+    this.stateCache = null;
+  }
+
+  private cleanupReconnectTimeout() {
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
   }
 
   private async handleReconnect() {
-    if (!this.connectOptions || this.status === 'connecting') {
+    if (!this.connectOptions || this.status === 'connecting' || this.connectionLock) {
       return;
     }
 
@@ -128,18 +155,19 @@ export class ObsClientImpl {
     const delay = backoff(this.retryCount, { min: 1000, max: 30000 });
     logger.info(`[OBS] Reconnecting in ${delay.toFixed(0)}ms (attempt ${this.retryCount})...`);
 
-    if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
+    this.cleanupReconnectTimeout();
     this.reconnectTimeout = setTimeout(() => {
       this.connect(this.connectOptions!.address, this.connectOptions!.password);
     }, delay);
   }
 
   async connect(address: string, password?: string): Promise<void> {
-    if (this.status === 'connected' || this.status === 'connecting') {
-      logger.warn(`[OBS] Ignoring connect call, already ${this.status}.`);
+    if (this.connectionLock || this.status === 'connecting' || this.status === 'connected') {
+      logger.warn(`[OBS] Ignoring connect call, already ${this.status} or connection attempt in progress.`);
       return;
     }
     
+    this.connectionLock = true;
     this.connectOptions = { address, password };
     this.setStatus('connecting');
 
@@ -148,17 +176,20 @@ export class ObsClientImpl {
         rpcVersion: 1,
         eventSubscriptions: 0xffffffff, // Subscribe to all events
       });
+      // On successful identification, connectionLock will be false. If not, we should handle it.
     } catch (error: any) {
       const errorMsg = handleAppError('OBS connection', error, `Failed to connect to OBS at ${address}`);
       useUiStore.getState().addError({ message: errorMsg, source: 'obsClient', level: 'critical' });
       this.setStatus('reconnecting');
       this.handleReconnect();
       throw new ObsError(errorMsg); // Propagate error for immediate feedback in UI
+    } finally {
+      this.connectionLock = false;
     }
   }
 
   async disconnect(): Promise<void> {
-    if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
+    this.cleanupReconnectTimeout();
     this.connectOptions = null; // Prevent auto-reconnecting after manual disconnect
     this.rejectStaleCommands('Connection manually closed.');
     this.setStatus('disconnected');
@@ -181,17 +212,29 @@ export class ObsClientImpl {
     this.commandQueue = stillValidCommands;
   }
 
+  private async processBatchCommands(commands: Command[]): Promise<void> {
+    const batchSize = 10; // Process up to 10 commands in parallel
+    for (let i = 0; i < commands.length; i += batchSize) {
+      const batch = commands.slice(i, i + batchSize);
+      logger.info(`[OBS] Processing command batch of size ${batch.length}`);
+      await Promise.allSettled(
+        batch.map(cmd =>
+          this.obs.call(cmd.method, cmd.params)
+            .then(cmd.resolve)
+            .catch(cmd.reject)
+        )
+      );
+    }
+  }
+
   private processCommandQueue() {
     this.rejectStaleCommands('Reconnected.'); // First, clear out any stale commands
     const queue = [...this.commandQueue];
     this.commandQueue = [];
 
     if (queue.length > 0) {
-      logger.info(`[OBS] Processing ${queue.length} queued commands...`);
-      for (const command of queue) {
-        // Re-submit the command through the main `call` method
-        this.call(command.method, command.params).then(command.resolve).catch(command.reject);
-      }
+      logger.info(`[OBS] Processing ${queue.length} queued commands in batches...`);
+      this.processBatchCommands(queue);
     }
   }
 
@@ -243,18 +286,25 @@ export class ObsClientImpl {
 
   // --- Full State Method for AI Context ---
   async getFullState(): Promise<any> {
+    const now = Date.now();
+    if (this.stateCache && (now - this.stateCache.timestamp < this.CACHE_TTL_MS)) {
+      logger.info('[OBS Cache] Returning cached state.');
+      return this.stateCache.state;
+    }
+
     if (!this.isConnected()) {
       logger.warn('[OBS] Cannot get full state, not connected.');
-      // Return a default, disconnected state structure
       return {
         current_scene: '',
         available_scenes: [],
         active_sources: [],
         streaming_status: false,
         recording_status: false,
-        recent_commands: [], // This would be managed by a higher-level service
+        recent_commands: [],
       };
     }
+
+    logger.info('[OBS Cache] Fetching fresh state.');
     try {
       const [sceneList, programScene, streamStatus, recordStatus, inputList] = await Promise.all([
         this.getSceneList(),
@@ -264,17 +314,21 @@ export class ObsClientImpl {
         this.getInputList(),
       ]);
 
-      return {
+      const newState = {
         current_scene: programScene.currentProgramSceneName,
         available_scenes: sceneList.scenes.map((s: any) => s.sceneName),
-        active_sources: inputList.inputs.filter((i: any) => i.inputKind !== 'scene'), // Simplified for context
+        active_sources: inputList.inputs.filter((i: any) => i.inputKind !== 'scene'),
         streaming_status: streamStatus.outputActive,
         recording_status: recordStatus.outputActive,
-        recent_commands: [], // Placeholder, to be implemented elsewhere
+        recent_commands: [],
       };
+
+      this.stateCache = { state: newState, timestamp: Date.now() };
+      return newState;
     } catch (error) {
       handleAppError('OBS getFullState', error, 'Failed to retrieve full OBS state.');
-      // Return a sensible default on error to prevent crashing consumers
+      // Invalidate cache on error to avoid serving stale/bad data
+      this.invalidateCache();
       return {
         current_scene: '',
         available_scenes: [],
