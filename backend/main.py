@@ -1,30 +1,25 @@
-# main.py
-import os
 import uvicorn
 import logging
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
-from fastapi_mcp import FastApiMCP  # Import FastApiMCP
-from dotenv import load_dotenv # Import load_dotenv
+from fastapi_mcp import FastApiMCP
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
+# Import the centralized settings
+from config import settings
 from auth import get_api_key
 from api.routes import gemini, assets, overlays, proxy_7tv, proxy_emotes
 from middleware import logging_middleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Configure logging based on settings
+logging.basicConfig(level=settings.LOG_LEVEL.upper())
 logger = logging.getLogger(__name__)
-
-# Get the directory of the current script
-current_dir = os.path.dirname(os.path.abspath(__file__))
-# Construct the path to the .env file
-dotenv_path = os.path.join(current_dir, ".env")
-# Load environment variables from the .env file
-load_dotenv(dotenv_path=dotenv_path)
-
-# Get environment, default to 'development'
-ENV = os.getenv("ENV", "development")
 
 app = FastAPI(
     title="Universal Backend Server",
@@ -32,82 +27,41 @@ app = FastAPI(
     version="1.1.0",
 )
 
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Add security and logging middleware
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "*.netlify.app"])
 app.middleware("http")(logging_middleware)
 
-# CORS configuration
-if ENV == "production":
-    allowed_origins_env = os.getenv("ALLOWED_ORIGINS")
-    if not allowed_origins_env:
-        logger.error("FATAL: Server startup failed - ALLOWED_ORIGINS environment variable must be set in production.")
-        raise RuntimeError("Server startup failed: ALLOWED_ORIGINS environment variable must be set for production.")
-    allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin]
-    if not allowed_origins or any("*" in origin for origin in allowed_origins) or any("localhost" in origin for origin in allowed_origins):
-        logger.error("FATAL: Server startup failed - Invalid ALLOWED_ORIGINS configuration for production.")
-        raise RuntimeError("FATAL: Server startup failed - Invalid ALLOWED_ORIGINS configuration for production.")
-else:
-    # Development origins
-    allowed_origins = [
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ]
+# Parse allowed origins from settings
+allowed_origins = [origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",") if origin.strip()]
 
-
+# Improved CORS with security headers
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["Content-Type", "Authorization", "X-API-KEY"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-API-KEY", "X-Requested-With"],
+    expose_headers=["X-Request-ID"],
+    max_age=3600,
 )
 
-# Create the MCP server from our FastAPI app
+# Create and mount the MCP server
 mcp = FastApiMCP(app)
-
-# Mount the MCP server to our app. It will be available at /mcp
 mcp.mount_http()
 
-
-@app.get("/")
-def read_root():
-    """A public health check endpoint."""
-    return {"status": "Server is running"}
-
-
-@app.get("/health")
-def health_check():
-    """Detailed health check endpoint."""
-    # Add checks for other services here
-    # For example, a check for the database connection
-    # db_status = "available" if check_db_connection() else "unavailable"
-
-    return JSONResponse(
-        content={
-            "status": "healthy",
-            "version": "1.1.0",
-            "services": {
-                "gemini": "available" if os.getenv("GEMINI_API_KEY") else "unavailable",
-                # "database": db_status,
-            },
-        }
-    )
-
-
+# API Routers
 app.include_router(gemini.router, prefix="/api/gemini", tags=["gemini"])
 app.include_router(assets.router, prefix="/api/assets", tags=["assets"])
 app.include_router(overlays.router, prefix="/api/overlays", tags=["overlays"])
 app.include_router(proxy_7tv.router, prefix="/api/proxy", tags=["proxy"])
 app.include_router(proxy_emotes.router, prefix="/api/proxy/emotes", tags=["proxy_emotes"])
 
-
-# Global exception handlers
-from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
-from fastapi import Request
-import logging
-
-logger = logging.getLogger(__name__)
-
+# --- Global Exception Handlers ---
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     logger.error(f"HTTP {exc.status_code} error at {request.url.path}: {exc.detail}", extra={
@@ -149,11 +103,30 @@ async def general_exception_handler(request: Request, exc: Exception):
         }
     )
 
+# --- Public & Secure Endpoints ---
+@app.get("/")
+def read_root():
+    """A public health check endpoint."""
+    return {"status": "Server is running"}
+
+@app.get("/health")
+def health_check():
+    """Detailed health check endpoint using centralized settings."""
+    return JSONResponse(
+        content={
+            "status": "healthy",
+            "version": "1.1.0",
+            "services": {
+                "gemini": "available" if settings.GEMINI_API_KEY else "unavailable",
+            },
+        }
+    )
+
 @app.get("/secure", operation_id="get_secure_data")
 def read_secure_data(api_key: str = Depends(get_api_key)):
     """A secure endpoint that requires an API key."""
     return {"data": "This is secure data, congrats on authenticating!"}
 
-
 if __name__ == "__main__":
+    # The host and port are now configured via Uvicorn's CLI or a process manager
     uvicorn.run(app, host="0.0.0.0", port=8000)

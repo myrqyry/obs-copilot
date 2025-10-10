@@ -31,7 +31,7 @@ description = "FastAPI backend for the application"
 authors = ["Your Name <you@example.com>"]
 
 [tool.poetry.dependencies]
-python = ">=3.12"
+python = ">=3.12,<4.0"
 fastapi = "*"
 python-dotenv = "*"
 fastapi-mcp = "*"
@@ -40,6 +40,10 @@ websockets = ">=12.0"
 pydantic = ">=2.0.0"
 structlog = "*"
 uvicorn = {version = "*", extras = ["standard"]}
+pydantic-settings = ">=2.0.0"
+aioredis = ">=2.0.0"
+slowapi = ">=0.1.9"
+aiohttp = ">=3.9.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"
