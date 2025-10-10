@@ -2,6 +2,11 @@ import { handleAppError } from '@/lib/errorUtils';
 import useUiStore from '@/store/uiStore';
 import { aiMiddleware } from './aiMiddleware';
 import {
+  GeminiAuthError,
+  GeminiNonRetryableError,
+  mapToGeminiError,
+} from './geminiErrors';
+import {
   GeminiGenerateContentResponse,
   GeminiGenerateContentConfig,
 } from '@/types/gemini';
@@ -60,18 +65,19 @@ class GeminiService implements AIService {
       });
 
       return response.data;
-      } catch (error: any) {
-        const errorMsg = handleAppError('Gemini API content generation', error, `Model '${model}' not found or authentication failed.`);
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          useUiStore.getState().addError({
-            message: errorMsg,
-            source: 'geminiService',
-            level: 'critical',
-            details: { model, error }
-          });
-        }
-        throw new Error(errorMsg);
+    } catch (error: any) {
+      const geminiError = mapToGeminiError(error, 'content generation');
+      if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
+        useUiStore.getState().addError({
+          message: geminiError.message,
+          source: 'geminiService',
+          level: 'critical',
+          details: { model, error: geminiError.originalError }
+        });
       }
+      // Always re-throw the specific error for upstream consumers
+      throw geminiError;
+    }
   }
 
   /**
@@ -135,8 +141,10 @@ class GeminiService implements AIService {
       await read();
 
     } catch (error: any) {
-      handleAppError('Gemini API streaming content generation', error, `Streaming failed.`);
-      onStreamEvent({ type: 'error', data: 'Streaming failed.' });
+      const geminiError = mapToGeminiError(error, 'streaming content generation');
+      handleAppError('Gemini API streaming', error, 'Streaming failed.');
+      onStreamEvent({ type: 'error', data: geminiError.message });
+      // We don't re-throw here because the error is communicated via the stream event
     }
   }
 
@@ -182,18 +190,18 @@ class GeminiService implements AIService {
 
       const imageUrls: string[] = response.data.imageUrls || [];
       return Promise.all(imageUrls.map((url: string) => dataUrlToBlobUrl(url)));
-      } catch (error: any) {
-        const errorMsg = handleAppError('Gemini API image generation', error, 'Image generation failed.');
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          useUiStore.getState().addError({
-            message: errorMsg,
-            source: 'geminiService',
-            level: 'critical',
-            details: { model, prompt: prompt.substring(0, 50), error }
-          });
-        }
-        throw new Error(errorMsg);
+    } catch (error: any) {
+      const geminiError = mapToGeminiError(error, 'image generation');
+      if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
+        useUiStore.getState().addError({
+          message: geminiError.message,
+          source: 'geminiService',
+          level: 'critical',
+          details: { model, prompt: prompt.substring(0, 50), error: geminiError.originalError }
+        });
       }
+      throw geminiError;
+    }
   }
 
   async generateSpeech(
@@ -226,18 +234,18 @@ class GeminiService implements AIService {
       }
 
       throw new Error('Speech generation response did not contain expected audio data.');
-      } catch (error: any) {
-        const errorMsg = handleAppError('Gemini API speech generation', error, 'Speech generation failed.');
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          useUiStore.getState().addError({
-            message: errorMsg,
-            source: 'geminiService',
-            level: 'critical',
-            details: { model, prompt: prompt.substring(0, 50), error }
-          });
-        }
-        throw new Error(errorMsg);
+    } catch (error: any) {
+      const geminiError = mapToGeminiError(error, 'speech generation');
+      if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
+        useUiStore.getState().addError({
+          message: geminiError.message,
+          source: 'geminiService',
+          level: 'critical',
+          details: { model, prompt: prompt.substring(0, 50), error: geminiError.originalError }
+        });
       }
+      throw geminiError;
+    }
   }
 
   async generateVideo(
@@ -270,18 +278,18 @@ class GeminiService implements AIService {
 
       const { videoUrls } = response.data;
       return videoUrls || [];
-      } catch (error: any) {
-        const errorMsg = handleAppError('Gemini API video generation', error, 'Video generation failed.');
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          useUiStore.getState().addError({
-            message: errorMsg,
-            source: 'geminiService',
-            level: 'critical',
-            details: { model, prompt: prompt.substring(0, 50), error }
-          });
-        }
-        throw new Error(errorMsg);
+    } catch (error: any) {
+      const geminiError = mapToGeminiError(error, 'video generation');
+      if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
+        useUiStore.getState().addError({
+          message: geminiError.message,
+          source: 'geminiService',
+          level: 'critical',
+          details: { model, prompt: prompt.substring(0, 50), error: geminiError.originalError }
+        });
       }
+      throw geminiError;
+    }
   }
 
   async generateStructuredContent(
@@ -314,18 +322,18 @@ class GeminiService implements AIService {
         rawContent,
         usage
       };
-      } catch (error: any) {
-        const errorMsg = handleAppError('Gemini API structured content generation', error, 'Structured content generation failed or authentication failed.');
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          useUiStore.getState().addError({
-            message: errorMsg,
-            source: 'geminiService',
-            level: 'critical',
-            details: { model, prompt: prompt.substring(0, 50), schema, error }
-          });
-        }
-        throw new Error(errorMsg);
+    } catch (error: any) {
+      const geminiError = mapToGeminiError(error, 'structured content generation');
+      if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
+        useUiStore.getState().addError({
+          message: geminiError.message,
+          source: 'geminiService',
+          level: 'critical',
+          details: { model, prompt: prompt.substring(0, 50), schema, error: geminiError.originalError }
+        });
       }
+      throw geminiError;
+    }
   }
 
   async generateWithLongContext(
@@ -353,18 +361,18 @@ class GeminiService implements AIService {
       });
 
       return response.data;
-      } catch (error: any) {
-        const errorMsg = handleAppError('Gemini API long context generation', error, 'Long context generation failed or authentication failed.');
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          useUiStore.getState().addError({
-            message: errorMsg,
-            source: 'geminiService',
-            level: 'critical',
-            details: { model, contextLength: context.length, error }
-          });
-        }
-        throw new Error(errorMsg);
+    } catch (error: any) {
+      const geminiError = mapToGeminiError(error, 'long context generation');
+      if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
+        useUiStore.getState().addError({
+          message: geminiError.message,
+          source: 'geminiService',
+          level: 'critical',
+          details: { model, contextLength: context.length, error: geminiError.originalError }
+        });
       }
+      throw geminiError;
+    }
   }
 
   async liveConnect(options: any): Promise<any> {
@@ -393,18 +401,18 @@ class GeminiService implements AIService {
         config.id = `widget_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       }
       return config;
-      } catch (error: any) {
-        const errorMsg = handleAppError('Gemini widget config generation', error, 'Failed to generate widget configuration from description.');
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          useUiStore.getState().addError({
-            message: errorMsg,
-            source: 'geminiService',
-            level: 'critical',
-            details: { description: description.substring(0, 50), error }
-          });
-        }
-        throw new Error(errorMsg);
+    } catch (error: any) {
+      const geminiError = mapToGeminiError(error, 'widget config generation');
+      if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
+        useUiStore.getState().addError({
+          message: geminiError.message,
+          source: 'geminiService',
+          level: 'critical',
+          details: { description: description.substring(0, 50), error: geminiError.originalError }
+        });
       }
+      throw geminiError;
+    }
   }
 
   async createWidgetChatSession(): Promise<any> {
