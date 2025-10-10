@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { geminiService } from '@/services/geminiService';
+import { aiService } from '@/services/aiService';
+import { obsClient } from '@/services/obsClient';
 import useConnectionsStore from '@/store/connectionsStore';
 import { useChatStore } from '@/store/chatStore';
 import { INITIAL_SYSTEM_PROMPT } from '@/constants';
@@ -161,22 +162,6 @@ export const useGeminiChat = (
     if (!chatInputValue.trim() || isLoading) return;
 
     const userMessageText = chatInputValue.trim();
-    const hasObsIntent = /\b(scene|source|filter|stream|record|obs|hide|show|volume|mute|transition)\b/i.test(userMessageText);
-
-    // API key handled by backend proxy
-    
-    if (!isConnected && hasObsIntent && !useGoogleSearch) {
-      const errorMsg = handleAppError('Gemini chat OBS', new Error('Not connected'), "Hey! I'm not connected to OBS right now, so I can't perform that OBS action. Please connect OBS and try again when you're ready.");
-      useUiStore.getState().addError({
-        message: errorMsg,
-        source: 'useGeminiChat',
-        level: 'critical',
-        details: { hasObsIntent }
-      });
-      chatActions.addMessage({ role: 'system', text: errorMsg });
-      return;
-    }
-
     setIsLoading(true);
     onChatInputChange('');
     chatActions.addMessage({ role: 'user', text: userMessageText });
@@ -185,36 +170,23 @@ export const useGeminiChat = (
     chatActions.addMessage({ role: 'model', text: '...', id: modelMessageId });
 
     try {
-      const buildObsSystemMessage = () => {
-        const sceneNames = scenes.map((s: OBSScene) => s.sceneName).join(', ');
-        const sourceNames = sources.map((s: OBSSource) => s.sourceName).join(', ');
-        return `**OBS Context:**\n- Current Scene: ${currentProgramScene || 'None'}\n- Available Scenes: ${sceneNames}\n- Available Sources: ${sourceNames}`;
-      };
+      // 1. Get full OBS state
+      const obsState = await obsClient.getFullState();
 
-      const baseSystemPrompt = `${INITIAL_SYSTEM_PROMPT}\n\n${buildObsSystemMessage()}\n\n${buildMarkdownStylingSystemMessage()}`;
-      const systemPrompt = useGoogleSearch ? `${baseSystemPrompt}\n\nYou can also use Google Search.` : baseSystemPrompt;
-      const history = useChatStore.getState().geminiMessages.slice(0, -2); // Exclude user and placeholder messages
+      // 2. Decide on caching strategy
+      const useExplicitCache = obsState.available_scenes.length >= 3;
 
-      const fullPrompt = `${systemPrompt}\n\n${userMessageText}`;
+      // 3. Call the new caching-aware AI service
+      const result = await aiService.queryWithOBSContext({
+        prompt: userMessageText,
+        obs_state: obsState,
+        use_explicit_cache: useExplicitCache,
+        model: 'gemini-1.5-flash-001',
+      });
 
-      let fullResponse = '';
-      await geminiService.generateStreamingContent(
-        fullPrompt,
-        (event) => {
-          if (event.type === 'chunk') {
-            fullResponse += event.data;
-            chatActions.replaceMessage(modelMessageId, { role: 'model', text: fullResponse });
-          } else if (event.type === 'error') {
-            chatActions.replaceMessage(modelMessageId, { role: 'system', text: `Error: ${event.data}` });
-          }
-        },
-        {
-          model: 'gemini-1.5-flash',
-          history: history.map(m => ({ role: m.role, parts: [{ text: m.text }] })),
-        }
-      );
+      const fullResponse = result.response;
 
-      // Action parsing after stream is complete
+      // 4. Process the response (action parsing)
       let displayText = fullResponse;
       let obsActionResult: { success: boolean; message: string; error?: string } | null = null;
 
@@ -238,26 +210,35 @@ export const useGeminiChat = (
         logger.warn('No valid action found in response:', err);
       }
 
+      // 5. Update the UI with the final response
       chatActions.replaceMessage(modelMessageId, { role: 'model', text: displayText });
 
+      // Add a system message for the result of the OBS action
       if (obsActionResult) {
         const message = obsActionResult.success ? obsActionResult.message : `OBS Action failed: ${obsActionResult.error}`;
         chatActions.addMessage({ role: 'system', text: message });
       }
-} catch (error: unknown) {
-  const errorMsg = handleAppError('Gemini chat send', error, 'Failed to send message to Gemini');
-  useUiStore.getState().addError({
-    message: errorMsg,
-    source: 'useGeminiChat',
-    level: 'error',
-    details: { userMessage: userMessageText, error }
-  });
-  chatActions.replaceMessage(modelMessageId, { role: 'system', text: `Gemini API Error: ${errorMsg}` });
-  logger.error(errorMsg);
-} finally {
-  setIsLoading(false);
-}
-}, [isLoading, isConnected, useGoogleSearch, chatActions, scenes, sources, currentProgramScene, setErrorMessage, onRefreshData, handleObsActionWithDataParts]);
+
+      // Optionally, add a system message indicating cache status for debugging
+      if (result.cache_used) {
+        const cacheInfo = `Cache hit: ${result.cache_name}. Tokens saved: ${result.usage_metadata.cached_content_token_count}`;
+        chatActions.addMessage({ role: 'system', text: `[DEBUG] ${cacheInfo}` });
+      }
+
+    } catch (error: unknown) {
+      const errorMsg = handleAppError('Gemini chat send', error, 'Failed to send message to Gemini');
+      useUiStore.getState().addError({
+        message: errorMsg,
+        source: 'useGeminiChat',
+        level: 'error',
+        details: { userMessage: userMessageText, error }
+      });
+      chatActions.replaceMessage(modelMessageId, { role: 'system', text: `API Error: ${errorMsg}` });
+      logger.error(errorMsg);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isLoading, isConnected, chatActions, setErrorMessage, onRefreshData, handleObsActionWithDataParts]);
 
   return {
     isLoading,
