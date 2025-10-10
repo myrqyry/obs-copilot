@@ -140,8 +140,8 @@ export class ObsClientImpl {
   }
 
   private async handleReconnect() {
-    if (!this.connectOptions || this.status === 'connecting' || this.connectionLock) {
-      return;
+    if (!this.connectOptions || this.status === 'connecting' || this.reconnectTimeout) {
+      return; // Already reconnecting
     }
 
     if (this.retryCount >= MAX_RETRY_ATTEMPTS) {
