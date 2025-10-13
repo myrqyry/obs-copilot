@@ -1,3 +1,6 @@
+import { vi, describe, it, expect, afterEach, beforeEach, test } from 'vitest';
+import * as api from '../api';
+
 /**
  * @jest-environment jsdom
  */
@@ -7,15 +10,15 @@
 const OriginalURL = URL;
 
 import * as imageProxy from '../imageProxy';
-import * as api from '../api';
+
 
 // Mock the api module
-jest.mock('../api');
-const mockedApi = api as jest.Mocked<typeof api>;
+vi.mock('../api');
+const mockedApi = api as vi.Mocked<typeof api>;
 
 describe('Image Proxy Utilities', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     mockedApi.getApiEndpoint.mockClear();
   });
 
@@ -52,25 +55,25 @@ describe('Image Proxy Utilities', () => {
       expect(getProxiedImageUrl(imageUrl)).toBe(expected);
     });
 
-    test('Test Case III.3 (Internal URL): Returns original URL for internal/non-proxied images', () => {
-      const { getProxiedImageUrl } = require('../imageProxy');
+    test('Test Case III.3 (Internal URL): Returns original URL for internal/non-proxied images', async () => {
+      const { getProxiedImageUrl } = await vi.importActual('../imageProxy');
       const imageUrl = '/assets/local-image.png';
       expect(getProxiedImageUrl(imageUrl)).toBe(imageUrl);
     });
 
-    test('Test Case (Relative URL): Returns original URL for relative non-proxied images', () => {
-      const { getProxiedImageUrl } = require('../imageProxy');
+    test('Test Case (Relative URL): Returns original URL for relative non-proxied images', async () => {
+      const { getProxiedImageUrl } = await vi.importActual('../imageProxy');
       const imageUrl = 'local-image.png';
       expect(getProxiedImageUrl(imageUrl)).toBe(imageUrl);
     });
 
-    test('Test Case III.4 (Empty URL): Returns empty string for empty URL', () => {
-      const { getProxiedImageUrl } = require('../imageProxy');
+    test('Test Case III.4 (Empty URL): Returns empty string for empty URL', async () => {
+      const { getProxiedImageUrl } = await vi.importActual('../imageProxy');
       expect(getProxiedImageUrl('')).toBe('');
     });
 
-    test('(Null URL): Returns empty string for null URL', () => {
-      const { getProxiedImageUrl } = require('../imageProxy');
+    test('(Null URL): Returns empty string for null URL', async () => {
+      const { getProxiedImageUrl } = await vi.importActual('../imageProxy');
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       expect(getProxiedImageUrl(null)).toBe('');
@@ -80,8 +83,8 @@ describe('Image Proxy Utilities', () => {
   describe('shouldProxyImage', () => {
     let currentShouldProxyImage: (imageUrl: string) => boolean;
 
-    beforeEach(() => {
-      currentShouldProxyImage = require('../imageProxy').shouldProxyImage;
+    beforeEach(async () => {
+      currentShouldProxyImage = (await vi.importActual('../imageProxy')).shouldProxyImage;
     });
 
     test('Test Case III.5 (Known External Domain - Unsplash): Returns true for Unsplash', () => {

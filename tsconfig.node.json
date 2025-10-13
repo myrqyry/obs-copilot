@@ -1,18 +1,9 @@
 {
   "compilerOptions": {
-  "module": "esnext",
-  "esModuleInterop": true,
-  "allowJs": true,
-  "checkJs": false,
-  "outDir": "./dist-node",
-  "rootDir": "./",
-  "strict": false,
-  "target": "ESNext",
-  "moduleResolution": "node",
-  "resolveJsonModule": true,
-  "types": ["node"],
-  "composite": true
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "allowSyntheticDefaultImports": true
   },
-  "include": ["proxy.cjs", "verify-proxy.js", "scripts/**/*.js", "tailwind/**/*.js", "*.js", "*.cjs"],
+  "include": ["vite.config.ts"],
   "exclude": ["node_modules", "dist", "build", "src"]
 }

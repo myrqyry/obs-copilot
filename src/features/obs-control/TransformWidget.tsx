@@ -74,70 +74,89 @@ const TransformWidget: React.FC<TransformWidgetProps> = ({ config, id }) => {
       <h3 className="text-foreground text-lg font-bold mb-2">Transform Widget</h3>
       <div className="space-y-2 mb-4">
         <div className="grid grid-cols-2 gap-2">
-          <Label>X Position:</Label>
-        <Input
-          type="number"
-          value={transform.positionX}
-          onChange={(e) => handleTransformChange('positionX', Number(e.target.value))}
-        />
-        <Label>Y Position:</Label>
-        <Input
-          type="number"
-          value={transform.positionY}
-          onChange={(e) => handleTransformChange('positionY', Number(e.target.value))}
-        />
-        <Label>Rotation:</Label>
-        <Input
-          type="number"
-          value={transform.rotation}
-          onChange={(e) => handleTransformChange('rotation', Number(e.target.value))}
-        />
-        <Label>Scale X:</Label>
-        <Input
-          type="number"
-          value={transform.scaleX}
-          onChange={(e) => handleTransformChange('scaleX', Number(e.target.value))}
-        />
-        <Label>Scale Y:</Label>
-        <Input
-          type="number"
-          value={transform.scaleY}
-          onChange={(e) => handleTransformChange('scaleY', Number(e.target.value))}
-        />
-        <Label>Crop Left:</Label>
-        <Input
-          type="number"
-          value={transform.cropLeft}
-          onChange={(e) => handleTransformChange('cropLeft', Number(e.target.value))}
-        />
-        <Label>Crop Right:</Label>
-        <Input
-          type="number"
-          value={transform.cropRight}
-          onChange={(e) => handleTransformChange('cropRight', Number(e.target.value))}
-        />
-        <Label>Crop Top:</Label>
-        <Input
-          type="number"
-          value={transform.cropTop}
-          onChange={(e) => handleTransformChange('cropTop', Number(e.target.value))}
-        />
-        <Label>Crop Bottom:</Label>
-        <Input
-          type="number"
-          value={transform.cropBottom}
-          onChange={(e) => handleTransformChange('cropBottom', Number(e.target.value))}
-        />
+          <div>
+            <Label>X Position:</Label>
+            <Input
+              type="number"
+              value={xPos}
+              onChange={(e) => setXPos(Number(e.target.value))}
+            />
+          </div>
+          <div>
+            <Label>Y Position:</Label>
+            <Input
+              type="number"
+              value={yPos}
+              onChange={(e) => setYPos(Number(e.target.value))}
+            />
+          </div>
+          <div>
+            <Label>Rotation:</Label>
+            <Input
+              type="number"
+              value={rotation}
+              onChange={(e) => setRotation(Number(e.target.value))}
+            />
+          </div>
+          <div>
+            <Label>Scale X:</Label>
+            <Input
+              type="number"
+              value={scaleX}
+              onChange={(e) => setScaleX(Number(e.target.value))}
+            />
+          </div>
+          <div>
+            <Label>Scale Y:</Label>
+            <Input
+              type="number"
+              value={scaleY}
+              onChange={(e) => setScaleY(Number(e.target.value))}
+            />
+          </div>
+          <div>
+            <Label>Crop Left:</Label>
+            <Input
+              type="number"
+              value={cropLeft}
+              onChange={(e) => setCropLeft(Number(e.target.value))}
+            />
+          </div>
+          <div>
+            <Label>Crop Right:</Label>
+            <Input
+              type="number"
+              value={cropRight}
+              onChange={(e) => setCropRight(Number(e.target.value))}
+            />
+          </div>
+          <div>
+            <Label>Crop Top:</Label>
+            <Input
+              type="number"
+              value={cropTop}
+              onChange={(e) => setCropTop(Number(e.target.value))}
+            />
+          </div>
+          <div>
+            <Label>Crop Bottom:</Label>
+            <Input
+              type="number"
+              value={cropBottom}
+              onChange={(e) => setCropBottom(Number(e.target.value))}
+            />
+          </div>
+        </div>
       </div>
       <Button
-        onClick={handleApplyTransform}
-        disabled={!obsClient.isConnected() || !sourceName}
+        onClick={updateTransform}
+        disabled={!obsClient.isConnected() || !sceneName}
         className="w-full mt-4"
       >
         Apply Transform
       </Button>
       <div className="text-muted-foreground text-sm">
-        Current Source: {sourceName || 'None Selected'}
+        Current Source: {sceneName || 'None Selected'}
       </div>
     </div>
   );

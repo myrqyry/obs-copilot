@@ -56,12 +56,12 @@ const SceneCreatorWidget: React.FC<SceneCreatorWidgetProps> = ({ config, id }) =
     }
   };
 
-  if (config.template) {
-    // Load template - for simplicity, add a default item
-    useState(() => {
+  useEffect(() => {
+    if (config.template) {
+      // Load template - for simplicity, add a default item
       setSceneItems([{ sourceName: 'Template Item', isGroup: false, visible: true, xPos: 0, yPos: 0, width: 100, height: 100 }]);
-    });
-  }
+    }
+  }, [config.template]);
 
   return (
     <div className="p-4 bg-gray-800 rounded-lg shadow-lg max-w-md mx-auto">

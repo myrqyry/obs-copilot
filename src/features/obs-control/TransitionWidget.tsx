@@ -64,27 +64,28 @@ const TransitionWidget: React.FC<TransitionWidgetProps> = ({ config, id }) => {
           </SelectTrigger>
           <SelectContent>
             {transitions.map((transition) => (
-              <SelectItem key={transition.transitionName} value={transition.transitionName}>
-                {transition.transitionName}
+              <SelectItem key={transition} value={transition}>
+                {transition}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
         <Input
           type="number"
-          value={transitionDuration}
-          onChange={(e) => setTransitionDuration(Number(e.target.value))}
+          value={duration}
+          onChange={(e) => setDuration(Number(e.target.value))}
           placeholder="Duration (ms)"
         />
+      </div>
       <Button
-        onClick={handleSetTransition}
+        onClick={() => setTransition(selectedTransition, duration)}
         disabled={!obsClient.isConnected()}
         className="w-full mt-4"
       >
         Set Transition
       </Button>
       <div className="text-muted-foreground text-sm">
-        Current Transition: {currentTransition} ({currentTransitionDuration}ms)
+        Current Transition: {selectedTransition} ({duration}ms)
       </div>
     </div>
   );

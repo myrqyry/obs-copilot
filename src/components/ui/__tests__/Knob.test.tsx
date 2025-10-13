@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { vi } from 'vitest';
 import { Knob } from '../Knob'; // Assuming Knob.tsx is in the same directory
+import { vi, describe, it, expect } from 'vitest';
 
 describe('Knob', () => {
   it('renders with label and value', () => {

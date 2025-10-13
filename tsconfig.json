@@ -23,59 +23,16 @@
     "esModuleInterop": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "src/*"
-      ],
-      "*": [
-        "src/*"
-      ],
-      "components/*": [
-        "src/components/*"
-      ],
-      "features/*": [
-        "src/features/*"
-      ],
-      "hooks/*": [
-        "src/hooks/*"
-      ],
-      "services/*": [
-        "src/services/*"
-      ],
-      "store/*": [
-        "src/store/*"
-      ],
-      "types": [
-        "src/types/index.ts"
-      ],
-      "types/*": [
-        "src/types/*"
-      ],
-      "utils/*": [
-        "src/utils/*"
-      ]
+      "@/*": ["src/*"]
     }
   },
-  "include": ["src", "src/__mocks__", "src/__tests__", "vite.config.ts", "vitest.config.ts"],
+  "include": ["src", "vite.config.ts", "vitest.config.ts", "src/features/obs-control/UniversalWidgetEngine.tsx"],
   "exclude": [
     "node_modules",
-    "node_modules/obs-websocket-js",
-    
     "dist",
     "build",
     "tmp",
-    "*.log",
-    "src/**/*.test.ts",
-    "src/**/*.test.tsx",
-    "src/**/*.spec.ts",
-    "src/**/*.spec.tsx",
-    "src/**/__tests__/**",
-    "src/**/__mocks__/**",
-    "src/**/*.mock.ts",
-    "src/**/*.mock.tsx"
+    "*.log"
   ],
-  "references": [
-    {
-      "path": "./tsconfig.node.json"
-    }
-  ]
+
 }
