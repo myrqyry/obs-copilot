@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useConnectionManagerStore } from '@/store/connectionManagerStore';
-import useSettingsStore from '@/store/settingsStore';
+import useConfigStore from '@/store/configStore';
 import { toast } from '@/components/ui/toast';
 import { ObsClientImpl as ObsClient } from '@/services/obsClient';
 import { catppuccinAccentColorsHexMap } from '@/types';
@@ -41,7 +41,7 @@ const ImageGeneration: React.FC = () => {
     const [personGeneration, setPersonGeneration] = useState('allow_adult');
 
     const { obsServiceInstance, currentProgramScene, isConnected } = useConnectionManagerStore();
-    const accentColorName = useSettingsStore(state => state.theme.accent);
+    const accentColorName = useConfigStore(state => state.theme.accent);
     const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
 
     const handleImageUpload = (file: File, base64: string) => {

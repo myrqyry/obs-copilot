@@ -12,7 +12,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui";
-import useSettingsStore from '@/store/settingsStore';
+import useConfigStore from '@/store/configStore';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -32,7 +32,7 @@ export const ConnectionsTab: React.FC = () => {
     setTwitchClientSecret,
     setTwitchAccessToken,
     setTwitchRefreshToken,
-  } = useSettingsStore();
+  } = useConfigStore();
 
   const [editingProfile, setEditingProfile] = useState<ConnectionProfile | undefined>(undefined);
   const [isFormOpen, setIsFormOpen] = useState(false);

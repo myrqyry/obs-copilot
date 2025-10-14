@@ -9,7 +9,7 @@ import { Header } from './components/layout/Header';
 import { TabNavigation } from './components/layout/TabNavigation';
 import { TooltipProvider } from "@/components/ui";
 import { ConnectionProvider } from './features/connections/ConnectionProvider';
-import useSettingsStore from './store/settingsStore';
+import useConfigStore from './store/configStore';
 import { usePlugins } from './hooks/usePlugins';
 import { useTheme } from './hooks/useTheme';
 import TwitchCallback from './features/auth/TwitchCallback';
@@ -22,7 +22,7 @@ const App: React.FC = React.memo(() => {
     const [activeTab, setActiveTab] = useState<string>('gemini');
     
     const headerRef = useRef<HTMLDivElement>(null);
-    const flipSides = useSettingsStore((state) => state.flipSides);
+    const flipSides = useConfigStore((state) => state.flipSides);
     
     // Initialize and apply themes
     useTheme();

@@ -1,6 +1,6 @@
 import React from 'react';
 import { AnimatedTitleLogos } from '@/components/common/AnimatedTitleLogos';
-import useSettingsStore from '@/store/settingsStore';
+import useConfigStore from '@/store/configStore';
 import { useTheme } from '@/hooks/useTheme';
 
 interface HeaderProps {
@@ -9,8 +9,8 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ headerRef }) => {
     const { theme } = useTheme();
-    const accent = useSettingsStore(state => state.theme.accent);
-    const secondaryAccent = useSettingsStore(state => state.theme.secondaryAccent);
+    const accent = useConfigStore(state => state.theme.accent);
+    const secondaryAccent = useConfigStore(state => state.theme.secondaryAccent);
 
     // Get accent colors from the current theme's accentColors, with robust fallbacks
     const accentColor = (theme?.accentColors?.[accent] && theme.accentColors[accent] !== '') ? 

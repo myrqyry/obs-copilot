@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { TabPlugin } from '@/types/plugins';
 import { useAnimatedTabs } from '@/hooks/useAnimatedTabs';
-import useSettingsStore from '@/store/settingsStore';
+import useConfigStore from '@/store/configStore';
 import {
     DndContext,
     closestCenter,
@@ -361,7 +361,7 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
                     const fromId = active.id as string;
                     const toId = over.id as string;
                     if (fromId === toId) return;
-                    const { tabOrder, setTabOrder } = useSettingsStore.getState();
+                    const { tabOrder, setTabOrder } = useConfigStore.getState();
                     if (!tabOrder) return;
                     const oldIndex = tabOrder.indexOf(fromId);
                     const newIndex = tabOrder.indexOf(toId);

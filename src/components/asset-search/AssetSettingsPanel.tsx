@@ -9,7 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from '@/components/ui/use-toast';
-import useApiKeyStore, { ApiKeyState } from '@/store/apiKeyStore';
+import useConfigStore from '@/store/configStore';
+import { ApiKeyState } from '@/store/configStore';
 import { getConfigsByCategory } from '@/config/assetSearchConfigs';
 
 interface AssetSettingsPanelProps {
@@ -89,7 +90,7 @@ export const AssetSettingsPanel: React.FC<AssetSettingsPanelProps> = ({
   activeCategory,
   onClose
 }) => {
-  const apiKeys = useApiKeyStore();
+  const config = useConfigStore();
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [testingKeys, setTestingKeys] = useState<Record<string, boolean>>({});
   const [testResults, setTestResults] = useState<Record<string, 'success' | 'error' | null>>({});
@@ -106,15 +107,15 @@ export const AssetSettingsPanel: React.FC<AssetSettingsPanelProps> = ({
     setShowKeys(prev => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
-  const handleKeyChange = useCallback((key: keyof Omit<ApiKeyState, 'setApiKey'>, value: string) => {
-    apiKeys.setApiKey(key, value);
+  const handleKeyChange = useCallback((key: keyof ApiKeyState, value: string) => {
+    config.setApiKey(key, value);
     setHasUnsavedChanges(true);
     setTestResults(prev => ({ ...prev, [key]: null }));
-  }, [apiKeys]);
+  }, [config]);
 
   const testApiKey = useCallback(async (key: string) => {
-    const config = apiKeyConfigs[key];
-    const keyValue = apiKeys[key as keyof typeof apiKeys];
+    const apiKeyConfig = apiKeyConfigs[key];
+    const keyValue = config[key as keyof ApiKeyState];
 
     if (!config || !keyValue) return;
 
@@ -187,10 +188,10 @@ export const AssetSettingsPanel: React.FC<AssetSettingsPanelProps> = ({
                       Required for {activeCategory}
                     </h4>
                     {requiredKeys.map(key => {
-                      const config = apiKeyConfigs[key];
-                      if (!config) return null;
-                      const currentValue = apiKeys[config.key] || '';
-                      const isValid = testResults[config.key] === 'success';
+                      const apiKeyConfig = apiKeyConfigs[key];
+                      if (!apiKeyConfig) return null;
+                      const currentValue = config[apiKeyConfig.key] || '';
+                      const isValid = testResults[apiKeyConfig.key] === 'success';
                       const hasError = testResults[config.key] === 'error';
                       const isTesting = testingKeys[config.key];
                       return (
@@ -228,9 +229,9 @@ export const AssetSettingsPanel: React.FC<AssetSettingsPanelProps> = ({
                 )}
                 <div>
                   <h4 className="font-medium mb-3">All API Keys</h4>
-                  {Object.entries(apiKeyConfigs).filter(([key]) => !requiredKeys.includes(key)).map(([key, config]) => {
-                    const currentValue = apiKeys[config.key] || '';
-                    const isValid = testResults[config.key] === 'success';
+                  {Object.entries(apiKeyConfigs).filter(([key]) => !requiredKeys.includes(key)).map(([key, apiKeyConfig]) => {
+                    const currentValue = config[apiKeyConfig.key] || '';
+                    const isValid = testResults[apiKeyConfig.key] === 'success';
                     const hasError = testResults[config.key] === 'error';
                     const isTesting = testingKeys[config.key];
                     return (

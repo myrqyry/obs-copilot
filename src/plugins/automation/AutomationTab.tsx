@@ -8,7 +8,7 @@ import useConnectionsStore from '@/store/connectionsStore';
 import { useChatStore } from '@/store/chatStore';
 import { useObsActions } from '@/hooks/useObsActions';
 import { automationService } from '@/services/automationService';
-import useSettingsStore from '@/store/settingsStore';
+import useConfigStore from '@/store/configStore';
 import { AutomationRule } from '@/types/automation';
 import { obsClient } from '@/services/obsClient';
 import { logger } from '@/utils/logger';
@@ -31,7 +31,7 @@ const AutomationTab: React.FC = () => {
     videoSettings
   } = useConnectionsStore();
   const { addMessage } = useChatStore(state => state.actions);
-  const automationPluginEnabled = useSettingsStore(state => state.automationPluginEnabled);
+  const automationPluginEnabled = useConfigStore(state => state.automationPluginEnabled);
 
   // Construct OBS data object
   const obsData = { scenes, currentProgramScene, sources, streamStatus, recordStatus, videoSettings };

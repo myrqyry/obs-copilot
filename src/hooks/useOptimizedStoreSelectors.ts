@@ -1,7 +1,7 @@
 
 import useConnectionsStore from '@/store/connectionsStore';
 import { useChatStore, ChatState } from '@/store/chatStore';
-import useSettingsStore, { SettingsState } from '@/store/settingsStore';
+import useConfigStore, { ConfigState } from '@/store/configStore';
 import { OBSData } from '@/types';
 
 /**
@@ -19,8 +19,8 @@ export const useChatState = (): ChatState => {
 };
 
 // Combined settings state selector
-export const useSettingsState = (): SettingsState => {
-    return useSettingsStore();
+export const useSettings = (): ConfigState => {
+    return useConfigStore();
 };
 
 // Memoized selector for OBS data to prevent unnecessary recalculations
