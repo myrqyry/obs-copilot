@@ -22,6 +22,7 @@ export class ActionHandlerSystem {
   private handlers: Map<string, ActionHandler> = new Map();
   private validators: Map<string, ActionValidation> = new Map();
   private retryConfigs: Map<string, RetryConfig> = new Map();
+  private pendingActions: Map<string, boolean> = new Map();
 
   private constructor() {
     this.initializeDefaultHandlers();
@@ -214,8 +215,19 @@ export class ActionHandlerSystem {
 
     let lastError: WidgetError | undefined;
     let retryCount = 0;
+    const pendingActionId = `${context.widgetId}-${actionId}-${Date.now()}`;
+    this.pendingActions.set(pendingActionId, true);
 
     while (retryCount <= retryConfig.maxRetries) {
+      if (!this.pendingActions.has(pendingActionId)) {
+        logger.info(`Action ${actionId} for widget ${context.widgetId} was cancelled.`);
+        return {
+          success: false,
+          error: new WidgetError('Action was cancelled', 'CANCELLED'),
+          retryable: false,
+        };
+      }
+
       try {
         let result: ActionResult;
         
@@ -261,11 +273,24 @@ export class ActionHandlerSystem {
       retryCount++;
     }
 
+    this.pendingActions.delete(pendingActionId);
     return {
       success: false,
       error: lastError || new WidgetError(`Action ${actionId} failed after ${retryConfig.maxRetries} retries`, 'MAX_RETRIES'),
       retryable: false
     };
+  }
+
+  /**
+   * Cancel all pending actions for a specific widget
+   */
+  public cancelPendingActions(widgetId: string): void {
+    for (const key of this.pendingActions.keys()) {
+      if (key.startsWith(widgetId)) {
+        this.pendingActions.delete(key);
+        logger.info(`Cancelled pending action: ${key}`);
+      }
+    }
   }
 
   /**

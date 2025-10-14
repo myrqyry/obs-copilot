@@ -7,8 +7,10 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { useEffect } from 'react';
 import { useObsWidget } from '@/hooks/useObsWidget';
 import { UniversalWidgetConfig, WidgetControlType } from '@/types/universalWidget';
+import { actionHandlers } from './ActionHandler';
 import { logger } from '@/utils/logger';
 
 interface UniversalWidgetEngineProps {
@@ -18,6 +20,12 @@ interface UniversalWidgetEngineProps {
 
 const UniversalWidgetEngine: React.FC<UniversalWidgetEngineProps> = ({ config, onUpdate }) => {
   const { options, isLoading, error, executeAction, updateState } = useObsWidget(config);
+
+  useEffect(() => {
+    return () => {
+      actionHandlers.cancelPendingActions(config.id);
+    };
+  }, [config.id]);
 
   const handleValueChange = (value: any) => {
     updateState({ value });
@@ -266,4 +274,4 @@ const UniversalWidgetEngine: React.FC<UniversalWidgetEngineProps> = ({ config, o
   );
 };
 
-export default UniversalWidgetEngine;
+export default React.memo(UniversalWidgetEngine);
