@@ -19,7 +19,7 @@ const ResponsiveGridLayout = WidthProvider(Responsive);
 interface ObsControlsTabProps {}
 
 const ObsControlsTab: React.FC<ObsControlsTabProps> = () => {
-  const { isConnected } = useConnectionsStore(state => ({ isConnected: state.isConnected }));
+  const { obsStatus } = useConnectionsStore(state => ({ obsStatus: state.obsStatus }));
   const {
     widgets,
     widgetGroups,
@@ -77,16 +77,22 @@ const ObsControlsTab: React.FC<ObsControlsTabProps> = () => {
   }, [registerWidget]);
 
   // Connection status indicator
-  if (!isConnected) {
+  if (obsStatus !== 'connected') {
+    const messages = {
+      disconnected: { title: 'OBS Disconnected', message: 'Connect to OBS Studio to start using controls.', variant: 'destructive' },
+      connecting: { title: 'Connecting to OBS...', message: 'Please wait while we establish a connection.', variant: 'default' },
+      reconnecting: { title: 'Reconnecting to OBS...', message: 'Connection was lost. Trying to reconnect.', variant: 'default' },
+      error: { title: 'OBS Connection Error', message: 'Could not connect to OBS. Please check your settings.', variant: 'destructive' },
+    };
+    const { title, message, variant } = messages[obsStatus];
+
     return (
       <div className="flex items-center justify-center h-full">
         <Card className="p-8 text-center">
           <CardContent>
-            <h3 className="text-lg font-semibold mb-2">OBS Not Connected</h3>
-            <p className="text-gray-600 mb-4">
-              Connect to OBS Studio to start using controls
-            </p>
-            <Badge variant="destructive">Disconnected</Badge>
+            <h3 className="text-lg font-semibold mb-2">{title}</h3>
+            <p className="text-gray-600 mb-4">{message}</p>
+            <Badge variant={variant as any}>{obsStatus.charAt(0).toUpperCase() + obsStatus.slice(1)}</Badge>
           </CardContent>
         </Card>
       </div>

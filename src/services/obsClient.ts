@@ -79,9 +79,10 @@ export class ObsClientImpl {
     return ObsClientImpl.instance;
   }
 
-  private setStatus(status: ConnectionStatus) {
+  private setStatus(status: ConnectionStatus, details?: string) {
     if (this.status === status) return;
-    logger.info(`[OBS] Status changed: ${this.status} -> ${status}`);
+    const message = `[OBS] Status changed: ${this.status} -> ${status}${details ? ` (${details})` : ''}`;
+    logger.info(message);
     this.status = status;
     this.statusListeners.forEach(listener => listener(status));
   }
@@ -145,22 +146,25 @@ export class ObsClientImpl {
   private _onConnectionClosed(data: { code: number }) {
     if (data.code === 4009) {
       logger.error('[OBS] Connection failed: Invalid password.');
-      this.setStatus('error');
+      this.setStatus('error', 'Invalid password');
       this.connectOptions = null;
       const errorMsg = 'Invalid OBS password. Please update your connection settings.';
-      useUiStore.getState().addError({ message: errorMsg, source: 'obsClient', level: 'critical' });
       this.rejectStaleCommands(errorMsg);
     } else {
-      logger.warn(`[OBS] Connection closed (code: ${data.code}). Attempting to reconnect...`);
-      this.setStatus('reconnecting');
-      this.handleReconnect();
+      logger.warn(`[OBS] Connection closed (code: ${data.code}).`);
+      if (this.status !== 'reconnecting') {
+        this.setStatus('reconnecting', `Connection closed with code: ${data.code}`);
+        this.handleReconnect();
+      }
     }
   }
 
   private _onConnectionError(err: any) {
     logger.error('[OBS] Connection error:', err);
-    this.setStatus('reconnecting');
-    this.handleReconnect();
+    if (this.status !== 'reconnecting') {
+      this.setStatus('reconnecting', 'Connection error');
+      this.handleReconnect();
+    }
   }
 
   private invalidateCache() {
