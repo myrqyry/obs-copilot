@@ -1,4 +1,5 @@
 import { ObsClientImpl } from '@/services/obsClient';
+import { actionQueueService } from '@/services/actionQueueService';
 import { 
   ActionHandler, 
   ActionResult, 
@@ -273,32 +274,34 @@ export class ActionHandlerSystem {
    */
   private createGenericHandler(method: string): ActionHandler {
     return async (_context: ActionExecutionContext, params?: Record<string, any>): Promise<ActionResult> => {
-      try {
-        if (!obsClient.isConnected()) {
+      return actionQueueService.enqueue(async () => {
+        try {
+          if (!obsClient.isConnected()) {
+            return {
+              success: false,
+              error: new WidgetError('OBS not connected', 'NOT_CONNECTED'),
+              retryable: true
+            };
+          }
+
+          const result = await obsClient.call(method, params);
+          return {
+            success: true,
+            data: result
+          };
+        } catch (error) {
+          logger.error(`OBS call failed for ${method}:`, error);
           return {
             success: false,
-            error: new WidgetError('OBS not connected', 'NOT_CONNECTED'),
+            error: new WidgetError(
+              `OBS call failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              'OBS_CALL_FAILED',
+              true
+            ),
             retryable: true
           };
         }
-
-        const result = await obsClient.call(method, params);
-        return {
-          success: true,
-          data: result
-        };
-      } catch (error) {
-        logger.error(`OBS call failed for ${method}:`, error);
-        return {
-          success: false,
-          error: new WidgetError(
-            `OBS call failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            'OBS_CALL_FAILED',
-            true
-          ),
-          retryable: true
-        };
-      }
+      });
     };
   }
 
