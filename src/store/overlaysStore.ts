@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import useSettingsStore from './settingsStore';
 import { OverlayConfig } from '@/types/overlay';
 import { generateOverlay } from '@/services/overlayService';
@@ -25,62 +26,74 @@ interface OverlaysActions {
 
 type OverlaysStore = OverlaysState & OverlaysActions;
 
-export const useOverlaysStore = create<OverlaysStore>((set, get) => ({
-  overlays: [],
-  currentTemplate: '',
-  loading: false,
-  error: null,
+export const useOverlaysStore = create<OverlaysStore>()(
+  persist(
+    (set, get) => ({
+      overlays: [],
+      currentTemplate: '',
+      loading: false,
+      error: null,
 
-  addOverlay: (config) => set((state) => ({ overlays: [...state.overlays, config] })),
+      addOverlay: (config) => set((state) => ({ overlays: [...state.overlays, config] })),
 
-  updateOverlay: (id, config) =>
-    set((state) => ({
-      overlays: state.overlays.map((overlay) =>
-        overlay.id === id ? { ...overlay, ...config } : overlay
-      ),
-    })),
+      updateOverlay: (id, config) =>
+        set((state) => ({
+          overlays: state.overlays.map((overlay) =>
+            overlay.id === id ? { ...overlay, ...config } : overlay
+          ),
+        })),
 
-  removeOverlay: (id) =>
-    set((state) => ({
-      overlays: state.overlays.filter((overlay) => overlay.id !== id),
-    })),
+      removeOverlay: (id) =>
+        set((state) => ({
+          overlays: state.overlays.filter((overlay) => overlay.id !== id),
+        })),
 
-  setCurrentTemplate: (template) => set({ currentTemplate: template }),
+      setCurrentTemplate: (template) => set({ currentTemplate: template }),
 
-  setLoading: (loading) => set({ loading }),
+      setLoading: (loading) => set({ loading }),
 
-  setError: (error) => set({ error }),
+      setError: (error) => set({ error }),
 
-  generateOverlay: async (templateName, description) => {
-    const { setLoading, setError, addOverlay } = get();
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await generateOverlay(templateName, description);
-      addOverlay(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate overlay');
-    } finally {
-      setLoading(false);
+      generateOverlay: async (templateName, description) => {
+        const { setLoading, setError, addOverlay } = get();
+        setLoading(true);
+        setError(null);
+        try {
+          const result = await generateOverlay(templateName, description);
+          addOverlay(result);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Failed to generate overlay');
+        } finally {
+          setLoading(false);
+        }
+      },
+
+      regenerateChatOverlay: async () => {
+        const { setLoading, setError } = get();
+        const settings = useSettingsStore.getState();
+        setLoading(true);
+        setError(null);
+        try {
+          const html = generateChatOverlayHTML(
+            settings.chatBackgroundType,
+            settings.customChatBackground,
+            settings.chatPattern
+          );
+          await saveChatOverlayHTML(html);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Failed to regenerate chat overlay');
+        } finally {
+          setLoading(false);
+        }
+      },
+    }),
+    {
+      name: 'overlays-storage',
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        overlays: state.overlays,
+        currentTemplate: state.currentTemplate,
+      }),
     }
-  },
-
-  regenerateChatOverlay: async () => {
-    const { setLoading, setError } = get();
-    const settings = useSettingsStore.getState();
-    setLoading(true);
-    setError(null);
-    try {
-      const html = generateChatOverlayHTML(
-        settings.chatBackgroundType,
-        settings.customChatBackground,
-        settings.chatPattern
-      );
-      await saveChatOverlayHTML(html);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to regenerate chat overlay');
-    } finally {
-      setLoading(false);
-    }
-  },
-}));
+  )
+);

@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { connectionManager } from '@/services/ConnectionManager';
 import { ObsClientImpl, ObsError, ConnectionStatus } from '@/services/obsClient';
 import type { OBSScene, OBSSource, OBSVideoSettings, OBSStreamStatus, OBSRecordStatus } from '@/types/obs';
 import { StreamerBotService } from '@/services/streamerBotService';
 import type { ConnectionProfile } from '@/types/connections';
-import { StreamerBotError } from '@/types/streamerbot'; // Import StreamerBotError
+import { StreamerBotError } from '@/types/streamerbot';
 import { toast } from '@/components/ui/toast';
 
 // Helper function to sanitize OBS WebSocket URLs
@@ -16,27 +17,22 @@ const sanitizeOBSUrl = (input: string): { url: string; error?: string } => {
   try {
     let url = input.trim();
 
-    // Ensure a protocol exists for the URL constructor
     if (!url.includes('://')) {
       url = `ws://${url}`;
     }
 
-    // Convert HTTP(S) to WebSocket protocols
     url = url.replace(/^http:\/\//, 'ws://').replace(/^https:\/\//, 'wss://');
 
     const parsed = new URL(url);
 
-    // Replace common dev server port with OBS default
     if (parsed.port === '5173') {
       parsed.port = '4455';
     }
 
-    // Set default port for localhost or local IPs if not specified
     if (!parsed.port && (parsed.hostname === 'localhost' || parsed.hostname.startsWith('127.') || parsed.hostname.endsWith('.local'))) {
       parsed.port = '4455';
     }
 
-    // Clean path, query, and fragment, as OBS connects to the root
     parsed.pathname = '/';
     parsed.search = '';
     parsed.hash = '';
@@ -72,14 +68,14 @@ export interface ConnectionState {
 
   // Saved Connection Profiles Management
   connectionProfiles: ConnectionProfile[];
-  activeConnectionId: string | null; // ID of the currently active connection (could be OBS or Streamer.bot)
+  activeConnectionId: string | null;
 
   // Actions related to live connections
   connectToObs: (url: string, password?: string) => Promise<void>;
   disconnectFromObs: () => Promise<void>;
   connectToStreamerBot: (host: string, port: number) => Promise<void>;
   disconnectFromStreamerBot: () => Promise<void>;
-  cleanup: () => void; // Action to clean up all listeners
+  cleanup: () => void;
 
   // Actions related to profile management
   addConnectionProfile: (profile: ConnectionProfile) => void;
@@ -104,8 +100,8 @@ export interface ConnectionState {
 const useConnectionsStore = create<ConnectionState>()(
   persist(
     (set, get) => {
-      const obsClient = ObsClientImpl.getInstance();
-      const streamerBotService = StreamerBotService.getInstance();
+      const obsClient = connectionManager.getObsConnection('default')!;
+      const streamerBotService = connectionManager.getStreamerBotConnection('default')!;
       const obsCleanupFunctions: (() => void)[] = [];
       
       const setupStreamerBotListeners = () => {
@@ -122,7 +118,6 @@ const useConnectionsStore = create<ConnectionState>()(
         });
       };
 
-      // Set up listeners immediately
       setupStreamerBotListeners();
 
       const statusUnsub = obsClient.addStatusListener((status: ConnectionStatus) => {
@@ -133,26 +128,17 @@ const useConnectionsStore = create<ConnectionState>()(
         });
     
         if (status === 'connected') {
-          console.log('[DEBUG] OBS connected, fetching initial data'); // Fetch start log
-          // When connected (post-Identified), fetch initial data with error handling
           obsClient.getSceneList().then(({ scenes }) => set({ scenes })).catch(err => {
-            console.log('[DEBUG] getSceneList rejected:', err);
-            if (err instanceof ObsError && err.message.includes('Stale')) {
-              console.log('[DEBUG] Ignoring stale getSceneList rejection');
-            } else {
+            if (!(err instanceof ObsError && err.message.includes('Stale'))) {
               console.error('[OBS] Failed to fetch scenes:', err);
             }
           });
           obsClient.getCurrentProgramScene().then(({ currentProgramSceneName }) => set({ currentProgramScene: currentProgramSceneName })).catch(err => {
-            console.log('[DEBUG] getCurrentProgramScene rejected:', err);
-            if (err instanceof ObsError && err.message.includes('Stale')) {
-              console.log('[DEBUG] Ignoring stale getCurrentProgramScene rejection');
-            } else {
+            if (!(err instanceof ObsError && err.message.includes('Stale'))) {
               console.error('[OBS] Failed to fetch current scene:', err);
             }
           });
           obsClient.getInputList().then(({ inputs }) => {
-            // Transform inputs to OBSSource format
             const sources = inputs.map((input: any) => ({
               sourceName: input.inputName,
               sourceKind: input.inputKind,
@@ -160,43 +146,29 @@ const useConnectionsStore = create<ConnectionState>()(
             }));
             set({ sources });
           }).catch(err => {
-            console.log('[DEBUG] getInputList rejected:', err);
-            if (err instanceof ObsError && err.message.includes('Stale')) {
-              console.log('[DEBUG] Ignoring stale getInputList rejection');
-            } else {
+            if (!(err instanceof ObsError && err.message.includes('Stale'))) {
               console.error('[OBS] Failed to fetch inputs:', err);
             }
           });
           obsClient.getStreamStatus().then((status) => set({ streamStatus: status as OBSStreamStatus })).catch(err => {
-            console.log('[DEBUG] getStreamStatus rejected:', err);
-            if (err instanceof ObsError && err.message.includes('Stale')) {
-              console.log('[DEBUG] Ignoring stale getStreamStatus rejection');
-            } else {
+            if (!(err instanceof ObsError && err.message.includes('Stale'))) {
               console.error('[OBS] Failed to fetch stream status:', err);
             }
           });
           obsClient.getRecordStatus().then((status) => set({ recordStatus: status as OBSRecordStatus })).catch(err => {
-            console.log('[DEBUG] getRecordStatus rejected:', err);
-            if (err instanceof ObsError && err.message.includes('Stale')) {
-              console.log('[DEBUG] Ignoring stale getRecordStatus rejection');
-            } else {
+            if (!(err instanceof ObsError && err.message.includes('Stale'))) {
               console.error('[OBS] Failed to fetch record status:', err);
             }
           });
           obsClient.getVideoSettings().then((settings) => set({ videoSettings: settings as OBSVideoSettings })).catch(err => {
-            console.log('[DEBUG] getVideoSettings rejected:', err);
-            if (err instanceof ObsError && err.message.includes('Stale')) {
-              console.log('[DEBUG] Ignoring stale getVideoSettings rejection');
-            } else {
+            if (!(err instanceof ObsError && err.message.includes('Stale'))) {
               console.error('[OBS] Failed to fetch video settings:', err);
             }
           });
-          console.log('[DEBUG] Initial data fetch promises created'); // Fetch end log
         }
       });
       obsCleanupFunctions.push(statusUnsub);
 
-      // Event listeners for OBS updates
       obsCleanupFunctions.push(obsClient.on('SceneListChanged', ({ scenes }) => {
         set({ scenes });
       }));
@@ -216,7 +188,6 @@ const useConnectionsStore = create<ConnectionState>()(
       };
 
       return {
-        // Live OBS Connection State
         obs: obsClient,
         isConnected: false,
         connectionError: null,
@@ -229,18 +200,15 @@ const useConnectionsStore = create<ConnectionState>()(
         videoSettings: null,
         editableSettings: null,
 
-        // Live Streamer.bot Connection State
-        streamerBotServiceInstance: streamerBotService, // Pass the singleton instance
+        streamerBotServiceInstance: streamerBotService,
         isStreamerBotConnected: false,
         streamerBotConnectionError: null,
         isStreamerBotLoading: false,
 
-        // Saved Connection Profiles Management
         connectionProfiles: [],
         activeConnectionId: null,
         cleanup,
 
-        // Actions related to live connections
         connectToObs: async (url: string, password?: string) => {
           set({ isLoading: true, connectionError: null });
 
@@ -257,7 +225,6 @@ const useConnectionsStore = create<ConnectionState>()(
             return;
           }
           if (sanitized !== url.trim()) {
-            console.info(`[OBS] Sanitized URL from '${url}' to '${sanitized}'`);
             toast({
               title: "URL Sanitized",
               description: `Using corrected URL: ${sanitized}`,
@@ -292,7 +259,6 @@ const useConnectionsStore = create<ConnectionState>()(
           });
         },
 
-        // Explicitly clear persisted OBS data (scenes/sources) when the user requests it
         clearObsData: () => {
           set({
             scenes: [],
@@ -319,8 +285,6 @@ const useConnectionsStore = create<ConnectionState>()(
           });
         },
 
-
-        // Actions related to profile management
         addConnectionProfile: (profile: ConnectionProfile) => {
           set((state: ConnectionState) => ({
             connectionProfiles: [...state.connectionProfiles, profile],
@@ -350,7 +314,6 @@ const useConnectionsStore = create<ConnectionState>()(
           set({ activeConnectionId: id });
         },
 
-        // Standard setters for current OBS status
         setScenes: (scenes: OBSScene[]) => set({ scenes }),
         setCurrentProgramScene: (sceneName: string | null) => set({ currentProgramScene: sceneName }),
         setSources: (sources: OBSSource[]) => set({ sources }),
@@ -358,7 +321,6 @@ const useConnectionsStore = create<ConnectionState>()(
         setRecordStatus: (status: OBSRecordStatus | null) => set({ recordStatus: status }),
         setVideoSettings: (settings: OBSVideoSettings | null) => set({ videoSettings: settings }),
 
-        // Settings actions
         setEditableSettings: (settings: OBSVideoSettings | null) => set({ editableSettings: settings }),
         resetSettings: () => set({ editableSettings: null }),
        };
@@ -366,7 +328,6 @@ const useConnectionsStore = create<ConnectionState>()(
     {
       name: 'connection-profiles-storage',
       storage: createJSONStorage(() => localStorage),
-      // Persist last-known OBS scenes/sources to improve UX on reloads when OBS is disconnected
       partialize: (state) => ({
         connectionProfiles: state.connectionProfiles,
         activeConnectionId: state.activeConnectionId,
@@ -376,12 +337,10 @@ const useConnectionsStore = create<ConnectionState>()(
         editableSettings: state.editableSettings,
       }),
       version: 1,
-      // No rehydration logic here; components should re-connect based on activeConnectionId
     }
   )
 );
 
-// Selector hook for optimized re-renders
 export const createConnectionSelectors = () => ({
   isConnected: (state: ConnectionState) => state.isConnected,
   isLoading: (state: ConnectionState) => state.isLoading,

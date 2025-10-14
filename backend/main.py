@@ -11,7 +11,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 # Import the centralized settings
 from config import settings
 from auth import get_api_key
-from api.routes import gemini, assets, overlays, proxy_7tv, proxy_emotes
+from api.routes import gemini, assets, overlays, proxy_7tv, proxy_emotes, health
 from middleware import logging_middleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -60,6 +60,7 @@ app.include_router(assets.router, prefix="/api/assets", tags=["assets"])
 app.include_router(overlays.router, prefix="/api/overlays", tags=["overlays"])
 app.include_router(proxy_7tv.router, prefix="/api/proxy", tags=["proxy"])
 app.include_router(proxy_emotes.router, prefix="/api/proxy/emotes", tags=["proxy_emotes"])
+app.include_router(health.router, prefix="/api/health", tags=["health"])
 
 # --- Global Exception Handlers ---
 @app.exception_handler(StarletteHTTPException)

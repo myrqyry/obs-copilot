@@ -14,6 +14,8 @@ import ImageIcon from '@mui/icons-material/Image';
 import SettingsIcon from '@mui/icons-material/Settings';
 import BuildIcon from '@mui/icons-material/Build';
 import DashboardIcon from '@mui/icons-material/Dashboard'; // New icon
+import HealthDashboard from '@/components/debug/HealthDashboard';
+import FavoriteIcon from '@mui/icons-material/Favorite';
 
 const GeminiTab = lazy(() => import('./core/GeminiTab'));
 const GenerateTab = lazy(() => import('./core/GenerateTab'));
@@ -66,6 +68,12 @@ export const corePlugins: TabPlugin[] = [
     name: 'Advanced',
     icon: (props: any) => React.createElement(BuildIcon, props),
     component: AdvancedPanel,
+  },
+  {
+    id: 'health',
+    name: 'Health',
+    icon: (props: any) => React.createElement(FavoriteIcon, props),
+    component: HealthDashboard,
   },
 ];
 

@@ -7,7 +7,7 @@ import { INITIAL_SYSTEM_PROMPT } from '@/constants';
 import { buildMarkdownStylingSystemMessage } from '@/utils/systemPrompts';
 import { logger } from '@/utils/logger';
 import { handleAppError } from '@/lib/errorUtils';
-import useUiStore from '@/store/uiStore';
+import { useErrorStore } from '@/store/errorStore'; // Import useErrorStore
 import type { GeminiActionResponse, ObsAction, StreamingHandlers, SupportedDataPart } from '@/types/obsActions';
 import { OBSScene, OBSSource } from '@/types';
 
@@ -141,7 +141,7 @@ export const useGeminiChat = (
       await currentHandleSend(lastUserMessage.text, onChatInputChange);
     } catch (error) {
       const errorMsg = handleAppError('Gemini chat regenerate', error, 'Failed to regenerate message');
-      useUiStore.getState().addError({
+      useErrorStore.getState().addError({
         message: errorMsg,
         source: 'useGeminiChat',
         level: 'error',
@@ -227,7 +227,7 @@ export const useGeminiChat = (
 
     } catch (error: unknown) {
       const errorMsg = handleAppError('Gemini chat send', error, 'Failed to send message to Gemini');
-      useUiStore.getState().addError({
+      useErrorStore.getState().addError({
         message: errorMsg,
         source: 'useGeminiChat',
         level: 'error',

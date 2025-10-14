@@ -660,3 +660,5 @@ export class StreamerBotService {
     return { code: 'UNKNOWN', message: String(err), timestamp: new Date().toISOString() };
   }
 }
+
+export const streamerBotService = StreamerBotService.getInstance();

@@ -14,6 +14,8 @@ import { usePlugins } from './hooks/usePlugins';
 import { useTheme } from './hooks/useTheme';
 import TwitchCallback from './features/auth/TwitchCallback';
 import { LoadingSpinner } from './components/common/LoadingSpinner';
+import ConfirmationDialog from './components/common/ConfirmationDialog';
+import GlobalErrorDisplay from './components/common/GlobalErrorDisplay';
 
 const App: React.FC = React.memo(() => {
     const plugins = usePlugins();
@@ -33,7 +35,11 @@ const App: React.FC = React.memo(() => {
          const activePlugin = plugins.find(p => p.id === activeTab);
          if (activePlugin) {
              const TabComponent = activePlugin.component;
-             return <TabComponent />;
+             return (
+                <ComprehensiveErrorBoundary>
+                    <TabComponent />
+                </ComprehensiveErrorBoundary>
+            );
          }
          return <div>Select a tab</div>;
      };
@@ -60,6 +66,8 @@ const App: React.FC = React.memo(() => {
                                 </Suspense>
                             </div>
                          </div>
+                         <ConfirmationDialog />
+                         <GlobalErrorDisplay />
                      </div>
                 </ConnectionProvider>
             </TooltipProvider>

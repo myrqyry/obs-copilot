@@ -2,68 +2,41 @@ import { useMemo } from 'react';
 import { allPlugins } from '@/plugins';
 import useSettingsStore from '@/store/settingsStore';
 import { TabPlugin } from '@/types/plugins';
+import { useHealthStatus } from './useHealthStatus';
 
 export const usePlugins = () => {
   const { twitchChatPluginEnabled, automationPluginEnabled, streamingAssetsPluginEnabled, createPluginEnabled, connectionsPluginEnabled, obsStudioPluginEnabled, geminiPluginEnabled, settingsPluginEnabled, advancedPluginEnabled, emoteWallPluginEnabled } = useSettingsStore();
+  const { reports } = useHealthStatus();
 
   const filteredPlugins = useMemo(() => {
-    console.log('usePlugins filtering:', {
-      twitchChatPluginEnabled,
-      automationPluginEnabled,
-      connectionsPluginEnabled,
-      obsStudioPluginEnabled,
-      geminiPluginEnabled,
-      settingsPluginEnabled,
-      advancedPluginEnabled,
-      emoteWallPluginEnabled,
-      allPluginsCount: allPlugins.length
-    });
-
     let plugins = allPlugins;
-    
-    if (!twitchChatPluginEnabled) {
-      plugins = plugins.filter((plugin) => plugin.id !== 'twitch-chat');
+
+    const obsHealth = reports.find(r => r.service.startsWith('OBS'))?.status;
+    const geminiHealth = reports.find(r => r.service === 'Gemini')?.status;
+
+    // Filter based on settings
+    if (!twitchChatPluginEnabled) plugins = plugins.filter((plugin) => plugin.id !== 'twitch-chat');
+    if (!automationPluginEnabled) plugins = plugins.filter((plugin) => plugin.id !== 'automation');
+    if (!streamingAssetsPluginEnabled) plugins = plugins.filter((plugin) => plugin.id !== 'streaming-assets');
+    if (!createPluginEnabled) plugins = plugins.filter((plugin) => plugin.id !== 'create');
+    if (!connectionsPluginEnabled) plugins = plugins.filter((plugin) => plugin.id !== 'connections');
+    if (!obsStudioPluginEnabled) plugins = plugins.filter((plugin) => plugin.id !== 'obs-studio');
+    if (!geminiPluginEnabled) plugins = plugins.filter((plugin) => plugin.id !== 'gemini');
+    if (!settingsPluginEnabled) plugins = plugins.filter((plugin) => plugin.id !== 'settings');
+    if (!advancedPluginEnabled) plugins = plugins.filter((plugin) => plugin.id !== 'advanced');
+    if (!emoteWallPluginEnabled) plugins = plugins.filter((plugin) => plugin.id !== 'emote-wall');
+
+    // Filter based on health
+    if (obsHealth !== 'healthy') {
+      plugins = plugins.filter(p => !['obs-studio', 'obs-controls', 'streaming-assets'].includes(p.id));
     }
-    
-    if (!automationPluginEnabled) {
-      plugins = plugins.filter((plugin) => plugin.id !== 'automation');
-    }
-    
-    if (!streamingAssetsPluginEnabled) {
-      plugins = plugins.filter((plugin) => plugin.id !== 'streaming-assets');
+    if (geminiHealth !== 'healthy') {
+      plugins = plugins.filter(p => !['gemini', 'create'].includes(p.id));
     }
 
-    if (!createPluginEnabled) {
-      plugins = plugins.filter((plugin) => plugin.id !== 'create');
-    }
+    const tabOrder = useSettingsStore.getState().tabOrder as string[] | undefined;
 
-    if (!connectionsPluginEnabled) {
-      plugins = plugins.filter((plugin) => plugin.id !== 'connections');
-    }
-
-    if (!obsStudioPluginEnabled) {
-      plugins = plugins.filter((plugin) => plugin.id !== 'obs-studio');
-    }
-
-    if (!geminiPluginEnabled) {
-      plugins = plugins.filter((plugin) => plugin.id !== 'gemini');
-    }
-
-    if (!settingsPluginEnabled) {
-      plugins = plugins.filter((plugin) => plugin.id !== 'settings');
-    }
-
-    if (!advancedPluginEnabled) {
-      plugins = plugins.filter((plugin) => plugin.id !== 'advanced');
-    }
-
-    if (!emoteWallPluginEnabled) {
-      plugins = plugins.filter((plugin) => plugin.id !== 'emote-wall');
-    }
-
-  const tabOrder = useSettingsStore.getState().tabOrder as string[] | undefined;
-
-  if (!tabOrder || tabOrder.length === 0) return plugins;
+    if (!tabOrder || tabOrder.length === 0) return plugins;
 
     const byOrder: Record<string, TabPlugin> = {};
     plugins.forEach(p => byOrder[p.id] = p);
@@ -76,12 +49,23 @@ export const usePlugins = () => {
       }
     });
 
-    // append any remaining plugins not present in tabOrder
     Object.keys(byOrder).forEach(k => ordered.push(byOrder[k]));
 
     return ordered;
-  }, [twitchChatPluginEnabled, automationPluginEnabled, streamingAssetsPluginEnabled, createPluginEnabled, connectionsPluginEnabled, obsStudioPluginEnabled, geminiPluginEnabled, settingsPluginEnabled, advancedPluginEnabled, emoteWallPluginEnabled, useSettingsStore((s) => s.tabOrder)]);
+  }, [
+    twitchChatPluginEnabled,
+    automationPluginEnabled,
+    streamingAssetsPluginEnabled,
+    createPluginEnabled,
+    connectionsPluginEnabled,
+    obsStudioPluginEnabled,
+    geminiPluginEnabled,
+    settingsPluginEnabled,
+    advancedPluginEnabled,
+    emoteWallPluginEnabled,
+    reports,
+    useSettingsStore.getState().tabOrder,
+  ]);
 
-  console.log('usePlugins returning:', filteredPlugins.map(p => p.id));
   return filteredPlugins;
 };

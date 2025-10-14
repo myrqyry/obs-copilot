@@ -2,7 +2,7 @@ import OBSWebSocket from 'obs-websocket-js';
 import { backoff } from '@/lib/utils';
 import { logger } from '@/utils/logger';
 import { handleAppError } from '@/lib/errorUtils';
-import useUiStore from '@/store/uiStore';
+
 import type { UniversalWidgetConfig } from '@/types/universalWidget';
 
 export class ObsError extends Error {
@@ -53,8 +53,22 @@ export class ObsClientImpl {
   private stateCache: { state: any; timestamp: number } | null = null;
   private readonly CACHE_TTL_MS = 2000; // Cache state for 2 seconds
 
+  // --- Event Listener Properties ---
+  private onConnectionOpened: () => void;
+  private onIdentified: () => void;
+  private onConnectionClosed: (data: { code: number }) => void;
+  private onConnectionError: (err: any) => void;
+  private cacheInvalidationListeners: Map<string, () => void> = new Map();
+
   private constructor() {
     this.obs = new (OBSWebSocket as any)();
+
+    // Define listeners as bound methods
+    this.onConnectionOpened = this._onConnectionOpened.bind(this);
+    this.onIdentified = this._onIdentified.bind(this);
+    this.onConnectionClosed = this._onConnectionClosed.bind(this);
+    this.onConnectionError = this._onConnectionError.bind(this);
+
     this.setupEventListeners();
   }
 
@@ -74,45 +88,30 @@ export class ObsClientImpl {
 
   public addStatusListener(listener: (status: ConnectionStatus) => void): () => void {
     this.statusListeners.add(listener);
-    // Return an unsubscribe function
     return () => this.statusListeners.delete(listener);
   }
 
+  private cleanupEventListeners() {
+    logger.info('[OBS] Cleaning up event listeners.');
+    this.obs.off('ConnectionOpened', this.onConnectionOpened);
+    this.obs.off('Identified', this.onIdentified);
+    this.obs.off('ConnectionClosed', this.onConnectionClosed);
+    this.obs.off('ConnectionError', this.onConnectionError);
+
+    for (const [event, listener] of this.cacheInvalidationListeners.entries()) {
+      this.obs.off(event, listener);
+    }
+    this.cacheInvalidationListeners.clear();
+  }
+
   private setupEventListeners() {
-    this.obs.on('ConnectionOpened', () => {
-      logger.info('[OBS] Connection opened. Awaiting identification...');
-      // The `Identified` event is the true sign of being ready.
-    });
+    // Clean up any existing listeners before setting up new ones
+    this.cleanupEventListeners();
 
-    this.obs.on('Identified', () => {
-      logger.info('[OBS] Identified: Socket is ready.');
-      this.retryCount = 0; // Reset retry counter on successful connection
-      this.cleanupReconnectTimeout();
-      this.setStatus('connected');
-      this.processCommandQueue();
-    });
-
-    this.obs.on('ConnectionClosed', (data: { code: number }) => {
-      // 4009: Authentication failed. Don't auto-reconnect.
-      if (data.code === 4009) {
-        logger.error('[OBS] Connection failed: Invalid password.');
-        this.setStatus('error');
-        this.connectOptions = null; // Clear options to prevent retries with bad password
-        const errorMsg = 'Invalid OBS password. Please update your connection settings.';
-        useUiStore.getState().addError({ message: errorMsg, source: 'obsClient', level: 'critical' });
-        this.rejectStaleCommands(errorMsg);
-      } else {
-        logger.warn(`[OBS] Connection closed (code: ${data.code}). Attempting to reconnect...`);
-        this.setStatus('reconnecting');
-        this.handleReconnect();
-      }
-    });
-
-    this.obs.on('ConnectionError', (err: any) => {
-      logger.error('[OBS] Connection error:', err);
-      this.setStatus('reconnecting');
-      this.handleReconnect();
-    });
+    this.obs.on('ConnectionOpened', this.onConnectionOpened);
+    this.obs.on('Identified', this.onIdentified);
+    this.obs.on('ConnectionClosed', this.onConnectionClosed);
+    this.obs.on('ConnectionError', this.onConnectionError);
 
     // --- Cache Invalidation Listeners ---
     const eventsToInvalidateCache: string[] = [
@@ -121,11 +120,47 @@ export class ObsClientImpl {
       'StreamStateChanged', 'RecordStateChanged',
     ];
     for (const event of eventsToInvalidateCache) {
-      this.obs.on(event, () => {
+      const listener = () => {
         logger.info(`[OBS Cache] Invalidating cache due to event: ${event}`);
         this.invalidateCache();
-      });
+      };
+      this.cacheInvalidationListeners.set(event, listener);
+      this.obs.on(event, listener);
     }
+  }
+
+  // --- Listener Implementations ---
+  private _onConnectionOpened() {
+    logger.info('[OBS] Connection opened. Awaiting identification...');
+  }
+
+  private _onIdentified() {
+    logger.info('[OBS] Identified: Socket is ready.');
+    this.retryCount = 0;
+    this.cleanupReconnectTimeout();
+    this.setStatus('connected');
+    this.processCommandQueue();
+  }
+
+  private _onConnectionClosed(data: { code: number }) {
+    if (data.code === 4009) {
+      logger.error('[OBS] Connection failed: Invalid password.');
+      this.setStatus('error');
+      this.connectOptions = null;
+      const errorMsg = 'Invalid OBS password. Please update your connection settings.';
+      useUiStore.getState().addError({ message: errorMsg, source: 'obsClient', level: 'critical' });
+      this.rejectStaleCommands(errorMsg);
+    } else {
+      logger.warn(`[OBS] Connection closed (code: ${data.code}). Attempting to reconnect...`);
+      this.setStatus('reconnecting');
+      this.handleReconnect();
+    }
+  }
+
+  private _onConnectionError(err: any) {
+    logger.error('[OBS] Connection error:', err);
+    this.setStatus('reconnecting');
+    this.handleReconnect();
   }
 
   private invalidateCache() {
@@ -141,7 +176,7 @@ export class ObsClientImpl {
 
   private async handleReconnect() {
     if (!this.connectOptions || this.status === 'connecting' || this.reconnectTimeout) {
-      return; // Already reconnecting
+      return;
     }
 
     if (this.retryCount >= MAX_RETRY_ATTEMPTS) {
@@ -172,17 +207,18 @@ export class ObsClientImpl {
     this.setStatus('connecting');
 
     try {
+      // Ensure listeners are fresh for the new connection attempt
+      this.setupEventListeners();
       await this.obs.connect(address, password, {
         rpcVersion: 1,
-        eventSubscriptions: 0xffffffff, // Subscribe to all events
+        eventSubscriptions: 0xffffffff,
       });
-      // On successful identification, connectionLock will be false. If not, we should handle it.
     } catch (error: any) {
       const errorMsg = handleAppError('OBS connection', error, `Failed to connect to OBS at ${address}`);
       useUiStore.getState().addError({ message: errorMsg, source: 'obsClient', level: 'critical' });
       this.setStatus('reconnecting');
       this.handleReconnect();
-      throw new ObsError(errorMsg); // Propagate error for immediate feedback in UI
+      throw new ObsError(errorMsg);
     } finally {
       this.connectionLock = false;
     }
@@ -190,12 +226,18 @@ export class ObsClientImpl {
 
   async disconnect(): Promise<void> {
     this.cleanupReconnectTimeout();
-    this.connectOptions = null; // Prevent auto-reconnecting after manual disconnect
+    this.connectOptions = null;
     this.rejectStaleCommands('Connection manually closed.');
-    this.setStatus('disconnected');
-    try {
-      await this.obs.disconnect();
-    } catch { /* Ignore errors on disconnect */ }
+    
+    // Important: Clean up listeners to prevent leaks
+    this.cleanupEventListeners();
+
+    if (this.status !== 'disconnected') {
+      this.setStatus('disconnected');
+      try {
+        await this.obs.disconnect();
+      } catch { /* Ignore errors on disconnect */ }
+    }
   }
 
   private rejectStaleCommands(reason: string) {
@@ -369,23 +411,7 @@ export class ObsClientImpl {
     try {
       const params: Record<string, any> = {};
       if (config.targetName) params.inputName = config.targetName;
-      if (config.targetType === 'scene' && config.targetName) params.sceneName = config.targetName;
-  
-      switch (config.actionType) {
-        case 'setInputVolume':
-          await this.call('SetInputVolume', { ...params, inputVolumeDb: value });
-          break;
-        case 'setInputMute':
-          await this.call('SetInputMute', { ...params, inputMuted: value });
-          break;
-        case 'setCurrentProgramScene':
-          await this.call('SetCurrentProgramScene', { sceneName: value });
-          break;
-        default:
-          throw new ObsError(`Unsupported action: ${config.actionType}`);
-      }
-    } catch (error) {
-      const errorMsg = handleAppError('OBS executeWidgetAction', error, `Failed to execute widget action ${config.actionType}`);
+      if (config.targetType === 'scene' && config.targetName) params.sceneName = config.g.actionType}`);
       useUiStore.getState().addError({ message: errorMsg, source: 'obsClient', level: 'error' });
       throw new ObsError(errorMsg);
     }

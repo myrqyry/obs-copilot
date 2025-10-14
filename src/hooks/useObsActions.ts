@@ -2,8 +2,10 @@ import { useCallback } from 'react';
 import type { ObsClientImpl } from '@/services/obsClient';
 import type { ObsAction, GeminiActionResponse } from '@/types/obsActions';
 import type { OBSData, OBSScene, SupportedDataPart, StreamingHandlers } from '@/types';
-import { logger } from '../utils/logger'; // Import logger
+import { logger } from '../utils/logger';
 import { aiSdk5Config } from '@/config';
+import { commandValidationService } from '@/services/commandValidationService';
+import { useConfirmationStore } from '@/store/confirmationStore';
 
 interface UseObsActionsProps {
   obsService: ObsClientImpl;
@@ -20,7 +22,6 @@ interface ActionResult {
   error?: string;
 }
 
-// Utility function to build OBS system message
 export const buildObsSystemMessage = (obsData: OBSData): string => {
   const sceneNames = obsData.scenes.map((s: OBSScene) => s.sceneName).join(', ');
   const sourceNames = obsData.sources?.map((s) => s.sourceName).join(', ') || '';
@@ -36,74 +37,88 @@ export const useObsActions = ({
 }: UseObsActionsProps) => {
   const handleObsAction = useCallback(
     async (action: ObsAction): Promise<ActionResult> => {
-      try {
-        let successMessage = '';
-        switch (action.type) {
-          case 'createInput': {
-            const { inputName, inputKind, inputSettings, sceneItemEnabled } = action;
-            let { sceneName } = action;
-            if (sceneName && !obsData.scenes.find((s: OBSScene) => s.sceneName === sceneName)) {
-              sceneName = obsData.currentProgramScene || undefined;
+      return new Promise<ActionResult>((resolve) => {
+        const { openDialog } = useConfirmationStore.getState();
+
+        openDialog({
+          title: 'Confirm AI Action',
+          description: `Are you sure you want to execute the following OBS action: ${action.type}?`,
+          onConfirm: async () => {
+            try {
+              if (!commandValidationService.validateObsAction(action)) {
+                throw new Error('Invalid or disallowed OBS action.');
+              }
+
+              let successMessage = '';
+              switch (action.type) {
+                case 'createInput': {
+                  const { inputName, inputKind, inputSettings, sceneItemEnabled } = action;
+                  let { sceneName } = action;
+                  if (sceneName && !obsData.scenes.find((s: OBSScene) => s.sceneName === sceneName)) {
+                    sceneName = obsData.currentProgramScene || undefined;
+                  }
+                  
+                  const params = {
+                    inputName,
+                    inputKind,
+                    inputSettings,
+                    sceneName,
+                    sceneItemEnabled,
+                  };
+
+                  await obsService.call('CreateInput', params);
+                  successMessage = `Successfully created input "${inputName}" of kind "${inputKind}".`;
+                  break;
+                }
+
+                case 'setInputSettings': {
+                  const { inputName, inputSettings, overlay } = action;
+                  await obsService.call('SetInputSettings', { inputName, inputSettings, overlay });
+                  successMessage = `Successfully updated settings for input "${inputName}".`;
+                  break;
+                }
+
+                case 'setSceneItemEnabled': {
+                  const { sceneName, sourceName, sceneItemEnabled } = action;
+                  const { sceneItems } = await obsService.call<{ sceneItems: { sourceName: string, sceneItemId: number }[] }>('GetSceneItemList', { sceneName });
+                  const sceneItem = sceneItems.find(item => item.sourceName === sourceName);
+                  
+                  if (!sceneItem) {
+                    throw new Error(`Source "${sourceName}" not found in scene "${sceneName}"`);
+                  }
+                  
+                  const enabledValue = typeof sceneItemEnabled === 'boolean' ? sceneItemEnabled : false;
+                  await obsService.call('SetSceneItemEnabled', { sceneName, sceneItemId: sceneItem.sceneItemId, sceneItemEnabled: enabledValue });
+                  successMessage = `Successfully ${enabledValue ? 'enabled' : 'disabled'} "${sourceName}" in scene "${sceneName}".`;
+                  break;
+                }
+
+                default: {
+                  const unknownActionType = (action as { type: string }).type;
+                  throw new Error(`Unsupported OBS action type: ${unknownActionType}`);
+                }
+              }
+
+              await onRefreshData();
+
+              resolve({
+                success: true,
+                message: successMessage,
+              });
+            } catch (err: unknown) {
+              const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+              logger.error(`OBS Action "${action.type}" failed:`, err);
+              setErrorMessage(`OBS Action "${action.type}" failed: ${errorMessage}`);
+
+              resolve({
+                success: false,
+                message: errorMessage,
+                error: errorMessage,
+              });
             }
-            
-            const params = {
-              inputName,
-              inputKind,
-              inputSettings,
-              sceneName,
-              sceneItemEnabled,
-            };
-
-            await obsService.call('CreateInput', params);
-            successMessage = `Successfully created input "${inputName}" of kind "${inputKind}".`;
-            break;
-          }
-
-          case 'setInputSettings': {
-            const { inputName, inputSettings, overlay } = action;
-            await obsService.call('SetInputSettings', { inputName, inputSettings, overlay });
-            successMessage = `Successfully updated settings for input "${inputName}".`;
-            break;
-          }
-
-          case 'setSceneItemEnabled': {
-            const { sceneName, sourceName, sceneItemEnabled } = action;
-            const { sceneItems } = await obsService.call<{ sceneItems: { sourceName: string, sceneItemId: number }[] }>('GetSceneItemList', { sceneName });
-            const sceneItem = sceneItems.find(item => item.sourceName === sourceName);
-            
-            if (!sceneItem) {
-              throw new Error(`Source "${sourceName}" not found in scene "${sceneName}"`);
-            }
-            
-            const enabledValue = typeof sceneItemEnabled === 'boolean' ? sceneItemEnabled : false;
-            await obsService.call('SetSceneItemEnabled', { sceneName, sceneItemId: sceneItem.sceneItemId, sceneItemEnabled: enabledValue });
-            successMessage = `Successfully ${enabledValue ? 'enabled' : 'disabled'} "${sourceName}" in scene "${sceneName}".`;
-            break;
-          }
-
-          default: {
-            const unknownActionType = (action as { type: string }).type;
-            throw new Error(`Unsupported OBS action type: ${unknownActionType}`);
-          }
-        }
-
-        await onRefreshData();
-
-        return {
-          success: true,
-          message: successMessage,
-        };
-      } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-        logger.error(`OBS Action "${action.type}" failed:`, err);
-        setErrorMessage(`OBS Action "${action.type}" failed: ${errorMessage}`);
-
-        return {
-          success: false,
-          message: errorMessage,
-          error: errorMessage,
-        };
-      }
+          },
+        });
+      });
     },
     [obsService, obsData, onRefreshData, setErrorMessage],
   );
@@ -140,7 +155,6 @@ export const useObsActions = ({
       streamingHandlers?.onData?.(executingDataPart);
     }
 
-    // Execute the actual action
     const result = await handleObsAction(action);
 
     if (aiSdk5Config.enableDataParts && emitDataPart) {
@@ -167,7 +181,6 @@ export const useObsActions = ({
     streamingHandlers?: StreamingHandlers
   ) => {
     logger.warn('Streamer.bot action handler not yet implemented in useObsActions.');
-    // TODO: Implement actual Streamer.bot service integration here
 
     if (aiSdk5Config.enableDataParts && emitDataPart) {
       const pendingDataPart: SupportedDataPart = {
@@ -194,7 +207,6 @@ export const useObsActions = ({
     }
 
     try {
-      // Simulate a delay for the action
       await new Promise(resolve => setTimeout(resolve, 1000));
        
       if (aiSdk5Config.enableDataParts && emitDataPart) {
