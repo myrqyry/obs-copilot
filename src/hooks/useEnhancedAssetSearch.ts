@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { StandardApiItem, SearchFilters } from '@/types/assetSearch';
 import { apiMappers } from '@/config/enhancedApiMappers';
-import useApiKeyStore from '@/store/apiKeyStore';
+import useConfigStore from '@/store/configStore';
 import { toast } from '@/components/ui/use-toast';
 
 interface UseEnhancedAssetSearchReturn {
@@ -31,7 +31,7 @@ export const useEnhancedAssetSearch = (apiType: string): UseEnhancedAssetSearchR
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
-  const apiKeys = useApiKeyStore.getState();
+  const config = useConfigStore.getState();
 
   const buildApiUrl = useCallback((query: string, filters: SearchFilters = {}) => {
     const endpoint = API_ENDPOINTS[apiType as keyof typeof API_ENDPOINTS];
@@ -56,21 +56,21 @@ export const useEnhancedAssetSearch = (apiType: string): UseEnhancedAssetSearchR
       case 'pixabay':
         params.append('q', query);
         params.append('per_page', '30');
-        params.append('key', apiKeys.PIXABAY_API_KEY || '');
+        params.append('key', config.PIXABAY_API_KEY || '');
         if (filters.category) params.append('category', filters.category);
         break;
 
       case 'giphy':
         params.append('q', query);
         params.append('limit', '30');
-        params.append('api_key', apiKeys.GIPHY_API_KEY || '');
+        params.append('api_key', config.GIPHY_API_KEY || '');
         if (filters.rating) params.append('rating', filters.rating);
         break;
 
       case 'tenor':
         params.append('q', query);
         params.append('limit', '30');
-        params.append('key', apiKeys.TENOR_API_KEY || '');
+        params.append('key', config.TENOR_API_KEY || '');
         if (filters.contentfilter) params.append('contentfilter', filters.contentfilter);
         break;
 
@@ -91,7 +91,7 @@ export const useEnhancedAssetSearch = (apiType: string): UseEnhancedAssetSearchR
     }
 
     return `${endpoint}?${params.toString()}`;
-  }, [apiType, apiKeys]);
+  }, [apiType, config]);
 
   const buildHeaders = useCallback(() => {
     const headers: Record<string, string> = {
@@ -100,32 +100,32 @@ export const useEnhancedAssetSearch = (apiType: string): UseEnhancedAssetSearchR
 
     switch (apiType) {
       case 'unsplash':
-        if (apiKeys.UNSPLASH_ACCESS_KEY) {
-          headers['Authorization'] = `Client-ID ${apiKeys.UNSPLASH_ACCESS_KEY}`;
+        if (config.UNSPLASH_ACCESS_KEY) {
+          headers['Authorization'] = `Client-ID ${config.UNSPLASH_ACCESS_KEY}`;
         }
         break;
 
       case 'pexels':
-        if (apiKeys.PEXELS_API_KEY) {
-          headers['Authorization'] = apiKeys.PEXELS_API_KEY;
+        if (config.PEXELS_API_KEY) {
+          headers['Authorization'] = config.PEXELS_API_KEY;
         }
         break;
 
       case 'iconfinder':
-        if (apiKeys.ICONFINDER_API_KEY) {
-          headers['Authorization'] = `Bearer ${apiKeys.ICONFINDER_API_KEY}`;
+        if (config.ICONFINDER_API_KEY) {
+          headers['Authorization'] = `Bearer ${config.ICONFINDER_API_KEY}`;
         }
         break;
 
       case 'deviantart':
-        if (apiKeys.DEVIANTART_CLIENT_ID) {
-          headers['Authorization'] = `Bearer ${apiKeys.DEVIANTART_CLIENT_ID}`;
+        if (config.DEVIANTART_CLIENT_ID) {
+          headers['Authorization'] = `Bearer ${config.DEVIANTART_CLIENT_ID}`;
         }
         break;
     }
 
     return headers;
-  }, [apiType, apiKeys]);
+  }, [apiType, config]);
 
   const search = useCallback(async (query: string, filters: SearchFilters = {}) => {
     if (!query.trim()) return;

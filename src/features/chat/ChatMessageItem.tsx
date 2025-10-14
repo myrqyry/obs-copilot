@@ -10,7 +10,7 @@ import {
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { gsap } from 'gsap';
 import { getRandomSuggestions } from '@/constants/chatSuggestions';
-import useSettingsStore from '@/store/settingsStore';
+import useConfigStore from '@/store/configStore';
 import { Tooltip } from "@/components/ui";
 import { Message, MessageContent } from '@/components/ai-elements';
 import { Sources, SourcesTrigger, SourcesContent, Source } from '@/components/ai-elements/source';
@@ -60,8 +60,8 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     const prevShrunkRef = useRef<boolean | null>(null);
     const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const accentColorName = useSettingsStore(state => state.theme.accent);
-    const secondaryAccentColorName = useSettingsStore(state => state.theme.secondaryAccent);
+    const accentColorName = useConfigStore(state => state.theme.accent);
+    const secondaryAccentColorName = useConfigStore(state => state.theme.secondaryAccent);
 
     const memoizedSuggestions = useMemo(() => getRandomSuggestions(4), [message.id]);
 

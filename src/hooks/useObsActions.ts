@@ -5,7 +5,7 @@ import type { OBSData, OBSScene, SupportedDataPart, StreamingHandlers } from '@/
 import { logger } from '../utils/logger';
 import { aiSdk5Config } from '@/config';
 import { commandValidationService } from '@/services/commandValidationService';
-import { useConfirmationStore } from '@/store/confirmationStore';
+import useUiStore from '@/store/uiStore';
 
 interface UseObsActionsProps {
   obsService: ObsClientImpl;
@@ -38,9 +38,9 @@ export const useObsActions = ({
   const handleObsAction = useCallback(
     async (action: ObsAction): Promise<ActionResult> => {
       return new Promise<ActionResult>((resolve) => {
-        const { openDialog } = useConfirmationStore.getState();
+        const { showConfirmation } = useUiStore.getState();
 
-        openDialog({
+        showConfirmation({
           title: 'Confirm AI Action',
           description: `Are you sure you want to execute the following OBS action: ${action.type}?`,
           onConfirm: async () => {

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/Button';
-import useSettingsStore from '../../store/settingsStore';
+import useConfigStore from '../../store/configStore';
 import { useOverlaysStore } from '../../store/overlaysStore';
 import { CollapsibleCard } from '@/components/common/CollapsibleCard';
 import { ThemeChooser } from '@/components/common/ThemeChooser';
@@ -58,7 +58,7 @@ const SettingsTab: React.FC = () => {
     bubbleFillOpacity,
     chatBubbleBlendMode,
 
-    } = useSettingsStore();
+    } = useConfigStore();
     const { regenerateChatOverlay } = useOverlaysStore();
     const { theme } = useTheme();
 

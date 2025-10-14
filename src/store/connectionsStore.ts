@@ -49,9 +49,8 @@ const sanitizeOBSUrl = (input: string): { url: string; error?: string } => {
 export interface ConnectionState {
   // Live OBS Connection State
   obs: ObsClientImpl | null;
-  isConnected: boolean;
+  obsStatus: ConnectionStatus;
   connectionError: string | null;
-  isLoading: boolean;
   scenes: OBSScene[];
   currentProgramScene: string | null;
   sources: OBSSource[];
@@ -122,8 +121,7 @@ const useConnectionsStore = create<ConnectionState>()(
 
       const statusUnsub = obsClient.addStatusListener((status: ConnectionStatus) => {
         set({
-          isConnected: status === 'connected',
-          isLoading: status === 'connecting' || status === 'reconnecting',
+          obsStatus: status,
           connectionError: status === 'error' ? 'Connection failed' : null,
         });
     
@@ -189,9 +187,8 @@ const useConnectionsStore = create<ConnectionState>()(
 
       return {
         obs: obsClient,
-        isConnected: false,
+        obsStatus: 'disconnected',
         connectionError: null,
-        isLoading: false,
         scenes: [],
         currentProgramScene: null,
         sources: [],
@@ -210,13 +207,13 @@ const useConnectionsStore = create<ConnectionState>()(
         cleanup,
 
         connectToObs: async (url: string, password?: string) => {
-          set({ isLoading: true, connectionError: null });
+          set({ obsStatus: 'connecting', connectionError: null });
 
           const { url: sanitized, error: reason } = sanitizeOBSUrl(url);
 
           if (!sanitized) {
             const errorMsg = `Invalid OBS URL: ${reason}`;
-            set({ isLoading: false, connectionError: errorMsg, isConnected: false });
+            set({ obsStatus: 'error', connectionError: errorMsg });
             toast({
               title: "Connection Failed",
               description: errorMsg,
@@ -234,10 +231,10 @@ const useConnectionsStore = create<ConnectionState>()(
 
           try {
             await obsClient.connect(sanitized, password);
-            set({ isLoading: false, isConnected: true, connectionError: null });
+            // The status will be updated by the listener, so we don't set it here.
           } catch (error: any) {
             const errorMsg = error instanceof ObsError ? error.message : `Connection failed: ${error.message || 'Unknown error'}`;
-            set({ connectionError: errorMsg, isLoading: false, isConnected: false });
+            set({ obsStatus: 'error', connectionError: errorMsg });
             toast({
               title: "OBS Connection Failed",
               description: errorMsg,
@@ -249,9 +246,8 @@ const useConnectionsStore = create<ConnectionState>()(
         disconnectFromObs: async () => {
           await obsClient.disconnect();
           set({
-            isConnected: false,
+            obsStatus: 'disconnected',
             connectionError: null,
-            isLoading: false,
             streamStatus: null,
             recordStatus: null,
             videoSettings: null,
@@ -342,8 +338,9 @@ const useConnectionsStore = create<ConnectionState>()(
 );
 
 export const createConnectionSelectors = () => ({
-  isConnected: (state: ConnectionState) => state.isConnected,
-  isLoading: (state: ConnectionState) => state.isLoading,
+  obsStatus: (state: ConnectionState) => state.obsStatus,
+  isConnected: (state: ConnectionState) => state.obsStatus === 'connected',
+  isLoading: (state: ConnectionState) => state.obsStatus === 'connecting' || state.obsStatus === 'reconnecting',
   connectionError: (state: ConnectionState) => state.connectionError,
   scenes: (state: ConnectionState) => state.scenes,
   currentProgramScene: (state: ConnectionState) => state.currentProgramScene,

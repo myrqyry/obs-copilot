@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
 import { allPlugins } from '@/plugins';
-import useSettingsStore from '@/store/settingsStore';
+import useConfigStore from '@/store/configStore';
 import { TabPlugin } from '@/types/plugins';
 import { useHealthStatus } from './useHealthStatus';
 
 export const usePlugins = () => {
-  const { twitchChatPluginEnabled, automationPluginEnabled, streamingAssetsPluginEnabled, createPluginEnabled, connectionsPluginEnabled, obsStudioPluginEnabled, geminiPluginEnabled, settingsPluginEnabled, advancedPluginEnabled, emoteWallPluginEnabled } = useSettingsStore();
+  const { twitchChatPluginEnabled, automationPluginEnabled, streamingAssetsPluginEnabled, createPluginEnabled, connectionsPluginEnabled, obsStudioPluginEnabled, geminiPluginEnabled, settingsPluginEnabled, advancedPluginEnabled, emoteWallPluginEnabled } = useConfigStore();
   const { reports } = useHealthStatus();
 
   const filteredPlugins = useMemo(() => {
@@ -34,7 +34,7 @@ export const usePlugins = () => {
       plugins = plugins.filter(p => !['gemini', 'create'].includes(p.id));
     }
 
-    const tabOrder = useSettingsStore.getState().tabOrder as string[] | undefined;
+    const tabOrder = useConfigStore.getState().tabOrder as string[] | undefined;
 
     if (!tabOrder || tabOrder.length === 0) return plugins;
 
@@ -64,7 +64,7 @@ export const usePlugins = () => {
     advancedPluginEnabled,
     emoteWallPluginEnabled,
     reports,
-    useSettingsStore.getState().tabOrder,
+    useConfigStore.getState().tabOrder,
   ]);
 
   return filteredPlugins;

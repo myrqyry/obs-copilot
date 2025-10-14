@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import useSettingsStore from './settingsStore';
+import useConfigStore from './configStore';
 import { OverlayConfig } from '@/types/overlay';
 import { generateOverlay } from '@/services/overlayService';
 import { generateChatOverlayHTML, saveChatOverlayHTML } from '@/lib/chatOverlayUtils';
@@ -70,7 +70,7 @@ export const useOverlaysStore = create<OverlaysStore>()(
 
       regenerateChatOverlay: async () => {
         const { setLoading, setError } = get();
-        const settings = useSettingsStore.getState();
+        const settings = useConfigStore.getState();
         setLoading(true);
         setError(null);
         try {

@@ -4,31 +4,36 @@ import React, { useRef, useEffect } from 'react';
 import { gsap } from 'gsap';
 import { prefersReducedMotion } from '@/lib/utils';
 
+import useConnectionsStore from '@/store/connectionsStore';
+import { ConnectionStatus } from '@/services/obsClient';
+
 interface ConnectionStatusIconProps {
-  isConnected: boolean;
-  isConnecting: boolean;
-  error: boolean;
-  onClick?: () => void; // Make onClick optional
+  onClick?: () => void;
   className?: string;
 }
 
-export const ConnectionStatusIcon: React.FC<ConnectionStatusIconProps> = ({ isConnected, isConnecting, error, onClick }) => {
+export const ConnectionStatusIcon: React.FC<ConnectionStatusIconProps> = ({ onClick }) => {
+  const status = useConnectionsStore(state => state.obsStatus);
   const statusDotRef = useRef<HTMLDivElement>(null);
   const statusBtnRef = useRef<HTMLButtonElement>(null);
 
-  let dotColor = 'bg-destructive'; // Default to red (disconnected/error)
-  let title = 'OBS Disconnected';
+  const getStatusInfo = (status: ConnectionStatus): { color: string; title: string; isConnecting: boolean } => {
+    switch (status) {
+      case 'connected':
+        return { color: 'bg-green-500', title: 'OBS Connected', isConnecting: false };
+      case 'connecting':
+        return { color: 'bg-yellow-500', title: 'OBS Connecting...', isConnecting: true };
+      case 'reconnecting':
+        return { color: 'bg-yellow-500', title: 'OBS Reconnecting...', isConnecting: true };
+      case 'error':
+        return { color: 'bg-destructive', title: 'OBS Connection Error', isConnecting: false };
+      case 'disconnected':
+      default:
+        return { color: 'bg-destructive', title: 'OBS Disconnected', isConnecting: false };
+    }
+  };
 
-  if (isConnecting) {
-    dotColor = 'bg-yellow-500';
-    title = 'OBS Connecting...';
-  } else if (isConnected) {
-    dotColor = 'bg-green-500';
-    title = 'OBS Connected';
-  } else if (error) {
-    dotColor = 'bg-destructive';
-    title = 'OBS Connection Error';
-  }
+  const { color: dotColor, title, isConnecting } = getStatusInfo(status);
 
   useEffect(() => {
     const dot = statusDotRef.current;

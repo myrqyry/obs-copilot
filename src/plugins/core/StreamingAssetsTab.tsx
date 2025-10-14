@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { EnhancedAssetSearch } from '@/components/asset-search/EnhancedAssetSearch';
 import { AssetSettingsPanel } from '@/components/asset-search/AssetSettingsPanel';
 import { getConfigsByCategory } from '@/config/assetSearchConfigs';
-import useApiKeyStore from '@/store/apiKeyStore';
+import useConfigStore from '@/store/configStore';
 
 interface CategoryInfo {
   id: string;
@@ -66,7 +66,7 @@ const categoryInfoMap: Record<string, CategoryInfo> = {
 const StreamingAssetsTab: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState('backgrounds');
   const [showSettings, setShowSettings] = useState(false);
-  const apiKeys = useApiKeyStore();
+  const config = useConfigStore();
 
   const categoryConfigs = useMemo(() => {
     return getConfigsByCategory(activeCategory as any);
@@ -75,11 +75,11 @@ const StreamingAssetsTab: React.FC = () => {
   const missingApiKeys = useMemo(() => {
     return categoryConfigs
       .filter(config => config.requiresAuth)
-      .filter(config => {
-        const keyName = `${config.value.toUpperCase()}_API_KEY`;
-        return !apiKeys[keyName as keyof typeof apiKeys];
+      .filter(serviceConfig => {
+        const keyName = `${serviceConfig.value.toUpperCase()}_API_KEY`;
+        return !config[keyName as keyof typeof config];
       });
-  }, [categoryConfigs, apiKeys]);
+  }, [categoryConfigs, config]);
 
   const currentCategoryInfo = categoryInfoMap[activeCategory];
 
@@ -111,8 +111,8 @@ const StreamingAssetsTab: React.FC = () => {
                 <div className="flex">
                   {Object.values(categoryInfoMap).map(category => {
                     const configs = getConfigsByCategory(category.id as any);
-                    const hasApiKeys = configs.every(config =>
-                      !config.requiresAuth || apiKeys[`${config.value.toUpperCase()}_API_KEY` as keyof typeof apiKeys]
+                    const hasApiKeys = configs.every(serviceConfig =>
+                      !serviceConfig.requiresAuth || config[`${serviceConfig.value.toUpperCase()}_API_KEY` as keyof typeof config]
                     );
 
                     return (
