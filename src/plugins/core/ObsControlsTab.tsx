@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import useConnectionsStore from '@/store/connectionsStore';
-import useWidgetStore, { useWidgetSelection } from '@/features/obs-control/widgetStore';
+import useWidgetStore from '@/features/obs-control/widgetStore';
 import UniversalWidgetEngine from '@/features/obs-control/UniversalWidgetEngine';
 import { WidgetPalette } from './components/WidgetPalette';
 import { WidgetConfigPanel } from './components/WidgetConfigPanel';
@@ -23,23 +23,56 @@ const ObsControlsTab: React.FC<ObsControlsTabProps> = () => {
   const {
     widgets,
     widgetGroups,
+    layouts,
     selectedWidgetId,
     registerWidget,
     selectWidget,
     createWidgetGroup,
-    updateWidgetGroup
+    updateWidgetGroup,
+    setLayouts,
   } = useWidgetStore();
+
+  const handleExport = () => {
+    const state = useWidgetStore.getState();
+    const serializableState = {
+      widgets: Array.from(state.widgets.entries()),
+      widgetGroups: state.widgetGroups,
+      layouts: state.layouts,
+    };
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(serializableState, null, 2));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", "dashboard-layout.json");
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+  };
+
+  const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const importedState = JSON.parse(e.target?.result as string);
+          const { widgets, widgetGroups, layouts } = importedState;
+          useWidgetStore.setState({
+            widgets: new Map(widgets),
+            widgetGroups,
+            layouts,
+          });
+        } catch (error) {
+          console.error("Error importing layout:", error);
+          // Optionally, show an error to the user
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showPalette, setShowPalette] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
-  const [layouts, setLayouts] = useState<{ [key: string]: Layout[] }>({
-    lg: [],
-    md: [],
-    sm: [],
-    xs: [],
-    xxs: []
-  });
   const [activeGroup, setActiveGroup] = useState<string>('default');
 
   // Memoized widget list for performance
@@ -60,9 +93,7 @@ const ObsControlsTab: React.FC<ObsControlsTabProps> = () => {
   // Handle layout change
   const handleLayoutChange = useCallback((layout: Layout[], allLayouts: { [key: string]: Layout[] }) => {
     setLayouts(allLayouts);
-    // Save layout to local storage or backend
-    localStorage.setItem('obs-controls-layout', JSON.stringify(allLayouts));
-  }, []);
+  }, [setLayouts]);
 
   // Handle widget selection
   const handleWidgetSelect = useCallback((widgetId: string) => {
@@ -146,6 +177,18 @@ const ObsControlsTab: React.FC<ObsControlsTabProps> = () => {
             >
               <Settings className="w-4 h-4 mr-2" />
               Configure
+            </Button>
+
+            <Button variant="outline" size="sm" onClick={handleExport}>
+              <Download className="w-4 h-4 mr-2" />
+              Export
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <label htmlFor="import-layout">
+                <Upload className="w-4 h-4 mr-2" />
+                Import
+                <input type="file" id="import-layout" className="hidden" onChange={handleImport} accept=".json" />
+              </label>
             </Button>
           </div>
         </div>
