@@ -415,7 +415,17 @@ export class ObsClientImpl {
     try {
       const params: Record<string, any> = {};
       if (config.targetName) params.inputName = config.targetName;
-      if (config.targetType === 'scene' && config.targetName) params.sceneName = config.g.actionType}`);
+      if (config.targetType === 'scene' && config.targetName) {
+        params.sceneName = config.targetName;
+      }
+      if (value !== undefined && value !== null) {
+        // This part is unclear from the original code, but we can assume
+        // the value should be passed in a generic `value` parameter.
+        params.value = value;
+      }
+      await this.call(config.action.requestType, params);
+    } catch (error) {
+      const errorMsg = handleAppError(`OBS widget action ${config.action.requestType}`, error, `Failed to execute OBS widget action: ${config.action.requestType}`);
       useUiStore.getState().addError({ message: errorMsg, source: 'obsClient', level: 'error' });
       throw new ObsError(errorMsg);
     }
