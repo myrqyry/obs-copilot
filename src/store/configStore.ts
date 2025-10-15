@@ -49,7 +49,6 @@ export interface ConfigState extends ApiKeyState {
     modelChatBubble: string;
   };
   extraDarkMode: boolean;
-  flipSides: boolean;
   setTheme: (themeName: string) => void;
   setThemeBase: (base: 'light' | 'dark' | 'system') => void;
   setAccent: (accent: CatppuccinAccentColorName) => void;
@@ -57,7 +56,6 @@ export interface ConfigState extends ApiKeyState {
   setUserChatBubble: (color: string) => void;
   setModelChatBubble: (color: string) => void;
   setExtraDarkMode: (value: boolean) => void;
-  setFlipSides: (flipped: boolean) => void;
 
   // Chat Appearance
   autoApplySuggestions: boolean;
@@ -149,7 +147,6 @@ const useConfigStore = create<ConfigState>()(
         modelChatBubble: 'mauve',
       },
       extraDarkMode: false,
-      flipSides: false,
       setTheme: (name) => set((state) => ({ theme: { ...state.theme, name } })),
       setThemeBase: (base) => set((state) => ({ theme: { ...state.theme, base } })),
       setAccent: (accent) => set((state) => ({ theme: { ...state.theme, accent } })),
@@ -157,7 +154,6 @@ const useConfigStore = create<ConfigState>()(
       setUserChatBubble: (userChatBubble) => set((state) => ({ theme: { ...state.theme, userChatBubble } })),
       setModelChatBubble: (modelChatBubble) => set((state) => ({ theme: { ...state.theme, modelChatBubble } })),
       setExtraDarkMode: (value) => set({ extraDarkMode: value }),
-      setFlipSides: (flipped) => set({ flipSides: flipped }),
 
       // Chat Appearance
       autoApplySuggestions: true,

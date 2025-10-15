@@ -12,19 +12,35 @@ interface ConnectionPanelProps {
 }
 
 export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({ connection, onEdit, onDelete }) => {
-  const { 
-    activeConnectionId, 
-    connectToObs, 
-    disconnectFromObs, 
-    connectToStreamerBot, 
+  const {
+    activeConnectionId,
+    connectToObs,
+    disconnectFromObs,
+    connectToStreamerBot,
     disconnectFromStreamerBot,
-    isConnected: isObsConnected, // isConnected status for OBS
-    isLoading: isObsLoading, // isLoading status for OBS
-    isStreamerBotConnected, // isConnected status for StreamerBot
-    isStreamerBotLoading, // isLoading status for StreamerBot
-  } = useConnectionsStore();
+    setActiveConnectionId,
+    obsStatus,
+    connectionError,
+    isStreamerBotConnected,
+    isStreamerBotLoading,
+    streamerBotConnectionError,
+  } = useConnectionsStore(state => ({
+    activeConnectionId: state.activeConnectionId,
+    connectToObs: state.connectToObs,
+    disconnectFromObs: state.disconnectFromObs,
+    connectToStreamerBot: state.connectToStreamerBot,
+    disconnectFromStreamerBot: state.disconnectFromStreamerBot,
+    setActiveConnectionId: state.setActiveConnectionId,
+    obsStatus: state.obsStatus,
+    connectionError: state.connectionError,
+    isStreamerBotConnected: state.isStreamerBotConnected,
+    isStreamerBotLoading: state.isStreamerBotLoading,
+    streamerBotConnectionError: state.streamerBotConnectionError,
+  }));
 
   const isCurrentConnection = activeConnectionId === connection.id;
+  const isObsConnected = obsStatus === 'connected';
+  const isObsLoading = obsStatus === 'connecting' || obsStatus === 'reconnecting';
 
   const handleConnectToggle = async () => {
     if (isCurrentConnection) {
@@ -33,18 +49,20 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({ connection, on
       } else if (connection.type === 'streamerbot') {
         disconnectFromStreamerBot();
       }
-      useConnectionsStore.getState().setActiveConnectionId(null);
+      setActiveConnectionId(null);
     } else {
       if (connection.type === 'obs') {
         await connectToObs((connection as ObsConnectionProfile).url, (connection as ObsConnectionProfile).password);
       } else if (connection.type === 'streamerbot') {
         await connectToStreamerBot((connection as StreamerbotConnectionProfile).host, (connection as StreamerbotConnectionProfile).port);
       }
+      // After attempting connection, check the store's state
+      const state = useConnectionsStore.getState();
       if (
-        (connection.type === 'obs' && useConnectionsStore.getState().isConnected) ||
-        (connection.type === 'streamerbot' && useConnectionsStore.getState().isStreamerBotConnected)
+        (connection.type === 'obs' && state.obsStatus === 'connected') ||
+        (connection.type === 'streamerbot' && state.isStreamerBotConnected)
       ) {
-        useConnectionsStore.getState().setActiveConnectionId(connection.id);
+        setActiveConnectionId(connection.id);
       }
     }
   };
@@ -53,13 +71,13 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({ connection, on
     let isConnected, isConnecting, hasError;
 
     if (connection.type === 'obs') {
-        isConnected = isObsConnected && isCurrentConnection;
-        isConnecting = isObsLoading && isCurrentConnection;
-        hasError = useConnectionsStore.getState().connectionError !== null && isCurrentConnection;
+      isConnected = isObsConnected && isCurrentConnection;
+      isConnecting = isObsLoading && isCurrentConnection;
+      hasError = connectionError !== null && isCurrentConnection;
     } else { // streamerbot
-        isConnected = isStreamerBotConnected && isCurrentConnection;
-        isConnecting = isStreamerBotLoading && isCurrentConnection;
-        hasError = useConnectionsStore.getState().streamerBotConnectionError !== null && isCurrentConnection;
+      isConnected = isStreamerBotConnected && isCurrentConnection;
+      isConnecting = isStreamerBotLoading && isCurrentConnection;
+      hasError = streamerBotConnectionError !== null && isCurrentConnection;
     }
 
     return (
@@ -67,7 +85,6 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({ connection, on
             isConnected={isConnected}
             isConnecting={isConnecting}
             error={hasError}
-            // onClick removed as it's now optional and not used here
         />
     );
   };
