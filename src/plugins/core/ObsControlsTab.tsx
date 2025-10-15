@@ -4,7 +4,7 @@ import { Plus, Settings, Save, Download, Upload, Grid, List } from 'lucide-react
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '@/components/ui';
 import useConnectionsStore from '@/store/connectionsStore';
 import useWidgetStore from '@/features/obs-control/widgetStore';
 import UniversalWidgetEngine from '@/features/obs-control/UniversalWidgetEngine';

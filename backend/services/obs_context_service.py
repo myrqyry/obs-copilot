@@ -49,7 +49,7 @@ Always respond with a JSON object containing:
         Places large, common content at the beginning.
         """
         # Large, stable context first (more likely to be cached)
-        context_prefix = f\"\"\"
+        context_prefix = f"""
 {self.base_system_instruction}
 
 CURRENT OBS STATE:
@@ -66,5 +66,5 @@ RECENT COMMANDS (last 5):
 USER REQUEST: "{user_input}"
 
 Analyze the request and provide the appropriate OBS commands:
-\"\"\"
+"""
         return context_prefix

@@ -415,8 +415,25 @@ export class ObsClientImpl {
     try {
       const params: Record<string, any> = {};
       if (config.targetName) params.inputName = config.targetName;
-      if (config.targetType === 'scene' && config.targetName) params.sceneName = config.g.actionType}`);
-      useUiStore.getState().addError({ message: errorMsg, source: 'obsClient', level: 'error' });
+      if (config.targetType === 'scene' && config.targetName) params.sceneName = config.targetName;
+      if (config.property) params.property = config.property;
+      if (typeof value !== 'undefined') params.value = value;
+
+      // Use the actionType as the OBS method if it's a string matching OBS API
+      const method = config.actionType || '';
+
+      // If OBS is connected, call immediately, otherwise queue via this.call
+      await this.call(method, params);
+    } catch (error: any) {
+      const errorMsg = handleAppError('OBS executeWidgetAction', error, `Failed to execute widget action ${config.actionType}`);
+      // Add UI-level error if store is available (non-critical if missing)
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const { useUiStore } = require('@/store/uiStore');
+        useUiStore.getState().addError({ message: errorMsg, source: 'obsClient', level: 'error' });
+      } catch (e) {
+        // fallback if uiStore isn't importable in this context
+      }
       throw new ObsError(errorMsg);
     }
   }

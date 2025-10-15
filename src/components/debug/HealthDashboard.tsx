@@ -1,9 +1,6 @@
 import React from 'react';
 import { useHealthStatus, HealthReport, ServiceStatus } from '@/hooks/useHealthStatus';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+import { Button, Card, CardContent, CardHeader, CardTitle, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge } from '@/components/ui';
 import { formatDistanceToNow } from 'date-fns';
 
 const StatusIndicator: React.FC<{ status: ServiceStatus }> = ({ status }) => {

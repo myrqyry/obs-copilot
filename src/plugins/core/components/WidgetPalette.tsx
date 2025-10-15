@@ -3,7 +3,7 @@ import { X, Search, Sliders, ToggleLeft, Volume2, Palette, Monitor } from 'lucid
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '@/components/ui';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { UniversalWidgetConfig, WidgetControlType } from '@/types/universalWidget';
 import useConnectionsStore from '@/store/connectionsStore';

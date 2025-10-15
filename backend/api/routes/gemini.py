@@ -9,7 +9,7 @@ from fastapi.responses import StreamingResponse
 from google import genai
 from google.genai import types
 from google.genai.errors import APIError as GenaiAPIError
-from google.api_core.exceptions import APIError
+from google.api_core.exceptions import GoogleAPIError
 
 # Rate limiting
 from slowapi import Limiter
@@ -56,8 +56,7 @@ def _initialize_gemini_client():
     global gemini_client
     try:
         # Use API key from centralized settings
-        genai.configure(api_key=settings.GEMINI_API_KEY)
-        gemini_client = genai.GenerativeModel
+        gemini_client = genai.Client()
         logger.info("Gemini client initialized successfully.")
     except Exception as e:
         logger.error(f"FATAL: Failed to initialize Gemini client: {e}", exc_info=True)
@@ -93,7 +92,7 @@ async def _async_stream_generator(response_iterator: any) -> AsyncGenerator[str,
                 yield f"data: {json.dumps({'type': 'chunk', 'data': chunk.text})}\n\n"
             if hasattr(chunk, 'usage_metadata') and chunk.usage_metadata:
                 total_tokens += chunk.usage_metadata.total_token_count
-    except APIError as e:
+    except GoogleAPIError as e:
         logger.error(f"Gemini API error during streaming: {e}")
         yield f"data: {json.dumps({'type': 'error', 'data': f'AI service error: {e.message}'})}\n\n"
     except Exception as e:
@@ -105,9 +104,8 @@ async def _async_stream_generator(response_iterator: any) -> AsyncGenerator[str,
 # --- API Endpoints ---
 @router.post("/stream")
 @limiter.limit("20/minute")
-async def stream_content(request: Request, stream_request: StreamRequest, client: genai.GenerativeModel = Depends(get_gemini_client)):
+async def stream_content(request: Request, stream_request: StreamRequest, client: genai.Client = Depends(get_gemini_client)):
     try:
-        model = client(stream_request.model)
         contents = []
         if stream_request.history:
             for msg in stream_request.history:
@@ -118,13 +116,13 @@ async def stream_content(request: Request, stream_request: StreamRequest, client
 
         # The initial call is blocking, so run it in the executor
         response_stream = await gemini_service.run_in_executor(
-            model.generate_content,
-            contents=contents,
-            stream=True
+            client.models.generate_content_stream,
+            model=stream_request.model,
+            contents=contents
         )
         
         return StreamingResponse(_async_stream_generator(response_stream), media_type="text/event-stream")
-    except (APIError, GenaiAPIError) as e:
+    except (GoogleAPIError, GenaiAPIError) as e:
         logger.error(f"Gemini API error in stream_content: {e}")
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"AI service error: {e.message}")
     except HTTPException:
@@ -133,15 +131,17 @@ async def stream_content(request: Request, stream_request: StreamRequest, client
         logger.error(f"Unexpected error in stream_content: {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred.")
 
-def _sync_generate_image(client: genai.GenerativeModel, request: EnhancedImageGenerateRequest):
+def _sync_generate_image(client: genai.Client, request: EnhancedImageGenerateRequest):
     """Synchronous helper for image generation to be run in an executor."""
     try:
         if request.imageInput and request.imageInputMimeType:
             # Image editing/remixing logic
             image_bytes = base64.b64decode(request.imageInput)
             image_part = types.Part.from_bytes(data=image_bytes, mime_type=request.imageInputMimeType)
-            model = client("gemini-2.5-flash-image-preview")
-            response = model.generate_content(contents=[image_part, request.prompt])
+            response = client.models.generate_content(
+                model="gemini-2.5-flash-image-preview",
+                contents=[image_part, request.prompt]
+            )
             
             images_data = []
             for part in response.candidates[0].content.parts:
@@ -153,20 +153,20 @@ def _sync_generate_image(client: genai.GenerativeModel, request: EnhancedImageGe
             return {"images": images_data, "model": "gemini-2.5-flash-image-preview"}
         else:
             # Standard image generation
-            model = client(request.model)
-            result = model.generate_content(
-                request.prompt,
-                generation_config=dict(
+            response = client.models.generate_content(
+                model=request.model,
+                contents=request.prompt,
+                config=types.GenerateContentConfig(
                     number_of_images=1,
                     response_mime_type=f"image/{request.imageFormat}",
                 ),
             )
             # Assuming the new SDK structure might return a single image part
-            img_part = result.candidates[0].content.parts[0]
+            img_part = response.candidates[0].content.parts[0]
             img_bytes = img_part.inline_data.data
             images = [{"data": base64.b64encode(img_bytes).decode(), "mime_type": img_part.inline_data.mime_type}]
             return {"images": images, "model": request.model}
-    except (APIError, GenaiAPIError, ValueError) as e:
+    except (GoogleAPIError, GenaiAPIError, ValueError) as e:
         # Catch specific, expected errors from the SDK
         logger.error(f"Gemini SDK error in _sync_generate_image: {e}")
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"AI service error: {str(e)}")
@@ -174,7 +174,7 @@ def _sync_generate_image(client: genai.GenerativeModel, request: EnhancedImageGe
 
 @router.post("/generate-image-enhanced")
 @limiter.limit("10/minute")
-async def generate_image_enhanced(request: Request, image_request: EnhancedImageGenerateRequest, client: genai.GenerativeModel = Depends(get_gemini_client)):
+async def generate_image_enhanced(request: Request, image_request: EnhancedImageGenerateRequest, client: genai.Client = Depends(get_gemini_client)):
     try:
         # Run the entire synchronous generation logic in the executor
         final_result = await gemini_service.run_in_executor(
@@ -190,14 +190,14 @@ async def generate_image_enhanced(request: Request, image_request: EnhancedImage
 
 @router.post("/generate-speech")
 @limiter.limit("30/minute")
-async def generate_speech(request: Request, speech_request: SpeechGenerateRequest, client: genai.GenerativeModel = Depends(get_gemini_client)):
+async def generate_speech(request: Request, speech_request: SpeechGenerateRequest, client: genai.Client = Depends(get_gemini_client)):
     try:
-        model = client("gemini-2.5-flash-preview-tts")
         # The SDK call is blocking, so we run it in the executor
         response = await gemini_service.run_in_executor(
-            model.generate_content,
-            speech_request.text,
-            generation_config=types.GenerationConfig(response_mime_type="audio/wav")
+            client.models.generate_content,
+            model="gemini-2.5-flash-preview-tts",
+            contents=speech_request.text,
+            config=types.GenerateContentConfig(response_mime_type="audio/wav")
         )
 
         audio_part = response.candidates[0].content.parts[0]
@@ -208,7 +208,7 @@ async def generate_speech(request: Request, speech_request: SpeechGenerateReques
             "format": "wav",
             "model": "gemini-2.5-flash-preview-tts"
         }
-    except (APIError, GenaiAPIError) as e:
+    except (GoogleAPIError, GenaiAPIError) as e:
         logger.error(f"Gemini API error in speech generation: {e}")
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"AI service error: {e.message}")
     except HTTPException:
@@ -233,7 +233,7 @@ context_builder = OBSContextBuilder()
 async def obs_aware_query(
     request: Request,
     obs_request: OBSAwareRequest,
-    client: genai.GenerativeModel = Depends(get_gemini_client)
+    client: genai.Client = Depends(get_gemini_client)
 ):
     """
     Enhanced endpoint that uses OBS context and caching for better performance
@@ -276,10 +276,10 @@ async def obs_aware_query(
         # Fallback to implicit caching with optimized prompt structure
         context_prompt = context_builder.build_context_prompt(obs_state, obs_request.prompt)
 
-        model = client(obs_request.model)
         response = await gemini_service.run_in_executor(
-            model.generate_content,
-            context_prompt
+            client.models.generate_content,
+            model=obs_request.model,
+            contents=context_prompt
         )
 
         return {

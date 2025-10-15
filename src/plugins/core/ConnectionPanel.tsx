@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from "@/components/ui";
 import { ConnectionStatusIcon } from './ConnectionStatusIcon';
 import { ConnectionProfile, ObsConnectionProfile, StreamerbotConnectionProfile } from '@/types/connections';
-import useConnectionsStore from '@/store/connectionsStore';
+import useConnectionsStore, { selectIsObsConnected, selectIsObsLoading, selectObsError } from '@/store/connectionsStore';
 
 interface ConnectionPanelProps {
   connection: ConnectionProfile;
@@ -19,8 +19,6 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({ connection, on
     connectToStreamerBot,
     disconnectFromStreamerBot,
     setActiveConnectionId,
-    obsStatus,
-    connectionError,
     isStreamerBotConnected,
     isStreamerBotLoading,
     streamerBotConnectionError,
@@ -31,16 +29,16 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({ connection, on
     connectToStreamerBot: state.connectToStreamerBot,
     disconnectFromStreamerBot: state.disconnectFromStreamerBot,
     setActiveConnectionId: state.setActiveConnectionId,
-    obsStatus: state.obsStatus,
-    connectionError: state.connectionError,
     isStreamerBotConnected: state.isStreamerBotConnected,
     isStreamerBotLoading: state.isStreamerBotLoading,
     streamerBotConnectionError: state.streamerBotConnectionError,
   }));
 
+  // Use selectors for OBS connection status
   const isCurrentConnection = activeConnectionId === connection.id;
-  const isObsConnected = obsStatus === 'connected';
-  const isObsLoading = obsStatus === 'connecting' || obsStatus === 'reconnecting';
+  const isObsConnected = useConnectionsStore(selectIsObsConnected);
+  const isObsLoading = useConnectionsStore(selectIsObsLoading);
+  const obsError = useConnectionsStore(selectObsError);
 
   const handleConnectToggle = async () => {
     if (isCurrentConnection) {
@@ -51,42 +49,37 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({ connection, on
       }
       setActiveConnectionId(null);
     } else {
+      let result;
       if (connection.type === 'obs') {
-        await connectToObs((connection as ObsConnectionProfile).url, (connection as ObsConnectionProfile).password);
+        result = await connectToObs((connection as ObsConnectionProfile).url, (connection as ObsConnectionProfile).password);
       } else if (connection.type === 'streamerbot') {
-        await connectToStreamerBot((connection as StreamerbotConnectionProfile).host, (connection as StreamerbotConnectionProfile).port);
+        result = await connectToStreamerBot((connection as StreamerbotConnectionProfile).host, (connection as StreamerbotConnectionProfile).port);
       }
-      // After attempting connection, check the store's state
-      const state = useConnectionsStore.getState();
-      if (
-        (connection.type === 'obs' && state.obsStatus === 'connected') ||
-        (connection.type === 'streamerbot' && state.isStreamerBotConnected)
-      ) {
+      if (result && result.ok) {
         setActiveConnectionId(connection.id);
       }
+      // Optionally handle error: result?.error
     }
   };
 
   const getStatus = () => {
-    let isConnected, isConnecting, hasError;
-
     if (connection.type === 'obs') {
-      isConnected = isObsConnected && isCurrentConnection;
-      isConnecting = isObsLoading && isCurrentConnection;
-      hasError = connectionError !== null && isCurrentConnection;
-    } else { // streamerbot
-      isConnected = isStreamerBotConnected && isCurrentConnection;
-      isConnecting = isStreamerBotLoading && isCurrentConnection;
-      hasError = streamerBotConnectionError !== null && isCurrentConnection;
-    }
-
-    return (
+      return (
         <ConnectionStatusIcon
-            isConnected={isConnected}
-            isConnecting={isConnecting}
-            error={hasError}
+          isConnected={isObsConnected && isCurrentConnection}
+          isConnecting={isObsLoading && isCurrentConnection}
+          error={!!obsError && isCurrentConnection}
         />
-    );
+      );
+    } else {
+      return (
+        <ConnectionStatusIcon
+          isConnected={isStreamerBotConnected && isCurrentConnection}
+          isConnecting={isStreamerBotLoading && isCurrentConnection}
+          error={streamerBotConnectionError !== null && isCurrentConnection}
+        />
+      );
+    }
   };
 
 

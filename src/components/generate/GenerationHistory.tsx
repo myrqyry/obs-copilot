@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/Button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '@/components/ui';
 import { useGenerateStore } from '@/store/generateStore';
 import { X, Download, Trash2, Image, Mic } from 'lucide-react';
 

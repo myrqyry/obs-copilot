@@ -5,35 +5,68 @@ import { gsap } from 'gsap';
 import { prefersReducedMotion } from '@/lib/utils';
 
 import useConnectionsStore from '@/store/connectionsStore';
-import { ConnectionStatus } from '@/services/obsClient';
 
 interface ConnectionStatusIconProps {
   onClick?: () => void;
   className?: string;
+  isConnected?: boolean;
+  isConnecting?: boolean;
+  error?: boolean;
 }
 
-export const ConnectionStatusIcon: React.FC<ConnectionStatusIconProps> = ({ onClick }) => {
-  const status = useConnectionsStore(state => state.obsStatus);
-  const statusDotRef = useRef<HTMLDivElement>(null);
-  const statusBtnRef = useRef<HTMLButtonElement>(null);
+export const ConnectionStatusIcon: React.FC<ConnectionStatusIconProps> = ({ onClick, isConnected, isConnecting, error }) => {
+  // If status props are provided, use them; otherwise, fall back to store-driven OBS status
+  const storeStatus = useConnectionsStore(state => state.obsStatus);
+  let dotColor = 'bg-destructive';
+  let title = 'Disconnected';
+  let connecting = false;
 
-  const getStatusInfo = (status: ConnectionStatus): { color: string; title: string; isConnecting: boolean } => {
-    switch (status) {
+  if (typeof isConnected === 'boolean' || typeof isConnecting === 'boolean' || typeof error === 'boolean') {
+    if (error) {
+      dotColor = 'bg-destructive';
+      title = 'Connection Error';
+    } else if (isConnected) {
+      dotColor = 'bg-green-500';
+      title = 'Connected';
+    } else if (isConnecting) {
+      dotColor = 'bg-yellow-500';
+      title = 'Connecting...';
+      connecting = true;
+    } else {
+      dotColor = 'bg-destructive';
+      title = 'Disconnected';
+    }
+  } else {
+    // Fallback to OBS status from store
+    switch (storeStatus) {
       case 'connected':
-        return { color: 'bg-green-500', title: 'OBS Connected', isConnecting: false };
+        dotColor = 'bg-green-500';
+        title = 'OBS Connected';
+        break;
       case 'connecting':
-        return { color: 'bg-yellow-500', title: 'OBS Connecting...', isConnecting: true };
+        dotColor = 'bg-yellow-500';
+        title = 'OBS Connecting...';
+        connecting = true;
+        break;
       case 'reconnecting':
-        return { color: 'bg-yellow-500', title: 'OBS Reconnecting...', isConnecting: true };
+        dotColor = 'bg-yellow-500';
+        title = 'OBS Reconnecting...';
+        connecting = true;
+        break;
       case 'error':
-        return { color: 'bg-destructive', title: 'OBS Connection Error', isConnecting: false };
+        dotColor = 'bg-destructive';
+        title = 'OBS Connection Error';
+        break;
       case 'disconnected':
       default:
-        return { color: 'bg-destructive', title: 'OBS Disconnected', isConnecting: false };
+        dotColor = 'bg-destructive';
+        title = 'OBS Disconnected';
+        break;
     }
-  };
+  }
 
-  const { color: dotColor, title, isConnecting } = getStatusInfo(status);
+  const statusDotRef = useRef<HTMLDivElement>(null);
+  const statusBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const dot = statusDotRef.current;
@@ -52,7 +85,7 @@ export const ConnectionStatusIcon: React.FC<ConnectionStatusIconProps> = ({ onCl
     }
 
     if (dot) {
-      if (isConnecting && !prefersReducedMotion()) {
+      if (connecting && !prefersReducedMotion()) {
         try {
             gsap.to(dot, {
               scale: 1.5,
@@ -76,16 +109,16 @@ export const ConnectionStatusIcon: React.FC<ConnectionStatusIconProps> = ({ onCl
             if (button) gsap.killTweensOf(button);
         } catch(e) {}
     };
-  }, [isConnecting]);
+  }, [connecting]);
 
   return (
     <Tooltip content={title}>
       <button
         ref={statusBtnRef}
-        onClick={onClick} // Keep onClick, but allow it to be undefined
+        onClick={onClick}
         className="relative p-2 rounded-full hover:bg-muted focus-ring enhanced-focus transition-all duration-150 ease-in-out"
-        aria-label="Connection Status Icon" // Change label as it's not strictly for opening settings now
-        {...(onClick ? {} : {tabIndex: -1})} // Make it unfocusable if no onClick is provided
+        aria-label="Connection Status Icon"
+        {...(onClick ? {} : {tabIndex: -1})}
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-muted-foreground hover:text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
           <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
