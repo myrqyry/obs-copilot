@@ -37,6 +37,13 @@ export interface UiStore {
   // Global UI state
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
+  activeTab: string;
+  setActiveTab: (tabId: string) => void;
+  flipSides: boolean;
+  setFlipSides: (flipped: boolean) => void;
+  isErrorViewerOpen: boolean;
+  openErrorViewer: () => void;
+  closeErrorViewer: () => void;
 
   // Lock state management
   locks: Record<LockKey, boolean>;
@@ -67,6 +74,9 @@ const useUiStore = create<UiStore>()(
     (set, get) => ({
       // --- INITIAL STATE ---
       sidebarOpen: true,
+      activeTab: 'gemini',
+      flipSides: false,
+      isErrorViewerOpen: false,
       locks: {},
       errors: [],
       modals: [],
@@ -79,6 +89,10 @@ const useUiStore = create<UiStore>()(
 
       // --- ACTIONS ---
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
+      setActiveTab: (tabId) => set({ activeTab: tabId }),
+      setFlipSides: (flipped) => set({ flipSides: flipped }),
+      openErrorViewer: () => set({ isErrorViewerOpen: true }),
+      closeErrorViewer: () => set({ isErrorViewerOpen: false }),
 
       setLock: (key, locked) =>
         set((state) => ({
