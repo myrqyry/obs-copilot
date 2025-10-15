@@ -211,17 +211,20 @@ const UniversalWidgetEngine: React.FC<UniversalWidgetEngineProps> = ({ config, o
         );
       case WidgetControlType.METER:
         const meterValue = Number(config.state?.value) || 0;
+        const { min: meterMin = 0, max: meterMax = 100 } = config.valueMapping || {};
+        const percentage = meterMax > meterMin ? ((meterValue - meterMin) / (meterMax - meterMin)) * 100 : 0;
+        const clampedPercentage = Math.max(0, Math.min(100, percentage));
         return (
           <div className="space-y-2">
             <Label className="text-sm font-medium">{config.name}</Label>
             <div className="w-full bg-gray-200 rounded-full h-2.5">
               <div
                 className="bg-blue-600 h-2.5 rounded-full"
-                style={{ width: `${(meterValue / 100) * 100}%` }}
-                aria-label={`Meter ${config.name} at ${meterValue}%`}
+                style={{ width: `${clampedPercentage}%` }}
+                aria-label={`Meter ${config.name} at ${clampedPercentage.toFixed(0)}%`}
               ></div>
             </div>
-            <span className="text-xs text-gray-500">{meterValue}%</span>
+            <span className="text-xs text-gray-500">{clampedPercentage.toFixed(0)}%</span>
           </div>
         );
       case WidgetControlType.CHART:
@@ -266,4 +269,4 @@ const UniversalWidgetEngine: React.FC<UniversalWidgetEngineProps> = ({ config, o
   );
 };
 
-export default UniversalWidgetEngine;
+export default React.memo(UniversalWidgetEngine);

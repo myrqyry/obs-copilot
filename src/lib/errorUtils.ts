@@ -1,5 +1,5 @@
 import { logger } from '../utils/logger';
-import { useErrorStore, AppError } from '../store/errorStore';
+import useUiStore, { AppError } from '../store/uiStore';
 
 /**
  * Standardizes error handling for API calls and other operations.
