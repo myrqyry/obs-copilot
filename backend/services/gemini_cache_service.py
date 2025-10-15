@@ -7,8 +7,8 @@ from typing import Any, Dict, Optional
 import google.generativeai as genai
 from google.generativeai import types
 
-from ..config import settings
-from .gemini_service import gemini_service
+from config import settings
+from services.gemini_service import gemini_service
 
 logger = logging.getLogger(__name__)
 
@@ -21,8 +21,9 @@ class GeminiCacheService:
         # or should be handled by the environment.
         try:
             genai.configure(api_key=settings.GEMINI_API_KEY)
-            self.client = genai.Client()
-            logger.info("GeminiCacheService initialized and client configured.")
+            # self.client = genai.Client()  # Old SDK
+            self.client = None  # Disable caching for now
+            logger.info("GeminiCacheService initialized (caching disabled).")
         except Exception as e:
             logger.error(f"Failed to initialize GeminiCacheService client: {e}", exc_info=True)
             self.client = None

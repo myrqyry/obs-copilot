@@ -9,10 +9,24 @@ class Settings(BaseSettings):
     Validates and manages environment variables for the application.
     """
     GEMINI_API_KEY: str
-    BACKEND_API_KEY: str
+    ADMIN_API_KEY: str
     ALLOWED_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
     ENV: str = "development"
     LOG_LEVEL: str = "INFO"
+
+    # API Keys for third-party services
+    GIPHY_API_KEY: str | None = None
+    TENOR_API_KEY: str | None = None
+    ICONFINDER_API_KEY: str | None = None
+    UNSPLASH_API_KEY: str | None = None
+    PEXELS_API_KEY: str | None = None
+    PIXABAY_API_KEY: str | None = None
+    DEVIANTART_API_KEY: str | None = None
+    IMGFLIP_API_KEY: str | None = None
+    IMGUR_API_KEY: str | None = None
+
+    # Comma-separated list of valid API keys
+    API_KEYS: str | None = None
 
     # Redis Caching (optional, with defaults)
     REDIS_HOST: str = "localhost"

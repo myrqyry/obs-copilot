@@ -70,9 +70,9 @@ export interface ConnectionState {
   activeConnectionId: string | null;
 
   // Actions related to live connections
-  connectToObs: (url: string, password?: string) => Promise<void>;
+  connectToObs: (url: string, password?: string) => Promise<{ ok: boolean; error?: string }>;
   disconnectFromObs: () => Promise<void>;
-  connectToStreamerBot: (host: string, port: number) => Promise<void>;
+  connectToStreamerBot: (host: string, port: number) => Promise<{ ok: boolean; error?: string }>;
   disconnectFromStreamerBot: () => Promise<void>;
   cleanup: () => void;
 
@@ -207,41 +207,44 @@ const useConnectionsStore = create<ConnectionState>()(
         cleanup,
 
         connectToObs: async (url: string, password?: string) => {
-          set({ obsStatus: 'connecting', connectionError: null });
+  set({ obsStatus: 'connecting', connectionError: null });
 
-          const { url: sanitized, error: reason } = sanitizeOBSUrl(url);
+  const { url: sanitized, error: reason } = sanitizeOBSUrl(url);
 
-          if (!sanitized) {
-            const errorMsg = `Invalid OBS URL: ${reason}`;
-            set({ obsStatus: 'error', connectionError: errorMsg });
-            toast({
-              title: "Connection Failed",
-              description: errorMsg,
-              variant: "destructive"
-            });
-            return;
-          }
-          if (sanitized !== url.trim()) {
-            toast({
-              title: "URL Sanitized",
-              description: `Using corrected URL: ${sanitized}`,
-              variant: "default"
-            });
-          }
+  if (!sanitized) {
+    const errorMsg = `Invalid OBS URL: ${reason}`;
+    set({ obsStatus: 'error', connectionError: errorMsg });
+    toast({
+      title: "Connection Failed",
+      description: errorMsg,
+      variant: "destructive"
+    });
+    return { ok: false, error: errorMsg };
+  }
+  if (sanitized !== url.trim()) {
+    toast({
+      title: "URL Sanitized",
+      description: `Using corrected URL: ${sanitized}`,
+      variant: "default"
+    });
+  }
 
-          try {
-            await obsClient.connect(sanitized, password);
-            // The status will be updated by the listener, so we don't set it here.
-          } catch (error: any) {
-            const errorMsg = error instanceof ObsError ? error.message : `Connection failed: ${error.message || 'Unknown error'}`;
-            set({ obsStatus: 'error', connectionError: errorMsg });
-            toast({
-              title: "OBS Connection Failed",
-              description: errorMsg,
-              variant: "destructive"
-            });
-          }
-        },
+  try {
+    await obsClient.connect(sanitized, password);
+    // The status will be updated by the listener, so we don't set it here.
+    set({ connectionError: null });
+    return { ok: true };
+  } catch (error: any) {
+    const errorMsg = error instanceof ObsError ? error.message : `Connection failed: ${error.message || 'Unknown error'}`;
+    set({ obsStatus: 'error', connectionError: errorMsg });
+    toast({
+      title: "OBS Connection Failed",
+      description: errorMsg,
+      variant: "destructive"
+    });
+    return { ok: false, error: errorMsg };
+  }
+},
 
         disconnectFromObs: async () => {
           await obsClient.disconnect();
@@ -264,13 +267,16 @@ const useConnectionsStore = create<ConnectionState>()(
         },
 
         connectToStreamerBot: async (host: string, port: number) => {
-          set({ isStreamerBotLoading: true, streamerBotConnectionError: null });
-          try {
-            await streamerBotService.connect(host, port);
-          } catch (error: any) {
-            set({ streamerBotConnectionError: error.message, isStreamerBotLoading: false, isStreamerBotConnected: false });
-          }
-        },
+  set({ isStreamerBotLoading: true, streamerBotConnectionError: null });
+  try {
+    await streamerBotService.connect(host, port);
+    set({ streamerBotConnectionError: null });
+    return { ok: true };
+  } catch (error: any) {
+    set({ streamerBotConnectionError: error.message, isStreamerBotLoading: false, isStreamerBotConnected: false });
+    return { ok: false, error: error.message };
+  }
+},
 
         disconnectFromStreamerBot: async () => {
           await streamerBotService.disconnect();
@@ -339,9 +345,9 @@ const useConnectionsStore = create<ConnectionState>()(
 
 export const createConnectionSelectors = () => ({
   obsStatus: (state: ConnectionState) => state.obsStatus,
-  isConnected: (state: ConnectionState) => state.obsStatus === 'connected',
-  isLoading: (state: ConnectionState) => state.obsStatus === 'connecting' || state.obsStatus === 'reconnecting',
-  connectionError: (state: ConnectionState) => state.connectionError,
+  isObsConnected: (state: ConnectionState) => state.obsStatus === 'connected',
+  isObsLoading: (state: ConnectionState) => state.obsStatus === 'connecting' || state.obsStatus === 'reconnecting',
+  obsError: (state: ConnectionState) => state.connectionError,
   scenes: (state: ConnectionState) => state.scenes,
   currentProgramScene: (state: ConnectionState) => state.currentProgramScene,
   sources: (state: ConnectionState) => state.sources,
@@ -353,5 +359,10 @@ export const createConnectionSelectors = () => ({
   activeConnectionId: (state: ConnectionState) => state.activeConnectionId,
   connectionProfiles: (state: ConnectionState) => state.connectionProfiles,
 });
+
+// Store-level selectors for connection status
+export const selectIsObsConnected = (state: ConnectionState) => state.obsStatus === 'connected';
+export const selectIsObsLoading = (state: ConnectionState) => state.obsStatus === 'connecting' || state.obsStatus === 'reconnecting';
+export const selectObsError = (state: ConnectionState) => state.connectionError;
 
 export default useConnectionsStore;
