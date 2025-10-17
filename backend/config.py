@@ -1,3 +1,4 @@
+from pydantic import Field
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 import logging
@@ -8,8 +9,8 @@ class Settings(BaseSettings):
     """
     Validates and manages environment variables for the application.
     """
-    GEMINI_API_KEY: str
-    BACKEND_API_KEY: str
+    GEMINI_API_KEY: str = Field(..., min_length=30, regex=r'^[A-Za-z0-9_-]+$')
+    BACKEND_API_KEY: str = Field(..., min_length=16, max_length=128)
     ALLOWED_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
     ENV: str = "development"
     LOG_LEVEL: str = "INFO"

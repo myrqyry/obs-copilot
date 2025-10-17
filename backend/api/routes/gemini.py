@@ -12,8 +12,7 @@ from google.genai.errors import APIError as GenaiAPIError
 from google.api_core.exceptions import APIError
 
 # Rate limiting
-from slowapi import Limiter
-from slowapi.util import get_remote_address
+from ..rate_limiter import limiter
 
 # Local imports
 from services.gemini_service import gemini_service
@@ -24,7 +23,6 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-limiter = Limiter(key_func=get_remote_address)
 
 # --- Pydantic Models ---
 # (Models remain the same as they are for request body validation)
@@ -117,13 +115,19 @@ async def stream_content(request: Request, stream_request: StreamRequest, client
         contents.append(types.Content(role="user", parts=[types.Part.from_text(stream_request.prompt)]))
 
         # The initial call is blocking, so run it in the executor
-        response_stream = await gemini_service.run_in_executor(
-            model.generate_content,
-            contents=contents,
-            stream=True
+        response_stream = await asyncio.wait_for(
+            gemini_service.run_in_executor(
+                model.generate_content,
+                contents=contents,
+                stream=True
+            ),
+            timeout=30.0
         )
         
         return StreamingResponse(_async_stream_generator(response_stream), media_type="text/event-stream")
+    except asyncio.TimeoutError:
+        logger.warning("Gemini stream request timed out.")
+        raise HTTPException(status_code=status.HTTP_408_REQUEST_TIMEOUT, detail="Request to AI service timed out.")
     except (APIError, GenaiAPIError) as e:
         logger.error(f"Gemini API error in stream_content: {e}")
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"AI service error: {e.message}")
@@ -137,8 +141,15 @@ def _sync_generate_image(client: genai.GenerativeModel, request: EnhancedImageGe
     """Synchronous helper for image generation to be run in an executor."""
     try:
         if request.imageInput and request.imageInputMimeType:
+            try:
+                image_bytes = base64.b64decode(request.imageInput, validate=True)
+            except (base64.binascii.Error, ValueError) as e:
+                logger.error(f"Invalid base64 image input: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid base64 image data"
+                )
             # Image editing/remixing logic
-            image_bytes = base64.b64decode(request.imageInput)
             image_part = types.Part.from_bytes(data=image_bytes, mime_type=request.imageInputMimeType)
             model = client("gemini-2.5-flash-image-preview")
             response = model.generate_content(contents=[image_part, request.prompt])
@@ -177,10 +188,16 @@ def _sync_generate_image(client: genai.GenerativeModel, request: EnhancedImageGe
 async def generate_image_enhanced(request: Request, image_request: EnhancedImageGenerateRequest, client: genai.GenerativeModel = Depends(get_gemini_client)):
     try:
         # Run the entire synchronous generation logic in the executor
-        final_result = await gemini_service.run_in_executor(
-            _sync_generate_image, client, image_request
+        final_result = await asyncio.wait_for(
+            gemini_service.run_in_executor(
+                _sync_generate_image, client, image_request
+            ),
+            timeout=30.0
         )
         return final_result
+    except asyncio.TimeoutError:
+        logger.warning("Gemini image generation request timed out.")
+        raise HTTPException(status_code=status.HTTP_408_REQUEST_TIMEOUT, detail="Request to AI service timed out.")
     except HTTPException:
         raise # Re-raise HTTPExceptions from the service or helper
     except Exception as e:
@@ -194,10 +211,13 @@ async def generate_speech(request: Request, speech_request: SpeechGenerateReques
     try:
         model = client("gemini-2.5-flash-preview-tts")
         # The SDK call is blocking, so we run it in the executor
-        response = await gemini_service.run_in_executor(
-            model.generate_content,
-            speech_request.text,
-            generation_config=types.GenerationConfig(response_mime_type="audio/wav")
+        response = await asyncio.wait_for(
+            gemini_service.run_in_executor(
+                model.generate_content,
+                speech_request.text,
+                generation_config=types.GenerationConfig(response_mime_type="audio/wav")
+            ),
+            timeout=30.0
         )
 
         audio_part = response.candidates[0].content.parts[0]
@@ -277,9 +297,12 @@ async def obs_aware_query(
         context_prompt = context_builder.build_context_prompt(obs_state, obs_request.prompt)
 
         model = client(obs_request.model)
-        response = await gemini_service.run_in_executor(
-            model.generate_content,
-            context_prompt
+        response = await asyncio.wait_for(
+            gemini_service.run_in_executor(
+                model.generate_content,
+                context_prompt
+            ),
+            timeout=30.0  # 30 second timeout
         )
 
         return {

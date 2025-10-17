@@ -13,9 +13,9 @@ from config import settings
 from auth import get_api_key
 from api.routes import gemini, assets, overlays, proxy_7tv, proxy_emotes, health
 from middleware import logging_middleware
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from rate_limiter import limiter
 
 # Configure logging based on settings
 logging.basicConfig(level=settings.LOG_LEVEL.upper())
@@ -28,7 +28,6 @@ app = FastAPI(
 )
 
 # Initialize rate limiter
-limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -36,8 +35,13 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "*.netlify.app"])
 app.middleware("http")(logging_middleware)
 
-# Parse allowed origins from settings
-allowed_origins = [origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",") if origin.strip()]
+# Parse and validate allowed origins from settings
+allowed_origins_raw = [origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",") if origin.strip()]
+allowed_origins = []
+for origin in allowed_origins_raw:
+    if '*' in origin and not origin.startswith('https://'):
+        logger.warning(f"Potentially unsafe origin pattern: {origin}")
+    allowed_origins.append(origin)
 
 # Improved CORS with security headers
 app.add_middleware(
@@ -111,15 +115,13 @@ def read_root():
     return {"status": "Server is running"}
 
 @app.get("/health")
-def health_check():
+def health_check(api_key: str = Depends(get_api_key)):
     """Detailed health check endpoint using centralized settings."""
     return JSONResponse(
         content={
             "status": "healthy",
             "version": "1.1.0",
-            "services": {
-                "gemini": "available" if settings.GEMINI_API_KEY else "unavailable",
-            },
+            "authenticated": True,
         }
     )
 
