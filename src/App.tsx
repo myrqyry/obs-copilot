@@ -20,11 +20,9 @@ import GlobalErrorDisplay from './components/common/GlobalErrorDisplay';
 
 const App: React.FC = React.memo(() => {
     const plugins = usePlugins();
-    const { activeTab, setActiveTab, flipSides } = useUiStore(state => ({
-        activeTab: state.activeTab,
-        setActiveTab: state.setActiveTab,
-        flipSides: state.flipSides,
-    }));
+    const activeTab = useUiStore(state => state.activeTab);
+    const setActiveTab = useUiStore(state => state.setActiveTab);
+    const flipSides = useUiStore(state => state.flipSides);
     
     const headerRef = useRef<HTMLDivElement>(null);
     
@@ -42,13 +40,17 @@ const App: React.FC = React.memo(() => {
 
     // Auto-Connect on App Load
     useEffect(() => {
+        let isCleaningUp = false;
         const savedSettings = loadConnectionSettings();
         if (savedSettings.autoConnect && savedSettings.obsUrl) {
             connectToObs(savedSettings.obsUrl, savedSettings.obsPassword);
         }
 
         return () => {
-            disconnectFromObs();
+            isCleaningUp = true;
+            disconnectFromObs().catch(err => {
+                if (!isCleaningUp) console.error('Cleanup error:', err);
+            });
         };
     }, [connectToObs, disconnectFromObs]);
  

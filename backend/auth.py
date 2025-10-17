@@ -34,7 +34,11 @@ async def get_api_key(request: Request) -> str:
     if not api_key:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="API key required. Provide it in the 'X-API-KEY' header or as an 'api_key' query parameter."
+            detail={
+                "error": "missing_api_key",
+                "message": "API key required in 'X-API-KEY' header or 'api_key' query parameter",
+                "hint": "Check your VITE_ADMIN_API_KEY configuration"
+            }
         )
 
     # Verify the provided key
