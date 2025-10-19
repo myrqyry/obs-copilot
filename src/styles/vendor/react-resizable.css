@@ -1,0 +1,15 @@
+/* Minimal react-resizable stub styles. These give basic handle visuals and
+   prevent build-time missing import errors. Replace with upstream CSS for
+   full functionality when available. */
+.react-resizable {
+  position: relative;
+}
+.react-resizable-handle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  right: 0;
+  bottom: 0;
+  cursor: se-resize;
+  background: rgba(0,0,0,0.06);
+}

@@ -67,7 +67,7 @@ class GeminiService implements AIService {
       const geminiError = mapToGeminiError(error, 'content generation');
       logger.error('[Gemini] Content generation failed:', geminiError);
       if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
-        useErrorStore.getState().addError({
+          useErrorStore().addError({
           message: geminiError.message,
           source: 'geminiService',
           level: 'critical',
@@ -175,7 +175,7 @@ class GeminiService implements AIService {
       const geminiError = mapToGeminiError(error, 'image generation');
       logger.error('[Gemini] Image generation failed:', geminiError);
       if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
-        useErrorStore.getState().addError({
+          useErrorStore().addError({
           message: geminiError.message,
           source: 'geminiService',
           level: 'critical',
@@ -217,7 +217,7 @@ class GeminiService implements AIService {
       const geminiError = mapToGeminiError(error, 'speech generation');
       logger.error('[Gemini] Speech generation failed:', geminiError);
       if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
-        useErrorStore.getState().addError({
+          useErrorStore().addError({
           message: geminiError.message,
           source: 'geminiService',
           level: 'critical',

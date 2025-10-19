@@ -11,7 +11,7 @@ import type {
   ScenesChangedEvent,
 } from '@/types/obsEvents';
 
-class EventSubscriptionManager {
+export class EventSubscriptionManager {
   private widgetSubscriptions = new Map<string, Set<string>>(); // widgetId -> set of events
   private eventCallbacks = new Map<string, Map<string, (data: ObsEventPayload, widgetId?: string) => void>>(); // event -> widgetId -> callback
   private debouncedVolumeHandler: (data: InputVolumeChangedEvent) => void;

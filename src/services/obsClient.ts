@@ -2,6 +2,7 @@ import OBSWebSocket from 'obs-websocket-js';
 import { backoff } from '@/lib/utils';
 import { logger } from '@/utils/logger';
 import { handleAppError } from '@/lib/errorUtils';
+import useUiStore from '@/store/uiStore';
 
 import type { UniversalWidgetConfig } from '@/types/universalWidget';
 
@@ -46,7 +47,9 @@ export class ObsClientImpl {
   private status: ConnectionStatus = 'disconnected';
   private commandQueue: Command[] = [];
   private retryCount = 0;
-  private connectOptions: { address: string; password?: string } | null = null;
+  // 'password' may be present or explicitly undefined; with strict TS settings
+  // (exactOptionalPropertyTypes) the property type must include `undefined`.
+  private connectOptions: { address: string; password?: string | undefined } | null = null;
   private statusListeners: Set<(status: ConnectionStatus) => void> = new Set();
   private reconnectTimeout: NodeJS.Timeout | null = null;
   private connectionLock = false;
@@ -191,7 +194,8 @@ export class ObsClientImpl {
     }
 
     this.retryCount++;
-    const delay = backoff(this.retryCount, { min: 1000, max: 30000 });
+    // backoff(attempt, base = 500, max = 15000)
+    const delay = backoff(this.retryCount, 1000, 30000);
     logger.info(`[OBS] Reconnecting in ${delay.toFixed(0)}ms (attempt ${this.retryCount})...`);
 
     this.cleanupReconnectTimeout();
@@ -295,7 +299,7 @@ export class ObsClientImpl {
         this.commandQueue.push({
           id: `${method}-${Date.now()}`,
           method,
-          params,
+          params: params ?? {},
           resolve,
           reject,
           timestamp: Date.now(),

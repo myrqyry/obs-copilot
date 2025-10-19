@@ -4,8 +4,9 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
-import google.generativeai as genai
-from google.generativeai import types
+from google import genai  # type: ignore
+from google.genai import types  # type: ignore
+from services.gemini_client import get_client
 
 from config import settings
 from services.gemini_service import gemini_service
@@ -14,17 +15,17 @@ logger = logging.getLogger(__name__)
 
 
 class GeminiCacheService:
-    """Manages Gemini API explicit caching for OBS Copilot"""
+    """Manages Gemini API explicit caching for OBS Copilot using the
+    Google GenAI SDK `genai.Client`.
+    """
 
     def __init__(self):
-        # The client is configured via genai.configure() at startup
-        # or should be handled by the environment.
+        # Client will be retrieved from centralized factory when needed.
         try:
-            genai.configure(api_key=settings.GEMINI_API_KEY)
-            self.client = genai.Client()
+            self.client = get_client()
             logger.info("GeminiCacheService initialized and client configured.")
         except Exception as e:
-            logger.error(f"Failed to initialize GeminiCacheService client: {e}", exc_info=True)
+            logger.warning(f"GenAI client creation failed: {e}", exc_info=True)
             self.client = None
 
         self.active_caches: Dict[str, Any] = {}
@@ -65,14 +66,13 @@ class GeminiCacheService:
 
         try:
             logger.info(f"Creating new cache for key: {cache_key}")
-            cache = await gemini_service.run_in_executor(
-                self.client.caches.create,
-                model="gemini-1.5-flash-001",
-                display_name=f"obs-context-{cache_key[:8]}",
-                system_instruction=system_instruction,
-                contents=[
+
+            # New SDK expects a config dict for caches.create
+            config = {
+                'system_instruction': system_instruction,
+                'contents': [
                     types.Content(
-                        role="user",
+                        role='user',
                         parts=[
                             types.Part.from_text(
                                 f"Current OBS State: {json.dumps(obs_state, indent=2)}"
@@ -80,16 +80,22 @@ class GeminiCacheService:
                         ],
                     )
                 ],
-                ttl=f"{ttl_minutes * 60}s",
+                'ttl': f"{ttl_minutes * 60}s",
+            }
+
+            cache = await gemini_service.run_in_executor(
+                self.client.caches.create,
+                model="gemini-1.5-flash-001",
+                config=config,
             )
 
             self.active_caches[cache_key] = {
-                "name": cache.name,
+                "name": getattr(cache, 'name', None),
                 "expires": datetime.now() + timedelta(minutes=ttl_minutes),
                 "created": datetime.now(),
             }
-            logger.info(f"Created new cache: {cache.name} (key: {cache_key})")
-            return cache.name
+            logger.info(f"Created new cache: {getattr(cache, 'name', '<unknown>')} (key: {cache_key})")
+            return getattr(cache, 'name', None)
 
         except Exception as e:
             logger.error(f"Failed to create cache: {e}", exc_info=True)
@@ -112,12 +118,12 @@ class GeminiCacheService:
             )
 
             return {
-                "text": response.text,
+                "text": getattr(response, 'text', None),
                 "usage_metadata": {
-                    "prompt_token_count": response.usage_metadata.prompt_token_count,
-                    "cached_content_token_count": response.usage_metadata.cached_content_token_count,
-                    "candidates_token_count": response.usage_metadata.candidates_token_count,
-                    "total_token_count": response.usage_metadata.total_token_count,
+                    "prompt_token_count": getattr(response.usage_metadata, 'prompt_token_count', None),
+                    "cached_content_token_count": getattr(response.usage_metadata, 'cached_content_token_count', None),
+                    "candidates_token_count": getattr(response.usage_metadata, 'candidates_token_count', None),
+                    "total_token_count": getattr(response.usage_metadata, 'total_token_count', None),
                 },
             }
         except Exception as e:

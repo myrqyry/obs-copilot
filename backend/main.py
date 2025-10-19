@@ -11,7 +11,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 # Import the centralized settings
 from config import settings
 from auth import get_api_key
-from api.routes import gemini, assets, overlays, proxy_7tv, proxy_emotes, health
+from backend.api.routes import gemini, assets, overlays, proxy_7tv, proxy_emotes, health
 from middleware import logging_middleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -32,7 +32,13 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Add security and logging middleware
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "*.netlify.app"])
+# During development and tests we allow all hosts to avoid TrustedHost rejections
+# (pytest sends requests using host 'test'). In production this should be locked down
+# to a specific allowlist.
+if settings.ENV in ("development", "test"):
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
+else:
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "*.netlify.app"])
 app.middleware("http")(logging_middleware)
 
 # Parse and validate allowed origins from settings
@@ -115,13 +121,13 @@ def read_root():
     return {"status": "Server is running"}
 
 @app.get("/health")
-def health_check(api_key: str = Depends(get_api_key)):
-    """Detailed health check endpoint using centralized settings."""
+def health_check():
+    """Public health check endpoint used by monitoring and tests."""
     return JSONResponse(
         content={
             "status": "healthy",
             "version": "1.1.0",
-            "authenticated": True,
+            "authenticated": False,
         }
     )
 

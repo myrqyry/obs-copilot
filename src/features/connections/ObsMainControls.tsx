@@ -512,3 +512,7 @@ export const ObsMainControls: React.FC = () => {
           </CollapsibleCard>
         </div>
       );
+
+    }
+
+    export default ObsMainControls;

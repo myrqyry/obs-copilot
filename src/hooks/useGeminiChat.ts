@@ -141,7 +141,7 @@ export const useGeminiChat = (
       await currentHandleSend(lastUserMessage.text, onChatInputChange);
     } catch (error) {
       const errorMsg = handleAppError('Gemini chat regenerate', error, 'Failed to regenerate message');
-      useErrorStore.getState().addError({
+      useErrorStore().addError({
         message: errorMsg,
         source: 'useGeminiChat',
         level: 'error',
@@ -227,7 +227,7 @@ export const useGeminiChat = (
 
     } catch (error: unknown) {
       const errorMsg = handleAppError('Gemini chat send', error, 'Failed to send message to Gemini');
-      useErrorStore.getState().addError({
+      useErrorStore().addError({
         message: errorMsg,
         source: 'useGeminiChat',
         level: 'error',

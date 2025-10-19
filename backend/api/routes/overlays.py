@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import StreamingResponse, JSONResponse
 import asyncio
 import json
-from ..models import StreamRequest, PublishRequest
+from api.models import StreamRequest, PublishRequest
 from auth import get_api_key
 
 router = APIRouter()

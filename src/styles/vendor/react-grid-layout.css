@@ -1,0 +1,13 @@
+/* Minimal react-grid-layout styles stub used when package CSS is unavailable.
+   These rules are intentionally small — they provide basic layout spacing
+   and can be replaced with the package's original stylesheet when available. */
+.react-grid-layout {
+  position: relative;
+}
+.react-grid-item {
+  transition: all 200ms ease;
+}
+.react-grid-placeholder {
+  background: rgba(0,0,0,0.08);
+  border: 1px dashed rgba(0,0,0,0.12);
+}
