@@ -7,8 +7,8 @@ from typing import Any, Dict, Optional
 import google.generativeai as genai
 from google.generativeai import types
 
-from ..config import settings
-from .gemini_service import gemini_service
+from config import settings
+from services.gemini_service import gemini_service
 
 logger = logging.getLogger(__name__)
 

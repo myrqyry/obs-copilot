@@ -1,5 +1,6 @@
 import { logger } from '../utils/logger';
 import useUiStore, { AppError } from '../store/uiStore';
+import { toast } from '@/components/ui/toast';
 
 /**
  * Standardizes error handling for API calls and other operations.
@@ -31,14 +32,40 @@ export function handleAppError(
 
   logger.error(`${context} error:`, error);
 
-  useErrorStore.getState().addError({
+  // Push into the global UI error store so UI can display it
+  useUiStore.getState().addError({
     message: `${context} failed: ${errorMessage}`,
     source: context,
     level,
-    details: error instanceof Error ? { stack: error.stack } : undefined,
+    details: error instanceof Error ? { stack: (error as Error).stack } : undefined,
   });
 
   return `${context} failed: ${errorMessage}`;
+}
+
+
+/**
+ * Convenience helper that runs handleAppError and also shows a toast notification.
+ * Returns the computed user-friendly error message.
+ */
+export function createToastError(
+  context: string,
+  error: unknown,
+  defaultMessage: string = 'An unexpected error occurred.',
+  level: AppError['level'] = 'error'
+): string {
+  const message = handleAppError(context, error, defaultMessage, level);
+  try {
+    toast({
+      title: context,
+      description: message,
+      variant: level === 'critical' || level === 'error' ? 'destructive' : 'default',
+    });
+  } catch (e) {
+    // If toast fails, ensure it doesn't crash the app
+    logger.warn('Failed to show toast for error', e);
+  }
+  return message;
 }
 
 

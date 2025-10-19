@@ -355,3 +355,4 @@ export const createConnectionSelectors = () => ({
 });
 
 export default useConnectionsStore;
+export { useConnectionsStore };

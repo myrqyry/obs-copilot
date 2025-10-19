@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { snapshotService, AppSnapshot } from '@/services/snapshotService';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
-import { toast } from '@/components/ui/toast';
+import { toast } from '@/components/ui/toaster';
 
 const SnapshotManager: React.FC = () => {
   const [snapshotName, setSnapshotName] = useState('');

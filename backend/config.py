@@ -1,3 +1,4 @@
+import os
 from pydantic import Field
 from pydantic_settings import BaseSettings
 from functools import lru_cache
@@ -5,12 +6,53 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Backwards compatibility shim for legacy environment variable names.
+# Some deployments or older dev setups used `admin_api_key` or a comma-separated
+# `API_KEYS` list. The new code requires `BACKEND_API_KEY`. If a legacy variable
+# is present and `BACKEND_API_KEY` is not, copy the legacy value into the
+# expected name so pydantic Settings validation succeeds.
+if not os.environ.get('BACKEND_API_KEY'):
+    legacy_admin = os.environ.get('admin_api_key') or os.environ.get('ADMIN_API_KEY')
+    if legacy_admin:
+        os.environ['BACKEND_API_KEY'] = legacy_admin
+        # Remove legacy keys to avoid pydantic treating them as 'extra' inputs
+        if 'admin_api_key' in os.environ:
+            del os.environ['admin_api_key']
+        if 'ADMIN_API_KEY' in os.environ:
+            del os.environ['ADMIN_API_KEY']
+    else:
+        api_keys = os.environ.get('API_KEYS')
+        if api_keys:
+            first = api_keys.split(',')[0].strip()
+            if first:
+                os.environ['BACKEND_API_KEY'] = first
+                # remove legacy API_KEYS to avoid extra input errors
+                if 'API_KEYS' in os.environ:
+                    del os.environ['API_KEYS']
+
+# Ensure any legacy keys that might still be present in the process environment
+# are removed to avoid Pydantic treating them as unexpected "extra" inputs.
+for _k in ('admin_api_key', 'ADMIN_API_KEY', 'API_KEYS'):
+    if _k in os.environ:
+        try:
+            del os.environ[_k]
+        except Exception:
+            pass
+
 class Settings(BaseSettings):
     """
     Validates and manages environment variables for the application.
     """
-    GEMINI_API_KEY: str = Field(..., min_length=30, regex=r'^[A-Za-z0-9_-]+$')
-    BACKEND_API_KEY: str = Field(..., min_length=16, max_length=128)
+    # Ensure Pydantic ignores extra environment variables (legacy names, etc.)
+    model_config = {
+        'extra': 'ignore',
+        'env_file': '.env',
+        'env_file_encoding': 'utf-8'
+    }
+    GEMINI_API_KEY: str = Field(..., min_length=30, pattern=r'^[A-Za-z0-9_-]+$')
+    # Make BACKEND_API_KEY optional for local/dev convenience. If you need strict
+    # enforcement in production, set it via environment or adjust validation.
+    BACKEND_API_KEY: str | None = Field(None, min_length=16, max_length=128)
     ALLOWED_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
     ENV: str = "development"
     LOG_LEVEL: str = "INFO"
@@ -25,11 +67,9 @@ class Settings(BaseSettings):
     STREAMERBOT_HOST: str = "127.0.0.1"
     STREAMERBOT_PORT: int = 8080
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = 'utf-8'
-        # Pydantic will automatically attempt to read the environment variables.
-        # If a variable defined in the model is not found, it will raise a ValidationError.
+    # Note: model_config above configures env_file and extra handling for
+    # pydantic v2 / pydantic-settings. There is no inner Config class to avoid
+    # conflicts between v1 and v2 style configuration.
 
 @lru_cache()
 def get_settings() -> Settings:

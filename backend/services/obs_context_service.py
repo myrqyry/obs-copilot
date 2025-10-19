@@ -1,5 +1,5 @@
 import json
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -43,28 +43,33 @@ Always respond with a JSON object containing:
 }
 """
 
-    def build_context_prompt(self, obs_state: OBSContextState, user_input: str) -> str:
-        """
-        Build a context prompt optimized for implicit caching.
-        Places large, common content at the beginning.
-        """
-        # Large, stable context first (more likely to be cached)
-        context_prefix = f\"\"\"
-{self.base_system_instruction}
+    def build_context_prompt(self, obs_state: OBSContextState, user_input: str) -> Tuple[str, str]:
+      """
+      Build a pair of messages suitable for role-based LLM inputs.
 
-CURRENT OBS STATE:
-Scene: {obs_state.current_scene}
-Available Scenes: {', '.join(obs_state.available_scenes)}
-Active Sources: {len(obs_state.active_sources)} sources
-Streaming: {'Active' if obs_state.streaming_status else 'Inactive'}
-Recording: {'Active' if obs_state.recording_status else 'Inactive'}
+      Returns a tuple (system_message, user_message).
 
-RECENT COMMANDS (last 5):
-{json.dumps(obs_state.recent_commands[-5:], indent=2)}
+      Important: the user input is returned as the separate "user_message"
+      rather than being interpolated into the system message. This keeps
+      system instructions distinct from untrusted user content and reduces
+      the risk of prompt injection.
+      """
 
----
-USER REQUEST: "{user_input}"
+      # Construct the stable system-side context (OBS state + role instruction)
+      system_parts = [self.base_system_instruction.strip(), "\n", "CURRENT OBS STATE:"]
+      system_parts.append(f"Scene: {obs_state.current_scene}")
+      system_parts.append(f"Available Scenes: {', '.join(obs_state.available_scenes)}")
+      system_parts.append(f"Active Sources: {len(obs_state.active_sources)} sources")
+      system_parts.append(f"Streaming: {'Active' if obs_state.streaming_status else 'Inactive'}")
+      system_parts.append(f"Recording: {'Active' if obs_state.recording_status else 'Inactive'}")
+      system_parts.append("RECENT COMMANDS (last 5):")
+      system_parts.append(json.dumps(obs_state.recent_commands[-5:], indent=2))
 
-Analyze the request and provide the appropriate OBS commands:
-\"\"\"
-        return context_prefix
+      system_message = "\n".join(system_parts)
+
+      # Return the user message separately (sanitized minimally here by stripping)
+      # Note: further sanitization (length limits, forbidden tokens) could be applied
+      # by callers if stricter policies are required.
+      user_message = (user_input or "").strip()
+
+      return system_message, user_message

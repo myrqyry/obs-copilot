@@ -9,10 +9,16 @@ from fastapi.responses import StreamingResponse
 from google import genai
 from google.genai import types
 from google.genai.errors import APIError as GenaiAPIError
-from google.api_core.exceptions import APIError
+try:
+    from google.api_core.exceptions import APIError
+except Exception:
+    # Some installations of google libraries may not expose APIError under
+    # google.api_core.exceptions. Fall back to a generic Exception so the
+    # exception handlers still function without causing an import error.
+    APIError = Exception
 
 # Rate limiting
-from ..rate_limiter import limiter
+from rate_limiter import limiter
 
 # Local imports
 from services.gemini_service import gemini_service
@@ -293,27 +299,38 @@ async def obs_aware_query(
                         "cache_name": cache_name
                     }
 
-        # Fallback to implicit caching with optimized prompt structure
-        context_prompt = context_builder.build_context_prompt(obs_state, obs_request.prompt)
+        # Fallback to implicit caching with optimized, role-separated prompt structure
+        system_message, user_message = context_builder.build_context_prompt(obs_state, obs_request.prompt)
 
         model = client(obs_request.model)
-        response = await asyncio.wait_for(
-            gemini_service.run_in_executor(
-                model.generate_content,
-                context_prompt
-            ),
-            timeout=30.0  # 30 second timeout
-        )
 
-        return {
-            "response": response.text,
-            "usage_metadata": {
-                "total_token_count": response.usage_metadata.total_token_count,
-                "candidates_token_count": response.usage_metadata.candidates_token_count,
-                "prompt_token_count": response.usage_metadata.prompt_token_count
-            },
-            "cache_used": False
-        }
+        # Build role-based contents: system message first (trusted), then user message (untrusted)
+        contents = [
+            types.Content(role="system", parts=[types.Part.from_text(system_message)]),
+            types.Content(role="user", parts=[types.Part.from_text(user_message)])
+        ]
+
+        try:
+            response = await asyncio.wait_for(
+                gemini_service.run_in_executor(
+                    model.generate_content,
+                    contents=contents
+                ),
+                timeout=30.0  # 30 second timeout
+            )
+
+            return {
+                "response": response.text,
+                "usage_metadata": {
+                    "total_token_count": getattr(response.usage_metadata, 'total_token_count', None),
+                    "candidates_token_count": getattr(response.usage_metadata, 'candidates_token_count', None),
+                    "prompt_token_count": getattr(response.usage_metadata, 'prompt_token_count', None)
+                },
+                "cache_used": False
+            }
+        except (APIError, GenaiAPIError) as e:
+            logger.error(f"Gemini API error in obs_aware_query fallback: {e}")
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"AI service error: {getattr(e, 'message', str(e))}")
 
     except Exception as e:
         logger.error(f"Error in obs_aware_query: {e}", exc_info=True)
