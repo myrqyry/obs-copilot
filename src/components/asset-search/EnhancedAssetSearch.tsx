@@ -10,6 +10,7 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { Modal } from '@/components/ui/Modal';
 import { toast } from '@/components/ui/toast';
 import { copyToClipboard } from '@/utils/persistence';
+import { sanitizeSvg } from '@/lib/sanitizeHtml';
 import { generateSourceName } from '@/utils/obsSourceHelpers';
 import { useConnectionManagerStore } from '@/store/connectionManagerStore';
 import { ObsClientImpl as ObsClient } from '@/services/obsClient';
@@ -165,7 +166,7 @@ export const EnhancedAssetSearch: React.FC<EnhancedAssetSearchProps> = ({
       actions.push({
         label: 'Copy SVG',
         onClick: () => {
-          copyToClipboard(item.svgContent!);
+          copyToClipboard(sanitizeSvg(item.svgContent!));
           toast({ title: 'Copied', description: 'SVG content copied to clipboard' });
         },
         variant: 'secondary',
@@ -211,7 +212,7 @@ export const EnhancedAssetSearch: React.FC<EnhancedAssetSearchProps> = ({
         >
           <div 
             className="w-full h-full flex items-center justify-center"
-            dangerouslySetInnerHTML={{ __html: item.svgContent }}
+            dangerouslySetInnerHTML={{ __html: sanitizeSvg(item.svgContent) }}
           />
           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
             <p className="text-white text-xs truncate">{item.title}</p>
@@ -270,7 +271,7 @@ export const EnhancedAssetSearch: React.FC<EnhancedAssetSearchProps> = ({
         <div className="flex flex-col items-center space-y-4">
           <div 
             className="w-64 h-64 flex items-center justify-center bg-card rounded-lg p-4"
-            dangerouslySetInnerHTML={{ __html: item.svgContent }}
+            dangerouslySetInnerHTML={{ __html: sanitizeSvg(item.svgContent) }}
           />
           <div className="text-center">
             <h3 className="text-lg font-semibold">{item.title}</h3>

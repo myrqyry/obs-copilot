@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
+import { sanitizeSvg } from '@/lib/sanitizeHtml';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, Download, ExternalLink, Copy, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -55,7 +56,7 @@ const AssetThumbnail: React.FC<AssetItemProps> = ({ item, onClick, className = '
     );
   }
 
-  if (item.svgContent) {
+    if (item.svgContent) {
     // SVG display
     return (
       <motion.div
@@ -67,7 +68,7 @@ const AssetThumbnail: React.FC<AssetItemProps> = ({ item, onClick, className = '
         <div className="h-full p-3 flex flex-col">
           <div
             className="flex-1 flex items-center justify-center"
-            dangerouslySetInnerHTML={{ __html: item.svgContent }}
+            dangerouslySetInnerHTML={{ __html: sanitizeSvg(item.svgContent) }}
           />
           <div className="text-xs text-gray-600 text-center font-medium truncate mt-2">
             {item.title}

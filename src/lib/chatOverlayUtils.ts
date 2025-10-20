@@ -49,6 +49,17 @@ export const baseChatOverlayHTML = `<!doctype html>
     <div id="messages" class="messages"></div>
   </div>
   <script>
+    // simple sanitizer shim so overlay runtime can sanitize incoming HTML safely
+    (function(){
+      try{
+        if(window.DOMPurify && typeof window.DOMPurify.sanitize === 'function'){
+          window.__sanitizeHtml__ = function(html){ return window.DOMPurify.sanitize(html, { FORBID_TAGS:['script','iframe','object','embed','form'], FORBID_ATTR:['on*','xmlns','xlink:href'] }); };
+        } else {
+          window.__sanitizeHtml__ = function(html){ var t=document.createElement('div'); t.textContent = html || ''; return t.innerHTML; };
+        }
+      }catch(e){ window.__sanitizeHtml__ = function(html){ var t=document.createElement('div'); t.textContent = html || ''; return t.innerHTML; }; }
+    })();
+
     // parse query params
     const params = new URLSearchParams(location.search);
     const channel = params.get('channel') || 'default';
@@ -83,8 +94,17 @@ export const baseChatOverlayHTML = `<!doctype html>
 
       const body = document.createElement('div');
       body.className = 'content';
-      body.innerHTML = m.messageHtml || '';
-      Array.from(body.querySelectorAll('img')).forEach(i=>i.classList.add('emote'));
+      try{
+        // sanitize message HTML if provided
+        const sanitized = (window.__sanitizeHtml__ && typeof window.__sanitizeHtml__ === 'function')
+          ? window.__sanitizeHtml__(m.messageHtml || '')
+          : (function(html){ const t=document.createElement('div'); t.textContent=html; return t.innerHTML;})(m.messageHtml || '');
+        body.innerHTML = sanitized;
+        Array.from(body.querySelectorAll('img')).forEach(i=>i.classList.add('emote'));
+      }catch(e){
+        // fallback to textContent
+        body.textContent = m.message || '';
+      }
 
       msgWrap.appendChild(meta);
       msgWrap.appendChild(body);
