@@ -100,17 +100,45 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         }
     )
 
+import uuid
+from contextvars import ContextVar
+
+request_id_var: ContextVar[str] = ContextVar('request_id', default='')
+
+@app.middleware("http")
+async def add_request_id(request: Request, call_next):
+    request_id = str(uuid.uuid4())[:8]
+    request_id_var.set(request_id)
+
+    # Add to request headers for downstream services
+    request.state.request_id = request_id
+
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    return response
+
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Unhandled exception at {request.url.path}: {str(exc)}", exc_info=True, extra={
-        "method": request.method,
-        "client": request.client.host if request.client else None
-    })
+    request_id = getattr(request.state, 'request_id', 'unknown')
+
+    logger.error(
+        f"Unhandled exception at {request.url.path}",
+        exc_info=True,
+        extra={
+            "request_id": request_id,
+            "method": request.method,
+            "client": request.client.host if request.client else None,
+            "user_agent": request.headers.get("user-agent", ""),
+            "exception_type": type(exc).__name__
+        }
+    )
+
     return JSONResponse(
         status_code=500,
         content={
             "detail": "An unexpected error occurred. Please try again later.",
-            "code": "INTERNAL_SERVER_ERROR"
+            "code": "INTERNAL_SERVER_ERROR",
+            "request_id": request_id
         }
     )
 

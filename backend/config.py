@@ -39,23 +39,45 @@ for _k in ('admin_api_key', 'ADMIN_API_KEY', 'API_KEYS'):
         except Exception:
             pass
 
+from pydantic import field_validator
+
 class Settings(BaseSettings):
-    """
-    Validates and manages environment variables for the application.
-    """
-    # Ensure Pydantic ignores extra environment variables (legacy names, etc.)
     model_config = {
         'extra': 'ignore',
         'env_file': '.env',
         'env_file_encoding': 'utf-8'
     }
-    GEMINI_API_KEY: str = Field(..., min_length=30, pattern=r'^[A-Za-z0-9_-]+$')
-    # Make BACKEND_API_KEY optional for local/dev convenience. If you need strict
-    # enforcement in production, set it via environment or adjust validation.
-    BACKEND_API_KEY: str | None = Field(None, min_length=16, max_length=128)
-    ALLOWED_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
+
+    GEMINI_API_KEY: str = Field(
+        ...,
+        min_length=30,
+        pattern=r'^[A-Za-z0-9_-]+$',
+        description="Google Gemini API key from Google AI Studio"
+    )
+
+    BACKEND_API_KEY: str | None = Field(
+        None,
+        min_length=16,
+        max_length=128,
+        description="Backend authentication key for API access"
+    )
+
+    ALLOWED_ORIGINS: str = Field(
+        default="http://localhost:5173,http://127.0.0.1:5173",
+        description="Comma-separated list of allowed CORS origins"
+    )
+
     ENV: str = "development"
     LOG_LEVEL: str = "INFO"
+
+    @field_validator('ALLOWED_ORIGINS')
+    @classmethod
+    def validate_origins(cls, v: str) -> str:
+        origins = [origin.strip() for origin in v.split(',') if origin.strip()]
+        for origin in origins:
+            if not (origin == '*' or origin.startswith(('http://', 'https://'))):
+                raise ValueError(f"Invalid origin format: {origin}")
+        return v
 
     # Redis Caching (optional, with defaults)
     REDIS_HOST: str = "localhost"

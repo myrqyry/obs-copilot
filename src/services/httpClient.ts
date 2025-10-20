@@ -20,17 +20,17 @@ const API_KEY = (import.meta as { env: Record<string, string> }).env?.VITE_ADMIN
 
 const httpClient: AxiosInstance = axios.create({
   baseURL: getBaseURL(),
+  timeout: 30000, // Add timeout
   headers: {
     'Content-Type': 'application/json',
-    ...(API_KEY ? { 'X-API-KEY': API_KEY } : {}),
   },
 });
 
-// Ensure X-API-KEY present on every request (in case consumers override headers)
+// More efficient interceptor that only adds key when needed
 httpClient.interceptors.request.use((config) => {
-  if (API_KEY) {
+  if (API_KEY && !config.headers?.['X-API-KEY']) {
     config.headers = config.headers ?? {};
-    (config.headers as Record<string, string>)['X-API-KEY'] = API_KEY;
+    config.headers['X-API-KEY'] = API_KEY;
   }
   return config;
 });

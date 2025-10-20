@@ -18,6 +18,16 @@ import { MODEL_CONFIG } from '@/config/modelConfig';
 import { logger } from '@/utils/logger';
 import { useErrorStore } from '@/store/errorStore'; // Import useErrorStore
 
+// Add helper function at the top of the file
+function safeAddError(error: { message: string; source: string; level: 'critical' | 'error' | 'warn' | 'info' | 'debug'; details?: any }) {
+  try {
+    useErrorStore.getState().addError(error);
+  } catch (storeError) {
+    logger.error('Failed to add error to store:', storeError);
+    console.error('Original error that could not be stored:', error);
+  }
+}
+
 export type StreamEvent = {
     type: 'chunk' | 'usage' | 'error' | 'tool_call';
     data: any;
@@ -67,7 +77,7 @@ class GeminiService implements AIService {
       const geminiError = mapToGeminiError(error, 'content generation');
       logger.error('[Gemini] Content generation failed:', geminiError);
       if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
-          useErrorStore().addError({
+        safeAddError({
           message: geminiError.message,
           source: 'geminiService',
           level: 'critical',
@@ -175,7 +185,7 @@ class GeminiService implements AIService {
       const geminiError = mapToGeminiError(error, 'image generation');
       logger.error('[Gemini] Image generation failed:', geminiError);
       if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
-          useErrorStore().addError({
+        safeAddError({
           message: geminiError.message,
           source: 'geminiService',
           level: 'critical',
@@ -217,7 +227,7 @@ class GeminiService implements AIService {
       const geminiError = mapToGeminiError(error, 'speech generation');
       logger.error('[Gemini] Speech generation failed:', geminiError);
       if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
-          useErrorStore().addError({
+        safeAddError({
           message: geminiError.message,
           source: 'geminiService',
           level: 'critical',
@@ -255,7 +265,7 @@ class GeminiService implements AIService {
       const geminiError = mapToGeminiError(error, 'video generation');
       logger.error('[Gemini] Video generation failed:', geminiError);
       if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
-        useErrorStore.getState().addError({
+        safeAddError({
           message: geminiError.message,
           source: 'geminiService',
           level: 'critical',
@@ -292,7 +302,7 @@ class GeminiService implements AIService {
       const geminiError = mapToGeminiError(error, 'structured content generation');
       logger.error('[Gemini] Structured content generation failed:', geminiError);
       if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
-        useErrorStore.getState().addError({
+        safeAddError({
           message: geminiError.message,
           source: 'geminiService',
           level: 'critical',
@@ -329,7 +339,7 @@ class GeminiService implements AIService {
       const geminiError = mapToGeminiError(error, 'long context generation');
       logger.error('[Gemini] Long context generation failed:', geminiError);
       if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
-        useErrorStore.getState().addError({
+        safeAddError({
           message: geminiError.message,
           source: 'geminiService',
           level: 'critical',
@@ -348,7 +358,7 @@ class GeminiService implements AIService {
       const geminiError = mapToGeminiError(error, 'live connection');
       logger.error('[Gemini] Live connect failed:', geminiError);
       if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
-        useErrorStore.getState().addError({
+        safeAddError({
           message: geminiError.message,
           source: 'geminiService',
           level: 'critical',
@@ -383,7 +393,7 @@ class GeminiService implements AIService {
       const geminiError = mapToGeminiError(error, 'widget config generation');
       logger.error('[Gemini] Widget config generation failed:', geminiError);
       if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
-        useErrorStore.getState().addError({
+        safeAddError({
           message: geminiError.message,
           source: 'geminiService',
           level: 'critical',
@@ -402,7 +412,7 @@ class GeminiService implements AIService {
       const geminiError = mapToGeminiError(error, 'widget chat session');
       logger.error('[Gemini] Widget chat session creation failed:', geminiError);
       if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
-        useErrorStore.getState().addError({
+        safeAddError({
           message: geminiError.message,
           source: 'geminiService',
           level: 'critical',
@@ -421,7 +431,7 @@ class GeminiService implements AIService {
       const geminiError = mapToGeminiError(error, 'widget refinement');
       logger.error('[Gemini] Widget refinement failed:', geminiError);
       if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
-        useErrorStore.getState().addError({
+        safeAddError({
           message: geminiError.message,
           source: 'geminiService',
           level: 'critical',
