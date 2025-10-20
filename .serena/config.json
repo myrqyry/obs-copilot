@@ -1,9 +1,0 @@
-{
-  "project": "obs-copilot",
-  "createdBy": "automation",
-  "createdAt": "2025-10-20T00:00:00Z",
-  "settings": {
-    "autoCleanup": false,
-    "notes": "Add Serena-specific settings here; avoid secrets."
-  }
-}

@@ -111,3 +111,6 @@ backend/tests/__pycache__/test_gemini.cpython-312-pytest-7.4.4.pyc
 backend/api/routes/__pycache__/
 *.pyc
 backend/api/routes/__pycache__/gemini.cpython-312.pyc
+
+# Serena tool directory
+.serena/
