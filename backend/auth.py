@@ -30,6 +30,12 @@ async def get_api_key(request: Request) -> str:
     Dependency to extract and validate the API key from the request.
     Supports 'X-API-KEY' header and 'api_key' query parameter.
     """
+    # If no backend API key is configured, allow requests in development mode
+    expected_key = os.getenv('BACKEND_API_KEY') or settings.BACKEND_API_KEY
+    if not expected_key and getattr(settings, 'ENV', 'development') == 'development':
+        # Allow the request without an API key in development.
+        return ""
+
     # Try to get the key from the header first
     api_key = request.headers.get("X-API-KEY")
 

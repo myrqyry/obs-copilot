@@ -29,10 +29,8 @@ const App: React.FC = React.memo(() => {
     // Initialize and apply themes
     useTheme();
 
-    const { connectToObs, disconnectFromObs } = useConnectionsStore(state => ({
-        connectToObs: state.connectToObs,
-        disconnectFromObs: state.disconnectFromObs,
-    }));
+    const connectToObs = useConnectionsStore(state => state.connectToObs);
+    const disconnectFromObs = useConnectionsStore(state => state.disconnectFromObs);
 
     const handleTabChange = useCallback((tabId: string) => {
         setActiveTab(tabId);

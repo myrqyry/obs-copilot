@@ -12,31 +12,17 @@ interface ConnectionPanelProps {
 }
 
 export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({ connection, onEdit, onDelete }) => {
-  const {
-    activeConnectionId,
-    connectToObs,
-    disconnectFromObs,
-    connectToStreamerBot,
-    disconnectFromStreamerBot,
-    setActiveConnectionId,
-    obsStatus,
-    connectionError,
-    isStreamerBotConnected,
-    isStreamerBotLoading,
-    streamerBotConnectionError,
-  } = useConnectionsStore(state => ({
-    activeConnectionId: state.activeConnectionId,
-    connectToObs: state.connectToObs,
-    disconnectFromObs: state.disconnectFromObs,
-    connectToStreamerBot: state.connectToStreamerBot,
-    disconnectFromStreamerBot: state.disconnectFromStreamerBot,
-    setActiveConnectionId: state.setActiveConnectionId,
-    obsStatus: state.obsStatus,
-    connectionError: state.connectionError,
-    isStreamerBotConnected: state.isStreamerBotConnected,
-    isStreamerBotLoading: state.isStreamerBotLoading,
-    streamerBotConnectionError: state.streamerBotConnectionError,
-  }));
+  const activeConnectionId = useConnectionsStore(state => state.activeConnectionId);
+  const connectToObs = useConnectionsStore(state => state.connectToObs);
+  const disconnectFromObs = useConnectionsStore(state => state.disconnectFromObs);
+  const connectToStreamerBot = useConnectionsStore(state => state.connectToStreamerBot);
+  const disconnectFromStreamerBot = useConnectionsStore(state => state.disconnectFromStreamerBot);
+  const setActiveConnectionId = useConnectionsStore(state => state.setActiveConnectionId);
+  const obsStatus = useConnectionsStore(state => state.obsStatus);
+  const connectionError = useConnectionsStore(state => state.connectionError);
+  const isStreamerBotConnected = useConnectionsStore(state => state.isStreamerBotConnected);
+  const isStreamerBotLoading = useConnectionsStore(state => state.isStreamerBotLoading);
+  const streamerBotConnectionError = useConnectionsStore(state => state.streamerBotConnectionError);
 
   const isCurrentConnection = activeConnectionId === connection.id;
   const isObsConnected = obsStatus === 'connected';

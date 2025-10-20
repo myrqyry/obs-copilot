@@ -249,12 +249,16 @@ export const SpeechGenerator: React.FC = () => {
             {/* Style Selection */}
             <div>
               <Label>Speaking Style</Label>
-              <Select value={selectedStyle} onValueChange={setSelectedStyle}>
+              <Select
+                value={selectedStyle}
+                onValueChange={(v) => setSelectedStyle(v === '__none__' ? '' : v)}
+              >
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Natural (no style)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Natural (no style)</SelectItem>
+                  {/* Radix Select disallows empty-string item values; use a sentinel */}
+                  <SelectItem value="__none__">Natural (no style)</SelectItem>
                   {stylePrompts.map(style => (
                     <SelectItem key={style.id} value={style.id}>
                       {style.name}

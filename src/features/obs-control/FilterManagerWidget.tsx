@@ -89,13 +89,13 @@ const FilterManagerWidget: React.FC<FilterManagerWidgetProps> = ({ config, id })
       <div className="mb-4">
         <Select
           value={selectedFilterType}
-          onValueChange={setSelectedFilterType}
+          onValueChange={(v) => setSelectedFilterType(v === '__none__' ? '' : v)}
         >
           <SelectTrigger className="w-full mb-2">
             <SelectValue placeholder="Select Filter Type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Select Filter Type</SelectItem>
+            <SelectItem value="__none__">Select Filter Type</SelectItem>
             <SelectItem value="noise_suppression">Noise Suppression</SelectItem>
             <SelectItem value="gain">Gain</SelectItem>
             <SelectItem value="compressor">Compressor</SelectItem>

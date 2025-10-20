@@ -104,13 +104,13 @@ const AudioFilterWidget: React.FC<AudioFilterWidgetProps> = ({ config, id }) => 
       <div className="mb-4">
         <Select
           value={selectedFilter}
-          onValueChange={setSelectedFilter}
+          onValueChange={(v) => setSelectedFilter(v === '__none__' ? '' : v)}
         >
           <SelectTrigger className="w-full mb-2">
             <SelectValue placeholder="Select Filter" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Select Filter</SelectItem>
+            <SelectItem value="__none__">Select Filter</SelectItem>
             {filters.map((filter, index) => (
               <SelectItem key={index} value={String(filter.type || '')}>
                 {String(filter.type || 'Unknown Filter')}

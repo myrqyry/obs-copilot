@@ -3,6 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/Button';
 import useConfigStore from '../../store/configStore';
+import useUiStore from '@/store/uiStore';
 import { useOverlaysStore } from '../../store/overlaysStore';
 import { CollapsibleCard } from '@/components/common/CollapsibleCard';
 import { ThemeChooser } from '@/components/common/ThemeChooser';
@@ -19,8 +20,7 @@ import { generatePatternCSS } from '@/lib/backgroundPatterns';
 
 const SettingsTab: React.FC = () => {
     const {
-        flipSides,
-        setFlipSides,
+        // flipSides and setFlipSides live in the UI store
         theme: currentTheme,
         setAccent,
         setSecondaryAccent,
@@ -60,6 +60,9 @@ const SettingsTab: React.FC = () => {
 
     } = useConfigStore();
     const { regenerateChatOverlay } = useOverlaysStore();
+    // UI-specific state
+    const flipSides = useUiStore(state => state.flipSides);
+    const setFlipSides = useUiStore(state => state.setFlipSides);
     const { theme } = useTheme();
 
     const [openUIPreferences, setOpenUIPreferences] = useState(true);
@@ -106,7 +109,6 @@ const SettingsTab: React.FC = () => {
                     <div className="mb-2">
                         <ThemeChooser />
                     </div>
-
                     {/* Accent Colors (compact) */}
                     {theme?.accentColors && (
                         <div>

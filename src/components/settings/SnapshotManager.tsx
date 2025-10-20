@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
-import { toast } from '@/components/ui/toaster';
+import { toast } from '@/components/ui/toast';
 
 const SnapshotManager: React.FC = () => {
   const [snapshotName, setSnapshotName] = useState('');

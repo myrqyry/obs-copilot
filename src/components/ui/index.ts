@@ -5,3 +5,4 @@ export * from './Button';
 export * from './table';
 export * from './toaster';
 export * from './use-toast';
+export * from './progress';
