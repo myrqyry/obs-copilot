@@ -2,6 +2,7 @@ import base64
 import logging
 import json
 import asyncio
+import re
 from typing import Any, Optional, List, Dict, AsyncGenerator
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, HTTPException, Depends, status, Request
@@ -165,12 +166,24 @@ def _sync_generate_image(client: Any, request: EnhancedImageGenerateRequest):
     try:
         if request.imageInput and request.imageInputMimeType:
             try:
+                if len(request.imageInput.strip()) == 0:
+                    raise ValueError("Empty image input")
+
+                # Validate base64 format before decoding
+                if not re.match(r'^[A-Za-z0-9+/]*={0,2}$', request.imageInput):
+                    raise ValueError("Invalid base64 characters")
+
                 image_bytes = base64.b64decode(request.imageInput, validate=True)
+
+                # Additional size check
+                if len(image_bytes) > 10 * 1024 * 1024:  # 10MB limit
+                    raise ValueError("Image too large")
+
             except (base64.binascii.Error, ValueError) as e:
                 logger.error(f"Invalid base64 image input: {e}")
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid base64 image data"
+                    detail=f"Invalid image data: {str(e)}"
                 )
             # Image editing/remixing logic
             image_part = types.Part.from_bytes(data=image_bytes, mime_type=request.imageInputMimeType)

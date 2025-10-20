@@ -53,8 +53,13 @@ export class ObsClientImpl {
   private statusListeners: Set<(status: ConnectionStatus) => void> = new Set();
   private reconnectTimeout: NodeJS.Timeout | null = null;
   private connectionLock = false;
-  private stateCache: { state: any; timestamp: number } | null = null;
-  private readonly CACHE_TTL_MS = 2000; // Cache state for 2 seconds
+  private stateCache: Map<string, { state: any; timestamp: number }> = new Map();
+  private readonly CACHE_TTL_MS = {
+    scenes: 5000,      // Scene list changes less frequently
+    sources: 2000,     // Sources change more often
+    status: 1000,      // Status changes frequently
+    default: 2000
+  };
 
   // --- Event Listener Properties ---
   private onConnectionOpened: () => void;
@@ -97,13 +102,30 @@ export class ObsClientImpl {
 
   private cleanupEventListeners() {
     logger.info('[OBS] Cleaning up event listeners.');
-    this.obs.off('ConnectionOpened', this.onConnectionOpened);
-    this.obs.off('Identified', this.onIdentified);
-    this.obs.off('ConnectionClosed', this.onConnectionClosed);
-    this.obs.off('ConnectionError', this.onConnectionError);
 
+    // Store references to bound methods for proper cleanup
+    const eventsToCleanup: [string, (...args: any[]) => void][] = [
+      ['ConnectionOpened', this.onConnectionOpened],
+      ['Identified', this.onIdentified],
+      ['ConnectionClosed', this.onConnectionClosed],
+      ['ConnectionError', this.onConnectionError]
+    ];
+
+    for (const [event, listener] of eventsToCleanup) {
+      try {
+        this.obs.off(event, listener);
+      } catch (error) {
+        logger.warn(`Failed to remove listener for ${event}:`, error);
+      }
+    }
+
+    // Cleanup cache invalidation listeners
     for (const [event, listener] of this.cacheInvalidationListeners.entries()) {
-      this.obs.off(event, listener);
+      try {
+        this.obs.off(event, listener);
+      } catch (error) {
+        logger.warn(`Failed to remove cache listener for ${event}:`, error);
+      }
     }
     this.cacheInvalidationListeners.clear();
   }
@@ -170,8 +192,17 @@ export class ObsClientImpl {
     }
   }
 
-  private invalidateCache() {
-    this.stateCache = null;
+  private invalidateCache(pattern?: string) {
+    if (pattern) {
+      // Selective invalidation based on event type
+      for (const [key] of this.stateCache) {
+        if (key.includes(pattern)) {
+          this.stateCache.delete(key);
+        }
+      }
+    } else {
+      this.stateCache.clear();
+    }
   }
 
   private cleanupReconnectTimeout() {
@@ -187,35 +218,50 @@ export class ObsClientImpl {
     }
 
     if (this.retryCount >= MAX_RETRY_ATTEMPTS) {
-      logger.error(`[OBS] Max reconnection attempts (${MAX_RETRY_ATTEMPTS}) reached. Stopping.`);
+      logger.error(`[OBS] Max reconnection attempts (${MAX_RETRY_ATTEMPTS}) reached.`);
       this.setStatus('error');
-      this.rejectStaleCommands('Failed to connect to OBS after multiple attempts.');
+      this.rejectStaleCommands('Failed to connect after maximum retry attempts.');
       return;
     }
 
     this.retryCount++;
-    // backoff(attempt, base = 500, max = 15000)
-    const delay = backoff(this.retryCount, 1000, 30000);
-    logger.info(`[OBS] Reconnecting in ${delay.toFixed(0)}ms (attempt ${this.retryCount})...`);
+
+    // Improved backoff with jitter to prevent thundering herd
+    const baseDelay = Math.min(1000 * Math.pow(2, this.retryCount - 1), 30000);
+    const jitter = Math.random() * 0.1 * baseDelay; // 10% jitter
+    const delay = baseDelay + jitter;
+
+    logger.info(`[OBS] Reconnecting in ${delay.toFixed(0)}ms (attempt ${this.retryCount}/${MAX_RETRY_ATTEMPTS})`);
 
     this.cleanupReconnectTimeout();
-    this.reconnectTimeout = setTimeout(() => {
-      this.connect(this.connectOptions!.address, this.connectOptions!.password);
+    this.reconnectTimeout = setTimeout(async () => {
+      try {
+        await this.connect(this.connectOptions!.address, this.connectOptions!.password);
+      } catch (error) {
+        logger.warn(`[OBS] Reconnection attempt ${this.retryCount} failed:`, error);
+        // handleReconnect will be called by the error handlers
+      }
     }, delay);
   }
 
   async connect(address: string, password?: string): Promise<void> {
-    if (this.connectionLock || this.status === 'connecting' || this.status === 'connected') {
-      logger.warn(`[OBS] Ignoring connect call, already ${this.status} or connection attempt in progress.`);
+    // Use atomic check-and-set pattern
+    if (this.connectionLock) {
+      throw new ObsError('Connection attempt already in progress');
+    }
+
+    if (this.status === 'connecting' || this.status === 'connected') {
+      logger.warn(`[OBS] Ignoring connect call, already ${this.status}.`);
       return;
     }
     
+    // Atomic lock acquisition
     this.connectionLock = true;
-    this.connectOptions = { address, password };
-    this.setStatus('connecting');
 
     try {
-      // Ensure listeners are fresh for the new connection attempt
+      this.connectOptions = { address, password };
+      this.setStatus('connecting');
+
       this.setupEventListeners();
       await this.obs.connect(address, password, {
         rpcVersion: 1,
@@ -336,15 +382,17 @@ export class ObsClientImpl {
 
   // --- Full State Method for AI Context ---
   async getFullState(): Promise<any> {
-    const now = Date.now();
-    if (this.stateCache && (now - this.stateCache.timestamp < this.CACHE_TTL_MS)) {
+    const cacheKey = 'fullState';
+    const ttl = this.CACHE_TTL_MS.default;
+    const cached = this.stateCache.get(cacheKey);
+
+    if (cached && (Date.now() - cached.timestamp < ttl)) {
       logger.info('[OBS Cache] Returning cached state.');
-      return this.stateCache.state;
+      return cached.state;
     }
 
     if (!this.isConnected()) {
-      logger.warn('[OBS] Cannot get full state, not connected.');
-      return {
+      const emptyState = {
         current_scene: '',
         available_scenes: [],
         active_sources: [],
@@ -352,6 +400,8 @@ export class ObsClientImpl {
         recording_status: false,
         recent_commands: [],
       };
+      this.stateCache.set(cacheKey, { state: emptyState, timestamp: Date.now() });
+      return emptyState;
     }
 
     logger.info('[OBS Cache] Fetching fresh state.');
@@ -373,7 +423,7 @@ export class ObsClientImpl {
         recent_commands: [],
       };
 
-      this.stateCache = { state: newState, timestamp: Date.now() };
+      this.stateCache.set(cacheKey, { state: newState, timestamp: Date.now() });
       return newState;
     } catch (error) {
       handleAppError('OBS getFullState', error, 'Failed to retrieve full OBS state.');
