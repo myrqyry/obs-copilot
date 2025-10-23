@@ -12,6 +12,7 @@ import useUiStore from '@/store/uiStore';
 import type { ChatBackgroundType, ChatPattern } from '@/types/chatBackground';
 import { Session } from '@google/genai';
 import { Card } from '@/components/ui/Card';
+import { CoPilotConfig } from './components/CoPilotConfig';
 
 interface GeminiChatProps {
     onRefreshData?: () => Promise<void>;
@@ -282,6 +283,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
     return (
         <div className="flex flex-col h-full">
             <Card className="p-4 flex flex-col h-full">
+                <CoPilotConfig />
                 <MessageList
                     messages={messages}
                     isLoading={isLoading}
