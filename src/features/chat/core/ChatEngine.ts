@@ -1,15 +1,13 @@
 import { ChatProvider, ChatMessage, ChatEvent } from './types';
-import { CoPilotProvider } from './CoPilotProvider';
 
 export class ChatEngine extends EventTarget {
   private provider: ChatProvider | null = null;
-  private coPilotProvider: CoPilotProvider | null = null;
 
   constructor() {
     super();
   }
 
-  public setProvider(provider: ChatProvider, useCoPilot: boolean = false) {
+  public setProvider(provider: ChatProvider) {
     if (this.provider) {
       // Clean up old provider listeners if any
       this.provider.removeEventListener('message', this.handleProviderMessage);
@@ -17,12 +15,7 @@ export class ChatEngine extends EventTarget {
       this.provider.removeEventListener('disconnected', this.handleProviderDisconnected);
     }
 
-    if (useCoPilot) {
-      this.coPilotProvider = new CoPilotProvider(provider);
-      this.provider = this.coPilotProvider;
-    } else {
-      this.provider = provider;
-    }
+    this.provider = provider;
 
     // Forward events from the new provider
     this.provider.addEventListener('message', this.handleProviderMessage);

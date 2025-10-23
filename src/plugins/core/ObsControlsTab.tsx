@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import useConnectionsStore from '@/store/connectionsStore';
 import useWidgetStore from '@/features/obs-control/widgetStore';
 import UniversalWidgetEngine from '@/features/obs-control/UniversalWidgetEngine';
+import useUiStore from '@/store/uiStore';
 import { WidgetPalette } from './components/WidgetPalette';
 import { WidgetConfigPanel } from './components/WidgetConfigPanel';
 import { UniversalWidgetConfig } from '@/types/universalWidget';
@@ -46,6 +47,10 @@ const ObsControlsTab: React.FC<ObsControlsTabProps> = () => {
     document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
+    useUiStore.getState().addToast({
+      title: 'Dashboard Exported',
+      message: 'Your dashboard layout has been saved to a JSON file.',
+    });
   };
 
   const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {

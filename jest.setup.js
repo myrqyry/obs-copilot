@@ -4,35 +4,35 @@ import { act } from '@testing-library/react';
 
 // This is the recommended way to mock Zustand in Vitest/ESM
 // See: https://docs.pmnd.rs/zustand/guides/testing-with-vitest
-const { create: actualCreate } = await vi.importActual('zustand');
+// const { create: actualCreate } = await vi.importActual('zustand');
 
 // a variable to hold reset functions for all stores
-const storeResetFns = new Set();
+// const storeResetFns = new Set();
 
 // when creating a store, we get its initial state, create a reset function and add it to the set
-vi.mock('zustand', () => ({
-  __esModule: true,
-  ...actualCreate,
-  default: (...args) => {
-    const store = actualCreate(...args);
-    const initialState = store.getState();
-    storeResetFns.add(() => store.setState(initialState, true));
-    return store;
-  },
-  create: (...args) => {
-    const store = actualCreate(...args);
-    const initialState = store.getState();
-    storeResetFns.add(() => store.setState(initialState, true));
-    return store;
-  },
-}));
+// vi.mock('zustand', () => ({
+//   __esModule: true,
+//   ...actualCreate,
+//   default: (...args) => {
+//     const store = actualCreate(...args);
+//     const initialState = store.getState();
+//     storeResetFns.add(() => store.setState(initialState, true));
+//     return store;
+//   },
+//   create: (...args) => {
+//     const store = actualCreate(...args);
+//     const initialState = store.getState();
+//     storeResetFns.add(() => store.setState(initialState, true));
+//     return store;
+//   },
+// }));
 
 // Reset all stores before each test
-beforeEach(() => {
-  act(() => {
-    storeResetFns.forEach((resetFn) => resetFn());
-  });
-});
+// beforeEach(() => {
+//   act(() => {
+//     storeResetFns.forEach((resetFn) => resetFn());
+//   });
+// });
 
 // Clear mocks after each test to ensure a clean slate
 afterEach(() => {
