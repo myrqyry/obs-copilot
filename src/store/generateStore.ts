@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import useUiStore from './uiStore';
 
 export interface GenerationResult {
   success: boolean;
@@ -255,6 +256,10 @@ export const useGenerateStore = create<GenerateState>()(
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
+        useUiStore.getState().addToast({
+          title: 'History Exported',
+          message: 'Your generation history has been saved to a JSON file.',
+        });
       }
     }),
     {

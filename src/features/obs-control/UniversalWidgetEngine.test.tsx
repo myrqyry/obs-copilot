@@ -4,6 +4,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import UniversalWidgetEngine from './UniversalWidgetEngine';
 import { UniversalWidgetConfig, WidgetControlType } from '@/types/universalWidget';
+import { useObsWidget } from '@/hooks/useObsWidget';
 
 // Mock the logger first
 vi.mock('@/utils/logger', () => ({
@@ -288,8 +289,7 @@ describe('UniversalWidgetEngine', () => {
   });
 
   it('should show loading state', () => {
-    const { useObsWidget } = require('@/hooks/useObsWidget');
-    useObsWidget.mockReturnValue({
+    (useObsWidget as vi.Mock).mockReturnValue({
       options: [],
       isLoading: true,
       error: null,
@@ -315,8 +315,7 @@ describe('UniversalWidgetEngine', () => {
   });
 
   it('should show error state', () => {
-    const { useObsWidget } = require('@/hooks/useObsWidget');
-    useObsWidget.mockReturnValue({
+    (useObsWidget as vi.Mock).mockReturnValue({
       options: [],
       isLoading: false,
       error: 'Connection failed',

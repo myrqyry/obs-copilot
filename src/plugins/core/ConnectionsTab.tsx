@@ -136,7 +136,10 @@ export const ConnectionsTab: React.FC = () => {
                     <Input id="twitch-client-secret" type="password" value={twitchClientSecret} onChange={(e) => setTwitchClientSecret(e.target.value)} />
                 </div>
                 {twitchAccessToken ? (
-                    <Button onClick={handleTwitchLogout} variant="destructive">Logout from Twitch</Button>
+                    <div className="flex space-x-2">
+                        <Button onClick={handleTwitchLogout} variant="destructive">Logout from Twitch</Button>
+                        <Button onClick={() => console.log('Account Settings clicked!')}>Account Settings</Button>
+                    </div>
                 ) : (
                     <Button onClick={handleTwitchLogin}>Login with Twitch</Button>
                 )}
