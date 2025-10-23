@@ -100,10 +100,6 @@ export interface ConfigState extends ApiKeyState {
   // Tab Order
   tabOrder: string[];
   setTabOrder: (order: string[]) => void;
-
-  // Co-pilot
-  useCoPilot: boolean;
-  setUseCoPilot: (use: boolean) => void;
 }
 
 const useConfigStore = create<ConfigState>()(
@@ -208,10 +204,6 @@ const useConfigStore = create<ConfigState>()(
       // Tab Order
       tabOrder: ['connections','obs-studio','gemini','create','streaming-assets','settings','advanced','twitch-chat','automation','emote-wall'],
       setTabOrder: (order: string[]) => set({ tabOrder: order }),
-
-      // Co-pilot
-      useCoPilot: false,
-      setUseCoPilot: (use) => set({ useCoPilot: use }),
     }),
     {
       name: 'unified-config-store',
