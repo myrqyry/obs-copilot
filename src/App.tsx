@@ -17,8 +17,14 @@ import { loadConnectionSettings, saveConnectionSettings } from './utils/persiste
 import { LoadingSpinner } from './components/common/LoadingSpinner';
 import ConfirmationDialog from './components/common/ConfirmationDialog';
 import GlobalErrorDisplay from './components/common/GlobalErrorDisplay';
+import { generativeAlertService } from './services/GenerativeAlertService';
 
 const App: React.FC = React.memo(() => {
+    useEffect(() => {
+        // Initialize the generative alert service
+        generativeAlertService;
+    }, []);
+
     const plugins = usePlugins();
     const activeTab = useUiStore(state => state.activeTab);
     const setActiveTab = useUiStore(state => state.setActiveTab);
