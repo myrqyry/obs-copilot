@@ -9,37 +9,32 @@ import useChatStore from '../../store/chatStore';
 
 import { useObsActions } from '../useObsActions';
 import { ObsError } from '../../services/obsClient';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 // Mock the geminiService methods
-jest.mock('../../services/geminiService', () => ({
+vi.mock('../../services/geminiService', () => ({
   geminiService: {
-    generateStreamingContent: jest.fn(),
-    generateContent: jest.fn(),
+    generateStreamingContent: vi.fn(),
+    generateContent: vi.fn(),
   },
 }));
 
 // Mock chatStore (assuming it exists or will be added)
 const mockChatStore = {
   messages: [],
-  addMessage: jest.fn(),
-  setStreaming: jest.fn(),
-  clearMessages: jest.fn(),
+  addMessage: vi.fn(),
+  setStreaming: vi.fn(),
+  clearMessages: vi.fn(),
 };
 
-jest.mock('../../store/chatStore', () => ({
-  default: jest.fn(() => mockChatStore),
+vi.mock('../../store/chatStore', () => ({
+  default: vi.fn(() => mockChatStore),
 }));
 
 // Mock useObsActions
-const mockExecuteObsAction = jest.fn();
-jest.mock('../useObsActions', () => ({
-  useObsActions: jest.fn(() => ({ executeObsAction: mockExecuteObsAction })),
-}));
-
-// Mock the hook itself for testing its internal behavior
-const mockUseGeminiChat = jest.fn();
-jest.mock('../useGeminiChat', () => ({
-  useGeminiChat: mockUseGeminiChat,
+const mockExecuteObsAction = vi.fn();
+vi.mock('../useObsActions', () => ({
+  useObsActions: vi.fn(() => ({ executeObsAction: mockExecuteObsAction })),
 }));
 
 import { renderHook, act } from '@testing-library/react';
@@ -50,7 +45,7 @@ describe('useGeminiChat integration tests', () => {
   const mockChatStoreFn = require('../../store/chatStore').default;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockGeminiService.generateStreamingContent.mockResolvedValue();
     mockGeminiService.generateContent.mockResolvedValue({
       candidates: [{ content: { parts: [{ text: 'Mock response' }] } }]
@@ -66,8 +61,8 @@ describe('useGeminiChat integration tests', () => {
     mockUseGeminiChat.mockReturnValue({
       messages: mockChatStore.messages,
       isStreaming: false,
-      sendMessage: jest.fn(),
-      clearChat: jest.fn(),
+      sendMessage: vi.fn(),
+      clearChat: vi.fn(),
     });
   });
 
@@ -82,7 +77,7 @@ describe('useGeminiChat integration tests', () => {
   });
 
   it('should send message via streaming and update store', async () => {
-    const mockStreamCallback = jest.fn();
+    const mockStreamCallback = vi.fn();
     mockGeminiService.generateStreamingContent.mockImplementation(async (prompt, callback) => {
       callback({ type: 'chunk', data: { text: 'Response' } });
       callback({ type: 'done', data: {} });
@@ -125,7 +120,7 @@ describe('useGeminiChat integration tests', () => {
         try {
           mockChatStore.addMessage({ role: 'user', content: prompt });
           mockChatStore.setStreaming(true);
-          await mockGeminiService.generateStreamingContent(prompt, jest.fn());
+          await mockGeminiService.generateStreamingContent(prompt, vi.fn());
         } catch (error) {
           mockChatStore.setStreaming(false);
           mockChatStore.addMessage({ role: 'error', content: `Error: ${error.message}` });
@@ -155,7 +150,7 @@ describe('useGeminiChat integration tests', () => {
     mockUseGeminiChat.mockReturnValue({
       messages: mockChatStore.messages,
       isStreaming: false,
-      sendMessage: jest.fn(),
+      sendMessage: vi.fn(),
       clearChat: () => mockChatStore.clearMessages(),
     });
 
@@ -189,7 +184,7 @@ describe('useGeminiChat integration tests', () => {
       sendMessage: async (prompt: string) => {
         mockChatStore.addMessage({ role: 'user', content: prompt });
         mockChatStore.setStreaming(true);
-        const onStreamEvent = mockGeminiService.generateStreamingContent(prompt, jest.fn());
+        const onStreamEvent = mockGeminiService.generateStreamingContent(prompt, vi.fn());
         // Simulate tool call processing
         const streamCallback = mockGenerateStreamingContent.mock.calls[0][1];
         if (streamCallback) streamCallback(mockToolCall);
@@ -255,7 +250,7 @@ describe('useGeminiChat integration tests', () => {
       sendMessage: async (prompt: string) => {
         mockChatStore.addMessage({ role: 'user', content: prompt });
         mockChatStore.setStreaming(true);
-        await mockGeminiService.generateStreamingContent(prompt, jest.fn(), { history: expectedHistory });
+        await mockGeminiService.generateStreamingContent(prompt, vi.fn(), { history: expectedHistory });
         mockChatStore.setStreaming(false);
         mockChatStore.addMessage({ role: 'assistant', content: 'Response' });
       },
@@ -292,7 +287,7 @@ describe('useGeminiChat integration tests', () => {
       sendMessage: async (prompt: string) => {
         mockChatStore.addMessage({ role: 'user', content: prompt });
         mockChatStore.setStreaming(true);
-        const streamCallback = jest.fn();
+        const streamCallback = vi.fn();
         await mockGeminiService.generateStreamingContent(prompt, streamCallback);
         // Simulate tool call error handling
         try {
