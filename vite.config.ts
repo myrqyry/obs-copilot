@@ -45,5 +45,10 @@ export default defineConfig({
   define: {
     // Some libraries reference global or globalThis.Buffer; we ensure references don't crash before polyfills load.
     'globalThis.Buffer': 'globalThis.Buffer',
+    'process.env': {},
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
   },
 });

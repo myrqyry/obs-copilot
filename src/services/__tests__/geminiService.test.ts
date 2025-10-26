@@ -1,23 +1,23 @@
 // Mock the httpClient service
-jest.mock('../httpClient', () => ({
+vi.mock('../httpClient', () => ({
   httpClient: {
-    post: jest.fn(),
+    post: vi.fn(),
   },
 }));
 
 
 // Mock errorUtils for handleAppError
-jest.mock('../../lib/errorUtils', () => ({
-  handleAppError: jest.fn(() => 'Mocked error message'),
+vi.mock('../../lib/errorUtils', () => ({
+  handleAppError: vi.fn(() => 'Mocked error message'),
 }));
 
 // Mock lib/utils for dataUrlToBlobUrl
-jest.mock('../../lib/utils', () => ({
-  dataUrlToBlobUrl: jest.fn((url: string) => `blob:${url}`),
+vi.mock('../../lib/utils', () => ({
+  dataUrlToBlobUrl: vi.fn((url: string) => `blob:${url}`),
 }));
 
 // Mock constants and config
-jest.mock('../../config/modelConfig', () => ({
+vi.mock('../../config/modelConfig', () => ({
   MODEL_CONFIG: {
     chat: 'gemini-2.5-flash',
     image: 'imagen-4.0-fast-generate-001',
@@ -29,15 +29,15 @@ jest.mock('../../config/modelConfig', () => ({
 }));
 
 // Mock Buffer from buffer package
-jest.mock('buffer', () => ({
+vi.mock('buffer', () => ({
   Buffer: {
-    from: jest.fn(() => ({ /* mock buffer */ })),
+    from: vi.fn(() => ({ /* mock buffer */ })),
   },
 }));
 
 // Mock pcmToWavUrl from lib
-jest.mock('../../lib/pcmToWavUrl', () => ({
-  pcm16ToWavUrl: jest.fn(() => Promise.resolve('mock-wav-url')),
+vi.mock('../../lib/pcmToWavUrl', () => ({
+  pcm16ToWavUrl: vi.fn(() => Promise.resolve('mock-wav-url')),
 }));
 
 import { geminiService } from '../geminiService';
@@ -49,16 +49,16 @@ import { dataUrlToBlobUrl } from '../../lib/utils';
 import { pcm16ToWavUrl } from '../../lib/pcmToWavUrl';
 
 describe('GeminiService', () => {
-  const mockPost = jest.fn();
-  let addErrorSpy: jest.SpyInstance;
+  const mockPost = vi.fn();
+  let addErrorSpy: vi.SpyInstance;
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    addErrorSpy = jest.spyOn(useUiStore.getState(), 'addError');
+    vi.clearAllMocks();
+    addErrorSpy = vi.spyOn(useUiStore.getState(), 'addError');
     httpClient.post = mockPost;
-    (handleAppError as jest.Mock).mockReturnValue('Mocked error message');
-    (dataUrlToBlobUrl as jest.Mock).mockImplementation((url: string) => `blob:${url}`);
-    (pcm16ToWavUrl as jest.Mock).mockResolvedValue('mock-wav-url');
+    (handleAppError as vi.Mock).mockReturnValue('Mocked error message');
+    (dataUrlToBlobUrl as vi.Mock).mockImplementation((url: string) => `blob:${url}`);
+    (pcm16ToWavUrl as vi.Mock).mockResolvedValue('mock-wav-url');
   });
 
   afterEach(() => {
@@ -345,7 +345,7 @@ describe('GeminiService', () => {
 
   describe('Unsupported methods', () => {
     it('should throw for liveConnect', async () => {
-      await expect(geminiService.liveConnect({ model: 'gemini-2.5-flash', callbacks: { onmessage: jest.fn() } })).rejects.toThrow('Live API connection not supported in proxied mode');
+      await expect(geminiService.liveConnect({ model: 'gemini-2.5-flash', callbacks: { onmessage: vi.fn() } })).rejects.toThrow('Live API connection not supported in proxied mode');
     });
 
     it('should throw for createWidgetChatSession', async () => {

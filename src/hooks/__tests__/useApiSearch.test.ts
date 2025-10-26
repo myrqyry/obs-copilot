@@ -2,20 +2,21 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { useApiSearch } from '../useApiSearch';
 import { toast } from '@/components/ui/toast';
 import { logger } from '@/utils/logger';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 
-jest.mock('@/components/ui/toast', () => ({
-  toast: jest.fn(),
+vi.mock('@/components/ui/toast', () => ({
+  toast: vi.fn(),
 }));
 
-jest.mock('@/utils/logger', () => ({
+vi.mock('@/utils/logger', () => ({
   logger: {
-    error: jest.fn(),
+    error: vi.fn(),
   },
 }));
 
 describe('useApiSearch', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should return initial state', () => {
@@ -28,8 +29,8 @@ describe('useApiSearch', () => {
   });
 
   it('should handle successful search', async () => {
-    const mockFetcher = jest.fn(() => Promise.resolve(['item1', 'item2']));
-    const mockOnSuccess = jest.fn();
+    const mockFetcher = vi.fn(() => Promise.resolve(['item1', 'item2']));
+    const mockOnSuccess = vi.fn();
     const { result } = renderHook(() => useApiSearch({ onSuccess: mockOnSuccess }));
 
     await act(async () => {
@@ -47,8 +48,8 @@ describe('useApiSearch', () => {
 
   it('should handle search with error', async () => {
     const mockError = new Error('Network error');
-    const mockFetcher = jest.fn(() => Promise.reject(mockError));
-    const mockOnError = jest.fn();
+    const mockFetcher = vi.fn(() => Promise.reject(mockError));
+    const mockOnError = vi.fn();
     const { result } = renderHook(() => useApiSearch({ onError: mockOnError }));
 
     await act(async () => {
@@ -68,14 +69,14 @@ describe('useApiSearch', () => {
     expect(toast).toHaveBeenCalledWith(
       expect.objectContaining({
         title: 'Search Error',
-        description: 'Network error',
+        description: 'Search Error failed: Network error',
         variant: 'destructive',
       }),
     );
   });
 
   it('should reset search state', async () => {
-    const mockFetcher = jest.fn(() => Promise.resolve(['item1', 'item2']));
+    const mockFetcher = vi.fn(() => Promise.resolve(['item1', 'item2']));
     const { result } = renderHook(() => useApiSearch());
 
     await act(async () => {
@@ -107,7 +108,7 @@ describe('useApiSearch', () => {
   });
 
   it('should reset page on new search', async () => {
-    const mockFetcher = jest.fn(() => Promise.resolve(['item1']));
+    const mockFetcher = vi.fn(() => Promise.resolve(['item1']));
     const { result } = renderHook(() => useApiSearch());
 
     act(() => {

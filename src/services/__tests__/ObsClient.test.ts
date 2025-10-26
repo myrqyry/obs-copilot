@@ -3,7 +3,7 @@
  * This replaces the real store to avoid heavy rehydration/persistence and to
  * provide deterministic, in-memory state updates for actions.
  */
-jest.mock('../../store/connectionsStore', () => {
+vi.mock('../../store/connectionsStore', () => {
   let state: any = {
     obs: null,
     isConnected: false,
@@ -45,7 +45,7 @@ jest.mock('../../store/connectionsStore', () => {
   };
 
   // Minimal action implementations that update the in-memory state
-  const connectToObs = jest.fn(async (url?: string, password?: string) => {
+  const connectToObs = vi.fn(async (url?: string, password?: string) => {
     // mark loading, simulate a call to the attached obs mock if present
     setState({ isLoading: true, connectionError: null });
     if (state.obs && typeof state.obs.connect === 'function') {
@@ -57,7 +57,7 @@ jest.mock('../../store/connectionsStore', () => {
     }
   });
 
-  const disconnectFromObs = jest.fn(async () => {
+  const disconnectFromObs = vi.fn(async () => {
     if (state.obs && typeof state.obs.disconnect === 'function') {
       await state.obs.disconnect();
     }
@@ -86,23 +86,22 @@ import { ObsError, ConnectionStatus } from '../obsClient';
 import { ObsClientImpl } from '../obsClient';
 import OBSWebSocket from 'obs-websocket-js';
 import useUiStore from '../../store/uiStore';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
  
-jest.mock('obs-websocket-js', () => {
-  return jest.fn().mockImplementation(() => {
-    return {
-      connect: jest.fn().mockResolvedValue(undefined),
-      disconnect: jest.fn().mockResolvedValue(undefined),
-      call: jest.fn().mockResolvedValue(undefined),
-      on: jest.fn(),
-      off: jest.fn(),
-    };
-  });
-});
+vi.mock('obs-websocket-js', () => ({
+  default: vi.fn().mockImplementation(() => ({
+    connect: vi.fn().mockResolvedValue(undefined),
+    disconnect: vi.fn().mockResolvedValue(undefined),
+    call: vi.fn().mockResolvedValue(undefined),
+    on: vi.fn(),
+    off: vi.fn(),
+  })),
+}));
 
 // Silence UniversalWidgetEngine during unit tests to prevent heavy initialization,
 // repeated console output, and potential memory pressure. The mock provides a
 // minimal EventEmitter-like object and the same exports the app expects.
-jest.mock('@/features/obs-control/UniversalWidgetEngine', () => {
+vi.mock('@/features/obs-control/UniversalWidgetEngine', () => {
   const EventEmitter = require('eventemitter3');
   class MockEngine extends EventEmitter {
     initialize() {}
@@ -120,9 +119,9 @@ jest.mock('@/features/obs-control/UniversalWidgetEngine', () => {
   };
 });
 
-jest.mock('@/components/ui/toast', () => {
+vi.mock('@/components/ui/toast', () => {
   // Export a standalone `toast` mock and a `useToast` hook that returns it.
-  const toast = jest.fn();
+  const toast = vi.fn();
   return {
     useToast: () => ({ toast }),
     toast,
@@ -130,12 +129,12 @@ jest.mock('@/components/ui/toast', () => {
 });
 
 // Mock console.info and console.error to prevent cluttering test output
-const mockConsoleInfo = jest.spyOn(console, 'info').mockImplementation(() => {});
-const mockConsoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+const mockConsoleInfo = vi.spyOn(console, 'info').mockImplementation(() => {});
+const mockConsoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 describe('ObsClientImpl', () => {
   let obsClient: ObsClientImpl;
-  let mockObs: jest.Mocked<OBSWebSocket>;
+  let mockObs: vi.Mocked<OBSWebSocket>;
 
   beforeEach(() => {
     // Reset the Zustand store before each test
@@ -161,15 +160,15 @@ describe('ObsClientImpl', () => {
     // Now, when you instantiate ObsClientImpl, it will use the mock
     obsClient = ObsClientImpl.getInstance();
     // Mock the internal OBS instance through public API behavior
-    const mockOBSWebSocket = jest.fn().mockReturnValue({
-      connect: jest.fn(),
-      disconnect: jest.fn(),
-      call: jest.fn(),
-      on: jest.fn(),
-      off: jest.fn(),
+    const mockOBSWebSocket = vi.fn().mockReturnValue({
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      call: vi.fn(),
+      on: vi.fn(),
+      off: vi.fn(),
       identified: false,
     });
-    jest.doMock('obs-websocket-js', () => mockOBSWebSocket);
+    vi.doMock('obs-websocket-js', () => mockOBSWebSocket);
     // Re-instantiate to use the new mock
     (ObsClientImpl as any).instance = null;
     obsClient = ObsClientImpl.getInstance();
@@ -323,7 +322,7 @@ describe('ObsClientImpl', () => {
   it('should dispatch connection errors to uiStore', async () => {
     const mockError = new Error('Connection timeout');
     mockObs.connect.mockRejectedValueOnce(mockError);
-    const mockUiStoreState = { addError: jest.fn() };
+    const mockUiStoreState = { addError: vi.fn() };
     (useUiStore as any).mockReturnValue({
       getState: () => mockUiStoreState,
     });
@@ -343,27 +342,27 @@ describe('ObsClientImpl', () => {
 
 describe('ObsClient command queueing and reconnection', () => {
   let obsClient: ObsClientImpl;
-  let mockObs: jest.Mocked<OBSWebSocket>;
+  let mockObs: vi.Mocked<OBSWebSocket>;
   const mockListeners = new Map<string, Function>();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockListeners.clear();
     // Reset singleton for clean test state
     (ObsClientImpl as any).instance = null;
     obsClient = ObsClientImpl.getInstance();
     
     // Mock the OBSWebSocket constructor to return our mock instance
-    const MockOBSWebSocket = jest.fn().mockImplementation(() => ({
-      connect: jest.fn(),
-      disconnect: jest.fn(),
-      call: jest.fn(),
-      on: jest.fn(),
-      off: jest.fn(),
+    const MockOBSWebSocket = vi.fn().mockImplementation(() => ({
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      call: vi.fn(),
+      on: vi.fn(),
+      off: vi.fn(),
       identified: false,
     }));
     (obsClient as any).obs = new MockOBSWebSocket() as any;
-    mockObs = (obsClient as any).obs as jest.Mocked<OBSWebSocket>;
+    mockObs = (obsClient as any).obs as vi.Mocked<OBSWebSocket>;
     
     // Mock event emissions to store listeners
     mockObs.on.mockImplementation((event, listener) => {
@@ -423,7 +422,7 @@ describe('ObsClient command queueing and reconnection', () => {
   });
 
   it('should handle reconnection on ConnectionClosed event', async () => {
-    const reconnectSpy = jest.spyOn(obsClient as any, 'handleReconnect');
+    const reconnectSpy = vi.spyOn(obsClient as any, 'handleReconnect');
   
     // Connect first
     const mockHandshake = { obsWebSocketVersion: '5.0.0', rpcVersion: 1, negotiatedRpcVersion: 1 };
@@ -497,37 +496,37 @@ describe('ObsClient command queueing and reconnection', () => {
 
 describe('ObsClient state machine and error handling', () => {
   let obsClient: ObsClientImpl;
-  let mockObs: jest.Mocked<OBSWebSocket>;
+  let mockObs: vi.Mocked<OBSWebSocket>;
   let mockUiStore: any;
-  let addErrorSpy: jest.Mock;
+  let addErrorSpy: vi.Mock;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     (ObsClientImpl as any).instance = null;
     obsClient = ObsClientImpl.getInstance();
     
-    const MockOBSWebSocket = jest.fn().mockImplementation(() => ({
-      connect: jest.fn(),
-      disconnect: jest.fn(),
-      call: jest.fn(),
-      on: jest.fn(),
-      off: jest.fn(),
+    const MockOBSWebSocket = vi.fn().mockImplementation(() => ({
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      call: vi.fn(),
+      on: vi.fn(),
+      off: vi.fn(),
       identified: false,
     }));
     (obsClient as any).obs = new MockOBSWebSocket() as any;
-    mockObs = (obsClient as any).obs as jest.Mocked<OBSWebSocket>;
+    mockObs = (obsClient as any).obs as vi.Mocked<OBSWebSocket>;
 
     // Mock uiStore for error dispatching
-    mockUiStore = { addError: jest.fn() };
-    jest.doMock('../../store/uiStore', () => ({
+    mockUiStore = { addError: vi.fn() };
+    vi.doMock('../../store/uiStore', () => ({
       default: () => mockUiStore,
     }));
     const { useUiStore: mockUseUiStore } = require('../../store/uiStore');
     addErrorSpy = mockUiStore.addError;
 
     // Mock backoff for predictable reconnect timing
-    jest.doMock('../../lib/utils', () => ({
-      backoff: jest.fn(() => 100),
+    vi.doMock('../../lib/utils', () => ({
+      backoff: vi.fn(() => 100),
     }));
   });
 
@@ -557,7 +556,7 @@ describe('ObsClient state machine and error handling', () => {
 
   it('should handle reconnection with backoff delays', async () => {
     const mockUtils = require('../../lib/utils');
-    (mockUtils.backoff as jest.Mock).mockReturnValueOnce(100);
+    (mockUtils.backoff as vi.Mock).mockReturnValueOnce(100);
 
     // Initial connect and identify
     mockObs.connect.mockResolvedValueOnce({ obsWebSocketVersion: '5.0.0', rpcVersion: 1, negotiatedRpcVersion: 1 });
@@ -568,7 +567,7 @@ describe('ObsClient state machine and error handling', () => {
 
     // Now simulate ConnectionClosed event
     const closedListener = mockObs.on.mock.calls.find((call: any[]) => call[0] === 'ConnectionClosed')?.[1];
-    const connectSpy = jest.spyOn(obsClient, 'connect');
+    const connectSpy = vi.spyOn(obsClient, 'connect');
     const reconnectStart = Date.now();
 
     if (closedListener) closedListener();
@@ -674,6 +673,6 @@ describe('ObsClient state machine and error handling', () => {
   });
 
   afterEach(() => {
-    jest.resetModules();
+    vi.resetModules();
   });
 });
