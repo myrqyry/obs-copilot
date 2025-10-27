@@ -11,8 +11,7 @@ def get_client_identifier(request: Request) -> str:
     # Try API key first (best identifier)
     api_key = request.headers.get("X-API-KEY")
     if api_key:
-        salt = os.urandom(16)
-        return f"key:{hashlib.sha256(salt + api_key.encode()).hexdigest()}"
+        return f"key:{hashlib.sha256(api_key.encode()).hexdigest()}"
 
     # Fallback to IP with proper header handling
     forwarded = request.headers.get("X-Forwarded-For")
