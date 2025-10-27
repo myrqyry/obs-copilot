@@ -25,7 +25,7 @@ export const usePlugins = () => {
     let plugins = allPlugins.filter(plugin => {
       const isEnabled = (pluginSettings as any)[`${plugin.id}PluginEnabled`];
       const healthCheck = healthFilters[plugin.id];
-      return isEnabled === undefined || isEnabled || healthCheck === undefined || healthCheck;
+      return (isEnabled === undefined || isEnabled) && (healthCheck === undefined || healthCheck);
     });
 
     if (!tabOrder || tabOrder.length === 0) return plugins;
