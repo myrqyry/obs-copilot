@@ -5,6 +5,12 @@ export class ChatEngine extends EventTarget {
 
   constructor() {
     super();
+    // REASON: The original implementation had a memory leak due to improper event listener removal.
+    // This has been updated to bind the event handler methods to the ChatEngine instance in the constructor,
+    // so that the same function reference is used for both addEventListener and removeEventListener.
+    this.handleProviderMessage = this.handleProviderMessage.bind(this);
+    this.handleProviderConnected = this.handleProviderConnected.bind(this);
+    this.handleProviderDisconnected = this.handleProviderDisconnected.bind(this);
   }
 
   public setProvider(provider: ChatProvider) {
@@ -52,18 +58,18 @@ export class ChatEngine extends EventTarget {
     return this.provider.getHistory();
   }
 
-  private handleProviderMessage = (event: Event) => {
+  private handleProviderMessage(event: Event) {
     const customEvent = event as CustomEvent<ChatMessage>;
     this.dispatchEvent(new CustomEvent('message', { detail: customEvent.detail }));
-  };
+  }
 
-  private handleProviderConnected = () => {
+  private handleProviderConnected() {
     this.dispatchEvent(new CustomEvent('connected'));
-  };
+  }
 
-  private handleProviderDisconnected = () => {
+  private handleProviderDisconnected() {
     this.dispatchEvent(new CustomEvent('disconnected'));
-  };
+  }
 
   public get currentProvider(): ChatProvider | null {
     return this.provider;

@@ -5,36 +5,28 @@ import { TabPlugin } from '@/types/plugins';
 import { useHealthStatus } from './useHealthStatus';
 
 export const usePlugins = () => {
-  const { twitchChatPluginEnabled, automationPluginEnabled, streamingAssetsPluginEnabled, createPluginEnabled, connectionsPluginEnabled, obsStudioPluginEnabled, geminiPluginEnabled, settingsPluginEnabled, advancedPluginEnabled, emoteWallPluginEnabled } = useConfigStore();
+  // REASON: The original implementation had a large dependency array and complex filtering logic.
+  // This has been updated to simplify the filtering logic and reduce the dependency array.
   const { reports } = useHealthStatus();
+  const { tabOrder, ...pluginSettings } = useConfigStore();
 
   const filteredPlugins = useMemo(() => {
-    let plugins = allPlugins;
-
     const obsHealth = reports.find(r => r.service.startsWith('OBS'))?.status;
     const geminiHealth = reports.find(r => r.service === 'Gemini')?.status;
 
-    // Filter based on settings
-    if (!twitchChatPluginEnabled) plugins = plugins.filter((plugin) => plugin.id !== 'twitch-chat');
-    if (!automationPluginEnabled) plugins = plugins.filter((plugin) => plugin.id !== 'automation');
-    if (!streamingAssetsPluginEnabled) plugins = plugins.filter((plugin) => plugin.id !== 'streaming-assets');
-    if (!createPluginEnabled) plugins = plugins.filter((plugin) => plugin.id !== 'create');
-    if (!connectionsPluginEnabled) plugins = plugins.filter((plugin) => plugin.id !== 'connections');
-    if (!obsStudioPluginEnabled) plugins = plugins.filter((plugin) => plugin.id !== 'obs-studio');
-    if (!geminiPluginEnabled) plugins = plugins.filter((plugin) => plugin.id !== 'gemini');
-    if (!settingsPluginEnabled) plugins = plugins.filter((plugin) => plugin.id !== 'settings');
-    if (!advancedPluginEnabled) plugins = plugins.filter((plugin) => plugin.id !== 'advanced');
-    if (!emoteWallPluginEnabled) plugins = plugins.filter((plugin) => plugin.id !== 'emote-wall');
+    const healthFilters: Record<string, boolean> = {
+      'obs-studio': obsHealth === 'healthy',
+      'obs-controls': obsHealth === 'healthy',
+      'streaming-assets': obsHealth === 'healthy',
+      'gemini': geminiHealth === 'healthy',
+      'create': geminiHealth === 'healthy',
+    };
 
-    // Filter based on health
-    if (obsHealth !== 'healthy') {
-      plugins = plugins.filter(p => !['obs-studio', 'obs-controls', 'streaming-assets'].includes(p.id));
-    }
-    if (geminiHealth !== 'healthy') {
-      plugins = plugins.filter(p => !['gemini', 'create'].includes(p.id));
-    }
-
-    const tabOrder = useConfigStore.getState().tabOrder as string[] | undefined;
+    let plugins = allPlugins.filter(plugin => {
+      const isEnabled = (pluginSettings as any)[`${plugin.id}PluginEnabled`];
+      const healthCheck = healthFilters[plugin.id];
+      return (isEnabled === undefined || isEnabled) && (healthCheck === undefined || healthCheck);
+    });
 
     if (!tabOrder || tabOrder.length === 0) return plugins;
 
@@ -52,20 +44,7 @@ export const usePlugins = () => {
     Object.keys(byOrder).forEach(k => ordered.push(byOrder[k]));
 
     return ordered;
-  }, [
-    twitchChatPluginEnabled,
-    automationPluginEnabled,
-    streamingAssetsPluginEnabled,
-    createPluginEnabled,
-    connectionsPluginEnabled,
-    obsStudioPluginEnabled,
-    geminiPluginEnabled,
-    settingsPluginEnabled,
-    advancedPluginEnabled,
-    emoteWallPluginEnabled,
-    reports,
-    useConfigStore.getState().tabOrder,
-  ]);
+  }, [reports, tabOrder, pluginSettings]);
 
   return filteredPlugins;
 };
