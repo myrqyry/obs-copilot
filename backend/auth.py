@@ -38,7 +38,7 @@ async def get_api_key(request: Request) -> str:
     Supports 'X-API-KEY' header and 'api_key' query parameter.
     """
     # If no backend API key is configured, allow requests in development mode
-    expected_key = os.getenv('BACKEND_API_KEY') or settings.BACKEND_API_KEY
+    expected_key = _get_expected_api_key()
     if (not expected_key and
             settings.ENV == 'development' and
             os.getenv('ALLOW_UNAUTHENTICATED_DEV', 'false').lower() == 'true'):
