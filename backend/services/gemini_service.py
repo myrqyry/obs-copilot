@@ -33,18 +33,27 @@ class GeminiService:
                 timeout=60.0  # 60-second timeout for AI requests
             )
             return result
-        except asyncio.TimeoutError:
-            logger.error("Gemini API request timed out.")
+        except asyncio.TimeoutError as e:
+            logger.error(f"Gemini API request timed out after 60s: {sync_func.__name__}")
             raise HTTPException(
                 status_code=status.HTTP_504_GATEWAY_TIMEOUT,
-                detail="The request to the AI service timed out."
+                detail="AI service request timed out. Please try again."
+            )
+        except asyncio.CancelledError:
+            logger.warning(f"Gemini API request cancelled: {sync_func.__name__}")
+            raise HTTPException(
+                status_code=status.HTTP_499_CLIENT_CLOSED_REQUEST,
+                detail="Request was cancelled."
             )
         except Exception as e:
-            logger.error(f"Error executing function in GeminiService: {e}", exc_info=True)
-            # Re-raise as a generic HTTPException; specific routes can catch and customize
+            logger.error(
+                f"Error in {sync_func.__name__}: {type(e).__name__}: {e}",
+                exc_info=True,
+                extra={'function': sync_func.__name__, 'args_count': len(args)}
+            )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="An unexpected error occurred while processing the AI request."
+                detail="AI service temporarily unavailable."
             )
 
     def shutdown(self):

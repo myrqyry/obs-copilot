@@ -3,13 +3,18 @@ import os
 from typing import Optional
 from fastapi import Request, Depends, HTTPException, status
 from config import settings # Import centralized settings
+from functools import lru_cache
+
+@lru_cache(maxsize=1)
+def _get_expected_api_key() -> str | None:
+    return os.getenv('BACKEND_API_KEY') or settings.BACKEND_API_KEY
 
 def verify_api_key(provided_key: str) -> bool:
     """
     Verifies the provided API key against the configured key using a timing-attack-safe comparison.
     """
     # Cache the expected key to avoid repeated environment lookups
-    expected_key = os.getenv('BACKEND_API_KEY') or settings.BACKEND_API_KEY
+    expected_key = _get_expected_api_key()
 
     if not expected_key:
         if getattr(settings, 'ENV', 'development') == 'development':
@@ -34,9 +39,17 @@ async def get_api_key(request: Request) -> str:
     """
     # If no backend API key is configured, allow requests in development mode
     expected_key = os.getenv('BACKEND_API_KEY') or settings.BACKEND_API_KEY
-    if not expected_key and getattr(settings, 'ENV', 'development') == 'development':
-        # Allow the request without an API key in development.
+    if (not expected_key and
+            settings.ENV == 'development' and
+            os.getenv('ALLOW_UNAUTHENTICATED_DEV', 'false').lower() == 'true'):
+        logger.warning("Development mode: allowing unauthenticated access")
         return ""
+
+    if not expected_key:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authentication not properly configured."
+        )
 
     # Try to get the key from the header first
     api_key = request.headers.get("X-API-KEY")

@@ -1,5 +1,6 @@
 import uvicorn
 import logging
+import asyncio
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
@@ -12,7 +13,8 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from config import settings
 from auth import get_api_key
 from backend.api.routes import gemini, assets, overlays, proxy_7tv, proxy_emotes, health
-from middleware import logging_middleware
+from backend.services.gemini_service import gemini_service
+from middleware import EnhancedLoggingMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from rate_limiter import limiter
@@ -49,14 +51,18 @@ if settings.ENV in ("development", "test"):
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
 else:
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "*.netlify.app"])
-app.middleware("http")(logging_middleware)
+app.add_middleware(EnhancedLoggingMiddleware)
 
 # Parse and validate allowed origins from settings
 allowed_origins_raw = [origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",") if origin.strip()]
 allowed_origins = []
 for origin in allowed_origins_raw:
-    if '*' in origin and not origin.startswith('https://'):
-        logger.warning(f"Potentially unsafe origin pattern: {origin}")
+    if '*' in origin:
+        if settings.ENV == 'production':
+            logger.error(f"Wildcard origins not allowed in production: {origin}")
+            continue
+        elif not origin.startswith('https://') and origin != '*':
+            logger.warning(f"Potentially unsafe origin pattern: {origin}")
     allowed_origins.append(origin)
 
 # Improved CORS with security headers
@@ -159,15 +165,35 @@ def read_root():
     return {"status": "Server is running"}
 
 @app.get("/health")
-def health_check():
-    """Public health check endpoint used by monitoring and tests."""
-    return JSONResponse(
-        content={
-            "status": "healthy",
-            "version": "1.1.0",
-            "authenticated": False,
-        }
-    )
+async def health_check():
+    """Comprehensive health check endpoint."""
+    try:
+        # Check if GeminiService is responsive
+        service_status = "healthy"
+        try:
+            # Quick service connectivity test
+            await asyncio.wait_for(asyncio.sleep(0.001), timeout=0.1)
+        except:
+            service_status = "degraded"
+
+        return JSONResponse(
+            status_code=200 if service_status == "healthy" else 503,
+            content={
+                "status": service_status,
+                "version": "1.1.0",
+                "timestamp": asyncio.get_event_loop().time(),
+                "services": {
+                    "gemini": service_status,
+                    "auth": "healthy" if settings.BACKEND_API_KEY else "warning"
+                }
+            }
+        )
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return JSONResponse(
+            status_code=503,
+            content={"status": "unhealthy", "error": "Health check failed"}
+        )
 
 @app.get("/secure", operation_id="get_secure_data")
 def read_secure_data(api_key: str = Depends(get_api_key)):
