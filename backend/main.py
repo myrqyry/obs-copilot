@@ -171,9 +171,9 @@ async def health_check():
         # Check if GeminiService is responsive
         service_status = "healthy"
         try:
-            # Quick service connectivity test
+            # Quick check for event loop responsiveness.
             await asyncio.wait_for(asyncio.sleep(0.001), timeout=0.1)
-        except:
+        except asyncio.TimeoutError:
             service_status = "degraded"
 
         return JSONResponse(
