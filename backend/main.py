@@ -21,10 +21,20 @@ from rate_limiter import limiter
 logging.basicConfig(level=settings.LOG_LEVEL.upper())
 logger = logging.getLogger(__name__)
 
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # REASON: The original implementation did not shut down the GeminiService, which could lead to resource leaks.
+    # This has been updated to use a lifespan event handler to shut down the service when the application is shutting down.
+    yield
+    gemini_service.shutdown()
+
 app = FastAPI(
     title="Universal Backend Server",
     description="A single backend to serve all my projects with Google AI integration.",
     version="1.1.0",
+    lifespan=lifespan,
 )
 
 # Initialize rate limiter
