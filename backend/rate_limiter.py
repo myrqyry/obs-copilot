@@ -3,6 +3,32 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 import hashlib
 import os
+import asyncio
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+import logging
+
+logger = logging.getLogger(__name__)
+
+class EnhancedLimiter(Limiter):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Start background cleanup task
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(self._cleanup_expired_entries())
+        except RuntimeError:
+            # No running event loop, probably in a test environment
+            pass
+
+    async def _cleanup_expired_entries(self):
+        while True:
+            # Clean up expired rate limit entries every 5 minutes
+            await asyncio.sleep(300)
+            try:
+                self._storage._MemoryStorage__expire_events()
+            except Exception as e:
+                logger.error(f"Rate limiter cleanup error: {e}")
 
 def get_client_identifier(request: Request) -> str:
     """Get a more secure client identifier for rate limiting."""
@@ -19,4 +45,7 @@ def get_client_identifier(request: Request) -> str:
         return request.headers.get("X-Real-IP", "unknown")
     return get_remote_address(request)
 
-limiter = Limiter(key_func=get_client_identifier)
+limiter = EnhancedLimiter(
+    key_func=get_client_identifier,
+    default_limits=["100/hour"]
+)

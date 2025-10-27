@@ -6,38 +6,36 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Backwards compatibility shim for legacy environment variable names.
-# Some deployments or older dev setups used `admin_api_key` or a comma-separated
-# `API_KEYS` list. The new code requires `BACKEND_API_KEY`. If a legacy variable
-# is present and `BACKEND_API_KEY` is not, copy the legacy value into the
-# expected name so pydantic Settings validation succeeds.
-if not os.environ.get('BACKEND_API_KEY'):
+from typing import Optional
+import warnings
+
+def _resolve_backend_api_key() -> Optional[str]:
+    """Resolve API key from various sources without modifying environment."""
+    primary = os.environ.get('BACKEND_API_KEY')
+    if primary:
+        return primary
+
+    # Check legacy sources
     legacy_admin = os.environ.get('admin_api_key') or os.environ.get('ADMIN_API_KEY')
     if legacy_admin:
-        os.environ['BACKEND_API_KEY'] = legacy_admin
-        # Remove legacy keys to avoid pydantic treating them as 'extra' inputs
-        if 'admin_api_key' in os.environ:
-            del os.environ['admin_api_key']
-        if 'ADMIN_API_KEY' in os.environ:
-            del os.environ['ADMIN_API_KEY']
-    else:
-        api_keys = os.environ.get('API_KEYS')
-        if api_keys:
-            first = api_keys.split(',')[0].strip()
-            if first:
-                os.environ['BACKEND_API_KEY'] = first
-                # remove legacy API_KEYS to avoid extra input errors
-                if 'API_KEYS' in os.environ:
-                    del os.environ['API_KEYS']
+        warnings.warn(
+            "Using legacy API key environment variable. Please migrate to BACKEND_API_KEY",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        return legacy_admin
 
-# Ensure any legacy keys that might still be present in the process environment
-# are removed to avoid Pydantic treating them as unexpected "extra" inputs.
-for _k in ('admin_api_key', 'ADMIN_API_KEY', 'API_KEYS'):
-    if _k in os.environ:
-        try:
-            del os.environ[_k]
-        except Exception:
-            pass
+    # Check API_KEYS list
+    api_keys = os.environ.get('API_KEYS')
+    if api_keys:
+        warnings.warn(
+            "Using legacy API_KEYS environment variable. Please migrate to BACKEND_API_KEY",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        return api_keys.split(',')[0].strip()
+
+    return None
 
 from pydantic import field_validator
 
@@ -79,6 +77,15 @@ class Settings(BaseSettings):
                 raise ValueError(f"Invalid origin format: {origin}")
         return v
 
+    @field_validator('GEMINI_API_KEY')
+    @classmethod
+    def validate_gemini_key(cls, v: str) -> str:
+        if not v or len(v) < 30:
+            raise ValueError("GEMINI_API_KEY appears to be invalid or too short")
+        if not v.startswith('AI'):  # Gemini keys typically start with AI
+            logger.warning("GEMINI_API_KEY doesn't match expected format")
+        return v
+
     # Redis Caching (optional, with defaults)
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
@@ -92,6 +99,13 @@ class Settings(BaseSettings):
     # Note: model_config above configures env_file and extra handling for
     # pydantic v2 / pydantic-settings. There is no inner Config class to avoid
     # conflicts between v1 and v2 style configuration.
+
+    @field_validator('BACKEND_API_KEY', mode='before')
+    @classmethod
+    def resolve_api_key(cls, v):
+        if v is None:
+            return _resolve_backend_api_key()
+        return v
 
 @lru_cache()
 def get_settings() -> Settings:
