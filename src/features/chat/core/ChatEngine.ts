@@ -18,7 +18,7 @@ export class ChatEngine extends EventTarget {
       // Clean up old provider listeners if any
       this.provider.removeEventListener('message', this.handleProviderMessage);
       this.provider.removeEventListener('connected', this.handleProviderConnected);
-      this.provider.removeEventListener('disconnected', ahandleProviderDisconnected);
+      this.provider.removeEventListener('disconnected', this.handleProviderDisconnected);
     }
 
     this.provider = provider;
