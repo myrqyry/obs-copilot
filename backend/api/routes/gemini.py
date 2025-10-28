@@ -31,20 +31,62 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # --- Pydantic Models ---
-# (Models remain the same as they are for request body validation)
+from pydantic import validator
+
+class StreamRequest(BaseModel):
+    prompt: str = Field(..., min_length=1, max_length=2000)
+    model: str = Field("gemini-2.5-flash", pattern=r"^(gemini-2\.5-(flash|pro)|gemini-2\.0-(flash|pro))$")
+    history: Optional[List[Dict]] = Field(None, max_items=25)
+
+    @validator('prompt')
+    def sanitize_prompt(cls, v):
+        # Remove potentially dangerous patterns
+        v = re.sub(r'<script[^>]*>.*?</script>', '', v, flags=re.IGNORECASE | re.DOTALL)
+        v = re.sub(r'javascript:', '', v, flags=re.IGNORECASE)
+        # Limit consecutive whitespace
+        v = re.sub(r'\s+', ' ', v)
+        return v.strip()
+
+    @validator('history')
+    def validate_history_structure(cls, v):
+        if v:
+            for i, msg in enumerate(v):
+                if not isinstance(msg, dict):
+                    raise ValueError(f"History item {i} must be a dictionary")
+                if 'role' not in msg or 'parts' not in msg:
+                    raise ValueError(f"History item {i} missing required 'role' or 'parts' fields")
+                if len(str(msg)) > 10000:
+                    raise ValueError(f"History item {i} too large (max 10KB per message)")
+                # Validate role
+                if msg['role'] not in ['user', 'assistant', 'system']:
+                    raise ValueError(f"Invalid role '{msg['role']}' in history item {i}")
+        return v
+
 class EnhancedImageGenerateRequest(BaseModel):
     prompt: str = Field(..., min_length=1, max_length=1000)
     model: str = Field("imagen-4.0-fast-generate-001", pattern=r"^(imagen-4\.0-(fast-)?generate-001|gemini-2\.5-flash-image-preview)$")
     imageFormat: str = Field("png", pattern=r"^(png|jpeg|webp)$")
     aspectRatio: str = Field("1:1", pattern=r"^(1:1|3:4|4:3|9:16|16:9)$")
     personGeneration: str = Field("allow_adult", pattern=r"^(allow_adult|dont_allow)$")
-    imageInput: Optional[str] = Field(None, max_length=5000000)
+    imageInput: Optional[str] = Field(None, max_length=15000000)  # ~10MB base64
     imageInputMimeType: Optional[str] = Field(None, pattern=r"^image/(jpeg|png|gif|webp)$")
 
-class StreamRequest(BaseModel):
-    prompt: str = Field(..., min_length=1, max_length=1000)
-    model: str = Field("gemini-2.5-flash", pattern=r"^(gemini-2\.5-(flash|pro)|gemini-2\.0-(flash|pro))$")
-    history: Optional[List[Dict]] = Field(None, max_length=50)
+    @validator('imageInput')
+    def validate_image_input(cls, v, values):
+        if v is not None:
+            # Check if MIME type is provided when image input exists
+            if 'imageInputMimeType' not in values or not values['imageInputMimeType']:
+                raise ValueError("imageInputMimeType required when imageInput is provided")
+
+            # Validate base64 format
+            if not re.match(r'^[A-Za-z0-9+/]*={0,2}$', v):
+                raise ValueError("Invalid base64 format")
+
+            # Check size before decode to prevent memory issues
+            if len(v) > 14680064:  # ~10MB in base64 (10MB * 4/3 + padding)
+                raise ValueError("Image data too large (max 10MB)")
+
+        return v
 
 class SpeechGenerateRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=5000)
@@ -161,78 +203,127 @@ async def stream_content(request: Request, stream_request: StreamRequest, client
         logger.error(f"Unexpected error in stream_content: {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred.")
 
+def validate_and_decode_image(image_input: str, expected_mime: str) -> bytes:
+    """Securely validate and decode base64 image data."""
+    import magic  # Add python-magic to requirements.txt
+
+    # Validate base64 format
+    if not re.match(r'^[A-Za-z0-9+/]*={0,2}$', image_input):
+        raise ValueError("Invalid base64 format")
+
+    try:
+        image_bytes = base64.b64decode(image_input, validate=True)
+    except Exception as e:
+        raise ValueError(f"Invalid base64 encoding: {e}")
+
+    # Double-check decoded size
+    if len(image_bytes) > 10 * 1024 * 1024:
+        raise ValueError("Decoded image exceeds 10MB limit")
+
+    # Validate actual MIME type
+    try:
+        actual_mime = magic.from_buffer(image_bytes, mime=True)
+        if actual_mime != expected_mime:
+            raise ValueError(f"MIME type mismatch: expected {expected_mime}, got {actual_mime}")
+    except Exception:
+        # Fallback validation without python-magic
+        if expected_mime not in ['image/jpeg', 'image/png', 'image/gif', 'image/webp']:
+            raise ValueError("Unsupported image format")
+
+        # Basic image header validation
+    if expected_mime == 'image/jpeg' and not image_bytes.startswith(b'\xff\xd8\xff'):
+        raise ValueError("Invalid JPEG header")
+    elif expected_mime == 'image/png' and not image_bytes.startswith(b'\x89PNG\r\n\x1a\n'):
+        raise ValueError("Invalid PNG header")
+
+    return image_bytes
+
 def _sync_generate_image(client: Any, request: EnhancedImageGenerateRequest):
-    """Synchronous helper for image generation to be run in an executor."""
+    """Enhanced synchronous helper for image generation."""
     try:
         if request.imageInput and request.imageInputMimeType:
-            try:
-                if len(request.imageInput.strip()) == 0:
-                    raise ValueError("Empty image input")
+            # Use the secure validation function
+            image_bytes = validate_and_decode_image(request.imageInput, request.imageInputMimeType)
 
-                # Validate base64 format before decoding
-                if not re.match(r'^[A-Za-z0-9+/]*={0,2}$', request.imageInput):
-                    raise ValueError("Invalid base64 characters")
-
-                image_bytes = base64.b64decode(request.imageInput, validate=True)
-
-                # Additional size check
-                if len(image_bytes) > 10 * 1024 * 1024:  # 10MB limit
-                    raise ValueError("Image too large")
-
-            except (base64.binascii.Error, ValueError) as e:
-                logger.error(f"Invalid base64 image input: {e}")
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Invalid image data: {str(e)}"
-                )
-            # Image editing/remixing logic
+            # Create image part securely
             image_part = types.Part.from_bytes(data=image_bytes, mime_type=request.imageInputMimeType)
 
-            # Prefer older generate_images API if present (tests mock this path)
-            if hasattr(client.models, 'generate_images'):
-                response = client.models.generate_images(prompt=request.prompt, image_bytes=image_bytes, mime_type=request.imageInputMimeType)
-            else:
-                response = client.models.generate_content(
-                    model='gemini-2.5-flash-image-preview',
-                    contents=[image_part, request.prompt],
+            # Image editing/remixing logic with better error handling
+            try:
+                if hasattr(client.models, 'generate_images'):
+                    response = client.models.generate_images(
+                        prompt=request.prompt,
+                         image_bytes=image_bytes,
+                         mime_type=request.imageInputMimeType
+                    )
+                else:
+                    response = client.models.generate_content(
+                        model='gemini-2.5-flash-image-preview',
+                        contents=[image_part, request.prompt],
+                    )
+            except Exception as e:
+                logger.error(f"Image generation API error: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail="Failed to process image with AI service"
                 )
-            
+
+            # Process response with better error handling
             images_data = []
-            # Support older mocked 'generated_images' shape and newer 'candidates' shape
-            if hasattr(response, 'generated_images'):
-                for gi in getattr(response, 'generated_images', []):
-                    data = getattr(gi, 'image', None)
-                    if data and getattr(data, 'image_bytes', None):
-                        images_data.append({
-                            "data": base64.b64encode(getattr(data, 'image_bytes')).decode(),
-                            "mime_type": getattr(data, 'mime_type', 'image/png')
-                        })
-            elif hasattr(response, 'candidates'):
-                candidates = getattr(response, 'candidates', [])
-                if candidates:
-                    for part in getattr(candidates[0].content, 'parts', []):
+            try:
+                if hasattr(response, 'generated_images'):
+                    for gi in getattr(response, 'generated_images', []):
+                        data = getattr(gi, 'image', None)
+                        if data and getattr(data, 'image_bytes', None):
+                            images_data.append({
+                                "data": base64.b64encode(getattr(data, 'image_bytes')).decode(),
+                                "mime_type": getattr(data, 'mime_type', 'image/png')
+                            })
+                elif hasattr(response, 'candidates') and response.candidates:
+                    for part in getattr(response.candidates[0].content, 'parts', []):
                         inline = getattr(part, 'inline_data', None)
                         if inline and getattr(inline, 'data', None):
                             images_data.append({
                                 "data": base64.b64encode(getattr(inline, 'data')).decode(),
                                 "mime_type": getattr(inline, 'mime_type', 'image/png')
                             })
-            return {"images": images_data, "model": "gemini-2.5-flash-image-preview"}
-        else:
-            # Standard image generation
-            # Prefer generate_images when available (older SDK/tests). Fall back
-            # to generate_content with minimal config for newer SDKs.
-            if hasattr(client.models, 'generate_images'):
-                result = client.models.generate_images(prompt=request.prompt, model=request.model)
-            else:
-                result = client.models.generate_content(
-                    model=request.model,
-                    contents=request.prompt,
-                    config=types.GenerateContentConfig(
-                        response_mime_type=f"image/{request.imageFormat}",
-                    ),
+
+                if not images_data:
+                    raise HTTPException(
+                        status_code=status.HTTP_502_BAD_GATEWAY,
+                        detail="AI service returned no image data"
+                    )
+
+            except Exception as e:
+                logger.error(f"Error processing image response: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail="Failed to process AI service response"
                 )
-            # Handle different shapes for image result
+
+            return {"images": images_data, "model": "gemini-2.5-flash-image-preview"}
+
+        else:
+            # Standard image generation with enhanced error handling
+            try:
+                if hasattr(client.models, 'generate_images'):
+                    result = client.models.generate_images(prompt=request.prompt, model=request.model)
+                else:
+                    result = client.models.generate_content(
+                        model=request.model,
+                        contents=request.prompt,
+                        config=types.GenerateContentConfig(
+                            response_mime_type=f"image/{request.imageFormat}",
+                        ),
+                    )
+            except Exception as e:
+                logger.error(f"Standard image generation error: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail="AI service failed to generate image"
+                )
+
+            # Process standard generation response
             images = []
             if hasattr(result, 'generated_images'):
                 for gi in getattr(result, 'generated_images', []):
@@ -242,21 +333,31 @@ def _sync_generate_image(client: Any, request: EnhancedImageGenerateRequest):
                             "data": base64.b64encode(getattr(img, 'image_bytes')).decode(),
                             "mime_type": getattr(img, 'mime_type', 'image/png')
                         })
-            elif hasattr(result, 'candidates'):
-                candidates = getattr(result, 'candidates', [])
-                if candidates:
-                    for part in getattr(candidates[0].content, 'parts', []):
-                        inline = getattr(part, 'inline_data', None)
-                        if inline and getattr(inline, 'data', None):
-                            images.append({
-                                "data": base64.b64encode(getattr(inline, 'data')).decode(),
-                                "mime_type": getattr(inline, 'mime_type', 'image/png')
-                            })
+            elif hasattr(result, 'candidates') and result.candidates:
+                for part in getattr(result.candidates[0].content, 'parts', []):
+                    inline = getattr(part, 'inline_data', None)
+                    if inline and getattr(inline, 'data', None):
+                        images.append({
+                            "data": base64.b64encode(getattr(inline, 'data')).decode(),
+                            "mime_type": getattr(inline, 'mime_type', 'image/png')
+                        })
+
+            if not images:
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail="AI service returned no image data"
+                )
+
             return {"images": images, "model": request.model}
-    except (APIError, GenaiAPIError, ValueError) as e:
-        # Catch specific, expected errors from the SDK
-        logger.error(f"Gemini SDK error in _sync_generate_image: {e}")
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"AI service error: {str(e)}")
+
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions
+    except Exception as e:
+        logger.error(f"Unexpected error in _sync_generate_image: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error during image generation"
+        )
 
 
 @router.post("/generate-image-enhanced")
