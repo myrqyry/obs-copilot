@@ -44,6 +44,7 @@ pydantic-settings = ">=2.0.0"
 aioredis = ">=2.0.0"
 slowapi = ">=0.1.9"
 aiohttp = ">=3.9.0"
+python-magic = "*"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"

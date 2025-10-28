@@ -1,10 +1,12 @@
 import uvicorn
 import logging
 import asyncio
+import time
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import JSONResponse
+from starlette.responses import JSONResponse
 from fastapi_mcp import FastApiMCP
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -42,6 +44,52 @@ app = FastAPI(
 # Initialize rate limiter
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+class SecurityMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        # Add security headers
+        response = await call_next(request)
+
+        # Security headers
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data: https:; "
+            "connect-src 'self'"
+        )
+
+        # Remove server information
+        if "server" in response.headers:
+            del response.headers["server"]
+
+        return response
+
+class RequestValidationMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        # Limit request body size
+        content_length = request.headers.get("content-length")
+        if content_length and int(content_length) > 50 * 1024 * 1024:  # 50MB limit
+            return JSONResponse(
+                status_code=413,
+                content={"detail": "Request body too large (max 50MB)"}
+            )
+
+        # Add processing time header for monitoring
+        start_time = time.time()
+        response = await call_next(request)
+        process_time = time.time() - start_time
+        response.headers["X-Process-Time"] = str(process_time)
+
+        return response
+
+# Add these middleware to your FastAPI app
+app.add_middleware(SecurityMiddleware)
+app.add_middleware(RequestValidationMiddleware)
 
 # Add security and logging middleware
 # During development and tests we allow all hosts to avoid TrustedHost rejections
