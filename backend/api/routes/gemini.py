@@ -31,36 +31,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # --- Pydantic Models ---
+from backend.models.validation import GeminiRequest
 from pydantic import validator
-
-class StreamRequest(BaseModel):
-    prompt: str = Field(..., min_length=1, max_length=2000)
-    model: str = Field("gemini-2.5-flash", pattern=r"^(gemini-2\.5-(flash|pro)|gemini-2\.0-(flash|pro))$")
-    history: Optional[List[Dict]] = Field(None, max_items=25)
-
-    @validator('prompt')
-    def sanitize_prompt(cls, v):
-        # Remove potentially dangerous patterns
-        v = re.sub(r'<script[^>]*>.*?</script>', '', v, flags=re.IGNORECASE | re.DOTALL)
-        v = re.sub(r'javascript:', '', v, flags=re.IGNORECASE)
-        # Limit consecutive whitespace
-        v = re.sub(r'\s+', ' ', v)
-        return v.strip()
-
-    @validator('history')
-    def validate_history_structure(cls, v):
-        if v:
-            for i, msg in enumerate(v):
-                if not isinstance(msg, dict):
-                    raise ValueError(f"History item {i} must be a dictionary")
-                if 'role' not in msg or 'parts' not in msg:
-                    raise ValueError(f"History item {i} missing required 'role' or 'parts' fields")
-                if len(str(msg)) > 10000:
-                    raise ValueError(f"History item {i} too large (max 10KB per message)")
-                # Validate role
-                if msg['role'] not in ['user', 'assistant', 'system']:
-                    raise ValueError(f"Invalid role '{msg['role']}' in history item {i}")
-        return v
 
 class EnhancedImageGenerateRequest(BaseModel):
     prompt: str = Field(..., min_length=1, max_length=1000)
@@ -140,7 +112,7 @@ async def _async_stream_generator(response_iterator: any) -> AsyncGenerator[str,
 # --- API Endpoints ---
 @router.post("/stream")
 @limiter.limit("20/minute")
-async def stream_content(request: Request, stream_request: StreamRequest, client: Any = Depends(get_gemini_client)):
+async def stream_content(request: Request, stream_request: GeminiRequest, client: Any = Depends(get_gemini_client)):
     try:
         # Build SDK-native contents list using types.Content and types.Part.
         contents = []

@@ -4,7 +4,7 @@ import React, { useRef, useEffect } from 'react';
 import { gsap } from 'gsap';
 import { prefersReducedMotion } from '@/lib/utils';
 
-import useConnectionsStore from '@/store/connectionsStore';
+import useConnectionsStore from '@/store/connections';
 import { ConnectionStatus } from '@/services/obsClient';
 
 interface ConnectionStatusIconProps {

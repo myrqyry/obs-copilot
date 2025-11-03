@@ -84,12 +84,20 @@ API_CONFIGS = {
 }
 
 
+from backend.utils.cacheManager import cache_manager
+
 @router.get("/search/{api_name}")
-async def search_assets(api_name: str, request: SearchRequest = Depends(), api_key: str = Depends(get_api_key)):
+async def search_assets(api_name: str, request: SearchRequest = Depends(), useCache: bool = True, api_key: str = Depends(get_api_key)):
     """
     A generic proxy endpoint to search various third-party asset APIs.
     This version includes more robust key handling and error reporting.
     """
+    cache_key = f"{api_name}:{request.query}:{request.page}:{request.limit}"
+    if useCache:
+        cached_data = cache_manager.get(cache_key)
+        if cached_data:
+            return cached_data
+
     if api_name not in API_CONFIGS:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -155,6 +163,7 @@ async def search_assets(api_name: str, request: SearchRequest = Depends(), api_k
         # Parse JSON safely
         try:
             data = response.json()
+            cache_manager.set(cache_key, data, 300) # 5 minute TTL
         except Exception as e:
             logger.error(f"JSON decode error from {api_name} API: {e}")
             raise HTTPException(

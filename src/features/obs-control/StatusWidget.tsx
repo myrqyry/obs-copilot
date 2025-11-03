@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BaseWidget } from './BaseWidget';
 import { UniversalWidgetConfig } from '@/types/universalWidget';
-import useConnectionsStore from '@/store/connectionsStore';
+import useConnectionsStore from '@/store/connections';
 import { logger } from '@/utils/logger';
 
 interface StatusWidgetProps {

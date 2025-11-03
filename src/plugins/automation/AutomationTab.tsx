@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import AutomationRuleBuilder from '@/features/automation/AutomationRuleBuilder';
 import { useAutomationStore } from '@/store/automationStore';
-import useConnectionsStore from '@/store/connectionsStore';
+import useConnectionsStore from '@/store/connections';
 import { useChatStore } from '@/store/chatStore';
 import { useObsActions } from '@/hooks/useObsActions';
 import { automationService } from '@/services/automationService';

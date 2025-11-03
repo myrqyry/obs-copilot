@@ -5,7 +5,7 @@ import GridLayout, { WidthProvider, type Layout } from 'react-grid-layout';
 import ObsWidget from './ObsWidget';
 import ObsWidgetConfigModal from './ObsWidgetConfigModal';
 import { ObsWidgetConfig } from '@/types/obs';
-import useConnectionsStore from '@/store/connectionsStore';
+import useConnectionsStore from '@/store/connections';
 import { useWidgetsStore } from '@/store/widgetsStore';
 
 const ReactGridLayout = WidthProvider(GridLayout as any);

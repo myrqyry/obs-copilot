@@ -1,4 +1,4 @@
-import { useConnectionsStore } from '@/store/connectionsStore';
+import { useConnectionsStore } from '@/store/connections';
 import { useAutomationStore } from '@/store/automationStore';
 import { useOverlaysStore } from '@/store/overlaysStore';
 import { logger } from '@/utils/logger';

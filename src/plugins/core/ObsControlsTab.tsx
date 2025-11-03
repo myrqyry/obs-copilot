@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import useConnectionsStore from '@/store/connectionsStore';
+import useConnectionsStore from '@/store/connections';
 import useWidgetStore from '@/features/obs-control/widgetStore';
 import UniversalWidgetEngine from '@/features/obs-control/UniversalWidgetEngine';
 import useUiStore from '@/store/uiStore';
