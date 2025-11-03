@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { aiService } from '@/services/aiService';
 import { obsClient } from '@/services/obsClient';
-import useConnectionsStore from '@/store/connectionsStore';
+import useConnectionsStore from '@/store/connections';
 import { useChatStore } from '@/store/chatStore';
 import { INITIAL_SYSTEM_PROMPT } from '@/constants';
 import { buildMarkdownStylingSystemMessage } from '@/utils/systemPrompts';

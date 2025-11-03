@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { UniversalWidgetConfig, WidgetControlType } from '@/types/universalWidget';
-import useConnectionsStore from '@/store/connectionsStore';
+import useConnectionsStore from '@/store/connections';
 
 interface WidgetPaletteProps {
   onAddWidget: (config: UniversalWidgetConfig) => void;

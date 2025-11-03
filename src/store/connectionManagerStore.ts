@@ -1,5 +1,5 @@
 // Alias for legacy import paths — keep compatibility with components importing useConnectionManagerStore
-import useConnectionsStore from './connectionsStore';
+import useConnectionsStore from './connections';
 
 /**
  * Compatibility wrapper for legacy `useConnectionManagerStore` usages.

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { EmoteWallEngine } from '../core/EmoteWallEngine';
-import useConnectionsStore from '@/store/connectionsStore';
+import useConnectionsStore from '@/store/connections';
 import { chatEngine } from '@/features/chat/core/ChatEngine';
 import useEmoteWallStore from '@/store/emoteWallStore';
 

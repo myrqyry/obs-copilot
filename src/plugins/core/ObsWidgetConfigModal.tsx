@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ObsWidgetConfig, WidgetType } from '@/types/obs';
-import useConnectionsStore from '@/store/connectionsStore';
+import useConnectionsStore from '@/store/connections';
 import { ActionConfigForm } from '@/components/obs-config-forms/ActionConfigForm';
 import { ControlConfigForm } from '@/components/obs-config-forms/ControlConfigForm';
 

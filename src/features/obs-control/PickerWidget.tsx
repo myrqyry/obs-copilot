@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BaseWidget } from './BaseWidget';
 import { UniversalWidgetConfig } from '@/types/universalWidget';
-import useConnectionsStore from '@/store/connectionsStore';
+import useConnectionsStore from '@/store/connections';
 import { logger } from '@/utils/logger';
 
 interface PickerWidgetProps {

@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AddToContextButton } from '@/components/common/AddToContextButton';
 import { LockToggle } from '@/components/common/LockToggle';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
-import useConnectionsStore from '@/store/connectionsStore';
+import useConnectionsStore from '@/store/connections';
 import { useLockStore } from '@/store/lockStore';
 import useConfigStore from '@/store/configStore';
 import { useChatStore } from '@/store/chatStore';

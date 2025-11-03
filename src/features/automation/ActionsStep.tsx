@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from "@/components/ui";
 import { AutomationAction, FileExistsActionData, FolderExistsActionData, StreamerBotActionData } from '@/types/automation';
 import { ObsAction, SetCurrentProgramSceneAction } from '@/types/obsActions';
-import useConnectionsStore from '@/store/connectionsStore';
+import useConnectionsStore from '@/store/connections';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 

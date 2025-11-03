@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ConnectionForm from './ConnectionForm';
 import { ConnectionPanel } from './ConnectionPanel';
-import useConnectionsStore from '@/store/connectionsStore';
+import useConnectionsStore from '@/store/connections';
 import { ConnectionProfile } from '@/types/connections';
 import {
   Dialog,

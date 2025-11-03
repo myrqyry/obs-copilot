@@ -151,15 +151,20 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    logger.warning(f"Validation error at {request.url.path}: {exc.errors()}", extra={
-        "method": request.method,
-        "client": request.client.host if request.client else None
-    })
+    errors = []
+    for error in exc.errors():
+        field = '.'.join(str(loc) for loc in error['loc'])
+        errors.append({
+            'field': field,
+            'message': error['msg'],
+            'type': error['type']
+        })
+
     return JSONResponse(
         status_code=422,
         content={
-            "detail": "Invalid request data",
-            "errors": exc.errors(),
+            "detail": "Request validation failed",
+            "errors": errors,
             "code": "VALIDATION_ERROR"
         }
     )

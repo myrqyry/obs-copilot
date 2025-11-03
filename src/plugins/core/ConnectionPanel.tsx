@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from "@/components/ui";
 import { ConnectionStatusIcon } from './ConnectionStatusIcon';
 import { ConnectionProfile, ObsConnectionProfile, StreamerbotConnectionProfile } from '@/types/connections';
-import useConnectionsStore from '@/store/connectionsStore';
+import useConnectionsStore from '@/store/connections';
 
 interface ConnectionPanelProps {
   connection: ConnectionProfile;

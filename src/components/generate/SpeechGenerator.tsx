@@ -19,7 +19,7 @@ import {
   Wand2
 } from 'lucide-react';
 import { useGenerateStore } from '@/store/generateStore';
-import { useConnectionsStore } from '@/store/connectionsStore';
+import { useConnectionsStore } from '@/store/connections';
 import { toast } from '@/components/ui/toast';
 
 interface Voice {

@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import useWidgetStore, { useWidget } from '@/features/obs-control/widgetStore';
 import { WidgetControlType, UniversalWidgetConfig } from '@/types/universalWidget';
-import useConnectionsStore from '@/store/connectionsStore';
+import useConnectionsStore from '@/store/connections';
 
 interface WidgetConfigPanelProps {
   widgetId: string;

@@ -12,7 +12,7 @@ import useUiStore from './store/uiStore';
 import { usePlugins } from './hooks/usePlugins';
 import { useTheme } from './hooks/useTheme';
 import TwitchCallback from './features/auth/TwitchCallback';
-import useConnectionsStore from './store/connectionsStore';
+import useConnectionsStore from '@/store/connections';
 import { loadConnectionSettings, saveConnectionSettings } from './utils/persistence';
 import { LoadingSpinner } from './components/common/LoadingSpinner';
 import ConfirmationDialog from './components/common/ConfirmationDialog';

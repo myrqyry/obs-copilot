@@ -3,7 +3,7 @@
  * This replaces the real store to avoid heavy rehydration/persistence and to
  * provide deterministic, in-memory state updates for actions.
  */
-vi.mock('../../store/connectionsStore', () => {
+vi.mock('../../store/connections', () => {
   let state: any = {
     obs: null,
     isConnected: false,
@@ -80,7 +80,7 @@ vi.mock('../../store/connectionsStore', () => {
   };
 });
 
-const useConnectionsStore = require('../../store/connectionsStore').default;
+const useConnectionsStore = require('../../store/connections').default;
 
 import { ObsError, ConnectionStatus } from '../obsClient';
 import { ObsClientImpl } from '../obsClient';

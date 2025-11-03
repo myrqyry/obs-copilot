@@ -4,7 +4,7 @@ import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { useChatStore, ChatState } from '@/store/chatStore';
 import useConfigStore from '@/store/configStore';
-import useConnectionsStore from '@/store/connectionsStore';
+import useConnectionsStore from '@/store/connections';
 import { ChatMessage, CatppuccinAccentColorName } from '@/types';
 import { geminiService } from '@/services/geminiService';
 import { handleAppError } from '@/lib/errorUtils';

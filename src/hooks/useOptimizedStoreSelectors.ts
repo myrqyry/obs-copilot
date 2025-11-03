@@ -1,5 +1,5 @@
 
-import useConnectionsStore from '@/store/connectionsStore';
+import useConnectionsStore from '@/store/connections';
 import { useChatStore, ChatState } from '@/store/chatStore';
 import useConfigStore, { ConfigState } from '@/store/configStore';
 import { OBSData } from '@/types';

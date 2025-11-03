@@ -20,7 +20,7 @@ import {
   Edit3
 } from 'lucide-react';
 import { useGenerateStore } from '@/store/generateStore';
-import { useConnectionsStore } from '@/store/connectionsStore';
+import { useConnectionsStore } from '@/store/connections';
 import { toast } from '@/components/ui/toast';
 import { motion } from 'framer-motion';
 

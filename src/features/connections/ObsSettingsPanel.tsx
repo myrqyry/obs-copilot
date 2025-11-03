@@ -4,7 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import useConfigStore from '@/store/configStore';
-import useConnectionsStore from '@/store/connectionsStore';
+import useConnectionsStore from '@/store/connections';
 
 const ObsSettingsPanel: React.FC = () => {
     const { obsUrl, obsPassword, setObsUrl, setObsPassword } = useConfigStore();

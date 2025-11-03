@@ -1,5 +1,5 @@
 import { OBSCopilotPlugin, PluginContext, PluginCommand, PluginEvent } from '@/types/plugins';
-import useConnectionsStore from '@/store/connectionsStore';
+import useConnectionsStore from '@/store/connections';
 import { geminiService } from './geminiService';
 import { logger } from '@/utils/logger';
 
