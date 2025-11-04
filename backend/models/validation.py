@@ -34,6 +34,15 @@ class ImageGenerateRequest(BaseModel):
     image_input: Optional[str] = Field(None)
     image_input_mime_type: Optional[str] = Field(None)
 
+    @root_validator
+    def check_image_input_dependencies(cls, values):
+        image_input, mime_type = values.get('image_input'), values.get('image_input_mime_type')
+        if image_input and not mime_type:
+            raise ValueError('image_input_mime_type is required when image_input is provided')
+        if mime_type and not image_input:
+            raise ValueError('image_input is required when image_input_mime_type is provided')
+        return values
+
 class SpeechGenerateRequest(BaseModel):
     prompt: str = Field(..., min_length=1, max_length=5000)
     model: str = Field("gemini-1.5-flash-tts-001")
