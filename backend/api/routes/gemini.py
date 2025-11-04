@@ -209,7 +209,7 @@ def _sync_generate_image(client: Any, request: ImageGenerateRequest):
                     model=model,
                     contents=request.prompt,
                     generation_config=types.GenerateContentConfig(
-                        response_mime_type=f"image/{request.imageFormat}",
+                        response_mime_type=f"image/{request.image_format}",
                     ),
                 )
                 if result.candidates:
