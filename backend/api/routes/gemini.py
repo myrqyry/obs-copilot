@@ -31,37 +31,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # --- Pydantic Models ---
-from backend.models.validation import GeminiRequest
+from backend.models.validation import GeminiRequest, ImageGenerateRequest, SpeechGenerateRequest, PROMPT_MAX_LENGTH
 from pydantic import validator
 
-class EnhancedImageGenerateRequest(BaseModel):
-    prompt: str = Field(..., min_length=1, max_length=1000)
-    model: str = Field("imagen-4.0-fast-generate-001", pattern=r"^(imagen-4\.0-(fast-)?generate-001|gemini-2\.5-flash-image-preview)$")
-    imageFormat: str = Field("png", pattern=r"^(png|jpeg|webp)$")
-    aspectRatio: str = Field("1:1", pattern=r"^(1:1|3:4|4:3|9:16|16:9)$")
-    personGeneration: str = Field("allow_adult", pattern=r"^(allow_adult|dont_allow)$")
-    imageInput: Optional[str] = Field(None, max_length=15000000)  # ~10MB base64
-    imageInputMimeType: Optional[str] = Field(None, pattern=r"^image/(jpeg|png|gif|webp)$")
-
-    @validator('imageInput')
-    def validate_image_input(cls, v, values):
-        if v is not None:
-            # Check if MIME type is provided when image input exists
-            if 'imageInputMimeType' not in values or not values['imageInputMimeType']:
-                raise ValueError("imageInputMimeType required when imageInput is provided")
-
-            # Validate base64 format
-            if not re.match(r'^[A-Za-z0-9+/]*={0,2}$', v):
-                raise ValueError("Invalid base64 format")
-
-            # Check size before decode to prevent memory issues
-            if len(v) > 14680064:  # ~10MB in base64 (10MB * 4/3 + padding)
-                raise ValueError("Image data too large (max 10MB)")
-
-        return v
-
 class SpeechGenerateRequest(BaseModel):
-    text: str = Field(..., min_length=1, max_length=5000)
+    prompt: str = Field(..., min_length=1, max_length=5000)
+    model: str = Field("gemini-1.5-flash-tts-001", description="The model to use for speech generation.")
     isMultiSpeaker: bool = Field(False)
     voice: str = Field("Kore")
     speaker1Voice: str = Field("Kore")
@@ -114,50 +89,19 @@ async def _async_stream_generator(response_iterator: any) -> AsyncGenerator[str,
 @limiter.limit("20/minute")
 async def stream_content(request: Request, stream_request: GeminiRequest, client: Any = Depends(get_gemini_client)):
     try:
-        # Build SDK-native contents list using types.Content and types.Part.
-        contents = []
-        plain_contents = []
-        use_plain = False
-
-        if stream_request.history:
-            for msg in stream_request.history:
-                role = msg.get('role', 'user')
-                parts = []
-                plain_parts = []
-                for p in msg.get('parts', []):
-                    text = p['text'] if isinstance(p, dict) and 'text' in p else (p if isinstance(p, str) else None)
-                    try:
-                        part = types.Part.from_text(text)
-                        parts.append(part)
-                        plain_parts.append({'text': text})
-                    except Exception:
-                        # If SDK Part creation fails, mark to use plain dict shape
-                        use_plain = True
-                        plain_parts.append({'text': text})
-                if not use_plain:
-                    contents.append(types.Content(role=role, parts=parts))
-                plain_contents.append({'role': role, 'parts': plain_parts})
-
-        # Append current user prompt (robust to Part.from_text failures)
-        try:
-            prompt_part = types.Part.from_text(stream_request.prompt)
-        except Exception:
-            use_plain = True
-            prompt_part = stream_request.prompt
-
-        if not use_plain:
-            contents.append(types.Content(role="user", parts=[prompt_part]))
-            call_contents = contents
-        else:
-            plain_contents.append({'role': 'user', 'parts': [{'text': stream_request.prompt}]})
-            call_contents = plain_contents
+        # Convert history and prompt to the format expected by the SDK
+        history = stream_request.history or []
+        contents = [
+            *history,
+            {"role": "user", "parts": [{"text": stream_request.prompt}]}
+        ]
 
         # Use the client's streaming API
         response_stream = await asyncio.wait_for(
             gemini_service.run_in_executor(
                 client.models.generate_content_stream,
                 model=stream_request.model,
-                contents=call_contents,
+                contents=contents,
             ),
             timeout=30.0
         )
@@ -210,131 +154,90 @@ def validate_and_decode_image(image_input: str, expected_mime: str) -> bytes:
 
     return image_bytes
 
-def _sync_generate_image(client: Any, request: EnhancedImageGenerateRequest):
-    """Enhanced synchronous helper for image generation."""
+def _sync_generate_image(client: Any, request: ImageGenerateRequest):
+    """Refactored synchronous helper for image generation."""
     try:
-        if request.imageInput and request.imageInputMimeType:
-            # Use the secure validation function
-            image_bytes = validate_and_decode_image(request.imageInput, request.imageInputMimeType)
+        # Case 1: Image and Text prompt (requires a vision model)
+        if request.image_input and request.image_input_mime_type:
+            image_bytes = validate_and_decode_image(request.image_input, request.image_input_mime_type)
+            image_part = types.Part(inline_data=types.Blob(mime_type=request.image_input_mime_type, data=image_bytes))
+            model = "gemini-1.5-flash-latest"  # Use a capable vision model
 
-            # Create image part securely
-            image_part = types.Part.from_bytes(data=image_bytes, mime_type=request.imageInputMimeType)
+            response = client.models.generate_content(
+                model=model,
+                contents=[image_part, request.prompt],
+            )
 
-            # Image editing/remixing logic with better error handling
-            try:
-                if hasattr(client.models, 'generate_images'):
-                    response = client.models.generate_images(
-                        prompt=request.prompt,
-                         image_bytes=image_bytes,
-                         mime_type=request.imageInputMimeType
-                    )
-                else:
-                    response = client.models.generate_content(
-                        model='gemini-2.5-flash-image-preview',
-                        contents=[image_part, request.prompt],
-                    )
-            except Exception as e:
-                logger.error(f"Image generation API error: {e}")
-                raise HTTPException(
-                    status_code=status.HTTP_502_BAD_GATEWAY,
-                    detail="Failed to process image with AI service"
-                )
-
-            # Process response with better error handling
             images_data = []
-            try:
-                if hasattr(response, 'generated_images'):
-                    for gi in getattr(response, 'generated_images', []):
-                        data = getattr(gi, 'image', None)
-                        if data and getattr(data, 'image_bytes', None):
-                            images_data.append({
-                                "data": base64.b64encode(getattr(data, 'image_bytes')).decode(),
-                                "mime_type": getattr(data, 'mime_type', 'image/png')
-                            })
-                elif hasattr(response, 'candidates') and response.candidates:
-                    for part in getattr(response.candidates[0].content, 'parts', []):
-                        inline = getattr(part, 'inline_data', None)
-                        if inline and getattr(inline, 'data', None):
-                            images_data.append({
-                                "data": base64.b64encode(getattr(inline, 'data')).decode(),
-                                "mime_type": getattr(inline, 'mime_type', 'image/png')
-                            })
+            if response.candidates:
+                for part in response.candidates[0].content.parts:
+                    if part.inline_data:
+                        images_data.append({
+                            "data": base64.b64encode(part.inline_data.data).decode(),
+                            "mime_type": part.inline_data.mime_type,
+                        })
 
-                if not images_data:
-                    raise HTTPException(
-                        status_code=status.HTTP_502_BAD_GATEWAY,
-                        detail="AI service returned no image data"
-                    )
+            if not images_data:
+                raise HTTPException(status_code=502, detail="AI service returned no image data from vision model")
 
-            except Exception as e:
-                logger.error(f"Error processing image response: {e}")
-                raise HTTPException(
-                    status_code=status.HTTP_502_BAD_GATEWAY,
-                    detail="Failed to process AI service response"
-                )
+            return {"images": images_data, "model": model}
 
-            return {"images": images_data, "model": "gemini-2.5-flash-image-preview"}
-
+        # Case 2: Text-to-Image prompt
         else:
-            # Standard image generation with enhanced error handling
-            try:
-                if hasattr(client.models, 'generate_images'):
-                    result = client.models.generate_images(prompt=request.prompt, model=request.model)
-                else:
-                    result = client.models.generate_content(
-                        model=request.model,
-                        contents=request.prompt,
-                        config=types.GenerateContentConfig(
-                            response_mime_type=f"image/{request.imageFormat}",
-                        ),
-                    )
-            except Exception as e:
-                logger.error(f"Standard image generation error: {e}")
-                raise HTTPException(
-                    status_code=status.HTTP_502_BAD_GATEWAY,
-                    detail="AI service failed to generate image"
-                )
-
-            # Process standard generation response
+            model = request.model
             images = []
-            if hasattr(result, 'generated_images'):
-                for gi in getattr(result, 'generated_images', []):
-                    img = getattr(gi, 'image', None)
-                    if img and getattr(img, 'image_bytes', None):
-                        images.append({
-                            "data": base64.b64encode(getattr(img, 'image_bytes')).decode(),
-                            "mime_type": getattr(img, 'mime_type', 'image/png')
-                        })
-            elif hasattr(result, 'candidates') and result.candidates:
-                for part in getattr(result.candidates[0].content, 'parts', []):
-                    inline = getattr(part, 'inline_data', None)
-                    if inline and getattr(inline, 'data', None):
-                        images.append({
-                            "data": base64.b64encode(getattr(inline, 'data')).decode(),
-                            "mime_type": getattr(inline, 'mime_type', 'image/png')
-                        })
+            if 'imagen' in model:
+                # Use the dedicated API for Imagen models
+                result = client.models.generate_images(
+                    prompt=request.prompt,
+                    model=model,
+                    config=types.GenerateImagesConfig(
+                        aspect_ratio=request.aspect_ratio,
+                        person_generation=request.person_generation,
+                    )
+                )
+                if result.generated_images:
+                    for gi in result.generated_images:
+                        if gi.image and gi.image.image_bytes:
+                            images.append({
+                                "data": base64.b64encode(gi.image.image_bytes).decode(),
+                                "mime_type": gi.image.mime_type or 'image/png'
+                            })
+            else:
+                # Use generate_content for general models
+                result = client.models.generate_content(
+                    model=model,
+                    contents=request.prompt,
+                    generation_config=types.GenerateContentConfig(
+                        response_mime_type=f"image/{request.image_format}",
+                    ),
+                )
+                if result.candidates:
+                    for part in result.candidates[0].content.parts:
+                        if part.inline_data:
+                            images.append({
+                                "data": base64.b64encode(part.inline_data.data).decode(),
+                                "mime_type": part.inline_data.mime_type,
+                            })
 
             if not images:
-                raise HTTPException(
-                    status_code=status.HTTP_502_BAD_GATEWAY,
-                    detail="AI service returned no image data"
-                )
+                raise HTTPException(status_code=502, detail="AI service returned no image data")
 
-            return {"images": images, "model": request.model}
+            return {"images": images, "model": model}
 
+    except (APIError, GenaiAPIError) as e:
+        logger.error(f"Gemini API error in image generation: {e}")
+        raise HTTPException(status_code=502, detail=f"AI service error: {getattr(e, 'message', str(e))}")
     except HTTPException:
-        raise  # Re-raise HTTP exceptions
+        raise
     except Exception as e:
         logger.error(f"Unexpected error in _sync_generate_image: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error during image generation"
-        )
+        raise HTTPException(status_code=500, detail="Internal server error during image generation")
 
 
 @router.post("/generate-image-enhanced")
 @limiter.limit("10/minute")
-async def generate_image_enhanced(request: Request, image_request: EnhancedImageGenerateRequest, client: Any = Depends(get_gemini_client)):
+async def generate_image_enhanced(request: Request, image_request: ImageGenerateRequest, client: Any = Depends(get_gemini_client)):
     try:
         # Run the entire synchronous generation logic in the executor
         final_result = await asyncio.wait_for(
@@ -358,28 +261,32 @@ async def generate_image_enhanced(request: Request, image_request: EnhancedImage
 @limiter.limit("30/minute")
 async def generate_speech(request: Request, speech_request: SpeechGenerateRequest, client: Any = Depends(get_gemini_client)):
     try:
-        # Use client.models.generate_content for TTS
         response = await asyncio.wait_for(
             gemini_service.run_in_executor(
                 client.models.generate_content,
-                model='gemini-2.5-flash-preview-tts',
-                contents=speech_request.text,
-                config=types.GenerateContentConfig(response_mime_type="audio/wav"),
+                model=speech_request.model,
+                contents=speech_request.prompt,
+                generation_config=types.GenerateContentConfig(response_mime_type="audio/wav"),
             ),
             timeout=30.0
         )
 
-        audio_part = response.candidates[0].content.parts[0]
-        audio_data = audio_part.inline_data.data
+        # Safely extract audio data
+        if response.candidates and response.candidates[0].content.parts:
+            audio_part = response.candidates[0].content.parts[0]
+            if audio_part.inline_data and audio_part.inline_data.data:
+                audio_data = audio_part.inline_data.data
+                return {
+                    "audioData": base64.b64encode(audio_data).decode(),
+                    "format": "wav",
+                    "model": speech_request.model
+                }
 
-        return {
-            "audioData": base64.b64encode(audio_data).decode(),
-            "format": "wav",
-            "model": "gemini-2.5-flash-preview-tts"
-        }
+        raise HTTPException(status_code=502, detail="AI service returned no audio data")
+
     except (APIError, GenaiAPIError) as e:
         logger.error(f"Gemini API error in speech generation: {e}")
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"AI service error: {e.message}")
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"AI service error: {getattr(e, 'message', str(e))}")
     except HTTPException:
         raise # Re-raise timeout errors etc.
     except Exception as e:
@@ -442,21 +349,18 @@ async def obs_aware_query(
                         "cache_name": cache_name
                     }
 
-        # Fallback to implicit caching with optimized, role-separated prompt structure
+        # Fallback to implicit caching with a streamlined prompt structure
         system_message, user_message = context_builder.build_context_prompt(obs_state, obs_request.prompt)
-
-        # Build role-based contents: system message first (trusted), then user message (untrusted)
-        contents = [
-            types.Content(role="system", parts=[types.Part.from_text(system_message)]),
-            types.Content(role="user", parts=[types.Part.from_text(user_message)])
-        ]
 
         try:
             response = await asyncio.wait_for(
                 gemini_service.run_in_executor(
                     client.models.generate_content,
                     model=obs_request.model,
-                    contents=contents,
+                    contents=user_message,
+                    generation_config=types.GenerateContentConfig(
+                        system_instruction=system_message
+                    ),
                 ),
                 timeout=30.0  # 30 second timeout
             )
