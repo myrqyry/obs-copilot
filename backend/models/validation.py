@@ -19,6 +19,21 @@ class OBSConnectionRequest(BaseModel):
         return v
 
 class GeminiRequest(BaseModel):
-    message: str = Field(..., min_length=1, max_length=1000)
-    context: Optional[str] = Field(None, max_length=500)
-    temperature: Optional[float] = Field(0.7, ge=0.0, le=2.0)
+    prompt: str = Field(..., min_length=1, max_length=1000)
+    model: str = Field("gemini-1.5-flash-latest")
+    history: Optional[List[dict]] = Field(None)
+
+PROMPT_MAX_LENGTH = 1000
+
+class ImageGenerateRequest(BaseModel):
+    prompt: str = Field(..., min_length=1, max_length=PROMPT_MAX_LENGTH)
+    model: str = Field("imagen-4.0-fast-generate-001")
+    image_format: str = Field("png", pattern=r"^(png|jpeg|webp)$")
+    aspect_ratio: str = Field("1:1", pattern=r"^(1:1|3:4|4:3|9:16|16:9)$")
+    person_generation: str = Field("allow_adult", pattern=r"^(allow_adult|dont_allow)$")
+    image_input: Optional[str] = Field(None)
+    image_input_mime_type: Optional[str] = Field(None)
+
+class SpeechGenerateRequest(BaseModel):
+    prompt: str = Field(..., min_length=1, max_length=5000)
+    model: str = Field("gemini-1.5-flash-tts-001")
