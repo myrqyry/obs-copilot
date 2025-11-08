@@ -46,3 +46,13 @@ class ImageGenerateRequest(BaseModel):
 class SpeechGenerateRequest(BaseModel):
     prompt: str = Field(..., min_length=1, max_length=5000)
     model: str = Field("gemini-1.5-flash-tts-001")
+
+class OBSAction(BaseModel):
+    """Represents a single command to be executed in OBS."""
+    command: str = Field(..., description="The OBS command to execute, e.g., 'SetCurrentProgramScene'.")
+    args: Optional[dict] = Field(None, description="A dictionary of arguments for the command.")
+
+class OBSActionResponse(BaseModel):
+    """A structured response containing a series of OBS actions and the reasoning behind them."""
+    actions: List[OBSAction] = Field(..., description="A list of OBS actions to be executed.")
+    reasoning: str = Field(..., description="A step-by-step explanation of why these actions were chosen.")
