@@ -50,7 +50,7 @@ class SpeechGenerateRequest(BaseModel):
 class OBSAction(BaseModel):
     """Represents a single command to be executed in OBS."""
     command: str = Field(..., description="The OBS command to execute, e.g., 'SetCurrentProgramScene'.")
-    args: Optional[dict] = Field(None, description="A dictionary of arguments for the command.")
+    args: Optional[Dict[str, Any]] = Field(None, description="A dictionary of arguments for the command.")
 
 class OBSActionResponse(BaseModel):
     """A structured response containing a series of OBS actions and the reasoning behind them."""
