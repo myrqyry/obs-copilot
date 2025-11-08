@@ -188,11 +188,11 @@ export const useGeminiChat = (
       if (actions && actions.length > 0 && isConnected) {
         let allSucceeded = true;
         for (const action of actions) {
-          // Adapt the action format for handleObsActionWithDataParts if needed
-          const obsAction: ObsAction = {
-            command: action.command,
-            args: action.args || {}, // Ensure args is not null
-          };
+          // Adapt the action format for handleObsActionWithDataParts
+          const obsAction = {
+            type: action.command,
+            ...(action.args || {}),
+          } as ObsAction;
 
           const actionResult = await handleObsActionWithDataParts(obsAction, streamingHandlers);
 
