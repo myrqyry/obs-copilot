@@ -170,61 +170,49 @@ export const useGeminiChat = (
     chatActions.addMessage({ role: 'model', text: '...', id: modelMessageId });
 
     try {
-      // 1. Get full OBS state
       const obsState = await obsClient.getFullState();
 
-      // 2. Decide on caching strategy
-      const useExplicitCache = obsState.available_scenes.length >= 3;
-
-      // 3. Call the new caching-aware AI service
       const result = await aiService.queryWithOBSContext({
         prompt: userMessageText,
         obs_state: obsState,
-        use_explicit_cache: useExplicitCache,
         model: 'gemini-1.5-flash-001',
       });
 
-      const fullResponse = result.response;
+      // The 'result' is now a well-typed OBSActionResponse object.
+      const { actions, reasoning } = result;
 
-      // 4. Process the response (action parsing)
-      let displayText = fullResponse;
-      let obsActionResult: { success: boolean; message: string; error?: string } | null = null;
+      // Update the UI with the model's reasoning.
+      chatActions.replaceMessage(modelMessageId, { role: 'model', text: reasoning });
 
-      try {
-        const jsonMatch = fullResponse.match(/```json\s*([\s\S]*?)\s*```/);
-        if (jsonMatch && jsonMatch[1]) {
-          const parsed: GeminiActionResponse = JSON.parse(jsonMatch[1]);
-          if (parsed.obsAction && isConnected) {
-            const actions = Array.isArray(parsed.obsAction) ? parsed.obsAction : [parsed.obsAction];
-            for (const action of actions) {
-              obsActionResult = await handleObsActionWithDataParts(action, streamingHandlers);
-              if (!obsActionResult.success) break;
-            }
-            if (onRefreshData) await onRefreshData();
-          }
-          if (parsed.responseText) {
-            displayText = parsed.responseText;
+      // Execute the actions.
+      if (actions && actions.length > 0 && isConnected) {
+        let allSucceeded = true;
+        for (const action of actions) {
+          // Adapt the action format for handleObsActionWithDataParts
+          const obsAction = {
+            type: action.command,
+            ...(action.args || {}),
+          } as ObsAction;
+
+          const actionResult = await handleObsActionWithDataParts(obsAction, streamingHandlers);
+
+          // Provide immediate feedback for each action
+          const feedbackMessage = actionResult.success
+            ? `Action successful: ${action.command}`
+            : `Action failed: ${action.command} - ${actionResult.error}`;
+          chatActions.addMessage({ role: 'system', text: feedbackMessage });
+
+          if (!actionResult.success) {
+            allSucceeded = false;
+            break; // Stop on first failure
           }
         }
-      } catch (err) {
-        logger.warn('No valid action found in response:', err);
+
+        // Refresh OBS data after all actions are executed
+        if (onRefreshData) {
+          await onRefreshData();
+        }
       }
-
-      // 5. Update the UI with the final response
-      chatActions.replaceMessage(modelMessageId, { role: 'model', text: displayText });
-
-      // Add a system message for the result of the OBS action
-      if (obsActionResult) {
-        const message = obsActionResult.success ? obsActionResult.message : `OBS Action failed: ${obsActionResult.error}`;
-        chatActions.addMessage({ role: 'system', text: message });
-      }
-
-      // Optionally, add a system message indicating cache status for debugging
-      if (result.cache_used) {
-        const cacheInfo = `Cache hit: ${result.cache_name}. Tokens saved: ${result.usage_metadata.cached_content_token_count}`;
-        chatActions.addMessage({ role: 'system', text: `[DEBUG] ${cacheInfo}` });
-      }
-
     } catch (error: unknown) {
       const errorMsg = handleAppError('Gemini chat send', error, 'Failed to send message to Gemini');
       useErrorStore().addError({

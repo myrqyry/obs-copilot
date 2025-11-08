@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # --- Pydantic Models ---
-from backend.models.validation import GeminiRequest, ImageGenerateRequest, SpeechGenerateRequest, PROMPT_MAX_LENGTH
+from backend.models.validation import GeminiRequest, ImageGenerateRequest, SpeechGenerateRequest, PROMPT_MAX_LENGTH, OBSActionResponse
 from pydantic import validator
 
 class SpeechGenerateRequest(BaseModel):
@@ -304,15 +304,15 @@ class OBSAwareRequest(BaseModel):
 
 context_builder = OBSContextBuilder()
 
-@router.post("/obs-aware-query")
+@router.post("/obs-aware-query", response_model=OBSActionResponse)
 @limiter.limit("15/minute")
 async def obs_aware_query(
     request: Request,
     obs_request: OBSAwareRequest,
     client: Any = Depends(get_gemini_client)
-):
+) -> OBSActionResponse:
     """
-    Enhanced endpoint that uses OBS context and caching for better performance
+    Enhanced endpoint that uses OBS context to generate structured OBS actions.
     """
     try:
         obs_state = OBSContextState(
@@ -342,45 +342,51 @@ async def obs_aware_query(
                 )
 
                 if result:
-                    return {
-                        "response": result['text'],
-                        "usage_metadata": result['usage_metadata'],
-                        "cache_used": True,
-                        "cache_name": cache_name
-                    }
+                    # Since we are using the cache, we need to manually construct the OBSActionResponse
+                    # This is a fallback and will not have the structured output of the main path
+                    return OBSActionResponse(
+                        actions=[OBSAction(command="SendMessage", args={"message": result['text']})],
+                        reasoning="Response generated from cache."
+                    )
 
-        # Fallback to implicit caching with a streamlined prompt structure
-        system_message, user_message = context_builder.build_context_prompt(obs_state, obs_request.prompt)
+        system_message, user_message = context_builder.build_context_prompt(
+            obs_state,
+            obs_request.prompt,
+            is_json_output=True  # Instruct the builder to format for JSON
+        )
 
-        try:
-            response = await asyncio.wait_for(
-                gemini_service.run_in_executor(
-                    client.models.generate_content,
-                    model=obs_request.model,
-                    contents=user_message,
-                    generation_config=types.GenerateContentConfig(
-                        system_instruction=system_message
-                    ),
+        response = await asyncio.wait_for(
+            gemini_service.run_in_executor(
+                client.models.generate_content,
+                model=obs_request.model,
+                contents=user_message,
+                generation_config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_json_schema=OBSActionResponse.model_json_schema(),
+                    system_instruction=system_message
                 ),
-                timeout=30.0  # 30 second timeout
-            )
+            ),
+            timeout=45.0
+        )
 
-            usage = getattr(response, 'usage_metadata', None)
-            return {
-                "response": getattr(response, 'text', None),
-                "usage_metadata": {
-                    "total_token_count": getattr(usage, 'total_token_count', None),
-                    "candidates_token_count": getattr(usage, 'candidates_token_count', None),
-                    "prompt_token_count": getattr(usage, 'prompt_token_count', None)
-                },
-                "cache_used": False
-            }
-        except (APIError, GenaiAPIError) as e:
-            logger.error(f"Gemini API error in obs_aware_query fallback: {e}")
-            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"AI service error: {getattr(e, 'message', str(e))}")
+        # Validate and parse the JSON response
+        action_response = OBSActionResponse.model_validate_json(response.text)
+        return action_response
 
+    except (APIError, GenaiAPIError) as e:
+        logger.error(f"Gemini API error in obs_aware_query: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"AI service error: {getattr(e, 'message', str(e))}"
+        )
     except Exception as e:
         logger.error(f"Error in obs_aware_query: {e}", exc_info=True)
+        # Check for validation errors from Pydantic
+        if "validation" in str(e).lower():
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"AI service returned invalid data structure: {e}"
+            )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to process OBS-aware query"
