@@ -1,12 +1,12 @@
 import {
     ImageClassifier,
     FilesetResolver
-} from "https://unpkg.com/@mediapipe/tasks-vision@0.10.3/vision_bundle.js";
+} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/vision_bundle.js";
 
 let imageClassifier;
-const runningMode = "IMAGE";
+let runningMode = "IMAGE";
 
-// Initialize the image classifier
+// Initialize the object detector
 const classifyButton = document.getElementById("classify-button");
 
 const initializeImageClassifier = async () => {
