@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, validator
-from typing import Optional, List
+from pydantic import BaseModel, Field, validator, model_validator
+from typing import Optional, List, Dict, Any
 import re
 
 class OBSConnectionRequest(BaseModel):
@@ -33,15 +33,19 @@ class ImageGenerateRequest(BaseModel):
     person_generation: str = Field("allow_adult", pattern=r"^(allow_adult|dont_allow)$")
     image_input: Optional[str] = Field(None)
     image_input_mime_type: Optional[str] = Field(None)
+    condition_type: Optional[str] = Field(None, pattern=r"^(canny_edge)$")
 
-    @root_validator
-    def check_image_input_dependencies(cls, values):
-        image_input, mime_type = values.get('image_input'), values.get('image_input_mime_type')
-        if image_input and not mime_type:
-            raise ValueError('image_input_mime_type is required when image_input is provided')
-        if mime_type and not image_input:
-            raise ValueError('image_input is required when image_input_mime_type is provided')
-        return values
+    @model_validator(mode='before')
+    def check_image_input_dependencies(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            image_input = data.get('image_input')
+            mime_type = data.get('image_input_mime_type')
+
+            if image_input and not mime_type:
+                raise ValueError('image_input_mime_type is required when image_input is provided')
+            if mime_type and not image_input:
+                raise ValueError('image_input is required when image_input_mime_type is provided')
+        return data
 
 class SpeechGenerateRequest(BaseModel):
     prompt: str = Field(..., min_length=1, max_length=5000)

@@ -106,6 +106,7 @@ export const EnhancedImageGenerator: React.FC = () => {
   const [inputImage, setInputImage] = useState<string | null>(null);
   const [inputImageMime, setInputImageMime] = useState<string>('');
   const [isEditing, setIsEditing] = useState(false);
+  const [conditionType, setConditionType] = useState<string>('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -180,7 +181,8 @@ export const EnhancedImageGenerator: React.FC = () => {
         aspectRatio,
         personGeneration,
         imageInput: inputImage || undefined,
-        imageInputMimeType: inputImageMime || undefined
+        imageInputMimeType: inputImageMime || undefined,
+        condition_type: conditionType || undefined,
       });
 
       if (result.success) {
@@ -391,6 +393,36 @@ export const EnhancedImageGenerator: React.FC = () => {
                         </div>
                       </SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Canny Edge Dropdown */}
+            {isEditing && (
+              <div>
+                <Label>Conditioning</Label>
+                <Select value={conditionType} onValueChange={setConditionType}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="None" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">
+                      <div>
+                        <div className="font-medium">None</div>
+                        <div className="text-xs text-gray-500">
+                          No pre-processing
+                        </div>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="canny_edge">
+                      <div>
+                        <div className="font-medium">Canny Edge</div>
+                        <div className="text-xs text-gray-500">
+                          Use edge detection to guide generation
+                        </div>
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -160,6 +160,30 @@ def _sync_generate_image(client: Any, request: ImageGenerateRequest):
         # Case 1: Image and Text prompt (requires a vision model)
         if request.image_input and request.image_input_mime_type:
             image_bytes = validate_and_decode_image(request.image_input, request.image_input_mime_type)
+
+            # Apply Canny edge detection if requested
+            if request.condition_type == "canny_edge":
+                import cv2
+                import numpy as np
+
+                # Decode image for OpenCV
+                nparr = np.frombuffer(image_bytes, np.uint8)
+                img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+                # Convert to grayscale and apply Canny
+                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                edges = cv2.Canny(gray, 100, 200)
+
+                # Convert single-channel edges back to 3-channel for encoding
+                edges_colored = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
+
+                # Re-encode the image to its original format
+                file_extension = f".{request.image_input_mime_type.split('/')[1]}"
+                is_success, buffer = cv2.imencode(file_extension, edges_colored)
+                if not is_success:
+                    raise HTTPException(status_code=500, detail="Failed to re-encode processed image")
+                image_bytes = buffer.tobytes()
+
             image_part = types.Part(inline_data=types.Blob(mime_type=request.image_input_mime_type, data=image_bytes))
             model = "gemini-1.5-flash-latest"  # Use a capable vision model
 
