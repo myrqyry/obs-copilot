@@ -4,7 +4,7 @@ import {
 } from "https://unpkg.com/@mediapipe/tasks-vision@0.10.3/vision_bundle.js";
 
 let imageClassifier;
-let runningMode = "IMAGE";
+const runningMode = "IMAGE";
 
 // Initialize the object detector
 const classifyButton = document.getElementById("classify-button");
