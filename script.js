@@ -6,7 +6,7 @@ import {
 let imageClassifier;
 const runningMode = "IMAGE";
 
-// Initialize the object detector
+// Initialize the image classifier
 const classifyButton = document.getElementById("classify-button");
 
 const initializeImageClassifier = async () => {
