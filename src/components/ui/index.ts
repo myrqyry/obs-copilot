@@ -1,8 +1,3 @@
-
-export * from './Card';
-export * from './Tooltip';
-export * from './Button';
-export * from './table';
-export * from './toaster';
-export * from './use-toast';
-export * from './progress';
+// Barrel export for all UI components
+export { TooltipProvider } from '@radix-ui/react-tooltip';
+export { Tooltip, TooltipTrigger, TooltipContent } from './tooltip'; // Add other UI component exports here
