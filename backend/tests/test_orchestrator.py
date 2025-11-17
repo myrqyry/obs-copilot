@@ -5,7 +5,7 @@ from unittest.mock import Mock, AsyncMock, patch
 from fastapi.testclient import TestClient
 from backend.main import app
 
-VALID_API_KEY = "dev-key"
+VALID_API_KEY = "this-is-a-very-long-and-secure-api-key-for-testing"
 
 @pytest.fixture(autouse=True)
 def override_api_keys(monkeypatch):

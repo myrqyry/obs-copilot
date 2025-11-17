@@ -2,8 +2,6 @@
 import React, { Suspense, useRef, useCallback, useEffect } from 'react';
 import { gsap } from 'gsap';
 import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
-// Import GSAP test for development verification
-import './utils/gsapTest';
 import ComprehensiveErrorBoundary from './components/common/ComprehensiveErrorBoundary';
 import { Header } from './components/layout/Header';
 import { TabNavigation } from './components/layout/TabNavigation';

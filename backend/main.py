@@ -14,8 +14,8 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 # Import the centralized settings
 from config import settings
 from auth import get_api_key
-from backend.api.routes import gemini, assets, overlays, proxy_7tv, proxy_emotes, health
-from backend.services.gemini_service import gemini_service
+from api.routes import gemini, assets, overlays, proxy_7tv, proxy_emotes, health
+from services.gemini_service import gemini_service
 from middleware import EnhancedLoggingMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
