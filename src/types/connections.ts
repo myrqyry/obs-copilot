@@ -1,21 +1,14 @@
-export type ConnectionType = 'obs' | 'streamerbot';
-
-export interface BaseConnectionProfile {
-  id: string;
-  name: string;
-  type: ConnectionType;
+export interface ConnectionSettings {
+    obsUrl: string;
+    obsPassword?: string;
+    autoConnect: boolean;
+    rememberApiKey?: boolean;
+    streamerBotAddress?: string;
+    streamerBotPort?: string;
 }
 
-export interface ObsConnectionProfile extends BaseConnectionProfile {
-  type: 'obs';
-  url: string;
-  password?: string;
+export interface ConnectionState extends ConnectionSettings {
+    isConnected: boolean;
+    lastConnected?: Date;
+    connectionError?: string;
 }
-
-export interface StreamerbotConnectionProfile extends BaseConnectionProfile {
-  type: 'streamerbot';
-  host: string;
-  port: number;
-}
-
-export type ConnectionProfile = ObsConnectionProfile | StreamerbotConnectionProfile;

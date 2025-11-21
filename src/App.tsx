@@ -12,7 +12,7 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import ConfirmationDialog from '@/components/common/ConfirmationDialog';
 import GlobalErrorDisplay from '@/components/common/GlobalErrorDisplay';
 
-const App: React.FC = React.memo(() => {
+const App: React.FC = () => {
     const plugins = usePlugins();
     const activeTab = useUiStore(state => state.activeTab);
     const setActiveTab = useUiStore(state => state.setActiveTab);
@@ -114,6 +114,6 @@ const App: React.FC = React.memo(() => {
             </TooltipProvider>
          </ComprehensiveErrorBoundary>
      );
- });
+ };
 
  export default App;

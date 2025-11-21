@@ -1,5 +1,17 @@
 import { toast } from '@/components/ui/toast';
+import { useErrorStore } from '@/store';
 
+export type ErrorLevel = 'info' | 'warning' | 'error' | 'critical';
+
+export interface AppErrorInterface {
+    message: string;
+    source: string;
+    level: ErrorLevel;
+    timestamp?: Date;
+    stack?: string;
+}
+
+// Compatibility wrapper for existing code using AppError class
 export class AppError extends Error {
   constructor(
     message: string,
@@ -12,41 +24,68 @@ export class AppError extends Error {
   }
 }
 
-export const createErrorHandler = (context: string) => ({
-  handle: (error: unknown, fallbackMessage = 'An unexpected error occurred'): AppError => {
-    if (error instanceof AppError) return error;
+export const handleError = (
+    source: string,
+    error: unknown,
+    level: ErrorLevel = 'error',
+    userMessage?: string
+): void => {
+    const errorStore = useErrorStore.getState();
 
-    let originalError: Error | null = null;
-    if (error instanceof Error) {
-      originalError = error;
-    } else if (typeof error === 'string') {
-      originalError = new Error(error);
-    }
-
-    const message = originalError ? `${context}: ${originalError.message}` : String(error);
-
-    // Default to a generic error if the error type is unknown
-    const appError = new AppError(
-      message,
-      'UNKNOWN_ERROR',
-      'high',
-      fallbackMessage
+    const errorMessage = userMessage || (
+        error instanceof Error
+            ? error.message
+            : String(error)
     );
 
-    // Log the error for debugging
-    console.error(`[${context}]`, appError);
+    const appError: AppErrorInterface = {
+        message: errorMessage,
+        source,
+        level,
+        timestamp: new Date(),
+        stack: error instanceof Error ? error.stack : undefined
+    };
 
-    return appError;
+    // Log to console
+    console.error(`[${source}] ${errorMessage}`, error);
+
+    // Add to store for UI display
+    // Note: useErrorStore (via uiStore) expects a specific shape.
+    // We adapt our interface to what uiStore likely expects or if it's a new store, we assume it matches.
+    // Based on prior code, uiStore.addError takes { message, source, level? }
+    errorStore.addError(appError);
+
+    // For critical errors, show a toast immediately
+    if (level === 'critical' || level === 'error') {
+         toast({
+            title: `${source} Error`,
+            description: errorMessage,
+            variant: 'destructive',
+        });
+    }
+};
+
+export const useErrorHandler = () => {
+    const handleComponentError = (
+        error: unknown,
+        componentName: string,
+        userMessage?: string
+    ) => {
+        handleError(componentName, error, 'error', userMessage);
+    };
+
+    return { handleComponentError };
+};
+
+// Legacy support - Deprecated
+export const createErrorHandler = (context: string) => ({
+  handle: (error: unknown, fallbackMessage = 'An unexpected error occurred'): AppError => {
+    handleError(context, error, 'error', fallbackMessage);
+    return new AppError(fallbackMessage, 'UNKNOWN', 'high', fallbackMessage);
   }
 });
 
+// Legacy support - Deprecated
 export const handleAndNotify = (error: unknown, context: string, fallbackMessage?: string) => {
-  const errorHandler = createErrorHandler(context);
-  const appError = errorHandler.handle(error, fallbackMessage);
-
-  toast({
-    title: `${context} Error`,
-    description: appError.userMessage || 'An unexpected error occurred.',
-    variant: appError.severity === 'high' ? 'destructive' : 'default',
-  });
+  handleError(context, error, 'error', fallbackMessage);
 };
