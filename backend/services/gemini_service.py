@@ -64,7 +64,26 @@ class GeminiService:
     async def shutdown(self):
         """Gracefully shuts down the thread pool executor."""
         logger.info("Shutting down GeminiService thread pool executor.")
-        self.executor.shutdown(wait=False)
+
+        # Shutdown but allow pending tasks to complete
+        self.executor.shutdown(wait=True, cancel_futures=False)
+
+        # If there are any hanging tasks after a timeout, force cancel them
+        # Note: The executor.shutdown() blocks, so we run it in a thread to avoid blocking the event loop
+        loop = asyncio.get_event_loop()
+        shutdown_complete = loop.run_in_executor(
+            None,  # Use default executor
+            lambda: self.executor.shutdown(wait=True)
+        )
+
+        try:
+            await asyncio.wait_for(shutdown_complete, timeout=5.0)
+            logger.info("GeminiService thread pool shut down gracefully")
+        except asyncio.TimeoutError:
+            logger.warning("GeminiService shutdown exceeded timeout, forcing cancellation")
+            # Force shutdown of remaining tasks
+            self.executor.shutdown(wait=False, cancel_futures=True)
+
         logger.info("GeminiService cleanup complete")
 
 # Create a singleton instance to be used across the application

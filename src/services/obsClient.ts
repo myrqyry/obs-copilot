@@ -142,15 +142,23 @@ export class ObsClientImpl {
     this.obs.on('ConnectionError', this.onConnectionError);
 
     // --- Cache Invalidation Listeners ---
-    const eventsToInvalidateCache: string[] = [
-      'CurrentProgramSceneChanged', 'SceneListChanged',
-      'InputCreated', 'InputRemoved', 'InputNameChanged',
-      'StreamStateChanged', 'RecordStateChanged',
-    ];
-    for (const event of eventsToInvalidateCache) {
+    // Map events to specific cache keys that should be invalidated
+    const invalidationMap: Record<string, string[]> = {
+        'CurrentProgramSceneChanged': ['fullState', 'getCurrentProgramScene'],
+        'SceneListChanged': ['fullState', 'getSceneList'],
+        'InputCreated': ['fullState', 'getInputList'],
+        'InputRemoved': ['fullState', 'getInputList'],
+        'InputNameChanged': ['fullState', 'getInputList'],
+        'StreamStateChanged': ['fullState', 'getStreamStatus'],
+        'RecordStateChanged': ['fullState', 'getRecordStatus'],
+    };
+
+    for (const [event, cacheKeys] of Object.entries(invalidationMap)) {
       const listener = () => {
-        logger.info(`[OBS Cache] Invalidating cache due to event: ${event}`);
-        this.invalidateCache();
+        logger.info(`[OBS Cache] Invalidating ${cacheKeys.join(', ')} due to event: ${event}`);
+        for (const key of cacheKeys) {
+            this.stateCache.delete(key);
+        }
       };
       this.cacheInvalidationListeners.set(event, listener);
       this.obs.on(event, listener);
@@ -196,9 +204,9 @@ export class ObsClientImpl {
 
   private invalidateCache(pattern?: string) {
     if (pattern) {
-      // Selective invalidation based on event type
+      // Selective invalidation based on event type or key pattern
       for (const [key] of this.stateCache) {
-        if (key.includes(pattern)) {
+        if (key.includes(pattern) || pattern === key) {
           this.stateCache.delete(key);
         }
       }
@@ -393,31 +401,24 @@ export class ObsClientImpl {
     const cached = this.stateCache.get(cacheKey);
 
     if (cached && (Date.now() - cached.timestamp < ttl)) {
-      logger.info('[OBS Cache] Returning cached state.');
+      logger.info('[OBS Cache] Returning cached full state.');
       return cached.state;
     }
 
     if (!this.isConnected()) {
-      const emptyState = {
-        current_scene: '',
-        available_scenes: [],
-        active_sources: [],
-        streaming_status: false,
-        recording_status: false,
-        recent_commands: [],
-      };
-      this.stateCache.set(cacheKey, { state: emptyState, timestamp: Date.now() });
-      return emptyState;
+      return this.getEmptyState();
     }
 
-    logger.info('[OBS Cache] Fetching fresh state.');
+    logger.info('[OBS Cache] Building fresh full state from cached components.');
     try {
-      const [sceneList, programScene, streamStatus, recordStatus, inputList] = await Promise.all([
-        this.getSceneList(),
-        this.getCurrentProgramScene(),
-        this.getStreamStatus(),
-        this.getRecordStatus(),
-        this.getInputList(),
+      // Use cached wrapper methods to build state
+      // We run them sequentially or parallel - parallel is fine as they handle their own caching
+      const [programScene, sceneList, inputList, streamStatus, recordStatus] = await Promise.all([
+          this.getCurrentProgramSceneCached(),
+          this.getSceneListCached(),
+          this.getInputListCached(),
+          this.getStreamStatusCached(),
+          this.getRecordStatusCached()
       ]);
 
       const newState = {
@@ -435,6 +436,11 @@ export class ObsClientImpl {
       handleAppError('OBS getFullState', error, 'Failed to retrieve full OBS state.');
       // Invalidate cache on error to avoid serving stale/bad data
       this.invalidateCache();
+      return this.getEmptyState();
+    }
+  }
+
+  private getEmptyState() {
       return {
         current_scene: '',
         available_scenes: [],
@@ -443,10 +449,45 @@ export class ObsClientImpl {
         recording_status: false,
         recent_commands: [],
       };
-    }
   }
 
-  // --- Convenience Methods ---
+  // --- Caching Helpers ---
+
+  private async cachedCall<T>(key: string, fn: () => Promise<T>, ttl: number): Promise<T> {
+    const cached = this.stateCache.get(key);
+
+    if (cached && (Date.now() - cached.timestamp < ttl)) {
+        return cached.state as T;
+    }
+
+    const result = await fn();
+    this.stateCache.set(key, { state: result, timestamp: Date.now() });
+    return result;
+  }
+
+  // --- Cached Convenience Methods ---
+
+  private async getCurrentProgramSceneCached() {
+    return this.cachedCall('getCurrentProgramScene', () => this.getCurrentProgramScene(), this.CACHE_TTL_MS.scenes);
+  }
+
+  private async getSceneListCached() {
+    return this.cachedCall('getSceneList', () => this.getSceneList(), this.CACHE_TTL_MS.scenes);
+  }
+
+  private async getInputListCached() {
+    return this.cachedCall('getInputList', () => this.getInputList(), this.CACHE_TTL_MS.sources);
+  }
+
+  private async getStreamStatusCached() {
+    return this.cachedCall('getStreamStatus', () => this.getStreamStatus(), this.CACHE_TTL_MS.status);
+  }
+
+  private async getRecordStatusCached() {
+    return this.cachedCall('getRecordStatus', () => this.getRecordStatus(), this.CACHE_TTL_MS.status);
+  }
+
+  // --- Convenience Methods (Direct Calls) ---
   getSceneList() {
     return this.call<{ scenes: { sceneName: string }[] }>('GetSceneList');
   }

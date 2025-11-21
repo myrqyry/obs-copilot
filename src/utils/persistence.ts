@@ -1,5 +1,6 @@
 // src/utils/persistence.ts
 import type { AutomationRule } from '../types/automation';
+import type { ConnectionSettings } from '../types/connections';
 import { logger } from './logger';
 
 export const STORAGE_KEYS = {
@@ -29,14 +30,14 @@ export interface UserSettings {
   automationRules?: AutomationRule[]; // Automation rules for OBS event triggers
 }
 
-export interface ConnectionSettings {
-  obsUrl: string;
-  obsPassword?: string; // SECURITY: Do not persist OBS passwords. Prompt per session and keep in memory only.
-  rememberApiKey: boolean; // User preference for persisting API key
-  autoConnect: boolean; // Auto-connect to OBS on app reload
-  streamerBotAddress?: string; // Streamer.bot connection address
-  streamerBotPort?: string; // Streamer.bot connection port
-}
+const DEFAULT_CONNECTION_SETTINGS: ConnectionSettings = {
+  obsUrl: 'ws://localhost:4455',
+  obsPassword: undefined,
+  autoConnect: false,
+  rememberApiKey: false,
+  streamerBotAddress: '127.0.0.1',
+  streamerBotPort: '8080'
+};
 
 /**
  * Safely parse JSON from localStorage
@@ -83,14 +84,26 @@ export function saveUserSettings(settings: Partial<UserSettings>): void {
 /**
  * Load connection settings from localStorage
  */
-export function loadConnectionSettings(): Partial<ConnectionSettings> {
+export function loadConnectionSettings(): ConnectionSettings {
   const stored = localStorage.getItem(STORAGE_KEYS.CONNECTION_SETTINGS);
+  if (!stored) return DEFAULT_CONNECTION_SETTINGS;
+
   const parsed = safeParseJSON<Partial<ConnectionSettings>>(stored, {});
+
   // SECURITY MIGRATION: strip any legacy persisted password if present
   if ('obsPassword' in (parsed as any)) {
     delete (parsed as any).obsPassword;
   }
-  return parsed;
+
+  // Validate and merge with defaults
+  return {
+    obsUrl: typeof parsed.obsUrl === 'string' ? parsed.obsUrl : DEFAULT_CONNECTION_SETTINGS.obsUrl,
+    obsPassword: undefined, // Never load password from storage
+    autoConnect: typeof parsed.autoConnect === 'boolean' ? parsed.autoConnect : DEFAULT_CONNECTION_SETTINGS.autoConnect,
+    rememberApiKey: typeof parsed.rememberApiKey === 'boolean' ? parsed.rememberApiKey : DEFAULT_CONNECTION_SETTINGS.rememberApiKey,
+    streamerBotAddress: typeof parsed.streamerBotAddress === 'string' ? parsed.streamerBotAddress : DEFAULT_CONNECTION_SETTINGS.streamerBotAddress,
+    streamerBotPort: typeof parsed.streamerBotPort === 'string' ? parsed.streamerBotPort : DEFAULT_CONNECTION_SETTINGS.streamerBotPort
+  };
 }
 
 /**
