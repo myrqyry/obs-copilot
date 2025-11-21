@@ -53,6 +53,8 @@ export class ObsClientImpl {
   private statusListeners: Set<(status: ConnectionStatus) => void> = new Set();
   private reconnectTimeout: NodeJS.Timeout | null = null;
   private connectionLock = false;
+  private connectionPromise: Promise<void> | null = null;
+  private isConnecting = false;
   private stateCache: Map<string, { state: any; timestamp: number }> = new Map();
   private readonly CACHE_TTL_MS = {
     scenes: 5000,      // Scene list changes less frequently
@@ -245,37 +247,41 @@ export class ObsClientImpl {
   }
 
   async connect(address: string, password?: string): Promise<void> {
-    // Use atomic check-and-set pattern
-    if (this.connectionLock) {
-      throw new ObsError('Connection attempt already in progress');
+    // Prevent multiple simultaneous connection attempts
+    if (this.isConnecting && this.connectionPromise) {
+      return this.connectionPromise;
     }
 
-    if (this.status === 'connecting' || this.status === 'connected') {
+    if (this.status === 'connected') {
       logger.warn(`[OBS] Ignoring connect call, already ${this.status}.`);
-      return;
+      return Promise.resolve();
     }
     
-    // Atomic lock acquisition
-    this.connectionLock = true;
+    this.isConnecting = true;
 
-    try {
-      this.connectOptions = { address, password };
-      this.setStatus('connecting');
+    this.connectionPromise = (async () => {
+      try {
+        this.connectOptions = { address, password };
+        this.setStatus('connecting');
 
-      this.setupEventListeners();
-      await this.obs.connect(address, password, {
-        rpcVersion: 1,
-        eventSubscriptions: 0xffffffff,
-      });
-    } catch (error: any) {
-      const errorMsg = handleAppError('OBS connection', error, `Failed to connect to OBS at ${address}`);
-      useUiStore.getState().addError({ message: errorMsg, source: 'obsClient', level: 'critical' });
-      this.setStatus('reconnecting');
-      this.handleReconnect();
-      throw new ObsError(errorMsg);
-    } finally {
-      this.connectionLock = false;
-    }
+        this.setupEventListeners();
+        await this.obs.connect(address, password, {
+          rpcVersion: 1,
+          eventSubscriptions: 0xffffffff,
+        });
+      } catch (error: any) {
+        const errorMsg = handleAppError('OBS connection', error, `Failed to connect to OBS at ${address}`);
+        useUiStore.getState().addError({ message: errorMsg, source: 'obsClient', level: 'critical' });
+        this.setStatus('reconnecting');
+        this.handleReconnect();
+        throw new ObsError(errorMsg);
+      } finally {
+        this.isConnecting = false;
+        this.connectionPromise = null;
+      }
+    })();
+
+    return this.connectionPromise;
   }
 
   async disconnect(): Promise<void> {

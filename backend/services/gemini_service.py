@@ -18,6 +18,11 @@ class GeminiService:
         self.executor = ThreadPoolExecutor(max_workers=max_workers)
         logger.info(f"GeminiService initialized with {max_workers} workers.")
 
+    async def initialize(self):
+        """Initialize service resources."""
+        # Add any async initialization logic here if needed
+        logger.info("GeminiService initialized.")
+
     async def run_in_executor(self, sync_func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
         """
         Runs a synchronous function in the thread pool executor with a timeout.
@@ -56,10 +61,11 @@ class GeminiService:
                 detail="AI service temporarily unavailable."
             )
 
-    def shutdown(self):
+    async def shutdown(self):
         """Gracefully shuts down the thread pool executor."""
         logger.info("Shutting down GeminiService thread pool executor.")
-        self.executor.shutdown(wait=True)
+        self.executor.shutdown(wait=False)
+        logger.info("GeminiService cleanup complete")
 
 # Create a singleton instance to be used across the application
 gemini_service = GeminiService()

@@ -1,20 +1,16 @@
- // src/App.tsx
-import React, { Suspense, useRef, useCallback, useEffect } from 'react';
-import { gsap } from 'gsap';
-import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
-import ComprehensiveErrorBoundary from './components/common/ComprehensiveErrorBoundary';
-import { Header } from './components/layout/Header';
-import { TabNavigation } from './components/layout/TabNavigation';
+import React, { Suspense, useRef, useCallback } from 'react';
+import ComprehensiveErrorBoundary from '@/components/common/ComprehensiveErrorBoundary';
+import { Header } from '@/components/layout/Header';
+import { TabNavigation } from '@/components/layout/TabNavigation';
 import { TooltipProvider } from "@/components/ui";
-import useUiStore from './store/uiStore';
-import { usePlugins } from './hooks/usePlugins';
-import { useTheme } from './hooks/useTheme';
-import TwitchCallback from './features/auth/TwitchCallback';
-import useConnectionsStore from '@/store/connections';
-import { loadConnectionSettings, saveConnectionSettings } from './utils/persistence';
-import { LoadingSpinner } from './components/common/LoadingSpinner';
-import ConfirmationDialog from './components/common/ConfirmationDialog';
-import GlobalErrorDisplay from './components/common/GlobalErrorDisplay';
+import { useUiStore } from '@/store';
+import { usePlugins } from '@/hooks/usePlugins';
+import { useTheme } from '@/hooks/useTheme';
+import { useAppInitialization } from '@/hooks/useAppInitialization';
+import TwitchCallback from '@/features/auth/TwitchCallback';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import ConfirmationDialog from '@/components/common/ConfirmationDialog';
+import GlobalErrorDisplay from '@/components/common/GlobalErrorDisplay';
 
 const App: React.FC = React.memo(() => {
     const plugins = usePlugins();
@@ -27,45 +23,73 @@ const App: React.FC = React.memo(() => {
     // Initialize and apply themes
     useTheme();
 
-    const connectToObs = useConnectionsStore(state => state.connectToObs);
-    const disconnectFromObs = useConnectionsStore(state => state.disconnectFromObs);
+    // App Initialization (Connection & Loading State)
+    const { isInitialized, initError } = useAppInitialization();
 
     const handleTabChange = useCallback((tabId: string) => {
         setActiveTab(tabId);
     }, [setActiveTab]);
-
-    // Auto-Connect on App Load
-    useEffect(() => {
-        let isCleaningUp = false;
-        const savedSettings = loadConnectionSettings();
-        if (savedSettings.autoConnect && savedSettings.obsUrl) {
-            connectToObs(savedSettings.obsUrl, savedSettings.obsPassword);
-        }
-
-        return () => {
-            isCleaningUp = true;
-            disconnectFromObs().catch(err => {
-                if (!isCleaningUp) console.error('Cleanup error:', err);
-            });
-        };
-    }, [connectToObs, disconnectFromObs]);
  
      const renderTabContent = () => {
-         const activePlugin = plugins.find(p => p.id === activeTab);
-         if (activePlugin) {
-             const TabComponent = activePlugin.component;
-             return (
+        try {
+            const activePlugin = plugins.find(p => p.id === activeTab);
+
+            if (!activePlugin) {
+                return (
+                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                        <p className="text-lg">No plugin found for tab: {activeTab}</p>
+                        <p className="text-sm mt-2">Please select a different tab</p>
+                    </div>
+                );
+            }
+
+            const TabComponent = activePlugin.component;
+
+            if (!TabComponent) {
+                throw new Error(`Plugin ${activeTab} has no component`);
+            }
+
+            return (
                 <ComprehensiveErrorBoundary>
                     <TabComponent />
                 </ComprehensiveErrorBoundary>
             );
-         }
-         return <div>Select a tab</div>;
+        } catch (error) {
+            console.error('Error rendering tab content:', error);
+            return (
+                <div className="flex flex-col items-center justify-center h-full text-destructive">
+                    <p className="text-lg">Failed to load tab content</p>
+                    <p className="text-sm mt-2">{error instanceof Error ? error.message : 'Unknown error'}</p>
+                </div>
+            );
+        }
      };
 
      if (window.location.pathname === '/auth/twitch/callback') {
          return <TwitchCallback />;
      }
+
+    if (!isInitialized) {
+        return (
+            <div className="flex items-center justify-center h-screen bg-gradient-to-br from-background to-card">
+                <div className="text-center">
+                    <LoadingSpinner size="large" />
+                    <p className="mt-4 text-muted-foreground">Initializing OBS Copilot...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (initError) {
+        return (
+            <div className="flex items-center justify-center h-screen bg-gradient-to-br from-background to-card">
+                <div className="text-center text-destructive">
+                    <p className="text-lg font-semibold">Initialization Failed</p>
+                    <p className="mt-2 text-sm">{initError.message}</p>
+                </div>
+            </div>
+        );
+    }
 
      return (
          <ComprehensiveErrorBoundary>

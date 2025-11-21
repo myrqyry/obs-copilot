@@ -2,6 +2,8 @@ import uvicorn
 import logging
 import asyncio
 import time
+import re
+from typing import List
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -29,10 +31,36 @@ from contextlib import asynccontextmanager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # REASON: The original implementation did not shut down the GeminiService, which could lead to resource leaks.
-    # This has been updated to use a lifespan event handler to shut down the service when the application is shutting down.
+    # Startup
+    logger.info("Starting up OBS Copilot backend...")
+
+    # Initialize services
+    try:
+        await gemini_service.initialize()
+        logger.info("GeminiService initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize GeminiService: {e}")
+        raise
+
     yield
-    gemini_service.shutdown()
+
+    # Shutdown
+    logger.info("Shutting down OBS Copilot backend...")
+
+    try:
+        # Give ongoing requests time to complete
+        shutdown_timeout = 10.0
+        await asyncio.wait_for(
+            gemini_service.shutdown(),
+            timeout=shutdown_timeout
+        )
+        logger.info("GeminiService shut down successfully")
+    except asyncio.TimeoutError:
+        logger.warning(f"GeminiService shutdown exceeded {shutdown_timeout}s timeout")
+    except Exception as e:
+        logger.error(f"Error during GeminiService shutdown: {e}")
+
+    logger.info("Backend shutdown complete")
 
 app = FastAPI(
     title="Universal Backend Server",
@@ -94,6 +122,7 @@ app.add_middleware(RequestValidationMiddleware)
 # Add security and logging middleware
 # During development and tests we allow all hosts to avoid TrustedHost rejections
 # (pytest sends requests using host 'test'). In production this should be locked down
+# (pytest sends requests using host 'test'). In production this should be locked down
 # to a specific allowlist.
 if settings.ENV in ("development", "test"):
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
@@ -101,17 +130,41 @@ else:
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "*.netlify.app"])
 app.add_middleware(EnhancedLoggingMiddleware)
 
-# Parse and validate allowed origins from settings
-allowed_origins_raw = [origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",") if origin.strip()]
-allowed_origins = []
-for origin in allowed_origins_raw:
-    if '*' in origin:
-        if settings.ENV == 'production':
-            logger.error(f"Wildcard origins not allowed in production: {origin}")
+# Improved CORS origin validation
+def validate_and_parse_origins(origins_string: str, env: str) -> List[str]:
+    """Validate and parse CORS origins with proper security checks."""
+    allowed_origins = []
+    raw_origins = [origin.strip() for origin in origins_string.split(",") if origin.strip()]
+
+    # Define allowed patterns
+    ALLOWED_PATTERNS = {
+        'development': [r'^https?://localhost(:\d+)?$', r'^https?://127\.0\.0\.1(:\d+)?$', r'^\*$'],
+        'test': [r'^https?://test(:\d+)?$', r'^\*$'],
+        'production': [r'^https://[\w\-]+(\.[\w\-]+)*\.netlify\.app$', r'^https://[\w\-]+(\.[\w\-]+)+$']
+    }
+
+    patterns = ALLOWED_PATTERNS.get(env, ALLOWED_PATTERNS['production'])
+
+    for origin in raw_origins:
+        # Check for wildcards in production
+        if '*' in origin and env == 'production':
+            logger.error(f"Wildcard origin '{origin}' not allowed in production")
             continue
-        elif not origin.startswith('https://') and origin != '*':
-            logger.warning(f"Potentially unsafe origin pattern: {origin}")
-    allowed_origins.append(origin)
+
+        # Validate against patterns
+        if any(re.match(pattern, origin) for pattern in patterns):
+            allowed_origins.append(origin)
+        else:
+            logger.warning(f"Origin '{origin}' does not match allowed patterns for {env} environment")
+
+    if not allowed_origins:
+        logger.error(f"No valid origins configured for {env} environment")
+        # Fallback to safe default
+        allowed_origins = ['https://localhost:3000'] if env != 'production' else []
+
+    return allowed_origins
+
+allowed_origins = validate_and_parse_origins(settings.ALLOWED_ORIGINS, settings.ENV)
 
 # Improved CORS with security headers
 app.add_middleware(
