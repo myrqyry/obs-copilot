@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { useTheme } from '@/hooks/useTheme';
 import { getWcagTextColor } from '@/utils/contrast';
 import gsap from 'gsap';
@@ -16,6 +16,20 @@ interface ChatBubblePreviewProps {
     // secondaryAccent passed from SettingsTab so system messages can use it
     secondaryAccent?: string;
     chatBubbleBlendMode?: React.CSSProperties['mixBlendMode'];
+}
+
+// Helper to convert hex to rgba
+// Helper to convert hex to rgba
+function hexToRgba(hex: string, alpha: number) {
+    if (!hex) return `rgba(137, 220, 235, ${alpha})`; // fallback rgba
+    let c = hex.replace('#', '');
+    if (c.length === 3) {
+        c = (c[0] ?? '') + (c[0] ?? '') + (c[1] ?? '') + (c[1] ?? '') + (c[2] ?? '') + (c[2] ?? '');
+    }
+    const r = parseInt(c.substring(0, 2), 16);
+    const g = parseInt(c.substring(2, 4), 16);
+    const b = parseInt(c.substring(4, 6), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
 }
 
 export const ChatBubblePreview: React.FC<ChatBubblePreviewProps> = ({
@@ -38,23 +52,8 @@ export const ChatBubblePreview: React.FC<ChatBubblePreviewProps> = ({
     const userHex = theme?.accentColors?.[userColor] || '#89dceb'; // fallback to sky
     const modelHex = theme?.accentColors?.[modelColor] || '#cba6f7'; // fallback to mauve
     
-    // Helper to convert hex to rgba
-    function hexToRgba(hex: string, alpha: number) {
-        if (!hex) return `rgba(137, 220, 235, ${alpha})`; // fallback rgba
-        let c = hex.replace('#', '');
-        if (c.length === 3) {
-            c = c[0] + c[0] + c[1] + c[1] + c[2] + c[2];
-        }
-        const r = parseInt(c.substring(0, 2), 16);
-        const g = parseInt(c.substring(2, 4), 16);
-        const b = parseInt(c.substring(4, 6), 16);
-        return `rgba(${r},${g},${b},${alpha})`;
-    }
-
-    // NOTE: WCAG helpers are implemented at module scope and exported above.
-
     // Should we apply glass effect?
-    const shouldUseGlassEffect = customBackground && bubbleFillOpacity < 1;
+    const shouldUseGlassEffect = !!customBackground && bubbleFillOpacity < 1;
 
     // Dark base color for outlines and dark fills
     const darkColor = (typeof theme?.colors?.base === 'string' ? theme.colors.base : '#1e1e2e');
@@ -66,30 +65,39 @@ export const ChatBubblePreview: React.FC<ChatBubblePreviewProps> = ({
     const resolvedSecondaryAccent = secondaryAccent || (theme as any)?.secondaryAccent;
 
     // Compute bubble colors (simple, prefer Tailwind for spacing/shape)
-    const userBgColor = extraDarkMode ? hexToRgba(darkColor, bubbleFillOpacity) : hexToRgba(userColorHex, bubbleFillOpacity);
-    const userBorderColor = extraDarkMode ? hexToRgba(userColorHex, 0.8) : hexToRgba(darkColor, 0.8);
-    // When extraDarkMode is disabled (light/accent bubbles), choose a readable text color
-    const userTextColor = extraDarkMode ? userColorHex : getWcagTextColor(userColorHex, 4.5);
+    const { userBgColor, userBorderColor, userTextColor } = useMemo(() => {
+        const bg = extraDarkMode ? hexToRgba(darkColor, bubbleFillOpacity) : hexToRgba(userColorHex, bubbleFillOpacity);
+        const border = extraDarkMode ? hexToRgba(userColorHex, 0.8) : hexToRgba(darkColor, 0.8);
+        const text = extraDarkMode ? userColorHex : getWcagTextColor(userColorHex, 4.5);
+        return { userBgColor: bg, userBorderColor: border, userTextColor: text };
+    }, [extraDarkMode, darkColor, bubbleFillOpacity, userColorHex]);
 
-    const modelBgColor = extraDarkMode ? hexToRgba(darkColor, bubbleFillOpacity) : hexToRgba(modelColorHex, bubbleFillOpacity);
-    const modelBorderColor = extraDarkMode ? hexToRgba(modelColorHex, 0.8) : hexToRgba(darkColor, 0.8);
-    const modelTextColor = extraDarkMode ? modelColorHex : getWcagTextColor(modelColorHex, 4.5);
+    const { modelBgColor, modelBorderColor, modelTextColor } = useMemo(() => {
+        const bg = extraDarkMode ? hexToRgba(darkColor, bubbleFillOpacity) : hexToRgba(modelColorHex, bubbleFillOpacity);
+        const border = extraDarkMode ? hexToRgba(modelColorHex, 0.8) : hexToRgba(darkColor, 0.8);
+        const text = extraDarkMode ? modelColorHex : getWcagTextColor(modelColorHex, 4.5);
+        return { modelBgColor: bg, modelBorderColor: border, modelTextColor: text };
+    }, [extraDarkMode, darkColor, bubbleFillOpacity, modelColorHex]);
 
     // For system messages we want the secondary accent color (if available)
     const secondaryAccentHex = resolvedSecondaryAccent ? (theme?.accentColors?.[resolvedSecondaryAccent] || '') : '';
-    // If extraDarkMode is enabled, system messages should use the dark bubble
-    const systemBgColor = extraDarkMode
-        ? hexToRgba(darkColor, bubbleFillOpacity)
-        : (secondaryAccentHex ? hexToRgba(secondaryAccentHex, bubbleFillOpacity) : hexToRgba('#94a3b8', bubbleFillOpacity));
-    const systemBorderColor = extraDarkMode
-        ? (secondaryAccentHex ? hexToRgba(secondaryAccentHex, 0.9) : hexToRgba('#94a3b8', 0.9))
-        : (secondaryAccentHex ? hexToRgba(secondaryAccentHex, 0.9) : hexToRgba('#94a3b8', 0.9));
-    // When dark bubbles are enabled, prefer the secondary accent for system text so it stands out
-    // Fallback to white for readability if secondary accent is not present
-    // When dark bubbles are disabled, system text should match user/model text color
-    const systemTextColor = extraDarkMode
-        ? (secondaryAccentHex || '#ffffff')
-        : (secondaryAccentHex ? getWcagTextColor(secondaryAccentHex, 4.5) : userTextColor || modelTextColor || darkColor);
+    
+    const { systemBgColor, systemBorderColor, systemTextColor } = useMemo(() => {
+        // If extraDarkMode is enabled, system messages should use the dark bubble
+        const bg = extraDarkMode
+            ? hexToRgba(darkColor, bubbleFillOpacity)
+            : (secondaryAccentHex ? hexToRgba(secondaryAccentHex, bubbleFillOpacity) : hexToRgba('#94a3b8', bubbleFillOpacity));
+        const border = extraDarkMode
+            ? (secondaryAccentHex ? hexToRgba(secondaryAccentHex, 0.9) : hexToRgba('#94a3b8', 0.9))
+            : (secondaryAccentHex ? hexToRgba(secondaryAccentHex, 0.9) : hexToRgba('#94a3b8', 0.9));
+        // When dark bubbles are enabled, prefer the secondary accent for system text so it stands out
+        // Fallback to white for readability if secondary accent is not present
+        // When dark bubbles are disabled, system text should match user/model text color
+        const text = extraDarkMode
+            ? (secondaryAccentHex || '#ffffff')
+            : (secondaryAccentHex ? getWcagTextColor(secondaryAccentHex, 4.5) : userTextColor || modelTextColor || darkColor);
+        return { systemBgColor: bg, systemBorderColor: border, systemTextColor: text };
+    }, [extraDarkMode, darkColor, bubbleFillOpacity, secondaryAccentHex, userTextColor, modelTextColor]);
 
     const glassEffectClass = shouldUseGlassEffect ? (extraDarkMode ? 'chat-bubble-glass-extra-dark' : 'chat-bubble-glass') : '';
 

@@ -190,18 +190,23 @@ const SortableTab: React.FC<SortableTabProps> = (props: SortableTabProps) => {
         applyInitialWidth();
 
         let resizeObserver: ResizeObserver | null = null;
+        let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
+
         if (typeof window !== 'undefined' && (window as any).ResizeObserver && containerRef.current) {
             resizeObserver = new (window as any).ResizeObserver(() => {
-                // recompute widths and adjust to current active state
-                if (!containerRef.current) return;
-                const { collapsed, expanded } = computeWidths();
-                if (isActive) {
-                    if (!prefersReduced) gsap.to(containerRef.current, { width: expanded, duration: 0.32, ease: 'power2.out' });
-                    else containerRef.current.style.width = `${expanded}px`;
-                } else {
-                    if (!prefersReduced) gsap.to(containerRef.current, { width: collapsed, duration: 0.28, ease: 'power2.in' });
-                    else containerRef.current.style.width = `${collapsed}px`;
-                }
+                if (resizeTimeout) clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    // recompute widths and adjust to current active state
+                    if (!containerRef.current) return;
+                    const { collapsed, expanded } = computeWidths();
+                    if (isActive) {
+                        if (!prefersReduced) gsap.to(containerRef.current, { width: expanded, duration: 0.32, ease: 'power2.out' });
+                        else containerRef.current.style.width = `${expanded}px`;
+                    } else {
+                        if (!prefersReduced) gsap.to(containerRef.current, { width: collapsed, duration: 0.28, ease: 'power2.in' });
+                        else containerRef.current.style.width = `${collapsed}px`;
+                    }
+                }, 64); // Debounce resize updates
             });
             if (resizeObserver && containerRef.current) {
                 try { resizeObserver.observe(containerRef.current); } catch (e) {}
@@ -247,6 +252,7 @@ const SortableTab: React.FC<SortableTabProps> = (props: SortableTabProps) => {
 
         // Cleanup on unmount
         return () => {
+            if (resizeTimeout) clearTimeout(resizeTimeout);
             try {
                 if (btn) {
                     btn.removeEventListener('pointerenter', hoverIn);

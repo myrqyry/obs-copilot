@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import useConfigStore from '@/store/configStore';
 import { Theme, CatppuccinAccentColorName } from '@/types/themes';
 import { themes } from '@/themes';
+import { useShallow } from 'zustand/react/shallow';
 
 const getTheme = (name: string): Theme | undefined => {
   return themes.find((theme) => theme.name === name);
@@ -12,6 +13,7 @@ export const useTheme = () => {
 
   // Detect system theme
   useEffect(() => {
+    // Initial check
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     setIsSystemDark(mediaQuery.matches);
 
@@ -23,116 +25,182 @@ export const useTheme = () => {
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
-  // Use individual selectors to prevent re-renders
-  const themeSettings = useConfigStore((state) => state.theme);
-  const setTheme = useConfigStore((state) => state.setTheme);
-  const setThemeBase = useConfigStore((state) => state.setThemeBase);
-  const setAccent = useConfigStore((state) => state.setAccent);
-  const setSecondaryAccent = useConfigStore((state) => state.setSecondaryAccent);
-  const setUserChatBubble = useConfigStore((state) => state.setUserChatBubble);
-  const setModelChatBubble = useConfigStore((state) => state.setModelChatBubble);
+  // Use shallow selector to prevent re-renders when other parts of the store change
+  const {
+    theme: themeSettings,
+    setTheme,
+    setThemeBase,
+    setAccent,
+    setSecondaryAccent,
+    setUserChatBubble,
+    setModelChatBubble
+  } = useConfigStore(
+    useShallow((state) => ({
+      theme: state.theme,
+      setTheme: state.setTheme,
+      setThemeBase: state.setThemeBase,
+      setAccent: state.setAccent,
+      setSecondaryAccent: state.setSecondaryAccent,
+      setUserChatBubble: state.setUserChatBubble,
+      setModelChatBubble: state.setModelChatBubble,
+    }))
+  );
   
   // If base is 'system', override with detected system theme
   const effectiveBase = themeSettings.base === 'system' ? (isSystemDark ? 'dark' : 'light') : themeSettings.base;
   
-  // Get theme name variant based on effective base (assume themes have -light/-dark suffixes or select accordingly)
-  let themeName = themeSettings.name;
-  if (effectiveBase === 'light' && !themeName.includes('light')) {
-    themeName = themeName.replace(/-dark$/, '-light') || `${themeSettings.name}-light`;
-  } else if (effectiveBase === 'dark' && !themeName.includes('dark')) {
-    themeName = themeName.replace(/-light$/, '-dark') || `${themeSettings.name}-dark`;
-  }
+  // Get theme name variant based on effective base
+  const themeName = useMemo(() => {
+    let name = themeSettings.name;
+    if (effectiveBase === 'light' && !name.includes('light')) {
+      name = name.replace(/-dark$/, '-light') || `${themeSettings.name}-light`;
+    } else if (effectiveBase === 'dark' && !name.includes('dark')) {
+      name = name.replace(/-light$/, '-dark') || `${themeSettings.name}-dark`;
+    }
+    return name;
+  }, [themeSettings.name, effectiveBase]);
   
   // Get the actual theme object
-  const currentTheme = getTheme(themeName) || getTheme(themeSettings.name);
+  const currentTheme = useMemo(() => 
+    getTheme(themeName) || getTheme(themeSettings.name), 
+    [themeName, themeSettings.name]
+  );
   
+  // Memoize applyTheme to avoid recreating it on every render
+  const applyThemeToDom = useCallback((theme: Theme) => {
+    applyTheme(theme);
+  }, []);
+
   useEffect(() => {
     if (currentTheme) {
-      // Update store base if system
+      // Update store base if system - ONLY if it's different
+      // This prevents infinite loops if setThemeBase triggers a re-render that triggers this effect
       if (themeSettings.base === 'system') {
-        setThemeBase(effectiveBase);
+        // We don't actually need to update the store for 'system' base here, 
+        // as effectiveBase is calculated locally. 
+        // Updating the store here might be what causes the loop if not careful.
+        // Let's only update if we really need to sync it back, but usually 'system' means dynamic.
+        // If we strictly need the store to reflect 'light'/'dark' even when set to 'system',
+        // we should check if it's already set to avoid loop.
+        // For now, let's skip setting it back to store to avoid the risk, as effectiveBase handles the logic.
       }
       
-      applyTheme(currentTheme);
+      applyThemeToDom(currentTheme);
       
       // Fallback: if current accent colors don't exist in the new theme, reset to first available
       if (currentTheme.accentColors) {
         const availableColors = Object.keys(currentTheme.accentColors);
         
         if (!availableColors.includes(themeSettings.accent)) {
-          setAccent(availableColors[0] as CatppuccinAccentColorName);
+          // Only update if different
+           setAccent(availableColors[0] as CatppuccinAccentColorName);
         }
         
         if (!availableColors.includes(themeSettings.secondaryAccent)) {
-          setSecondaryAccent((availableColors[1] || availableColors[0]) as CatppuccinAccentColorName);
+           const newSecondary = (availableColors[1] || availableColors[0]) as CatppuccinAccentColorName;
+           if (themeSettings.secondaryAccent !== newSecondary) {
+             setSecondaryAccent(newSecondary);
+           }
         }
         
         if (!availableColors.includes(themeSettings.userChatBubble)) {
-          setUserChatBubble(availableColors[0]);
+           if (themeSettings.userChatBubble !== availableColors[0]) {
+             setUserChatBubble(availableColors[0]);
+           }
         }
         
         if (!availableColors.includes(themeSettings.modelChatBubble)) {
-          setModelChatBubble(availableColors[1] || availableColors[0]);
+           const newModel = availableColors[1] || availableColors[0];
+           if (themeSettings.modelChatBubble !== newModel) {
+             setModelChatBubble(newModel);
+           }
         }
       }
     }
-  }, [currentTheme, themeSettings.accent, themeSettings.secondaryAccent, isSystemDark, effectiveBase]); // React to theme and system changes
+  }, [
+    currentTheme, 
+    themeSettings.accent, 
+    themeSettings.secondaryAccent, 
+    themeSettings.userChatBubble, 
+    themeSettings.modelChatBubble,
+    // Removing effectiveBase/isSystemDark from dependencies if they only affect currentTheme
+    // currentTheme already depends on them via themeName
+    applyThemeToDom,
+    setAccent,
+    setSecondaryAccent,
+    setUserChatBubble,
+    setModelChatBubble
+  ]);
 
-  const handleSetTheme = (themeName: string) => {
-    if (themeName === 'system') {
+  const handleSetTheme = useCallback((newThemeName: string) => {
+    if (newThemeName === 'system') {
       setThemeBase('system');
-      // Theme base will be dynamically set based on system preference
     } else {
-      const selectedTheme = getTheme(themeName);
+      const selectedTheme = getTheme(newThemeName);
       if (selectedTheme) {
-        setTheme(themeName);
+        setTheme(newThemeName);
         setThemeBase(selectedTheme.type); // Set light or dark
-        applyTheme(selectedTheme);
+        applyThemeToDom(selectedTheme);
       }
     }
-  };
+  }, [setTheme, setThemeBase, applyThemeToDom]);
 
   return { theme: currentTheme, themeSettings, setTheme: handleSetTheme, isSystemDark };
 };
 
-export const applyTheme = (theme: Theme) => {
-  const root = document.documentElement;
+// Helper function to convert hex to HSL
+const hexToHsl = (hex: string | undefined): string => {
+  if (!hex) return '0 0% 0%'; // Fallback for undefined
+  // Remove # if present
+  const cleanHex = hex.replace('#', '');
+  
+  // Convert to RGB
+  const r = parseInt(cleanHex.substring(0, 2), 16) / 255;
+  const g = parseInt(cleanHex.substring(2, 4), 16) / 255;
+  const b = parseInt(cleanHex.substring(4, 6), 16) / 255;
 
-  // Helper function to convert hex to HSL
-  const hexToHsl = (hex: string): string => {
-    // Remove # if present
-    const cleanHex = hex.replace('#', '');
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
     
-    // Convert to RGB
-    const r = parseInt(cleanHex.substring(0, 2), 16) / 255;
-    const g = parseInt(cleanHex.substring(2, 4), 16) / 255;
-    const b = parseInt(cleanHex.substring(4, 6), 16) / 255;
-
-    const max = Math.max(r, g, b);
-    const min = Math.min(r, g, b);
-    let h = 0;
-    let s = 0;
-    const l = (max + min) / 2;
-
-    if (max !== min) {
-      const d = max - min;
-      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-      
-      switch (max) {
-        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-        case g: h = (b - r) / d + 2; break;
-        case b: h = (r - g) / d + 4; break;
-      }
-      h /= 6;
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
     }
+    h /= 6;
+  }
 
-    // Convert to percentages and degrees
-    const hDeg = Math.round(h * 360);
-    const sPercent = Math.round(s * 100);
-    const lPercent = Math.round(l * 100);
+  // Convert to percentages and degrees
+  const hDeg = Math.round(h * 360);
+  const sPercent = Math.round(s * 100);
+  const lPercent = Math.round(l * 100);
 
-    return `${hDeg} ${sPercent}% ${lPercent}%`;
-  };
+  return `${hDeg} ${sPercent}% ${lPercent}%`;
+};
+
+// Helper to convert hex to 'r, g, b'
+const hexToRgbComponents = (hex: string | undefined): string => {
+  if (!hex) return '0, 0, 0'; // Fallback
+  const clean = hex.replace('#', '');
+  const r = parseInt(clean.substring(0, 2), 16);
+  const g = parseInt(clean.substring(2, 4), 16);
+  const b = parseInt(clean.substring(4, 6), 16);
+  return `${r}, ${g}, ${b}`;
+};
+
+export const applyTheme = (theme: Theme) => {
+  // This function manipulates the DOM directly.
+  // It should be efficient, but calling it too often causes layout thrashing.
+  // We'll keep the implementation but ensure it's called sparingly via the hook.
+  
+  const root = document.documentElement;
 
   // Map theme colors to semantic CSS variables with theme-specific mappings
   const getThemeSpecificColor = (keys: string[], fallback: string): string => {
@@ -233,21 +301,12 @@ export const applyTheme = (theme: Theme) => {
   const userSecondaryAccent = useConfigStore.getState().theme.secondaryAccent;
   const currentAccentColor = theme.accentColors?.[userAccent] || accentColor;
   const currentSecondaryAccentColor = theme.accentColors?.[userSecondaryAccent] || primaryColor;
-  root.style.setProperty('--dynamic-accent', currentAccentColor);
-  root.style.setProperty('--dynamic-secondary-accent', currentSecondaryAccentColor);
+  root.style.setProperty('--dynamic-accent', currentAccentColor || '#000000');
+  root.style.setProperty('--dynamic-secondary-accent', currentSecondaryAccentColor || '#000000');
 
   root.style.setProperty('--nav-accent-gradient', `linear-gradient(90deg, ${currentAccentColor}, ${currentSecondaryAccentColor})`);
 
   // Also expose RGB component variables (without alpha) to support translucent gradients in components.
-  // Helper to convert hex to 'r, g, b'
-  const hexToRgbComponents = (hex: string): string => {
-    const clean = hex.replace('#', '');
-    const r = parseInt(clean.substring(0, 2), 16);
-    const g = parseInt(clean.substring(2, 4), 16);
-    const b = parseInt(clean.substring(4, 6), 16);
-    return `${r}, ${g}, ${b}`;
-  };
-
   try {
     root.style.setProperty('--dynamic-accent-rgb', hexToRgbComponents(currentAccentColor));
     root.style.setProperty('--dynamic-secondary-accent-rgb', hexToRgbComponents(currentSecondaryAccentColor));
@@ -270,8 +329,8 @@ export const applyTheme = (theme: Theme) => {
   root.style.setProperty('--accent-foreground', hexToHsl(themeMapping['accent-foreground']));
 
     // Keep dynamic hex values for gradients (these are used directly as colors in gradients)
-    root.style.setProperty('--dynamic-accent', currentAccentColor);
-    root.style.setProperty('--dynamic-secondary-accent', currentSecondaryAccentColor);
+    root.style.setProperty('--dynamic-accent', currentAccentColor || '#000000');
+    root.style.setProperty('--dynamic-secondary-accent', currentSecondaryAccentColor || '#000000');
   } catch (e) {
     // If conversion fails for any reason, fall back to existing mappings
     root.style.setProperty('--primary', hexToHsl(themeMapping['primary']));

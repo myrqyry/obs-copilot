@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/Button';
@@ -15,12 +15,11 @@ import { Switch } from '@/components/ui/switch';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import type { ChatBackgroundType, ChatPattern, PatternName } from '@/types/chatBackground';
-import { generatePatternCSS } from '@/lib/backgroundPatterns';
+import type { ChatBackgroundType, PatternName } from '@/types/chatBackground';
+import { useShallow } from 'zustand/react/shallow';
 
 const SettingsTab: React.FC = () => {
     const {
-        // flipSides and setFlipSides live in the UI store
         theme: currentTheme,
         setAccent,
         setSecondaryAccent,
@@ -30,38 +29,75 @@ const SettingsTab: React.FC = () => {
         chatBackgroundType,
         customChatBackground,
         chatPattern,
-    twitchChatPluginEnabled,
-    setTwitchChatPluginEnabled,
-    automationPluginEnabled,
-    setAutomationPluginEnabled,
-    streamingAssetsPluginEnabled,
-    setStreamingAssetsPluginEnabled,
-    createPluginEnabled,
-    setCreatePluginEnabled,
-    connectionsPluginEnabled,
-    setConnectionsPluginEnabled,
-    obsStudioPluginEnabled,
-    setObsStudioPluginEnabled,
-    geminiPluginEnabled,
-    setGeminiPluginEnabled,
-    settingsPluginEnabled,
-    setSettingsPluginEnabled,
-    advancedPluginEnabled,
-    setAdvancedPluginEnabled,
-    emoteWallPluginEnabled,
-    setEmoteWallPluginEnabled,
-    setUserChatBubble,
-    setModelChatBubble,
-    extraDarkMode,
-    setExtraDarkMode,
-    // preview-related settings (restored)
-    bubbleFillOpacity,
-    chatBubbleBlendMode,
+        twitchChatPluginEnabled,
+        setTwitchChatPluginEnabled,
+        automationPluginEnabled,
+        setAutomationPluginEnabled,
+        streamingAssetsPluginEnabled,
+        setStreamingAssetsPluginEnabled,
+        createPluginEnabled,
+        setCreatePluginEnabled,
+        connectionsPluginEnabled,
+        setConnectionsPluginEnabled,
+        obsStudioPluginEnabled,
+        setObsStudioPluginEnabled,
+        geminiPluginEnabled,
+        setGeminiPluginEnabled,
+        settingsPluginEnabled,
+        setSettingsPluginEnabled,
+        advancedPluginEnabled,
+        setAdvancedPluginEnabled,
+        emoteWallPluginEnabled,
+        setEmoteWallPluginEnabled,
+        setUserChatBubble,
+        setModelChatBubble,
+        extraDarkMode,
+        setExtraDarkMode,
+        bubbleFillOpacity,
+        chatBubbleBlendMode,
+    } = useConfigStore(
+        useShallow((state) => ({
+            theme: state.theme,
+            setAccent: state.setAccent,
+            setSecondaryAccent: state.setSecondaryAccent,
+            setCustomChatBackground: state.setCustomChatBackground,
+            setChatBackgroundType: state.setChatBackgroundType,
+            setChatPattern: state.setChatPattern,
+            chatBackgroundType: state.chatBackgroundType,
+            customChatBackground: state.customChatBackground,
+            chatPattern: state.chatPattern,
+            twitchChatPluginEnabled: state.twitchChatPluginEnabled,
+            setTwitchChatPluginEnabled: state.setTwitchChatPluginEnabled,
+            automationPluginEnabled: state.automationPluginEnabled,
+            setAutomationPluginEnabled: state.setAutomationPluginEnabled,
+            streamingAssetsPluginEnabled: state.streamingAssetsPluginEnabled,
+            setStreamingAssetsPluginEnabled: state.setStreamingAssetsPluginEnabled,
+            createPluginEnabled: state.createPluginEnabled,
+            setCreatePluginEnabled: state.setCreatePluginEnabled,
+            connectionsPluginEnabled: state.connectionsPluginEnabled,
+            setConnectionsPluginEnabled: state.setConnectionsPluginEnabled,
+            obsStudioPluginEnabled: state.obsStudioPluginEnabled,
+            setObsStudioPluginEnabled: state.setObsStudioPluginEnabled,
+            geminiPluginEnabled: state.geminiPluginEnabled,
+            setGeminiPluginEnabled: state.setGeminiPluginEnabled,
+            settingsPluginEnabled: state.settingsPluginEnabled,
+            setSettingsPluginEnabled: state.setSettingsPluginEnabled,
+            advancedPluginEnabled: state.advancedPluginEnabled,
+            setAdvancedPluginEnabled: state.setAdvancedPluginEnabled,
+            emoteWallPluginEnabled: state.emoteWallPluginEnabled,
+            setEmoteWallPluginEnabled: state.setEmoteWallPluginEnabled,
+            setUserChatBubble: state.setUserChatBubble,
+            setModelChatBubble: state.setModelChatBubble,
+            extraDarkMode: state.extraDarkMode,
+            setExtraDarkMode: state.setExtraDarkMode,
+            bubbleFillOpacity: state.bubbleFillOpacity,
+            chatBubbleBlendMode: state.chatBubbleBlendMode,
+        }))
+    );
 
-    } = useConfigStore();
     const { regenerateChatOverlay } = useOverlaysStore();
     // UI-specific state
-    const flipSides = useUiStore(state => state.flipSides);
+    const flipSides = useUiStore(useShallow(state => state.flipSides));
     const setFlipSides = useUiStore(state => state.setFlipSides);
     const { theme } = useTheme();
 
@@ -70,35 +106,33 @@ const SettingsTab: React.FC = () => {
     const [openPlugins, setOpenPlugins] = useState(true);
 
     // Type guard for available accent colors in current theme
-    const isValidAccentColor = (name: string): name is CatppuccinAccentColorName => {
+    const isValidAccentColor = useCallback((name: string): name is CatppuccinAccentColorName => {
         return Object.keys(theme?.accentColors || {}).includes(name);
-    };
+    }, [theme]);
 
-    const handlePrimaryColorChange = (color: string) => {
+    const handlePrimaryColorChange = useCallback((color: string) => {
         setAccent(color as CatppuccinAccentColorName);
-    };
+    }, [setAccent]);
 
-    const handleSecondaryColorChange = (color: string) => {
+    const handleSecondaryColorChange = useCallback((color: string) => {
         setSecondaryAccent(color as CatppuccinAccentColorName);
-    };
+    }, [setSecondaryAccent]);
 
-    const handleUserChatBubbleChange = (color: string) => {
+    const handleUserChatBubbleChange = useCallback((color: string) => {
         setUserChatBubble(color);
-    };
+    }, [setUserChatBubble]);
 
-    const handleModelChatBubbleChange = (color: string) => {
+    const handleModelChatBubbleChange = useCallback((color: string) => {
         setModelChatBubble(color);
-    };
+    }, [setModelChatBubble]);
 
-    const handleRegenerateOverlay = async () => {
+    const handleRegenerateOverlay = useCallback(async () => {
         try {
             await regenerateChatOverlay();
         } catch (error) {
             console.error('Failed to regenerate chat overlay:', error);
         }
-    };
-
-    console.log('SettingsTab rendering sections:', { openUIPreferences, openChatBubbles, openPlugins, twitchChatPluginEnabled });
+    }, [regenerateChatOverlay]);
 
     return (
         <div className="space-y-4 p-4">
@@ -286,7 +320,7 @@ const SettingsTab: React.FC = () => {
             <Label className="text-sm font-medium">Opacity</Label>
             <Slider
                 value={[chatPattern.opacity]}
-                onValueChange={(value) => setChatPattern({ ...chatPattern, opacity: value[0] })}
+                onChange={(value) => setChatPattern({ ...chatPattern, opacity: Array.isArray(value) ? (value[0] ?? 0) : value })}
                 min={0}
                 max={1}
                 step={0.01}
@@ -320,7 +354,7 @@ Regenerate Chat Overlay for OBS
                                     modelColor={currentTheme.modelChatBubble}
                                     flipSides={flipSides}
                                     extraDarkMode={extraDarkMode}
-                                    customBackground={customChatBackground}
+                                    customBackground={customChatBackground || ''}
                                     bubbleFillOpacity={bubbleFillOpacity}
                                     secondaryAccent={currentTheme.secondaryAccent}
                                     chatBubbleBlendMode={chatBubbleBlendMode as React.CSSProperties['mixBlendMode']}
