@@ -1,5 +1,4 @@
 import React from 'react';
-import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { Button } from '@/components/ui';
 
 interface AppInitializerProps {
@@ -56,26 +55,35 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({
 
     if (!isInitialized) {
         return (
-            <div className="flex items-center justify-center h-screen bg-gradient-to-br from-background to-card">
-                <div className="text-center max-w-md px-6 w-full">
-                    <LoadingSpinner size="large" />
-                    <div className="mt-6 space-y-3">
-                        <p className="text-lg font-semibold text-foreground">
-                            {stepLabel}
-                        </p>
-                        <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-                            <div 
-                                className="h-full bg-primary transition-all duration-500 ease-out"
-                                style={{ width: `${progress}%` }}
-                            />
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                            {progress}% complete
-                        </p>
-                    </div>
+        <div className="fixed inset-0 flex flex-col items-center justify-center bg-background z-50" role="alert" aria-busy="true">
+            <div className="w-full max-w-md p-6 space-y-6 text-center">
+                <div className="space-y-2">
+                    <h1 className="text-2xl font-bold tracking-tight">OBS Copilot</h1>
+                    <p className="text-muted-foreground" role="status" aria-live="polite">
+                        {stepLabel || 'Initializing...'}
+                    </p>
                 </div>
+
+                <div 
+                    className="w-full h-2 bg-secondary rounded-full overflow-hidden"
+                    role="progressbar"
+                    aria-valuenow={progress}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label="Initialization progress"
+                >
+                    <div 
+                        className="h-full bg-primary transition-all duration-500 ease-out"
+                        style={{ width: `${progress}%` }}
+                    />
+                </div>
+                
+                <p className="text-xs text-muted-foreground/50">
+                    v{import.meta.env.VITE_APP_VERSION || '1.0.0'}
+                </p>
             </div>
-        );
+        </div>
+    );
     }
 
     return <>{children}</>;

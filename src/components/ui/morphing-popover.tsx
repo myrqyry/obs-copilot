@@ -13,10 +13,8 @@ import {
   AnimatePresence,
   MotionConfig,
   motion,
-  Transition,
-  Variants,
-} from 'motion/react';
-import { useClickOutside } from '@/hooks/use-click-outside';
+} from 'framer-motion';
+import { useClickOutside } from '@/hooks/useClickOutside';
 import { cn } from '@/lib/utils';
 
 const TRANSITION = {
@@ -30,7 +28,7 @@ type MorphingPopoverContextValue = {
   open: () => void;
   close: () => void;
   uniqueId: string;
-  variants?: Variants;
+  variants?: any; // Changed from Variants to any
 };
 
 const MorphingPopoverContext =
@@ -69,11 +67,11 @@ function usePopoverLogic({
 
 export type MorphingPopoverProps = {
   children: React.ReactNode;
-  transition?: Transition;
+  transition?: any;
   defaultOpen?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-  variants?: Variants;
+  variants?: any;
   className?: string;
 } & React.ComponentProps<'div'>;
 
@@ -87,7 +85,11 @@ function MorphingPopover({
   className,
   ...props
 }: MorphingPopoverProps) {
-  const popoverLogic = usePopoverLogic({ defaultOpen, open, onOpenChange });
+  const popoverLogic = usePopoverLogic({ 
+    defaultOpen: defaultOpen as any, 
+    open: open as any, 
+    onOpenChange: onOpenChange as any
+  });
 
   return (
     <MorphingPopoverContext.Provider value={{ ...popoverLogic, variants }}>

@@ -5,8 +5,34 @@ import { httpClient } from './httpClient';
 class ApiService {
   private apiName: string;
 
-  constructor(apiName: string) {
+  constructor(apiName: string = 'general') {
     this.apiName = apiName;
+  }
+
+  /**
+   * Checks the health of the backend.
+   */
+  async checkHealth(): Promise<{ ok: boolean; status?: any }> {
+    try {
+      const response = await httpClient.get('/api/health');
+      return { ok: true, status: response.data };
+    } catch (error) {
+      logger.error('Health check failed:', error);
+      return { ok: false };
+    }
+  }
+
+  /**
+   * Loads application configuration.
+   */
+  async loadConfig(): Promise<any> {
+    // TODO: Implement actual config loading from backend if needed.
+    // For now, we simulate a config load or return default config.
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            resolve({ theme: 'dark', version: '1.0.0' });
+        }, 500);
+    });
   }
 
   /**
@@ -46,4 +72,5 @@ export const callStreamerBotAction = (action: { type: string; args?: Record<stri
   return Promise.resolve({ success: true, message: `Action "${action.type}" called.` });
 };
 
+export const apiService = new ApiService();
 export default ApiService;
