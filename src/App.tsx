@@ -1,23 +1,25 @@
-import React, { Suspense, useRef, useCallback } from 'react';
-import ComprehensiveErrorBoundary from '@/components/common/ComprehensiveErrorBoundary';
-import PluginErrorBoundary from '@/components/common/PluginErrorBoundary';
+import React, { useRef } from 'react';
 import { Header } from '@/components/layout/Header';
 import { TabNavigation } from '@/components/layout/TabNavigation';
-import { TooltipProvider } from "@/components/ui";
-import { useUiStore } from '@/store';
+import { PluginRenderer } from '@/components/layout/PluginRenderer';
+import ConfirmationDialog from '@/components/common/ConfirmationDialog';
+import GlobalErrorDisplay from '@/components/common/GlobalErrorDisplay';
+import { AppInitializer } from '@/components/common/AppInitializer';
+import ComprehensiveErrorBoundary from '@/components/common/ComprehensiveErrorBoundary';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { usePlugins } from '@/hooks/usePlugins';
 import { useTheme } from '@/hooks/useTheme';
 import { useAppInitialization } from '@/hooks/useAppInitialization';
-import TwitchCallback from '@/features/auth/TwitchCallback';
-import { LoadingSpinner } from '@/components/common/LoadingSpinner';
-import ConfirmationDialog from '@/components/common/ConfirmationDialog';
-import GlobalErrorDisplay from '@/components/common/GlobalErrorDisplay';
+import { useAppLayout } from '@/hooks/useAppLayout';
 
 const App: React.FC = () => {
     const plugins = usePlugins();
-    const activeTab = useUiStore(state => state.activeTab);
-    const setActiveTab = useUiStore(state => state.setActiveTab);
-    const flipSides = useUiStore(state => state.flipSides);
+    const { 
+        activeTab, 
+        setActiveTab, 
+        layoutClasses, 
+        getContentOrderClass 
+    } = useAppLayout();
     
     const headerRef = useRef<HTMLDivElement>(null);
     
@@ -25,91 +27,43 @@ const App: React.FC = () => {
     useTheme();
 
     // App Initialization (Connection & Loading State)
-    const { isInitialized, initError } = useAppInitialization();
+    const { isInitialized, initError, retryInit, stepLabel, progress } = useAppInitialization();
 
-    const handleTabChange = useCallback((tabId: string) => {
-        setActiveTab(tabId);
-    }, [setActiveTab]);
- 
-     const renderTabContent = () => {
-        const activePlugin = plugins.find(p => p.id === activeTab);
+    const activePlugin = plugins.find(p => p.id === activeTab);
 
-        if (!activePlugin) {
-            return (
-                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                    <p className="text-lg">No plugin found for tab: {activeTab}</p>
-                    <p className="text-sm mt-2">Please select a different tab</p>
-                </div>
-            );
-        }
-
-        const TabComponent = activePlugin.component;
-
-        if (!TabComponent) {
-            return (
-                <div className="flex flex-col items-center justify-center h-full text-destructive">
-                    <p className="text-lg">Plugin Configuration Error</p>
-                    <p className="text-sm mt-2">Plugin {activeTab} has no component defined.</p>
-                </div>
-            );
-        }
-
-        return (
-            <PluginErrorBoundary pluginId={activePlugin.id}>
-                <Suspense fallback={<div className="flex justify-center items-center h-full"><LoadingSpinner size="medium" /></div>}>
-                    <TabComponent />
-                </Suspense>
-            </PluginErrorBoundary>
-        );
-     };
-
-     if (window.location.pathname === '/auth/twitch/callback') {
-         return <TwitchCallback />;
-     }
-
-    if (!isInitialized) {
-        return (
-            <div className="flex items-center justify-center h-screen bg-gradient-to-br from-background to-card">
-                <div className="text-center">
-                    <LoadingSpinner size="large" />
-                    <p className="mt-4 text-muted-foreground">Initializing OBS Copilot...</p>
-                </div>
-            </div>
-        );
-    }
-
-    if (initError) {
-        return (
-            <div className="flex items-center justify-center h-screen bg-gradient-to-br from-background to-card">
-                <div className="text-center text-destructive">
-                    <p className="text-lg font-semibold">Initialization Failed</p>
-                    <p className="mt-2 text-sm">{initError.message}</p>
-                </div>
-            </div>
-        );
-    }
-
-     return (
-         <ComprehensiveErrorBoundary>
+    return (
+        <ComprehensiveErrorBoundary>
             <TooltipProvider>
-                <div className={`app-root h-screen max-h-screen bg-gradient-to-br from-background to-card text-foreground flex flex-col transition-colors duration-500 ease-in-out`}>
-                    <Header headerRef={headerRef} />
-                    <TabNavigation
-                        activeTab={activeTab}
-                        setActiveTab={handleTabChange}
-                        tabs={plugins}
-                    />
-                    <div className="flex flex-grow overflow-hidden">
-                        <div className={`flex-grow overflow-y-auto px-1 sm:px-2 pb-1 transition-all duration-300 ease-in-out ${flipSides ? 'order-last' : 'order-first'}`}>
-                            {renderTabContent()}
+                <AppInitializer 
+                    isInitialized={isInitialized} 
+                    error={initError}
+                    onRetry={retryInit}
+                    stepLabel={stepLabel}
+                    progress={progress}
+                >
+                    <div className={layoutClasses.container}>
+                        <Header headerRef={headerRef} />
+                        <TabNavigation
+                            activeTab={activeTab}
+                            setActiveTab={setActiveTab}
+                            tabs={plugins}
+                        />
+                        <div className="flex flex-grow overflow-hidden">
+                            <div className={`${layoutClasses.content} ${getContentOrderClass()}`}>
+                                <PluginRenderer 
+                                    plugin={activePlugin} 
+                                    activeTab={activeTab}
+                                    setActiveTab={setActiveTab}
+                                />
+                            </div>
                         </div>
-                     </div>
-                     <ConfirmationDialog />
-                     <GlobalErrorDisplay />
-                 </div>
+                        <ConfirmationDialog />
+                        <GlobalErrorDisplay />
+                    </div>
+                </AppInitializer>
             </TooltipProvider>
-         </ComprehensiveErrorBoundary>
-     );
- };
+        </ComprehensiveErrorBoundary>
+    );
+};
 
- export default App;
+export default App;

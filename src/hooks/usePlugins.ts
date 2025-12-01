@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
 import { allPlugins } from '@/plugins';
 import useConfigStore from '@/store/configStore';
-import { TabPlugin } from '@/types/plugins';
+import { Plugin } from '@/types/plugin';
 import { useHealthStatus } from './useHealthStatus';
 
-export const usePlugins = () => {
+export const usePlugins = (): Plugin[] => {
   // REASON: The original implementation had a large dependency array and complex filtering logic.
   // This has been updated to simplify the filtering logic and reduce the dependency array.
   const { reports } = useHealthStatus();
@@ -28,20 +28,31 @@ export const usePlugins = () => {
       return (isEnabled === undefined || isEnabled) && (healthCheck === undefined || healthCheck);
     });
 
-    if (!tabOrder || tabOrder.length === 0) return plugins;
+    // Map to Plugin type
+    let mappedPlugins: Plugin[] = plugins.map(p => ({
+        ...p,
+        enabled: true, // They are already filtered by enabled status
+        order: 0 // Default order
+    }));
 
-    const byOrder: Record<string, TabPlugin> = {};
-    plugins.forEach(p => byOrder[p.id] = p);
+    if (!tabOrder || tabOrder.length === 0) return mappedPlugins;
 
-    const ordered: TabPlugin[] = [];
+    const byOrder: Record<string, Plugin> = {};
+    mappedPlugins.forEach(p => byOrder[p.id] = p);
+
+    const ordered: Plugin[] = [];
     tabOrder.forEach(id => {
-      if (byOrder[id]) {
-        ordered.push(byOrder[id]);
+      const plugin = byOrder[id];
+      if (plugin) {
+        ordered.push(plugin);
         delete byOrder[id];
       }
     });
 
-    Object.keys(byOrder).forEach(k => ordered.push(byOrder[k]));
+    Object.keys(byOrder).forEach(k => {
+        const p = byOrder[k];
+        if (p) ordered.push(p);
+    });
 
     return ordered;
   }, [reports, tabOrder, pluginSettings]);

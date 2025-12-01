@@ -2,6 +2,8 @@ import uvicorn
 import logging
 import asyncio
 import time
+from typing import Tuple, Any, Dict
+from enum import IntEnum
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -29,10 +31,45 @@ logger = logging.getLogger(__name__)
 
 from contextlib import asynccontextmanager
 
+def validate_environment():
+    """Validate required environment variables at startup."""
+    required_vars = {
+        'GEMINI_API_KEY': settings.GEMINI_API_KEY,
+        'BACKEND_API_KEY': settings.BACKEND_API_KEY,
+    }
+    
+    missing_vars = []
+    invalid_vars = []
+    
+    for var_name, var_value in required_vars.items():
+        if not var_value:
+            missing_vars.append(var_name)
+        elif var_name.endswith('_KEY') and len(var_value) < 10:
+            invalid_vars.append(f"{var_name} (appears too short)")
+    
+    if missing_vars or invalid_vars:
+        error_msg = "Environment configuration errors:\n"
+        if missing_vars:
+            error_msg += f"  Missing: {', '.join(missing_vars)}\n"
+        if invalid_vars:
+            error_msg += f"  Invalid: {', '.join(invalid_vars)}\n"
+        error_msg += "\nPlease check your .env file and ensure all required variables are set."
+        logger.error(error_msg)
+        raise RuntimeError(error_msg)
+    
+    logger.info("Environment validation passed ✓")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting up OBS Copilot backend...")
+    
+    # Validate environment first
+    try:
+        validate_environment()
+    except RuntimeError as e:
+        logger.critical(f"Startup failed: {e}")
+        raise
 
     # Initialize services
     try:
@@ -117,38 +154,98 @@ class RequestValidationMiddleware(BaseHTTPMiddleware):
 
 # --- Middleware Configuration (Order matters! LIFO for add_middleware) ---
 
-# 6. Logging (Runs closest to app logic to log processed requests)
-app.add_middleware(EnhancedLoggingMiddleware)
+class MiddlewarePriority(IntEnum):
+    """Middleware execution priority (lower number = runs first in request pipeline)."""
+    TRUSTED_HOST = 1      # First line of defense
+    SECURITY_HEADERS = 2  # Security policies
+    CORS = 3              # Cross-origin handling
+    VALIDATION = 4        # Request validation
+    TIMEOUT = 5           # Request timeouts
+    LOGGING = 6           # Logging (closest to app logic)
 
-# 5. Timeout (Runs before business logic to enforce limits)
-app.add_middleware(TimeoutMiddleware, timeout=settings.REQUEST_TIMEOUT)
+def register_middleware_stack(app: FastAPI):
+    """
+    Register middleware in the correct order.
+    
+    Middleware execution order (request → response):
+    1. TrustedHost → validates allowed hosts
+    2. SecurityHeaders → adds security headers
+    3. CORS → handles cross-origin requests
+    4. RequestValidation → validates payload size
+    5. Timeout → enforces request timeouts
+    6. EnhancedLogging → logs requests/responses
+    """
+    
+    middleware_stack: list[Tuple[int, Any, Dict[str, Any]]] = []
+    
+    # Build middleware stack with priorities
+    middleware_stack.append((
+        MiddlewarePriority.LOGGING,
+        EnhancedLoggingMiddleware,
+        {}
+    ))
+    
+    middleware_stack.append((
+        MiddlewarePriority.TIMEOUT,
+        TimeoutMiddleware,
+        {"timeout": settings.REQUEST_TIMEOUT}
+    ))
+    
+    middleware_stack.append((
+        MiddlewarePriority.VALIDATION,
+        RequestValidationMiddleware,
+        {}
+    ))
+    
+    # CORS configuration
+    cors_config = CorsConfig.for_environment(settings.ENV)
+    allowed_origins = parse_cors_origins(settings.ALLOWED_ORIGINS, cors_config)
+    
+    middleware_stack.append((
+        MiddlewarePriority.CORS,
+        CORSMiddleware,
+        {
+            "allow_origins": allowed_origins,
+            "allow_credentials": True,
+            "allow_methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization", "X-API-KEY", "X-Requested-With"],
+            "expose_headers": ["X-Request-ID"],
+            "max_age": 3600,
+        }
+    ))
+    
+    middleware_stack.append((
+        MiddlewarePriority.SECURITY_HEADERS,
+        SecurityMiddleware,
+        {}
+    ))
+    
+    # Trusted host (environment-specific)
+    if settings.ENV in ("development", "test"):
+        allowed_hosts = ["*"]
+    else:
+        allowed_hosts = ["localhost", "127.0.0.1", "*.netlify.app"]
+    
+    middleware_stack.append((
+        MiddlewarePriority.TRUSTED_HOST,
+        TrustedHostMiddleware,
+        {"allowed_hosts": allowed_hosts}
+    ))
+    
+    # Sort by priority (descending) and register
+    # FastAPI's LIFO means we add highest priority last
+    middleware_stack.sort(key=lambda x: x[0], reverse=True)
+    
+    logger.info("Registering middleware stack in execution order:")
+    for priority, middleware_class, kwargs in middleware_stack:
+        middleware_name = middleware_class.__name__
+        logger.info(f"  {priority.value}. {middleware_name}")
+        app.add_middleware(middleware_class, **kwargs)
+    
+    logger.info("Middleware stack registered successfully ✓")
 
-# 4. Request Validation (Check payload size early)
-app.add_middleware(RequestValidationMiddleware)
-
-# 3. CORS (Handle preflight before other processing)
-cors_config = CorsConfig.for_environment(settings.ENV)
-allowed_origins = parse_cors_origins(settings.ALLOWED_ORIGINS, cors_config)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "X-API-KEY", "X-Requested-With"],
-    expose_headers=["X-Request-ID"],
-    max_age=3600,
-)
-
-# 2. Security Headers (After CORS to preserve headers on all responses)
-app.add_middleware(SecurityMiddleware)
-
-# 1. Trusted Host (First line of defense - runs last in this list/first in execution)
-if settings.ENV in ("development", "test"):
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
-else:
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "*.netlify.app"])
-
+# Register middleware
+register_middleware_stack(app)
 
 # Create and mount the MCP server
 mcp = FastApiMCP(app)

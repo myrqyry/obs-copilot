@@ -115,3 +115,7 @@ backend/api/routes/__pycache__/gemini.cpython-312.pyc
 # Serena tool directory
 .serena/
 digest.txt
+
+# Build logs
+tsc_output*.txt
+build-logs/

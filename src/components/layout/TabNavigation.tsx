@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useEffect, useRef } from 'react';
 // connection/chat stores not directly used here; handled in per-tab components when needed
 import { cn } from '@/lib/utils';
-import { TabPlugin } from '@/types/plugins';
+import { Plugin } from '@/types/plugin';
 import { useAnimatedTabs } from '@/hooks/useAnimatedTabs';
 import useConfigStore from '@/store/configStore';
 import {
@@ -19,7 +19,7 @@ import { CSS } from '@dnd-kit/utilities';
 import gsap from 'gsap';
 
 interface SortableTabProps {
-    tab: TabPlugin;
+    tab: Plugin;
     isActive: boolean;
     registerTab: (tabKey: string, el: HTMLButtonElement | null) => void;
     setActiveTab: (id: string) => void;
@@ -293,7 +293,7 @@ const SortableTab: React.FC<SortableTabProps> = (props: SortableTabProps) => {
             >
                 {/* ensure icon SVG scales to its container; svg set to block to avoid baseline clipping
                     Expect SVG to inherit currentColor; wrapping span sets color via CSS variables */}
-                <Icon className="w-full h-full block" />
+                {Icon && <Icon className="w-full h-full block" />}
             </span>
             {/* label appears only when active; animated by GSAP */}
             <span
@@ -313,7 +313,7 @@ const SortableTab: React.FC<SortableTabProps> = (props: SortableTabProps) => {
 interface TabNavigationProps {
     activeTab: string;
     setActiveTab: (tabId: string) => void;
-    tabs: TabPlugin[];
+    tabs: Plugin[];
 }
 
 export const TabNavigation: React.FC<TabNavigationProps> = ({
@@ -370,8 +370,8 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
                     setTabOrder(newOrder);
                 }}
             >
-                <SortableContext items={tabs.map((t: TabPlugin) => t.id)} strategy={horizontalListSortingStrategy}>
-                    {tabs.map((tab: TabPlugin) => (
+                <SortableContext items={tabs.map((t: Plugin) => t.id)} strategy={horizontalListSortingStrategy}>
+                    {tabs.map((tab: Plugin) => (
                         <SortableTab
                             key={tab.id}
                             tab={tab}
