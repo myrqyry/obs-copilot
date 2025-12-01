@@ -1,10 +1,4 @@
 import { TabPlugin } from '@/types/plugins';
-import ConnectionsTab from './core/ConnectionsTab';
-import NewObsStudioTab from './core/NewObsStudioTab';
-import ObsControlsTab from './core/ObsControlsTab'; // New import
-import StreamingAssetsTab from './core/StreamingAssetsTab';
-import SettingsTab from './core/SettingsTab';
-import AdvancedPanel from './core/AdvancedPanel';
 import React, { lazy } from 'react';
 import LinkIcon from '@mui/icons-material/Link';
 import MovieIcon from '@mui/icons-material/Movie';
@@ -13,12 +7,19 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import ImageIcon from '@mui/icons-material/Image';
 import SettingsIcon from '@mui/icons-material/Settings';
 import BuildIcon from '@mui/icons-material/Build';
-import DashboardIcon from '@mui/icons-material/Dashboard'; // New icon
-import HealthDashboard from '@/components/debug/HealthDashboard';
+import DashboardIcon from '@mui/icons-material/Dashboard';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 
+// Lazy load all plugin components
+const ConnectionsTab = lazy(() => import('./core/ConnectionsTab'));
+const NewObsStudioTab = lazy(() => import('./core/NewObsStudioTab'));
+const ObsControlsTab = lazy(() => import('./core/ObsControlsTab'));
 const GeminiTab = lazy(() => import('./core/GeminiTab'));
 const GenerateTab = lazy(() => import('./core/GenerateTab'));
+const StreamingAssetsTab = lazy(() => import('./core/StreamingAssetsTab'));
+const SettingsTab = lazy(() => import('./core/SettingsTab'));
+const AdvancedPanel = lazy(() => import('./core/AdvancedPanel'));
+const HealthDashboard = lazy(() => import('@/components/debug/HealthDashboard'));
 
 export const corePlugins: TabPlugin[] = [
   {
@@ -34,7 +35,7 @@ export const corePlugins: TabPlugin[] = [
     component: NewObsStudioTab,
   },
   {
-    id: 'obs-controls', // New tab
+    id: 'obs-controls',
     name: 'OBS Controls',
     icon: (props: any) => React.createElement(DashboardIcon, props),
     component: ObsControlsTab,
