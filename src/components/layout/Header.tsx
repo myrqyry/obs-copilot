@@ -29,7 +29,7 @@ export const Header: React.FC<HeaderProps> = ({ headerRef }) => {
             <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
             
             {/* Subtle accent overlay driven by theme variables */}
-            <div className="subtle-accent-overlay" />
+            <div className="absolute inset-0 opacity-[0.06] pointer-events-none bg-gradient-to-br from-primary via-accent to-primary mix-blend-overlay" />
             
             <AnimatedTitleLogos accentColor={accentColor} secondaryAccentColor={secondaryAccentColor} />
         </header>

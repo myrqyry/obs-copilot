@@ -340,7 +340,7 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
     <nav
             ref={tabBarRef}
             className={cn(
-        'prime-nav relative z-40 flex h-12 w-full items-center justify-between bg-card/80 px-4 shadow-md backdrop-blur-md',
+        'relative z-40 flex h-12 w-full items-center justify-between px-4 shadow-md backdrop-blur-md bg-card/80',
         // Subtle top gradient for polish (low-opacity)
         'before:absolute before:top-0 before:left-0 before:w-full before:h-[2px] before:from-primary/30 before:via-accent/20 before:to-primary/30 before:bg-gradient-to-r before:opacity-70',
     // Active tab indicator: slimmer, softer gradient with reduced shadow

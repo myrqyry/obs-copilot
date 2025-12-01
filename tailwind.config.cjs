@@ -599,6 +599,10 @@ module.exports = {
         'colors': 'color, background-color, border-color, text-decoration-color, fill, stroke',
         'spacing': 'margin, padding',
       },
+      transitionTimingFunction: {
+        'custom-out': 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+        'custom-out-2': 'cubic-bezier(0.2, 0.9, 0.2, 1)',
+      },
       spacing: {
         '18': '4.5rem',
         '88': '22rem',
@@ -710,6 +714,18 @@ module.exports = {
         '.shadow-glow-xl': {
           'box-shadow': '0 0 40px rgba(var(--primary), 0.5)',
         },
+        '.glass-panel': {
+            'background': 'rgba(255, 255, 255, 0.05)',
+            'backdrop-filter': 'blur(12px)',
+            'border': '1px solid rgba(255, 255, 255, 0.1)',
+            'box-shadow': '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+        },
+        '.glass-panel-dark': {
+            'background': 'rgba(0, 0, 0, 0.2)',
+            'backdrop-filter': 'blur(12px)',
+            'border': '1px solid rgba(255, 255, 255, 0.05)',
+            'box-shadow': '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+        }
       }
       addUtilities(newUtilities)
     }

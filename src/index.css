@@ -353,6 +353,7 @@
 
 /* Chat bubble variable-driven defaults and tuned visuals */
 .chat-message {
+  @apply bg-[var(--bubble-bg)] border-[var(--bubble-border)] text-[var(--bubble-text)] rounded-xl border-solid shadow-lg transition-all duration-300;
   /* CSS variable fallbacks (inline styles on elements will override these) */
   --bubble-bg: rgba(30,30,46,0.5);
   --bubble-border: hsl(var(--accent));
@@ -361,51 +362,35 @@
   --bubble-border-width: 1.5px;
   --bubble-shadow: 0 6px 20px rgba(0,0,0,0.14);
 
-  background-color: var(--bubble-bg);
-  border-color: var(--bubble-border);
-  color: var(--bubble-text);
   border-width: var(--bubble-border-width);
-  border-style: solid;
-  border-radius: var(--bubble-radius);
-  box-shadow: var(--bubble-shadow);
-  transition: background 0.28s, border-color 0.28s, box-shadow 0.28s, transform 0.18s;
 }
 
 /* Glassy variant used when custom background is present */
 .chat-bubble-glass {
-  backdrop-filter: blur(6px) saturate(120%);
-  background-color: rgba(255,255,255,0.06);
+  @apply backdrop-blur-md backdrop-saturate-[1.2] bg-white/5;
 }
 .chat-bubble-glass-extra-dark {
-  backdrop-filter: blur(6px) saturate(120%);
-  background-color: rgba(8,8,12,0.6);
+  @apply backdrop-blur-md backdrop-saturate-[1.2] bg-[rgba(8,8,12,0.6)];
 }
 
 /* Pop/hover polish for bubbles */
 .chat-message.group:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+  @apply -translate-y-0.5 shadow-xl;
 }
 
-  /* ChatBubblePreview-specific styles */
-  .tab-preview-icon {
-    background: color-mix(in srgb, hsl(var(--accent)) 90%, transparent);
-    border: 1px solid hsl(var(--border) / 0.6);
-    width: 18px;
-    height: 18px;
-    border-radius: 6px;
-  }
+/* ChatBubblePreview-specific styles */
+.tab-preview-icon {
+  @apply w-[18px] h-[18px] rounded-md border border-border/60 bg-[color-mix(in_srgb,hsl(var(--accent))_90%,transparent)];
+}
 
-  .preview-bubble {
-    transition: transform 0.28s cubic-bezier(0.2,0.8,0.2,1), background 0.28s, border-color 0.28s;
-  }
+.preview-bubble {
+  @apply transition-transform duration-300 ease-custom-out;
+}
 
-  /* small utility to visually indicate swapping animation for preview */
-  .preview-swap-enter {
-    transform: translateX(0);
-  }
-
-
+/* small utility to visually indicate swapping animation for preview */
+.preview-swap-enter {
+  @apply translate-x-0;
+}
 
 @layer base {
   /* Removed global border application to avoid conflicts */
@@ -415,23 +400,15 @@
 
   /* Custom Scrollbar Styles */
   ::-webkit-scrollbar {
-    width: 12px;
-    height: 12px;
+    @apply w-3 h-3;
   }
 
   ::-webkit-scrollbar-track {
-    background: hsl(var(--card));
-    border-radius: 10px;
+    @apply bg-card rounded-[10px];
   }
 
   ::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted));
-    border-radius: 10px;
-    border: 3px solid hsl(var(--card));
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--primary));
+    @apply bg-muted rounded-[10px] border-[3px] border-solid border-card hover:bg-primary;
   }
 }
 
@@ -504,65 +481,29 @@
 
 /* modern-mobile-menu component styles */
 .menu {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem 1rem;
-  background: transparent;
+  @apply flex gap-2 items-center justify-center py-2 px-4 bg-transparent;
 }
 
 .menu__item {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  background: none;
-  border: none;
-  cursor: pointer;
-  position: relative;
-  color: hsl(var(--component-inactive-color));
-  transition: color 0.22s ease, transform 0.12s ease;
-}
-
-.menu__item:hover {
-  transform: translateY(-2px);
+  @apply inline-flex items-center gap-2 py-2 px-3 bg-transparent border-none cursor-pointer relative text-[hsl(var(--component-inactive-color))] transition-colors duration-200 ease-out hover:-translate-y-0.5;
 }
 
 .menu__icon .MuiSvgIcon-root, .menu__icon .icon {
-  width: 1.25rem;
-  height: 1.25rem;
-  color: inherit;
-  transition: transform 0.18s ease;
+  @apply w-5 h-5 text-inherit transition-transform duration-200 ease-out;
 }
 
 .menu__text {
-  display: inline-block;
-  font-weight: 600;
-  font-size: 0.875rem;
-  transform-origin: left center;
-  transition: transform 0.28s cubic-bezier(.2,.9,.2,1), opacity 0.18s ease;
-  opacity: 0;
-  transform: translateX(-6px) scaleX(0.95);
+  @apply inline-block font-semibold text-sm origin-left transition-transform duration-300 ease-custom-out-2 opacity-0 -translate-x-1.5 scale-x-95;
 }
 
 .menu__text.active {
-  opacity: 1;
-  transform: translateX(0) scaleX(1);
+  @apply opacity-100 translate-x-0 scale-x-100;
 }
 
 /* underline/line that animates from icon to text width */
 .menu__item::after {
   content: '';
-  position: absolute;
-  left: 50%;
-  bottom: 6px;
-  width: 0px;
-  height: 2px;
-  background: hsl(var(--component-active-color-default));
-  border-radius: 2px;
-  transform: translateX(-50%);
-  transition: width 0.28s cubic-bezier(.2,.9,.2,1), background 0.2s ease;
+  @apply absolute left-1/2 bottom-1.5 w-0 h-0.5 bg-[hsl(var(--component-active-color-default))] rounded-sm -translate-x-1/2 transition-[width] duration-300 ease-custom-out-2;
 }
 
 .menu__item.active::after {
@@ -582,34 +523,19 @@
 
 /* Tabs: adopt mobile-menu label reveal + underline styling */
 .tab-item {
-  position: relative;
-  transition: color 0.22s ease, transform 0.12s ease;
-  color: hsl(var(--component-inactive-color));
+  @apply relative transition-colors duration-200 ease-out text-[hsl(var(--component-inactive-color))];
 }
 
 .tab-item .tab-label {
-  display: inline-block;
-  transform-origin: left center;
-  transition: transform 0.28s cubic-bezier(.2,.9,.2,1), opacity 0.18s ease;
-  opacity: 0;
-  transform: translateX(-6px) scaleX(0.95);
+  @apply inline-block origin-left transition-transform duration-300 ease-custom-out-2 opacity-0 -translate-x-1.5 scale-x-95;
 }
 .tab-item .tab-label.active {
-  opacity: 1;
-  transform: translateX(0) scaleX(1);
+  @apply opacity-100 translate-x-0 scale-x-100;
 }
 
 .tab-item::after {
   content: '';
-  position: absolute;
-  left: 50%;
-  bottom: 6px;
-  width: 0px;
-  height: 2px;
-  background: hsl(var(--component-active-color-default));
-  border-radius: 2px;
-  transform: translateX(-50%);
-  transition: width 0.28s cubic-bezier(.2,.9,.2,1), background 0.2s ease;
+  @apply absolute left-1/2 bottom-1.5 w-0 h-0.5 bg-[hsl(var(--component-active-color-default))] rounded-sm -translate-x-1/2 transition-[width] duration-300 ease-custom-out-2;
 }
 
 .tab-item[data-active='true']::after,
