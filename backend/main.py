@@ -2,8 +2,6 @@ import uvicorn
 import logging
 import asyncio
 import time
-import re
-from typing import List
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -15,10 +13,12 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 # Import the centralized settings
 from config import settings
+from config.cors import CorsConfig, parse_cors_origins
 from auth import get_api_key
 from api.routes import gemini, assets, overlays, proxy_7tv, proxy_emotes, health
 from services.gemini_service import gemini_service
 from middleware import EnhancedLoggingMiddleware
+from middleware.timeout import TimeoutMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from rate_limiter import limiter
@@ -115,58 +115,21 @@ class RequestValidationMiddleware(BaseHTTPMiddleware):
 
         return response
 
-# Add these middleware to your FastAPI app
-app.add_middleware(SecurityMiddleware)
-app.add_middleware(RequestValidationMiddleware)
+# --- Middleware Configuration (Order matters! LIFO for add_middleware) ---
 
-# Add security and logging middleware
-# During development and tests we allow all hosts to avoid TrustedHost rejections
-# (pytest sends requests using host 'test'). In production this should be locked down
-# (pytest sends requests using host 'test'). In production this should be locked down
-# to a specific allowlist.
-if settings.ENV in ("development", "test"):
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
-else:
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "*.netlify.app"])
+# 6. Logging (Runs closest to app logic to log processed requests)
 app.add_middleware(EnhancedLoggingMiddleware)
 
-# Improved CORS origin validation
-def validate_and_parse_origins(origins_string: str, env: str) -> List[str]:
-    """Validate and parse CORS origins with proper security checks."""
-    allowed_origins = []
-    raw_origins = [origin.strip() for origin in origins_string.split(",") if origin.strip()]
+# 5. Timeout (Runs before business logic to enforce limits)
+app.add_middleware(TimeoutMiddleware, timeout=settings.REQUEST_TIMEOUT)
 
-    # Define allowed patterns
-    ALLOWED_PATTERNS = {
-        'development': [r'^https?://localhost(:\d+)?$', r'^https?://127\.0\.0\.1(:\d+)?$', r'^\*$'],
-        'test': [r'^https?://test(:\d+)?$', r'^\*$'],
-        'production': [r'^https://[\w\-]+(\.[\w\-]+)*\.netlify\.app$', r'^https://[\w\-]+(\.[\w\-]+)+$']
-    }
+# 4. Request Validation (Check payload size early)
+app.add_middleware(RequestValidationMiddleware)
 
-    patterns = ALLOWED_PATTERNS.get(env, ALLOWED_PATTERNS['production'])
+# 3. CORS (Handle preflight before other processing)
+cors_config = CorsConfig.for_environment(settings.ENV)
+allowed_origins = parse_cors_origins(settings.ALLOWED_ORIGINS, cors_config)
 
-    for origin in raw_origins:
-        # Check for wildcards in production
-        if '*' in origin and env == 'production':
-            logger.error(f"Wildcard origin '{origin}' not allowed in production")
-            continue
-
-        # Validate against patterns
-        if any(re.match(pattern, origin) for pattern in patterns):
-            allowed_origins.append(origin)
-        else:
-            logger.warning(f"Origin '{origin}' does not match allowed patterns for {env} environment")
-
-    if not allowed_origins:
-        logger.error(f"No valid origins configured for {env} environment")
-        # Fallback to safe default
-        allowed_origins = ['https://localhost:3000'] if env != 'production' else []
-
-    return allowed_origins
-
-allowed_origins = validate_and_parse_origins(settings.ALLOWED_ORIGINS, settings.ENV)
-
-# Improved CORS with security headers
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
@@ -176,6 +139,16 @@ app.add_middleware(
     expose_headers=["X-Request-ID"],
     max_age=3600,
 )
+
+# 2. Security Headers (After CORS to preserve headers on all responses)
+app.add_middleware(SecurityMiddleware)
+
+# 1. Trusted Host (First line of defense - runs last in this list/first in execution)
+if settings.ENV in ("development", "test"):
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
+else:
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "*.netlify.app"])
+
 
 # Create and mount the MCP server
 mcp = FastApiMCP(app)

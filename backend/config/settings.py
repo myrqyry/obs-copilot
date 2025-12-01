@@ -67,6 +67,7 @@ class Settings(BaseSettings):
 
     ENV: str = "development"
     LOG_LEVEL: str = "INFO"
+    REQUEST_TIMEOUT: float = 30.0
 
     @field_validator('ALLOWED_ORIGINS')
     @classmethod

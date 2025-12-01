@@ -1,4 +1,4 @@
-interface Config {
+interface EnvConfig {
   readonly API_URL: string;
   readonly UNSPLASH_ACCESS_KEY: string;
   readonly ADMIN_API_URL: string;
@@ -8,7 +8,11 @@ interface Config {
 class ConfigValidator {
   private static validateUrl(url: string, name: string): string {
     if (!url) {
-      console.warn(`${name} is not configured`);
+      // Allow empty for optional fields, or handle strictly
+      if (name === 'VITE_API_URL' && !url) {
+         // Fallback is handled in appConfig usually, but here we validate what's provided or provide defaults
+         return '';
+      }
       return '';
     }
 
@@ -22,27 +26,25 @@ class ConfigValidator {
 
       return url;
     } catch {
-      throw new Error(`Invalid ${name}: ${url}`);
+      console.warn(`Invalid ${name}: ${url}`);
+      return '';
     }
   }
 
   private static validateApiKey(key: string, name: string): string {
     if (!key) {
-      console.warn(`${name} is not configured`);
       return '';
     }
 
     // Basic length validation
     if (key.length < 16) {
-      throw new Error(`${name} is too short (minimum 16 characters)`);
+      console.warn(`${name} is too short (minimum 16 characters)`);
     }
 
-    // Don't log the actual key value for security
-    console.debug(`${name} configured (${key.length} characters)`);
     return key;
   }
 
-  static create(): Config {
+  static create(): EnvConfig {
     try {
       const config = {
         API_URL: this.validateUrl(
@@ -71,11 +73,9 @@ class ConfigValidator {
   }
 }
 
-const config = ConfigValidator.create();
-export default config;
+export const envConfig = ConfigValidator.create();
 
-// Export individual config items for easier testing
-export const { API_URL, UNSPLASH_ACCESS_KEY, ADMIN_API_URL, ADMIN_API_KEY } = config;
+export const { API_URL, UNSPLASH_ACCESS_KEY, ADMIN_API_URL, ADMIN_API_KEY } = envConfig;
 
 // AI SDK 5 feature flags for gradual adoption
 export const aiSdk5Config = {
