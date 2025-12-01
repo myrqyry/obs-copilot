@@ -223,3 +223,5 @@ if (typeof window !== 'undefined' && navigator.mediaDevices?.addEventListener) {
 
 export const useAudioStore = useAudioStoreImpl;
 
+export default useAudioStore;
+

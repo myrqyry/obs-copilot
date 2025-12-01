@@ -85,3 +85,5 @@ export const useChatStore = create<ChatState>()(
     }
   )
 );
+
+export default useChatStore;

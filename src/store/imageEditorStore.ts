@@ -3,13 +3,7 @@ import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { shallow } from 'zustand/shallow';
 
-export interface ImageUploadResult {
-  id: string;
-  url: string;
-  file: File;
-  name: string;
-  size: number;
-}
+import { ImageUploadResult } from '@/types/audio';
 
 export interface ImageEditorState {
   // File management
@@ -64,6 +58,44 @@ export interface ImageEditorState {
   // History for undo/redo
   history: Partial<ImageEditorState>[];
   historyIndex: number;
+
+  // Actions
+  setInputImage: (url: string, blob: Blob) => void;
+  setOutputImage: (url: string | null) => void;
+  setCurrentImage: (url: string | null) => void;
+  updateCrop: (crop: { x: number; y: number }) => void;
+  updateZoom: (zoom: number) => void;
+  updateRotation: (rotation: number) => void;
+  updateAspect: (aspect: number | undefined) => void;
+  setCroppedAreaPixels: (pixels: any) => void;
+  setIsCropping: (isCropping: boolean) => void;
+  updateDimensions: (width: number | string, height: number | string) => void;
+  setFlipH: (flipH: boolean) => void;
+  setFlipV: (flipV: boolean) => void;
+  setFilter: (filter: string) => void;
+  updateTextOverlay: (text: string, color: string, size: number, x: number, y: number) => void;
+  setAiPrompt: (prompt: string) => void;
+  setAiLoading: (loading: boolean) => void;
+  setAiError: (error: string | null) => void;
+  setGeneratedImages: (images: string[]) => void;
+  setShowAiPanel: (show: boolean) => void;
+  setAiModel: (model: string) => void;
+  setAspectRatio: (ratio: string) => void;
+  setNumberOfImages: (count: number) => void;
+  setCharacterConsistency: (enabled: boolean) => void;
+  setMultiImageFusion: (enabled: boolean) => void;
+  setWorldKnowledge: (enabled: boolean) => void;
+  setUploadedImages: (images: ImageUploadResult[]) => void;
+  setShowGeneratedImages: (show: boolean) => void;
+  setInputModalOpen: (open: boolean) => void;
+  setLoading: (loading: boolean) => void;
+  resetManipulationStates: () => void;
+  resetAllStates: () => void;
+  saveToHistory: () => void;
+  undo: () => void;
+  redo: () => void;
+  canUndo: () => boolean;
+  canRedo: () => boolean;
 }
 
 const initialState: ImageEditorState = {
@@ -126,7 +158,7 @@ export const useImageEditorStore = create<ImageEditorState>()(
             };
           });
         },
-        setOutputImage: (url: string) => {
+        setOutputImage: (url: string | null) => {
           set((state) => {
             if (state.outputUrl) URL.revokeObjectURL(state.outputUrl);
             return { outputUrl: url };
@@ -264,4 +296,6 @@ export const useImageEditorStore = create<ImageEditorState>()(
     )
   )
 );
+
+export default useImageEditorStore;
 

@@ -60,3 +60,5 @@ export const useAutomationStore = create<AutomationState>()(
     }
   )
 );
+
+export default useAutomationStore;

@@ -91,4 +91,6 @@ export const getAllAssetConfigs = (): AssetSearchConfig[] => {
   return allAssetConfigs;
 };
 
+export const ASSET_SEARCH_CONFIGS = allAssetConfigs;
+
 export default allAssetConfigs;

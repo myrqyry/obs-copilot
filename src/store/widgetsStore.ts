@@ -146,3 +146,5 @@ export const useWidgetsStore = create<WidgetStore>()(
 // breaking imports until the codebase is migrated.
 export const useWidgetStore = useWidgetsStore;
 export const useUniversalWidgetStore = useWidgetsStore;
+
+export default useWidgetsStore;

@@ -32,3 +32,4 @@ export const SecureHtmlRenderer: React.FC<SecureHtmlRendererProps> = ({
     />
   );
 };
+export default SecureHtmlRenderer;

@@ -272,3 +272,5 @@ export const useGenerateStore = create<GenerateState>()(
     }
   )
 );
+
+export default useGenerateStore;

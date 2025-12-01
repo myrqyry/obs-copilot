@@ -97,3 +97,5 @@ export const useOverlaysStore = create<OverlaysStore>()(
     }
   )
 );
+
+export default useOverlaysStore;

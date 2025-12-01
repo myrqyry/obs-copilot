@@ -1,32 +1,28 @@
-// src/features/media/AIImageEditor.tsx
 import * as React from "react";
 import { useRef, useEffect, useCallback } from "react";
 import { toast } from "@/components/ui/toast";
 import { Modal } from "@/components/ui/Modal";
-import { Tooltip } from "@/components/ui/Tooltip";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/common/TextInput";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
-  Crop, Download, ImagePlus, Scissors, Text, Filter, RefreshCcw, RotateCcw, FlipHorizontal, 
-  FlipVertical, Sparkles, Wand2, Layers, Users, Globe, MessageSquare, Type, Image as ImageIcon,
-  Edit3, Shuffle, Eye, EyeOff
+  Crop, Download, ImagePlus, RefreshCcw, RotateCcw, FlipHorizontal, 
+  FlipVertical, Sparkles, Wand2, Layers, Image as ImageIcon
 } from 'lucide-react';
 import { generateSourceName } from '@/utils/obsSourceHelpers';
 import { useConnectionManagerStore } from '@/store/connectionManagerStore';
-import { ObsClientImpl as ObsClient } from '@/services/obsClient';
-import { handleAppError, createToastError } from '@/lib/errorUtils';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from '../../lib/canvasUtils';
 import { geminiService } from '@/services/geminiService';
 import { CollapsibleCard } from '@/components/common/CollapsibleCard';
 import { ImageUpload } from '@/components/common/ImageUpload';
 import { ImageUploadResult } from '@/types/audio';
-import { ImageEditorTemplates } from './ImageEditorTemplates';
 import { useImageEditorStore } from '@/store/imageEditorStore';
 
 export const AIImageEditor: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [basicManipulationsOpen, setBasicManipulationsOpen] = React.useState(true);
+    const [aiFeaturesOpen, setAiFeaturesOpen] = React.useState(true);
     
     // Use store selectors for different aspects of the image editor
     const {
@@ -39,21 +35,13 @@ export const AIImageEditor: React.FC = () => {
         rotation,
         aspect,
         isCropping,
-        width,
-        height,
         flipH,
         flipV,
         filter,
-        textOverlay,
-        textColor,
-        textSize,
-        textX,
-        textY,
         croppedAreaPixels,
         updateCrop,
         updateZoom,
         updateRotation,
-        updateAspect,
         setIsCropping,
         setCroppedAreaPixels,
         setFlipH,
@@ -69,7 +57,6 @@ export const AIImageEditor: React.FC = () => {
         aspectRatio,
         numberOfImages,
         uploadedImages,
-        showGeneratedImages,
         setAiPrompt,
         setAiLoading,
         setAiError,
@@ -77,14 +64,9 @@ export const AIImageEditor: React.FC = () => {
         setShowAiPanel,
         setAiModel,
         setAspectRatio,
-        setNumberOfImages,
         setUploadedImages,
         setShowGeneratedImages,
         saveToHistory,
-        undo,
-        redo,
-        canUndo,
-        canRedo,
         outputUrl,
         setOutputImage,
         inputModalOpen,
@@ -198,24 +180,7 @@ export const AIImageEditor: React.FC = () => {
         }
     }, [setLoading, setCurrentImage]);
 
-    const handleBackgroundRemoval = useCallback(async () => {
-        if (!currentImage) return;
-        
-        setLoading(true);
-        try {
-            // Simple background removal simulation - just show the original image
-            // In a real implementation, you would use a service like remove.bg API
-            toast({ title: "Background Removal", description: "Background removal feature would be implemented with an external service." });
-            // For now, just keep the current image
-            setCurrentImage(currentImage);
-        } catch (err) {
-            console.error("Background removal failed:", err);
-            toast({ variant: "destructive", title: "Background removal failed", description: err instanceof Error ? err.message : String(err) });
-        }
-        setLoading(false);
-    }, [currentImage, setLoading, setCurrentImage]);
-
-    const onCropComplete = useCallback((croppedArea: any, croppedAreaPixels: any) => {
+    const onCropComplete = useCallback((_: any, croppedAreaPixels: any) => {
         setCroppedAreaPixels(croppedAreaPixels);
     }, [setCroppedAreaPixels]);
 
@@ -256,27 +221,11 @@ export const AIImageEditor: React.FC = () => {
         await applyManipulation(currentImage, { filter: newFilter });
     }, [currentImage, applyManipulation, setFilter]);
 
-    const handleApplyResize = useCallback(async () => {
-        await applyManipulation(currentImage, { resize: { width: width, height: height } });
-    }, [currentImage, applyManipulation, width, height]);
-
     const handleApplyFlip = useCallback(async (h: boolean, v: boolean) => {
         setFlipH(h);
         setFlipV(v);
         await applyManipulation(currentImage, { flipH: h, flipV: v });
     }, [currentImage, applyManipulation, setFlipH, setFlipV]);
-
-    const handleApplyTextOverlay = useCallback(async () => {
-        await applyManipulation(currentImage, { 
-            textOverlay: { 
-                text: textOverlay, 
-                color: textColor, 
-                size: textSize, 
-                x: textX, 
-                y: textY 
-            } 
-        });
-    }, [currentImage, applyManipulation, textOverlay, textColor, textSize, textX, textY]);
 
     const handleResetAll = useCallback(async () => {
         setCurrentImage(inputUrl);
@@ -306,18 +255,27 @@ export const AIImageEditor: React.FC = () => {
         setGeneratedImages([]);
 
         try {
-            const imageInput = uploadedImages.length > 0 
-                ? { data: uploadedImages[0].data, mimeType: uploadedImages[0].mimeType } 
-                : undefined;
+            let imageInput;
+            if (uploadedImages.length > 0 && uploadedImages[0]) {
+                imageInput = { 
+                    data: uploadedImages[0].data, 
+                    mimeType: uploadedImages[0].mimeType 
+                };
+            }
 
-            const generatedImageUrls = await geminiService.generateImage(aiPrompt, {
+            const options: any = {
                 model: aiModel,
                 numberOfImages: numberOfImages,
                 outputMimeType: 'image/png',
                 aspectRatio: aspectRatio,
                 personGeneration: 'allow_adult',
-                imageInput,
-            });
+            };
+
+            if (imageInput) {
+                options.imageInput = imageInput;
+            }
+
+            const generatedImageUrls = await geminiService.generateImage(aiPrompt, options);
 
             setGeneratedImages(generatedImageUrls);
             setShowGeneratedImages(true);
@@ -336,9 +294,15 @@ export const AIImageEditor: React.FC = () => {
         toast({ title: "Image Applied", description: "Generated image applied to editor." });
     };
 
-    const handleUploadImages = (images: ImageUploadResult[]) => {
-        setUploadedImages(images);
-        toast({ title: "Images Uploaded", description: `${images.length} image(s) uploaded for AI processing.` });
+    const handleImageSelect = (file: File, base64: string) => {
+        const imageResult: ImageUploadResult = {
+            data: base64,
+            mimeType: file.type,
+            fileName: file.name,
+            size: file.size
+        };
+        setUploadedImages([imageResult]);
+        toast({ title: "Image Uploaded", description: "Image uploaded for AI processing." });
     };
 
     // OBS Integration
@@ -353,12 +317,6 @@ export const AIImageEditor: React.FC = () => {
             const sourceName = generateSourceName('AI Generated Image');
             
             // Convert data URL to blob
-            const response = await fetch(currentImage);
-            const blob = await response.blob();
-            
-            // Create a file from the blob
-            const file = new File([blob], 'ai-generated-image.png', { type: 'image/png' });
-            
             // Upload to OBS
             await obsServiceInstance.call('CreateInput', {
                 inputName: sourceName,
@@ -451,7 +409,11 @@ export const AIImageEditor: React.FC = () => {
             {/* Controls */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Basic Manipulations */}
-                <CollapsibleCard title="Basic Manipulations" defaultOpen>
+                <CollapsibleCard 
+                    title="Basic Manipulations" 
+                    isOpen={basicManipulationsOpen}
+                    onToggle={() => setBasicManipulationsOpen(!basicManipulationsOpen)}
+                >
                     <div className="space-y-4">
                         {/* Crop Controls */}
                         <div className="space-y-2">
@@ -566,7 +528,11 @@ export const AIImageEditor: React.FC = () => {
                 </CollapsibleCard>
 
                 {/* AI Features */}
-                <CollapsibleCard title="AI Features" defaultOpen>
+                <CollapsibleCard 
+                    title="AI Features" 
+                    isOpen={aiFeaturesOpen}
+                    onToggle={() => setAiFeaturesOpen(!aiFeaturesOpen)}
+                >
                     <div className="space-y-4">
                         <div className="flex items-center gap-2">
                             <Button
@@ -691,13 +657,10 @@ export const AIImageEditor: React.FC = () => {
                         Choose File
                     </Button>
                     <ImageUpload
-                        onImagesUploaded={handleUploadImages}
-                        maxImages={5}
+                        onImageSelect={handleImageSelect}
                     />
                 </div>
             </Modal>
         </div>
     );
 };
-
-export default AIImageEditor;

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { healthService, HealthReport, ServiceStatus } from '@/services/healthService';
+export type { HealthReport, ServiceStatus };
 import { logger } from '@/utils/logger';
 
 export interface HealthCheckResult {

@@ -1,3 +1,35 @@
 // Barrel export for all UI components
 export { TooltipProvider } from '@radix-ui/react-tooltip';
-export { Tooltip, TooltipTrigger, TooltipContent } from './tooltip'; // Add other UI component exports here
+export { Tooltip, TooltipTrigger, TooltipContent } from './tooltip';
+export { Button, buttonVariants } from './Button';
+export { Input } from './input';
+export { Label } from './label';
+export { Textarea } from './textarea';
+export { Switch } from './switch';
+export { Checkbox } from './checkbox';
+export { RadioGroup, RadioGroupItem } from './radio-group';
+export { Select, SelectGroup, SelectValue, SelectTrigger, SelectContent, SelectLabel, SelectItem, SelectSeparator } from './select';
+export { Slider } from './slider';
+export { Progress } from './progress';
+export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent } from './Card';
+export { Dialog, DialogPortal, DialogOverlay, DialogClose, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from './dialog';
+export { PopoverRoot as Popover, PopoverTrigger, PopoverContent } from './popover';
+export { ScrollArea, ScrollBar } from './scroll-area';
+export { Tabs, TabsList, TabsTrigger, TabsContent } from './tabs';
+export { Avatar, AvatarImage, AvatarFallback } from './avatar';
+export { Badge, badgeVariants } from './badge';
+export { HoverCard, HoverCardTrigger, HoverCardContent } from './hover-card';
+export { Collapsible, CollapsibleTrigger, CollapsibleContent } from './collapsible';
+export { Modal } from './Modal';
+export { default as ErrorViewer } from './ErrorViewer';
+export { default as AssetSearchTab } from './AssetSearchTab';
+export { default as AudioOutputSelector } from './AudioOutputSelector';
+export { default as HealthStatusIndicator } from './HealthStatusIndicator';
+export { default as InlineMusicControls } from './InlineMusicControls';
+export { Knob } from './Knob';
+export { default as MorphingLogos } from './MorphingLogos';
+export { default as SecureHtmlRenderer } from './SecureHtmlRenderer';
+export { VoiceInput } from './voice-input';
+export { Toast, ToastProvider, ToastViewport, ToastTitle, ToastDescription, ToastClose, ToastAction } from './toast';
+export { Toaster } from './toaster-impl';
+export { useToast } from './use-toast';

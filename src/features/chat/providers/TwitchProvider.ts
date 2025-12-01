@@ -4,10 +4,10 @@ import { handleAppError } from '@/lib/errorUtils';
 import useUiStore from '@/store/uiStore';
 import * as emoteService from '@/services/chatEmoteService';
 import twitchResolver from '@/services/twitchResolver';
-import type { ChatProvider, ChatMessage, ChatUser } from '../core/types';
+import type { ChatProvider, ChatMessage, ChatUser, TmiTags } from '../core/types';
 
 // This was in useTmi.ts, moving it here since that file is deleted.
-export type TmiTags = Record<string, string | undefined> & { emotes?: Record<string, string[]>; badges?: Record<string, string> };
+// TmiTags moved to types.ts
 
 let seq = 0;
 const makeId = () => `m_${Date.now().toString(36)}_${seq++}`;

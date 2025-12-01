@@ -1,4 +1,4 @@
-import type { TmiTags } from '@/hooks/useTmi';
+export type TmiTags = Record<string, string | undefined> & { emotes?: Record<string, string[]>; badges?: Record<string, string> };
 
 export interface ChatUser {
   id?: string;
