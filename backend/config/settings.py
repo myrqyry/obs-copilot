@@ -42,7 +42,7 @@ from pydantic import field_validator
 class Settings(BaseSettings):
     model_config = {
         'extra': 'ignore',
-        'env_file': '.env',
+        'env_file': ('.env', '.env.local'),
         'env_file_encoding': 'utf-8'
     }
 
