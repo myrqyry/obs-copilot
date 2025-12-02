@@ -20,19 +20,16 @@
     "setup": "pnpm install && pnpm setup:backend",
     "setup:backend": "cd backend && poetry install --no-root",
     "setup:all": "pnpm setup",
-    
     "// === Development ===": "",
     "dev": "concurrently --names \"FRONTEND,BACKEND\" --prefix-colors \"cyan,magenta\" \"pnpm:dev:frontend\" \"pnpm:dev:backend\"",
     "dev:frontend": "vite",
     "dev:backend": "cd backend && PYTHONPATH=$(pwd)/.. poetry run uvicorn main:app --reload --host 0.0.0.0 --port 8000",
     "dev:mock": "concurrently \"pnpm:dev:frontend\" \"pnpm:mock-obs\"",
     "dev:full": "concurrently \"pnpm:dev:frontend\" \"pnpm:dev:backend\" \"pnpm:mock-obs\"",
-    
     "// === Build ===": "",
     "build": "pnpm type-check && vite build",
     "build:analyze": "vite-bundle-analyzer",
     "preview": "vite preview",
-    
     "// === Testing ===": "",
     "test": "NODE_OPTIONS=--max-old-space-size=4096 vitest",
     "test:watch": "vitest --watch",
@@ -40,7 +37,6 @@
     "test:coverage": "NODE_OPTIONS=--max-old-space-size=4096 vitest run --coverage",
     "test:e2e": "playwright test",
     "test:single": "vitest run",
-    
     "// === Quality ===": "",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -48,7 +44,6 @@
     "format:check": "prettier --check .",
     "type-check": "tsc --noEmit",
     "quality": "pnpm lint && pnpm type-check && pnpm test:coverage",
-    
     "// === Utilities ===": "",
     "mock-obs": "node scripts/mock-obs-server.js",
     "audit": "pnpm audit --audit-level moderate"
@@ -135,6 +130,7 @@
     "react-router-dom": "^7.9.6",
     "react-syntax-highlighter": "^15.6.6",
     "react-window": "^2.2.0",
+    "sonner": "^2.0.7",
     "streamdown": "^1.1.10",
     "tailwind-merge": "^3.3.1",
     "tailwind-scrollbar": "^2.1.0",

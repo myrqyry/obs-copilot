@@ -11,8 +11,11 @@ import { usePlugins } from '@/hooks/usePlugins';
 import { useTheme } from '@/hooks/useTheme';
 import { useAppInitialization } from '@/hooks/useAppInitialization';
 import { useAppLayout } from '@/hooks/useAppLayout';
+import { Toaster } from 'sonner';
+import { useConnectionNotifications } from '@/hooks/useConnectionNotifications';
 
 const App: React.FC = () => {
+    useConnectionNotifications();
     const plugins = usePlugins();
     const { 
         activeTab, 
@@ -59,6 +62,7 @@ const App: React.FC = () => {
                         </div>
                         <ConfirmationDialog />
                         <GlobalErrorDisplay />
+                        <Toaster theme={useTheme().theme?.mode || 'system'} richColors position="bottom-right" />
                     </div>
                 </AppInitializer>
             </TooltipProvider>

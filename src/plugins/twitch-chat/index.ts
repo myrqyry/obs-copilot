@@ -1,7 +1,8 @@
 import { TabPlugin } from '@/types/plugins';
-import TwitchChat from './TwitchChat';
-import React from 'react';
+import React, { lazy } from 'react';
 import ChatBubbleIcon from '@mui/icons-material/ChatBubble';
+
+const TwitchChat = lazy(() => import('./TwitchChat'));
 
 export const twitchChatPlugin: TabPlugin = {
   id: 'twitch-chat',
