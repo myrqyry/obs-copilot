@@ -52,7 +52,9 @@ class ImageGenerateRequest(BaseModel):
 
 class SpeechGenerateRequest(BaseModel):
     prompt: str = Field(..., min_length=1, max_length=5000)
-    model: str = Field("gemini-1.5-flash-tts-001")
+    model: str = Field("gemini-2.5-flash-preview-tts", description="The model to use for speech generation.")
+    voice_config: Optional[Dict[str, Any]] = Field(None)
+    multi_speaker_config: Optional[Dict[str, Any]] = Field(None)
 
 class VideoGenerateRequest(BaseModel):
     prompt: str = Field(..., min_length=1, max_length=1000)

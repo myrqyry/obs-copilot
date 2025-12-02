@@ -331,12 +331,44 @@ async def generate_image_enhanced(request: Request, image_request: ImageGenerate
 @limiter.limit("30/minute")
 async def generate_speech(request: Request, speech_request: SpeechGenerateRequest, client: Any = Depends(get_gemini_client)):
     try:
+        # Construct speech config
+        speech_config = None
+        if speech_request.multi_speaker_config:
+            # Multi-speaker configuration
+            speaker_configs = []
+            for speaker in speech_request.multi_speaker_config.get('speakers', []):
+                speaker_configs.append(types.SpeakerVoiceConfig(
+                    speaker=speaker['name'],
+                    voice_config=types.VoiceConfig(
+                        prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                            voice_name=speaker['voice']
+                        )
+                    )
+                ))
+            speech_config = types.SpeechConfig(
+                multi_speaker_voice_config=types.MultiSpeakerVoiceConfig(
+                    speaker_voice_configs=speaker_configs
+                )
+            )
+        elif speech_request.voice_config:
+            # Single speaker configuration
+            speech_config = types.SpeechConfig(
+                voice_config=types.VoiceConfig(
+                    prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                        voice_name=speech_request.voice_config.get('voice_name', 'Kore')
+                    )
+                )
+            )
+
         response = await asyncio.wait_for(
             gemini_service.run_in_executor(
                 client.models.generate_content,
                 model=speech_request.model,
                 contents=speech_request.prompt,
-                generation_config=types.GenerateContentConfig(response_mime_type="audio/wav"),
+                config=types.GenerateContentConfig(
+                    response_modalities=["AUDIO"],
+                    speech_config=speech_config
+                ),
             ),
             timeout=30.0
         )
