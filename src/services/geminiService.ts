@@ -9,7 +9,7 @@ import {
   GeminiGenerateContentResponse,
 } from '@/types/gemini';
 import { AIService } from '@/types/ai';
-import { dataUrlToBlobUrl } from '@/lib/utils';
+// import { dataUrlToBlobUrl } from '@/lib/utils';
 import { UniversalWidgetConfig } from '@/types/universalWidget';
 import { Buffer } from 'buffer';
 import { pcm16ToWavUrl } from '@/lib/pcmToWavUrl';
@@ -174,6 +174,9 @@ class GeminiService extends BaseService implements AIService {
       personGeneration?: string;
       negativePrompt?: string;
       imageInput?: { data: string; mimeType: string };
+      referenceImages?: Array<{ data: string; mimeType: string }>;
+      imageSize?: string;
+      searchGrounding?: boolean;
     } = {}
   ): Promise<string[]> {
     const { model = MODEL_CONFIG.image, ...rest } = options;
@@ -181,20 +184,44 @@ class GeminiService extends BaseService implements AIService {
 
     return this.withRetry(async () => {
         try {
-          const formData = new FormData();
-          formData.append('prompt', prompt);
-          formData.append('model', model);
-          Object.entries(rest).forEach(([key, value]) => {
-            if (value) formData.append(key, value.toString());
-          });
+          // Use JSON payload for complex data including multiple images
+          const payload = {
+            prompt,
+            model,
+            ...rest,
+            // Map camelCase to snake_case for backend if needed, but Pydantic handles it if we match
+            // However, the backend expects snake_case for Pydantic models usually unless configured otherwise.
+            // Let's map explicitly to be safe.
+            image_format: rest.outputMimeType ? rest.outputMimeType.split('/')[1] : 'png',
+            aspect_ratio: rest.aspectRatio,
+            person_generation: rest.personGeneration,
+            image_input: rest.imageInput?.data,
+            image_input_mime_type: rest.imageInput?.mimeType,
+            reference_images: rest.referenceImages?.map(img => ({
+                data: img.data,
+                mime_type: img.mimeType
+            })),
+            image_size: rest.imageSize,
+            search_grounding: rest.searchGrounding
+          };
+
+          const response = await httpClient.post('/gemini/generate-image-enhanced', payload);
     
-          const response = await httpClient.post('/gemini/generate-image', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-          });
-    
-          const imageUrls: string[] = response.data.imageUrls || [];
-          logger.info(`[Gemini] Image generation successful, received ${imageUrls.length} images.`);
-          return Promise.all(imageUrls.map((url: string) => dataUrlToBlobUrl(url)));
+          const images: Array<{ data: string; mime_type: string }> = response.data.images || [];
+          logger.info(`[Gemini] Image generation successful, received ${images.length} images.`);
+          
+          // Convert base64 data to blob URLs
+          return Promise.all(images.map((img) => {
+              const base64Data = img.data;
+              const byteCharacters = atob(base64Data);
+              const byteNumbers = new Array(byteCharacters.length);
+              for (let i = 0; i < byteCharacters.length; i++) {
+                  byteNumbers[i] = byteCharacters.charCodeAt(i);
+              }
+              const byteArray = new Uint8Array(byteNumbers);
+              const blob = new Blob([byteArray], { type: img.mime_type });
+              return URL.createObjectURL(blob);
+          }));
         } catch (error: any) {
           const geminiError = mapToGeminiError(error, 'image generation');
           

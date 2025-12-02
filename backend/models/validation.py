@@ -33,6 +33,9 @@ class ImageGenerateRequest(BaseModel):
     person_generation: str = Field("allow_adult", pattern=r"^(allow_adult|dont_allow)$")
     image_input: Optional[str] = Field(None)
     image_input_mime_type: Optional[str] = Field(None)
+    reference_images: Optional[List[Dict[str, str]]] = Field(None)
+    image_size: Optional[str] = Field(None, pattern=r"^(1024x1024|2048x2048|4096x4096)$")
+    search_grounding: bool = Field(False)
     condition_type: Optional[str] = Field(None, pattern=r"^(canny_edge)$")
 
     @model_validator(mode='before')

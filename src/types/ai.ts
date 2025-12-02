@@ -25,6 +25,9 @@ export interface AIService {
       personGeneration?: string;
       negativePrompt?: string;
       imageInput?: { data: string; mimeType: string };
+      referenceImages?: Array<{ data: string; mimeType: string }>;
+      imageSize?: string;
+      searchGrounding?: boolean;
     }
   ): Promise<string[]>;
   generateSpeech(

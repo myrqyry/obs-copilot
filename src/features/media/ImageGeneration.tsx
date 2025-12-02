@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useConnectionManagerStore } from '@/store/connectionManagerStore';
-import useConfigStore from '@/store/configStore';
+// import useConfigStore from '@/store/configStore';
 import { toast } from '@/components/ui/toast';
 import { ObsClientImpl as ObsClient } from '@/services/obsClient';
 import { catppuccinAccentColorsHexMap } from '@/types';
@@ -39,10 +39,11 @@ const ImageGeneration: React.FC = () => {
     const [imageFormat, setImageFormat] = useState('png');
     const [aspectRatio, setAspectRatio] = useState('1:1');
     const [personGeneration, setPersonGeneration] = useState('allow_adult');
+    const [searchGrounding, setSearchGrounding] = useState(false);
 
     const { obsClientInstance, currentProgramScene, isConnected } = useConnectionManagerStore();
-    const accentColorName = useConfigStore(state => state.theme.accent);
-    const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
+    // const accentColorName = useConfigStore(state => state.theme.accent);
+    // const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
 
     const handleImageUpload = (file: File, base64: string) => {
         setUploadedImage({
@@ -52,7 +53,7 @@ const ImageGeneration: React.FC = () => {
             size: file.size,
             width: undefined,
             height: undefined
-        });
+        } as unknown as ImageUploadResult);
     };
 
     const handleClearImage = () => {
@@ -78,6 +79,7 @@ const ImageGeneration: React.FC = () => {
                 personGeneration,
                 negativePrompt,
                 imageInput: uploadedImage ? { data: uploadedImage.data, mimeType: uploadedImage.mimeType } : undefined,
+                searchGrounding,
             });
 
             setImageUrls(generatedImageUrls);
@@ -91,7 +93,7 @@ const ImageGeneration: React.FC = () => {
 
     const handleAddAsSource = async (imageUrl: string, type: 'browser' | 'image') => {
         if (!obsClientInstance || !isConnected || !currentProgramScene) {
-            toast(createToastError('Error', 'OBS not connected or no image generated.'));
+            createToastError('Error', 'OBS not connected or no image generated.');
             return;
         }
         try {
@@ -106,7 +108,7 @@ const ImageGeneration: React.FC = () => {
                 variant: 'default',
             });
         } catch (error: unknown) {
-            toast(createToastError('Error', handleAppError(`Adding ${type} source`, error)));
+            createToastError('Error', handleAppError(`Adding ${type} source`, error));
         }
     };
 
@@ -156,6 +158,7 @@ const ImageGeneration: React.FC = () => {
                             onChange={(e) => setModel(e.target.value)}
                             className="w-full p-2 border-border rounded text-sm"
                         >
+                            <option value="gemini-3-pro-image-preview">Gemini 3 Pro (High Fidelity, Editing)</option>
                             <option value="gemini-2.5-flash-image-preview">Gemini 2.5 Flash (Fast, Good Quality)</option>
                             <option value="imagen-4.0-fast-generate-001">Imagen 4.0 (High Quality)</option>
                         </select>
@@ -186,6 +189,25 @@ const ImageGeneration: React.FC = () => {
 
                         {showAdvanced && (
                             <div className="space-y-3">
+                                {/* Gemini 3 Pro Specific Options */}
+                                {model === 'gemini-3-pro-image-preview' && (
+                                    <>
+                                        {/* Search Grounding */}
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="checkbox"
+                                                id="searchGrounding"
+                                                checked={searchGrounding}
+                                                onChange={(e) => setSearchGrounding(e.target.checked)}
+                                                className="rounded border-gray-300"
+                                            />
+                                            <label htmlFor="searchGrounding" className="text-xs font-medium">
+                                                Enable Google Search Grounding
+                                            </label>
+                                        </div>
+                                    </>
+                                )}
+
                                 {/* Number of Images */}
                                 <div>
                                     <label className="block text-xs font-medium mb-1">Number of Images</label>
@@ -206,7 +228,8 @@ const ImageGeneration: React.FC = () => {
                                         value={aspectRatio}
                                         onChange={(e) => setAspectRatio(e.target.value)}
                                         className="w-full p-2 border-border rounded text-sm"
-                                        disabled={model.startsWith('gemini')}
+                                        // Enable for Gemini 3 Pro as well
+                                        disabled={model.startsWith('gemini') && model !== 'gemini-3-pro-image-preview'}
                                     >
                                         {ASPECT_RATIOS.map(ratio => (
                                             <option key={ratio.value} value={ratio.value}>
@@ -223,7 +246,7 @@ const ImageGeneration: React.FC = () => {
                                         value={imageFormat}
                                         onChange={(e) => setImageFormat(e.target.value)}
                                         className="w-full p-2 border-border rounded text-sm"
-                                        disabled={model.startsWith('gemini')}
+                                        disabled={model.startsWith('gemini') && model !== 'gemini-3-pro-image-preview'}
                                     >
                                         {IMAGE_FORMATS.map(format => (
                                             <option key={format.value} value={format.value}>
@@ -240,7 +263,7 @@ const ImageGeneration: React.FC = () => {
                                         value={personGeneration}
                                         onChange={(e) => setPersonGeneration(e.target.value)}
                                         className="w-full p-2 border-border rounded text-sm"
-                                        disabled={model.startsWith('gemini')}
+                                        disabled={model.startsWith('gemini') && model !== 'gemini-3-pro-image-preview'}
                                     >
                                         {PERSON_GENERATION_OPTIONS.map(option => (
                                             <option key={option.value} value={option.value}>

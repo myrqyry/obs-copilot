@@ -157,39 +157,70 @@ def validate_and_decode_image(image_input: str, expected_mime: str) -> bytes:
 def _sync_generate_image(client: Any, request: ImageGenerateRequest):
     """Refactored synchronous helper for image generation."""
     try:
-        # Case 1: Image and Text prompt (requires a vision model)
-        if request.image_input and request.image_input_mime_type:
-            image_bytes = validate_and_decode_image(request.image_input, request.image_input_mime_type)
+        # Case 1: Image and Text prompt (requires a vision model) or Gemini 3 Pro with reference images
+        if (request.image_input and request.image_input_mime_type) or request.reference_images:
+            contents = [request.prompt]
+            
+            # Legacy single image input
+            if request.image_input and request.image_input_mime_type:
+                image_bytes = validate_and_decode_image(request.image_input, request.image_input_mime_type)
+                
+                # Apply Canny edge detection if requested
+                if request.condition_type == "canny_edge":
+                    import cv2
+                    import numpy as np
 
-            # Apply Canny edge detection if requested
-            if request.condition_type == "canny_edge":
-                import cv2
-                import numpy as np
+                    # Decode image for OpenCV
+                    nparr = np.frombuffer(image_bytes, np.uint8)
+                    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-                # Decode image for OpenCV
-                nparr = np.frombuffer(image_bytes, np.uint8)
-                img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                    # Convert to grayscale and apply Canny
+                    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                    edges = cv2.Canny(gray, 100, 200)
 
-                # Convert to grayscale and apply Canny
-                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-                edges = cv2.Canny(gray, 100, 200)
+                    # Convert single-channel edges back to 3-channel for encoding
+                    edges_colored = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
 
-                # Convert single-channel edges back to 3-channel for encoding
-                edges_colored = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
+                    # Re-encode the image to its original format
+                    file_extension = f".{request.image_input_mime_type.split('/')[1]}"
+                    is_success, buffer = cv2.imencode(file_extension, edges_colored)
+                    if not is_success:
+                        raise HTTPException(status_code=500, detail="Failed to re-encode processed image")
+                    image_bytes = buffer.tobytes()
 
-                # Re-encode the image to its original format
-                file_extension = f".{request.image_input_mime_type.split('/')[1]}"
-                is_success, buffer = cv2.imencode(file_extension, edges_colored)
-                if not is_success:
-                    raise HTTPException(status_code=500, detail="Failed to re-encode processed image")
-                image_bytes = buffer.tobytes()
+                contents.append(types.Part(inline_data=types.Blob(mime_type=request.image_input_mime_type, data=image_bytes)))
 
-            image_part = types.Part(inline_data=types.Blob(mime_type=request.image_input_mime_type, data=image_bytes))
-            model = "gemini-1.5-flash-latest"  # Use a capable vision model
+            # New multiple reference images
+            if request.reference_images:
+                for ref in request.reference_images:
+                    img_bytes = validate_and_decode_image(ref['data'], ref['mime_type'])
+                    contents.append(types.Part(inline_data=types.Blob(mime_type=ref['mime_type'], data=img_bytes)))
+
+            model = request.model if "gemini" in request.model else "gemini-1.5-flash-latest"
+            
+            # Configure tools for search grounding
+            tools = None
+            if request.search_grounding:
+                tools = [types.Tool(google_search=types.GoogleSearch())]
+
+            config_params = {
+                "response_mime_type": f"image/{request.image_format}",
+            }
+            if request.person_generation:
+                config_params["person_generation"] = request.person_generation
+            
+            # Only add aspect_ratio if not using image_size (they might conflict or depend on model)
+            # For Gemini 3 Pro, aspect_ratio is supported.
+            if request.aspect_ratio:
+                config_params["aspect_ratio"] = request.aspect_ratio
 
             response = client.models.generate_content(
                 model=model,
-                contents=[image_part, request.prompt],
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    tools=tools,
+                    **config_params
+                )
             )
 
             images_data = []
@@ -210,6 +241,12 @@ def _sync_generate_image(client: Any, request: ImageGenerateRequest):
         else:
             model = request.model
             images = []
+            
+            # Configure tools for search grounding
+            tools = None
+            if request.search_grounding:
+                tools = [types.Tool(google_search=types.GoogleSearch())]
+
             if 'imagen' in model:
                 # Use the dedicated API for Imagen models
                 result = client.models.generate_images(
@@ -228,12 +265,21 @@ def _sync_generate_image(client: Any, request: ImageGenerateRequest):
                                 "mime_type": gi.image.mime_type or 'image/png'
                             })
             else:
-                # Use generate_content for general models
+                # Use generate_content for general models (Gemini)
+                config_params = {
+                    "response_mime_type": f"image/{request.image_format}",
+                }
+                if request.person_generation:
+                    config_params["person_generation"] = request.person_generation
+                if request.aspect_ratio:
+                    config_params["aspect_ratio"] = request.aspect_ratio
+                
                 result = client.models.generate_content(
                     model=model,
                     contents=request.prompt,
-                    generation_config=types.GenerateContentConfig(
-                        response_mime_type=f"image/{request.image_format}",
+                    config=types.GenerateContentConfig(
+                        tools=tools,
+                        **config_params
                     ),
                 )
                 if result.candidates:
