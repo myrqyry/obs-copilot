@@ -610,3 +610,193 @@ async def process_orchestration(payload: Dict[str, Any], api_key: str = Depends(
     except Exception as e:
         logger.error(f"Error processing orchestration: {e}")
         raise HTTPException(status_code=500, detail="Orchestration processing failed")
+
+# --- Function Calling Expansion ---
+
+class FunctionCallingRequest(BaseModel):
+    prompt: str = Field(..., min_length=1, max_length=5000)
+    model: str = Field("gemini-2.5-flash-preview-tts", description="Model to use.")
+    history: Optional[List[dict]] = Field(None)
+    obs_state: Optional[Dict[str, Any]] = Field(None, description="Current OBS state")
+
+class FunctionCallingResponse(BaseModel):
+    text: str
+    actions: List[OBSAction]
+
+# Tool Definitions
+def control_obs(command: str, args: Dict[str, Any] = {}) -> Dict[str, Any]:
+    """
+    Control OBS Studio by sending commands.
+    
+    Args:
+        command: The OBS WebSocket command to execute (e.g., 'SetCurrentProgramScene', 'SetInputMute').
+        args: A dictionary of arguments for the command.
+    """
+    # This function is a placeholder for the model to call.
+    # The actual execution happens by returning the action to the frontend.
+    return {"status": "queued_for_frontend", "command": command, "args": args}
+
+def get_current_time() -> Dict[str, str]:
+    """
+    Get the current server time.
+    """
+    return {"current_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+
+async def _generate_sound_effect_internal(prompt: str, client: Any) -> str:
+    """Internal helper to generate sound effect and return base64 audio."""
+    try:
+        response = await gemini_service.run_in_executor(
+            client.models.generate_content,
+            model="gemini-2.5-flash-preview-tts",
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_modalities=["AUDIO"],
+                speech_config=types.SpeechConfig(
+                    voice_config=types.VoiceConfig(
+                        prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                            voice_name="Puck" # Use a distinct voice for SFX
+                        )
+                    )
+                )
+            ),
+        )
+        if response.candidates and response.candidates[0].content.parts:
+            audio_part = response.candidates[0].content.parts[0]
+            if audio_part.inline_data and audio_part.inline_data.data:
+                return base64.b64encode(audio_part.inline_data.data).decode()
+    except Exception as e:
+        logger.error(f"Error generating sound effect: {e}")
+    return ""
+
+# We need a wrapper for the tool that the model calls, but it needs access to client/context.
+# Since we can't easily pass client to the tool function directly in the declaration,
+# we'll handle the execution logic in the endpoint.
+
+@router.post("/function-calling-query", response_model=FunctionCallingResponse)
+@limiter.limit("15/minute")
+async def function_calling_query(
+    request: Request,
+    fc_request: FunctionCallingRequest,
+    client: Any = Depends(get_gemini_client)
+):
+    try:
+        # 1. Define Tools
+        tools_list = [control_obs, get_current_time]
+        
+        # We define a separate tool for sound generation to be exposed to the model
+        def generate_sound_effect(prompt: str):
+            """
+            Generate a short sound effect or speech based on the prompt.
+            
+            Args:
+                prompt: Description of the sound or text to speak.
+            """
+            return {"status": "generating", "prompt": prompt}
+
+        tools_list.append(generate_sound_effect)
+
+        # 2. Build Context
+        system_instruction = context_builder.base_system_instruction
+        if fc_request.obs_state:
+             obs_state = OBSContextState(
+                current_scene=fc_request.obs_state.get('current_scene', ''),
+                available_scenes=fc_request.obs_state.get('available_scenes', []),
+                active_sources=fc_request.obs_state.get('active_sources', []),
+                streaming_status=fc_request.obs_state.get('streaming_status', False),
+                recording_status=fc_request.obs_state.get('recording_status', False),
+                recent_commands=fc_request.obs_state.get('recent_commands', []),
+                timestamp=datetime.now()
+            )
+             system_instruction, _ = context_builder.build_context_prompt(obs_state, "", is_json_output=False)
+
+        # 3. Initial Call
+        history = fc_request.history or []
+        contents = [*history, {"role": "user", "parts": [{"text": fc_request.prompt}]}]
+        
+        config = types.GenerateContentConfig(
+            tools=[types.Tool(function_declarations=[
+                types.FunctionDeclaration.from_callable(client=client, callable=t) for t in tools_list
+            ])],
+            automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True), # We handle execution manually
+            system_instruction=system_instruction
+        )
+
+        response = await gemini_service.run_in_executor(
+            client.models.generate_content,
+            model=fc_request.model,
+            contents=contents,
+            config=config
+        )
+
+        final_text = ""
+        obs_actions = []
+        
+        # 4. Function Calling Loop
+        # We'll do a simple one-turn loop for now: if model calls functions, we execute them and send results back.
+        
+        while response.candidates and response.candidates[0].content.parts:
+            part = response.candidates[0].content.parts[0]
+            
+            if part.function_call:
+                fc = part.function_call
+                tool_name = fc.name
+                tool_args = fc.args
+                
+                logger.info(f"Function call received: {tool_name} with args {tool_args}")
+                
+                tool_result = {}
+                
+                if tool_name == "control_obs":
+                    # Queue action for frontend
+                    action = OBSAction(command=tool_args['command'], args=tool_args.get('args', {}))
+                    obs_actions.append(action)
+                    tool_result = {"status": "success", "message": "Command queued for execution."}
+                    
+                elif tool_name == "get_current_time":
+                    tool_result = get_current_time()
+                    
+                elif tool_name == "generate_sound_effect":
+                    # Generate audio
+                    audio_b64 = await _generate_sound_effect_internal(tool_args['prompt'], client)
+                    if audio_b64:
+                        # We can't return the full audio in the tool response easily as it might be too large or messy.
+                        # Instead, we'll return a special action to the frontend to play this audio.
+                        # Or we could return a reference.
+                        # Let's send a special OBS action or a separate field?
+                        # For simplicity, let's use a special "PlayAudio" OBS action (even if handled by frontend directly)
+                        # or just append to actions list with a custom command.
+                        obs_actions.append(OBSAction(
+                            command="PlayGeneratedAudio", 
+                            args={"audioData": audio_b64, "format": "wav"}
+                        ))
+                        tool_result = {"status": "success", "message": "Audio generated and queued for playback."}
+                    else:
+                        tool_result = {"status": "error", "message": "Failed to generate audio."}
+                
+                # Send result back to model
+                # Construct the function response part
+                function_response_part = types.Part.from_function_response(
+                    name=tool_name,
+                    response=tool_result
+                )
+                
+                contents.append(response.candidates[0].content)
+                contents.append(types.Content(role="user", parts=[function_response_part]))
+                
+                # Generate next response
+                response = await gemini_service.run_in_executor(
+                    client.models.generate_content,
+                    model=fc_request.model,
+                    contents=contents,
+                    config=config
+                )
+            else:
+                # Text response
+                final_text = part.text or ""
+                break
+
+        return FunctionCallingResponse(text=final_text, actions=obs_actions)
+
+    except Exception as e:
+        logger.error(f"Error in function_calling_query: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))

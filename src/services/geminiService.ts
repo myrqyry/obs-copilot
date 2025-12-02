@@ -536,6 +536,36 @@ class GeminiService extends BaseService implements AIService {
       throw geminiError;
     }
   }
+  async functionCallingQuery(prompt: string, history: any[] = [], obsState: any = null): Promise<{ text: string, actions: any[] }> {
+    logger.info('[Gemini] Function calling query:', { prompt: prompt.substring(0, 50) });
+
+    return this.withRetry(async () => {
+        try {
+          const response = await httpClient.post<{ text: string, actions: any[] }>('/gemini/function-calling-query', {
+            prompt,
+            history,
+            obs_state: obsState,
+            model: 'gemini-2.5-flash-preview-tts'
+          });
+    
+          logger.info('[Gemini] Function calling query successful.');
+          return response.data;
+        } catch (error: any) {
+          const geminiError = mapToGeminiError(error, 'function calling query');
+          
+          if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
+            safeAddError({
+              message: geminiError.message,
+              source: 'geminiService',
+              level: 'critical',
+              details: { prompt: prompt.substring(0, 50), error: geminiError.originalError }
+            });
+            throw geminiError;
+          }
+          throw geminiError;
+        }
+    }, 'Gemini function calling query');
+  }
 }
 
 export const geminiService = aiMiddleware(new GeminiService());
