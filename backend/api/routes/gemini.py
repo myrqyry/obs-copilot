@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # --- Pydantic Models ---
-from backend.models.validation import GeminiRequest, ImageGenerateRequest, SpeechGenerateRequest, VideoGenerateRequest, PROMPT_MAX_LENGTH, OBSActionResponse
+from models.validation import GeminiRequest, ImageGenerateRequest, SpeechGenerateRequest, VideoGenerateRequest, PROMPT_MAX_LENGTH, OBSActionResponse, OBSAction
 from pydantic import validator
 
 class SpeechGenerateRequest(BaseModel):
@@ -550,9 +550,9 @@ async def obs_aware_query(
                 client.models.generate_content,
                 model=obs_request.model,
                 contents=user_message,
-                generation_config=types.GenerateContentConfig(
+                config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    response_json_schema=OBSActionResponse.model_json_schema(),
+                    response_schema=OBSActionResponse,
                     system_instruction=system_message
                 ),
             ),

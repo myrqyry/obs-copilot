@@ -84,7 +84,7 @@ API_CONFIGS = {
 }
 
 
-from backend.utils.cacheManager import cache_manager
+from utils.cacheManager import cache_manager
 
 @router.get("/search/{api_name}")
 async def search_assets(api_name: str, request: SearchRequest = Depends(), useCache: bool = True, api_key: str = Depends(get_api_key)):
