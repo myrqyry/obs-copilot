@@ -128,11 +128,6 @@ const SettingsTab: React.FC = () => {
 
     return (
         <div className="space-y-4 p-4">
-            {/* Connection Manager Section */}
-            <CollapsibleCard title="Connection Manager 🔌" isOpen={openConnectionSettings} onToggle={() => setOpenConnectionSettings(!openConnectionSettings)}>
-                <ConnectionSettings />
-            </CollapsibleCard>
-
             {/* Combined Theme & Colors Section */}
             <CollapsibleCard title="Theme & Colors 🎨" isOpen={openUIPreferences} onToggle={() => setOpenUIPreferences(!openUIPreferences)}>
                 <div className="space-y-3">
@@ -182,6 +177,11 @@ const SettingsTab: React.FC = () => {
                         </p>
                     </div>
                 </div>
+            </CollapsibleCard>
+
+            {/* Connection Settings Section */}
+            <CollapsibleCard title="Connection Settings 🔌" isOpen={openConnectionSettings} onToggle={() => setOpenConnectionSettings(!openConnectionSettings)}>
+                <ConnectionSettings />
             </CollapsibleCard>
 
             {/* Chat Bubbles Section */}
