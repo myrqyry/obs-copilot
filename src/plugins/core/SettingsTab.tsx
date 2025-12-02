@@ -17,55 +17,47 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import type { ChatBackgroundType, PatternName } from '@/types/chatBackground';
 import { useShallow } from 'zustand/react/shallow';
+import { ConnectionSettings } from '@/components/settings/ConnectionSettings';
 
 const SettingsTab: React.FC = () => {
-    const {
-        theme: currentTheme,
-        setAccent,
-        setSecondaryAccent,
-        setCustomChatBackground,
-        setChatBackgroundType,
-        setChatPattern,
-        chatBackgroundType,
-        customChatBackground,
-        chatPattern,
-        twitchChatPluginEnabled,
-        setTwitchChatPluginEnabled,
-        automationPluginEnabled,
-        setAutomationPluginEnabled,
-        streamingAssetsPluginEnabled,
-        setStreamingAssetsPluginEnabled,
-        createPluginEnabled,
-        setCreatePluginEnabled,
-        connectionsPluginEnabled,
-        setConnectionsPluginEnabled,
-        obsStudioPluginEnabled,
-        setObsStudioPluginEnabled,
-        geminiPluginEnabled,
-        setGeminiPluginEnabled,
-        settingsPluginEnabled,
-        setSettingsPluginEnabled,
-        advancedPluginEnabled,
-        setAdvancedPluginEnabled,
-        emoteWallPluginEnabled,
-        setEmoteWallPluginEnabled,
-        setUserChatBubble,
-        setModelChatBubble,
-        extraDarkMode,
-        setExtraDarkMode,
-        bubbleFillOpacity,
-        chatBubbleBlendMode,
-    } = useConfigStore(
+    // ✅ FIX 1: Split selections into smaller, focused hooks
+
+    // Theme-related state only
+    const themeState = useConfigStore(
         useShallow((state) => ({
             theme: state.theme,
             setAccent: state.setAccent,
             setSecondaryAccent: state.setSecondaryAccent,
-            setCustomChatBackground: state.setCustomChatBackground,
-            setChatBackgroundType: state.setChatBackgroundType,
-            setChatPattern: state.setChatPattern,
-            chatBackgroundType: state.chatBackgroundType,
+            extraDarkMode: state.extraDarkMode,
+            setExtraDarkMode: state.setExtraDarkMode,
+        }))
+    );
+
+    // Chat bubble state only
+    const chatBubbleState = useConfigStore(
+        useShallow((state) => ({
+            setUserChatBubble: state.setUserChatBubble,
+            setModelChatBubble: state.setModelChatBubble,
+            bubbleFillOpacity: state.bubbleFillOpacity,
+            chatBubbleBlendMode: state.chatBubbleBlendMode,
+        }))
+    );
+
+    // Chat background state only
+    const chatBackgroundState = useConfigStore(
+        useShallow((state) => ({
             customChatBackground: state.customChatBackground,
+            setCustomChatBackground: state.setCustomChatBackground,
+            chatBackgroundType: state.chatBackgroundType,
+            setChatBackgroundType: state.setChatBackgroundType,
             chatPattern: state.chatPattern,
+            setChatPattern: state.setChatPattern,
+        }))
+    );
+
+    // Plugin toggles - these change frequently, so isolate them
+    const pluginState = useConfigStore(
+        useShallow((state) => ({
             twitchChatPluginEnabled: state.twitchChatPluginEnabled,
             setTwitchChatPluginEnabled: state.setTwitchChatPluginEnabled,
             automationPluginEnabled: state.automationPluginEnabled,
@@ -86,22 +78,22 @@ const SettingsTab: React.FC = () => {
             setAdvancedPluginEnabled: state.setAdvancedPluginEnabled,
             emoteWallPluginEnabled: state.emoteWallPluginEnabled,
             setEmoteWallPluginEnabled: state.setEmoteWallPluginEnabled,
-            setUserChatBubble: state.setUserChatBubble,
-            setModelChatBubble: state.setModelChatBubble,
-            extraDarkMode: state.extraDarkMode,
-            setExtraDarkMode: state.setExtraDarkMode,
-            bubbleFillOpacity: state.bubbleFillOpacity,
-            chatBubbleBlendMode: state.chatBubbleBlendMode,
         }))
     );
 
+    // API keys - rarely change
+    const GEMINI_API_KEY = useConfigStore(state => state.GEMINI_API_KEY);
+    const setApiKey = useConfigStore(state => state.setApiKey);
+
     const { regenerateChatOverlay } = useOverlaysStore();
+
     // UI-specific state
-    const flipSides = useUiStore(useShallow(state => state.flipSides));
+    const flipSides = useUiStore(state => state.flipSides);
     const setFlipSides = useUiStore(state => state.setFlipSides);
     const { theme } = useTheme();
 
     const [openUIPreferences, setOpenUIPreferences] = useState(true);
+    const [openConnectionSettings, setOpenConnectionSettings] = useState(true);
     const [openChatBubbles, setOpenChatBubbles] = useState(true);
     const [openPlugins, setOpenPlugins] = useState(true);
 
@@ -111,20 +103,20 @@ const SettingsTab: React.FC = () => {
     }, [theme]);
 
     const handlePrimaryColorChange = useCallback((color: string) => {
-        setAccent(color as CatppuccinAccentColorName);
-    }, [setAccent]);
+        themeState.setAccent(color as CatppuccinAccentColorName);
+    }, [themeState.setAccent]);
 
     const handleSecondaryColorChange = useCallback((color: string) => {
-        setSecondaryAccent(color as CatppuccinAccentColorName);
-    }, [setSecondaryAccent]);
+        themeState.setSecondaryAccent(color as CatppuccinAccentColorName);
+    }, [themeState.setSecondaryAccent]);
 
     const handleUserChatBubbleChange = useCallback((color: string) => {
-        setUserChatBubble(color);
-    }, [setUserChatBubble]);
+        chatBubbleState.setUserChatBubble(color);
+    }, [chatBubbleState.setUserChatBubble]);
 
     const handleModelChatBubbleChange = useCallback((color: string) => {
-        setModelChatBubble(color);
-    }, [setModelChatBubble]);
+        chatBubbleState.setModelChatBubble(color);
+    }, [chatBubbleState.setModelChatBubble]);
 
     const handleRegenerateOverlay = useCallback(async () => {
         try {
@@ -136,14 +128,17 @@ const SettingsTab: React.FC = () => {
 
     return (
         <div className="space-y-4 p-4">
+            {/* Connection Manager Section */}
+            <CollapsibleCard title="Connection Manager 🔌" isOpen={openConnectionSettings} onToggle={() => setOpenConnectionSettings(!openConnectionSettings)}>
+                <ConnectionSettings />
+            </CollapsibleCard>
+
             {/* Combined Theme & Colors Section */}
             <CollapsibleCard title="Theme & Colors 🎨" isOpen={openUIPreferences} onToggle={() => setOpenUIPreferences(!openUIPreferences)}>
                 <div className="space-y-3">
-                    {/* Base Theme Chooser (compact) */}
                     <div className="mb-2">
                         <ThemeChooser />
                     </div>
-                    {/* Accent Colors (compact) */}
                     {theme?.accentColors && (
                         <div>
                             <div className="flex gap-4 items-start">
@@ -151,20 +146,18 @@ const SettingsTab: React.FC = () => {
                                     <ColorChooser
                                         label="Primary Accent"
                                         colorsHexMap={theme.accentColors}
-                                        selectedColorName={currentTheme.accent}
+                                        selectedColorName={themeState.theme.accent}
                                         colorNameTypeGuard={isValidAccentColor}
                                         onChange={handlePrimaryColorChange}
                                     />
                                     <ColorChooser
                                         label="Secondary Accent"
                                         colorsHexMap={theme.accentColors}
-                                        selectedColorName={currentTheme.secondaryAccent}
+                                        selectedColorName={themeState.theme.secondaryAccent}
                                         colorNameTypeGuard={isValidAccentColor}
                                         onChange={handleSecondaryColorChange}
                                     />
                                 </div>
-
-                                {/* Accent preview removed (kept controls only) */}
                             </div>
                         </div>
                     )}
@@ -180,8 +173,8 @@ const SettingsTab: React.FC = () => {
                             id="gemini-api-key"
                             type="password"
                             placeholder="Enter your Gemini API Key"
-                            value={useConfigStore(state => state.GEMINI_API_KEY)}
-                            onChange={(e) => useConfigStore.getState().setApiKey('GEMINI_API_KEY', e.target.value)}
+                            value={GEMINI_API_KEY}
+                            onChange={(e) => setApiKey('GEMINI_API_KEY', e.target.value)}
                             className="w-full"
                         />
                         <p className="text-xs text-muted-foreground">
@@ -195,9 +188,8 @@ const SettingsTab: React.FC = () => {
             <CollapsibleCard title="Chat Bubbles 💬" isOpen={openChatBubbles} onToggle={() => setOpenChatBubbles(!openChatBubbles)}>
                 <div className="space-y-4">
                     {theme?.accentColors && (
-                            <div className="flex gap-6 items-stretch">
+                        <div className="flex gap-6 items-stretch">
                             <div className="flex-1 space-y-4">
-                                {/* Left column: all options */}
                                 <div className="flex items-center justify-between">
                                     <Label htmlFor="flip-sides">Swap Chat Sides</Label>
                                     <div className="flex items-center gap-3">
@@ -213,8 +205,8 @@ const SettingsTab: React.FC = () => {
                                             <Label htmlFor="dark-bubbles" className="text-sm">Dark bubbles</Label>
                                             <Switch
                                                 id="dark-bubbles"
-                                                checked={extraDarkMode}
-                                                onCheckedChange={(val: boolean) => setExtraDarkMode(!!val)}
+                                                checked={themeState.extraDarkMode}
+                                                onCheckedChange={(val: boolean) => themeState.setExtraDarkMode(!!val)}
                                             />
                                         </div>
                                     </div>
@@ -223,14 +215,14 @@ const SettingsTab: React.FC = () => {
                                 <ColorChooser
                                     label="User Chat Bubble Color"
                                     colorsHexMap={theme.accentColors}
-                                    selectedColorName={currentTheme.userChatBubble}
+                                    selectedColorName={themeState.theme.userChatBubble}
                                     colorNameTypeGuard={isValidAccentColor}
                                     onChange={handleUserChatBubbleChange}
                                 />
                                 <ColorChooser
                                     label="Model Chat Bubble Color"
                                     colorsHexMap={theme.accentColors}
-                                    selectedColorName={currentTheme.modelChatBubble}
+                                    selectedColorName={themeState.theme.modelChatBubble}
                                     colorNameTypeGuard={isValidAccentColor}
                                     onChange={handleModelChatBubbleChange}
                                 />
@@ -238,7 +230,10 @@ const SettingsTab: React.FC = () => {
                                 {/* Chat Background */}
                                 <div className="space-y-2">
                                     <Label className="text-sm font-medium">Chat Background Type</Label>
-                                    <RadioGroup value={chatBackgroundType} onValueChange={(value: ChatBackgroundType) => setChatBackgroundType(value)}>
+                                    <RadioGroup
+                                        value={chatBackgroundState.chatBackgroundType}
+                                        onValueChange={(value: ChatBackgroundType) => chatBackgroundState.setChatBackgroundType(value)}
+                                    >
                                         <div className="flex items-center space-x-2">
                                             <RadioGroupItem value="image" id="bg-image" />
                                             <Label htmlFor="bg-image">Image</Label>
@@ -249,15 +244,15 @@ const SettingsTab: React.FC = () => {
                                         </div>
                                     </RadioGroup>
 
-                                    {chatBackgroundType === 'image' && (
+                                    {chatBackgroundState.chatBackgroundType === 'image' && (
                                         <>
                                             <Label className="text-sm font-medium">Chat Background Image</Label>
                                             <div className="space-y-2">
                                                 <Input
                                                     type="url"
                                                     placeholder="Enter image URL (e.g., https://example.com/bg.jpg)"
-                                                    value={customChatBackground || ''}
-                                                    onChange={(e) => setCustomChatBackground(e.target.value)}
+                                                    value={chatBackgroundState.customChatBackground || ''}
+                                                    onChange={(e) => chatBackgroundState.setCustomChatBackground(e.target.value)}
                                                     className="w-full"
                                                 />
                                                 <div className="flex items-center gap-2">
@@ -270,7 +265,7 @@ const SettingsTab: React.FC = () => {
                                                             if (file) {
                                                                 const reader = new FileReader();
                                                                 reader.onload = (ev) => {
-                                                                    setCustomChatBackground(ev.target?.result as string);
+                                                                    chatBackgroundState.setCustomChatBackground(ev.target?.result as string);
                                                                 };
                                                                 reader.readAsDataURL(file);
                                                             }
@@ -281,103 +276,130 @@ const SettingsTab: React.FC = () => {
                                                         type="button"
                                                         variant="outline"
                                                         size="sm"
-                                                        onClick={() => setCustomChatBackground('')}
+                                                        onClick={() => chatBackgroundState.setCustomChatBackground('')}
                                                     >
                                                         Clear
                                                     </Button>
                                                 </div>
-                                                {customChatBackground && (
+                                                {chatBackgroundState.customChatBackground && (
                                                     <div className="text-xs text-muted-foreground">
-                                                        {customChatBackground.startsWith('data:') ? 'Local file loaded' : 'URL set'}
+                                                        {chatBackgroundState.customChatBackground.startsWith('data:') ? 'Local file loaded' : 'URL set'}
                                                     </div>
                                                 )}
                                             </div>
                                         </>
                                     )}
-{chatBackgroundType === 'css' && chatPattern && (
-    <div className="space-y-3">
-        <div className="space-y-2">
-            <Label className="text-sm font-medium">Pattern</Label>
-            <Select value={chatPattern.name} onValueChange={(value: PatternName) => setChatPattern({ ...chatPattern, name: value })}>
-                <SelectTrigger>
-                    <SelectValue placeholder="Select pattern" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="wavy">Wavy</SelectItem>
-                    <SelectItem value="rhombus">Rhombus</SelectItem>
-                    <SelectItem value="zigzag">ZigZag</SelectItem>
-                    <SelectItem value="circles">Circles</SelectItem>
-                    <SelectItem value="lines">Lines</SelectItem>
-                    <SelectItem value="triangle">Triangle</SelectItem>
-                    <SelectItem value="boxes">Boxes</SelectItem>
-                    <SelectItem value="polka">Polka</SelectItem>
-                    <SelectItem value="diagonal">Diagonal</SelectItem>
-                    <SelectItem value="isometric">Isometric</SelectItem>
-                </SelectContent>
-            </Select>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-                <Label className="text-xs">Back Color</Label>
-                <Input
-                    type="color"
-                    value={chatPattern.backColor}
-                    onChange={(e) => setChatPattern({ ...chatPattern, backColor: e.target.value })}
-                    className="w-full h-10"
-                />
-            </div>
-            <div className="space-y-2">
-                <Label className="text-xs">Front Color</Label>
-                <Input
-                    type="color"
-                    value={chatPattern.frontColor}
-                    onChange={(e) => setChatPattern({ ...chatPattern, frontColor: e.target.value })}
-                    className="w-full h-10"
-                />
-            </div>
-        </div>
-        <div>
-            <Label className="text-sm font-medium">Opacity</Label>
-            <Slider
-                value={[chatPattern.opacity]}
-                onChange={(value) => setChatPattern({ ...chatPattern, opacity: Array.isArray(value) ? (value[0] ?? 0) : value })}
-                min={0}
-                max={1}
-                step={0.01}
-            />
-            <div className="text-xs text-muted-foreground">
-                {chatPattern.opacity}
-            </div>
-        </div>
-        <div>
-            <Label className="text-sm font-medium">Spacing</Label>
-            <Input
-                type="text"
-                placeholder="100px"
-                value={chatPattern.spacing}
-                onChange={(e) => setChatPattern({ ...chatPattern, spacing: e.target.value })}
-                className="w-full"
-            />
-        </div>
-    </div>
-)}
-</div>
-<Button onClick={handleRegenerateOverlay} className="w-full">
-Regenerate Chat Overlay for OBS
-</Button>
-</div>
 
-                            {/* Right column preview (restored) */}
+                                    {chatBackgroundState.chatBackgroundType === 'css' && chatBackgroundState.chatPattern && (
+                                        <div className="space-y-3">
+                                            <div className="space-y-2">
+                                                <Label className="text-sm font-medium">Pattern</Label>
+                                                <Select
+                                                    value={chatBackgroundState.chatPattern.name}
+                                                    onValueChange={(value: PatternName) =>
+                                                        chatBackgroundState.setChatPattern({ ...chatBackgroundState.chatPattern, name: value })
+                                                    }
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Select pattern" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="wavy">Wavy</SelectItem>
+                                                        <SelectItem value="rhombus">Rhombus</SelectItem>
+                                                        <SelectItem value="zigzag">ZigZag</SelectItem>
+                                                        <SelectItem value="circles">Circles</SelectItem>
+                                                        <SelectItem value="lines">Lines</SelectItem>
+                                                        <SelectItem value="triangle">Triangle</SelectItem>
+                                                        <SelectItem value="boxes">Boxes</SelectItem>
+                                                        <SelectItem value="polka">Polka</SelectItem>
+                                                        <SelectItem value="diagonal">Diagonal</SelectItem>
+                                                        <SelectItem value="isometric">Isometric</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs">Back Color</Label>
+                                                    <Input
+                                                        type="color"
+                                                        value={chatBackgroundState.chatPattern.backColor}
+                                                        onChange={(e) =>
+                                                            chatBackgroundState.setChatPattern({
+                                                                ...chatBackgroundState.chatPattern,
+                                                                backColor: e.target.value
+                                                            })
+                                                        }
+                                                        className="w-full h-10"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs">Front Color</Label>
+                                                    <Input
+                                                        type="color"
+                                                        value={chatBackgroundState.chatPattern.frontColor}
+                                                        onChange={(e) =>
+                                                            chatBackgroundState.setChatPattern({
+                                                                ...chatBackgroundState.chatPattern,
+                                                                frontColor: e.target.value
+                                                            })
+                                                        }
+                                                        className="w-full h-10"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <Label className="text-sm font-medium">Opacity</Label>
+                                                <Slider
+                                                    value={[chatBackgroundState.chatPattern.opacity]}
+                                                    onChange={(value) =>
+                                                        chatBackgroundState.setChatPattern({
+                                                            ...chatBackgroundState.chatPattern,
+                                                            opacity: Array.isArray(value) ? (value[0] ?? 0) : value
+                                                        })
+                                                    }
+                                                    min={0}
+                                                    max={1}
+                                                    step={0.01}
+                                                />
+                                                <div className="text-xs text-muted-foreground">
+                                                    {chatBackgroundState.chatPattern.opacity}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <Label className="text-sm font-medium">Spacing</Label>
+                                                <Input
+                                                    type="text"
+                                                    placeholder="100px"
+                                                    value={chatBackgroundState.chatPattern.spacing}
+                                                    onChange={(e) =>
+                                                        chatBackgroundState.setChatPattern({
+                                                            ...chatBackgroundState.chatPattern,
+                                                            spacing: e.target.value
+                                                        })
+                                                    }
+                                                    className="w-full"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <Button onClick={handleRegenerateOverlay} className="w-full">
+                                    Regenerate Chat Overlay for OBS
+                                </Button>
+                            </div>
+
+                            {/* Right column preview */}
                             <div className="flex-shrink-0 w-80 md:w-96 flex flex-col">
                                 <ChatBubblePreview
-                                    userColor={currentTheme.userChatBubble}
-                                    modelColor={currentTheme.modelChatBubble}
+                                    userColor={themeState.theme.userChatBubble}
+                                    modelColor={themeState.theme.modelChatBubble}
                                     flipSides={flipSides}
-                                    extraDarkMode={extraDarkMode}
-                                    customBackground={customChatBackground || ''}
-                                    bubbleFillOpacity={bubbleFillOpacity}
-                                    secondaryAccent={currentTheme.secondaryAccent}
-                                    chatBubbleBlendMode={chatBubbleBlendMode as React.CSSProperties['mixBlendMode']}
+                                    extraDarkMode={themeState.extraDarkMode}
+                                    customBackground={chatBackgroundState.customChatBackground || ''}
+                                    bubbleFillOpacity={chatBubbleState.bubbleFillOpacity}
+                                    secondaryAccent={themeState.theme.secondaryAccent}
+                                    chatBubbleBlendMode={chatBubbleState.chatBubbleBlendMode as React.CSSProperties['mixBlendMode']}
                                 />
                             </div>
                         </div>
@@ -392,80 +414,80 @@ Regenerate Chat Overlay for OBS
                         <Label htmlFor="twitch-chat-plugin">Twitch Chat</Label>
                         <Switch
                             id="twitch-chat-plugin"
-                            checked={twitchChatPluginEnabled}
-                            onCheckedChange={setTwitchChatPluginEnabled}
+                            checked={pluginState.twitchChatPluginEnabled}
+                            onCheckedChange={pluginState.setTwitchChatPluginEnabled}
                         />
                     </div>
                     <div className="flex items-center justify-between">
                         <Label htmlFor="automation-plugin">Automation</Label>
                         <Switch
                             id="automation-plugin"
-                            checked={automationPluginEnabled}
-                            onCheckedChange={setAutomationPluginEnabled}
+                            checked={pluginState.automationPluginEnabled}
+                            onCheckedChange={pluginState.setAutomationPluginEnabled}
                         />
                     </div>
                     <div className="flex items-center justify-between">
                         <Label htmlFor="streaming-assets-plugin">Streaming Assets</Label>
                         <Switch
                             id="streaming-assets-plugin"
-                            checked={streamingAssetsPluginEnabled}
-                            onCheckedChange={setStreamingAssetsPluginEnabled}
+                            checked={pluginState.streamingAssetsPluginEnabled}
+                            onCheckedChange={pluginState.setStreamingAssetsPluginEnabled}
                         />
                     </div>
                     <div className="flex items-center justify-between">
                         <Label htmlFor="create-plugin">Create Tab</Label>
                         <Switch
                             id="create-plugin"
-                            checked={createPluginEnabled}
-                            onCheckedChange={setCreatePluginEnabled}
+                            checked={pluginState.createPluginEnabled}
+                            onCheckedChange={pluginState.setCreatePluginEnabled}
                         />
                     </div>
                     <div className="flex items-center justify-between">
                         <Label htmlFor="connections-plugin">Connections</Label>
                         <Switch
                             id="connections-plugin"
-                            checked={connectionsPluginEnabled}
-                            onCheckedChange={setConnectionsPluginEnabled}
+                            checked={pluginState.connectionsPluginEnabled}
+                            onCheckedChange={pluginState.setConnectionsPluginEnabled}
                         />
                     </div>
                     <div className="flex items-center justify-between">
                         <Label htmlFor="obs-studio-plugin">OBS Studio</Label>
                         <Switch
                             id="obs-studio-plugin"
-                            checked={obsStudioPluginEnabled}
-                            onCheckedChange={setObsStudioPluginEnabled}
+                            checked={pluginState.obsStudioPluginEnabled}
+                            onCheckedChange={pluginState.setObsStudioPluginEnabled}
                         />
                     </div>
                     <div className="flex items-center justify-between">
                         <Label htmlFor="gemini-plugin">Gemini</Label>
                         <Switch
                             id="gemini-plugin"
-                            checked={geminiPluginEnabled}
-                            onCheckedChange={setGeminiPluginEnabled}
+                            checked={pluginState.geminiPluginEnabled}
+                            onCheckedChange={pluginState.setGeminiPluginEnabled}
                         />
                     </div>
                     <div className="flex items-center justify-between">
                         <Label htmlFor="settings-plugin">Settings</Label>
                         <Switch
                             id="settings-plugin"
-                            checked={settingsPluginEnabled}
-                            onCheckedChange={setSettingsPluginEnabled}
+                            checked={pluginState.settingsPluginEnabled}
+                            onCheckedChange={pluginState.setSettingsPluginEnabled}
                         />
                     </div>
                     <div className="flex items-center justify-between">
                         <Label htmlFor="advanced-plugin">Advanced</Label>
                         <Switch
                             id="advanced-plugin"
-                            checked={advancedPluginEnabled}
-                            onCheckedChange={setAdvancedPluginEnabled}
+                            checked={pluginState.advancedPluginEnabled}
+                            onCheckedChange={pluginState.setAdvancedPluginEnabled}
                         />
                     </div>
                     <div className="flex items-center justify-between">
                         <Label htmlFor="emote-wall-plugin">Emote Wall</Label>
                         <Switch
                             id="emote-wall-plugin"
-                            checked={emoteWallPluginEnabled}
-                            onCheckedChange={setEmoteWallPluginEnabled}
+                            checked={pluginState.emoteWallPluginEnabled}
+                            onCheckedChange={pluginState.setEmoteWallPluginEnabled}
                         />
                     </div>
                 </div>

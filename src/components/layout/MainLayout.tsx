@@ -36,16 +36,12 @@ const MainLayout: React.FC = () => {
             <div className={layoutClasses.container}>
                 <Header headerRef={headerRef} />
                 <TabNavigation
-                    activeTab={activeTab}
-                    setActiveTab={setActiveTab}
                     tabs={plugins}
                 />
                 <div className="flex flex-grow overflow-hidden">
                     <div className={`${layoutClasses.content} ${getContentOrderClass()}`}>
                         <PluginRenderer 
                             plugin={activePlugin} 
-                            activeTab={activeTab}
-                            setActiveTab={setActiveTab}
                         />
                     </div>
                 </div>

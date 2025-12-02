@@ -41,6 +41,48 @@ interface Command<T = any> {
 const MAX_RETRY_ATTEMPTS = 10;
 const COMMAND_TIMEOUT_MS = 30000; // 30 seconds for a command to be considered stale
 
+// Helper to determine WebSocket URL
+const getWebsocketUrl = (providedAddress?: string) => {
+    // Check if the provided address effectively means "default local"
+    const isDefaultLocal = !providedAddress ||
+                          providedAddress === 'localhost' ||
+                          providedAddress === '127.0.0.1';
+
+    // If it's effectively local, but we're running on a different host (e.g. tablet),
+    // we should prefer the dynamic hostname of the window location.
+    // However, if we are actually ON localhost (dev mode), window.location.hostname will be 'localhost'.
+    // So this logic is safe: if we're on a remote device, window.location.hostname will be an IP.
+    if (isDefaultLocal) {
+        // If we have an env var override, use it first
+        if (import.meta.env.VITE_OBS_WS_URL) return import.meta.env.VITE_OBS_WS_URL;
+
+        const hostname = window.location.hostname || 'localhost';
+        return `ws://${hostname}:4455`;
+    }
+
+    // If a specific, non-local address was provided, respect it.
+
+    // If a full address is provided (including protocol), use it.
+    if (providedAddress && (providedAddress.startsWith('ws://') || providedAddress.startsWith('wss://'))) {
+        return providedAddress;
+    }
+
+    // If a provided address is just host:port or host, prepend ws://
+    // We assume port 4455 if no port is specified, but strict parsing is tricky.
+    // Simplest approach: if it has no protocol, add one.
+    // If the user provided '192.168.1.5', we want 'ws://192.168.1.5:4455' ideally,
+    // but the providedAddress usually comes from settings which stores host and port separately
+    // or as a full string depending on the call site.
+    // Looking at the codebase, `connect` usually takes just `address`.
+
+    // If it looks like just an IP or hostname without port (no colon), append default port
+    if (providedAddress && !providedAddress.includes(':')) {
+         return `ws://${providedAddress}:4455`;
+    }
+
+    return `ws://${providedAddress}`;
+};
+
 export class ObsClientImpl {
   private static instance: ObsClientImpl;
   private obs: OBSWebSocketInstance;
@@ -267,18 +309,26 @@ export class ObsClientImpl {
     
     this.isConnecting = true;
 
+    // Use dynamic helper to determine the final URL
+    const wsUrl = getWebsocketUrl(address);
+    // Store original address (or resolved one) in connectOptions for reconnects
+    // Note: We're storing what we're *trying* to connect to.
+
     this.connectionPromise = (async () => {
       try {
-        this.connectOptions = { address, password };
+        this.connectOptions = { address: wsUrl, password };
         this.setStatus('connecting');
 
         this.setupEventListeners();
-        await this.obs.connect(address, password, {
+
+        logger.info(`[OBS] Connecting to ${wsUrl}`);
+
+        await this.obs.connect(wsUrl, password, {
           rpcVersion: 1,
           eventSubscriptions: 0xffffffff,
         });
       } catch (error: any) {
-        const errorMsg = handleAppError('OBS connection', error, `Failed to connect to OBS at ${address}`);
+        const errorMsg = handleAppError('OBS connection', error, `Failed to connect to OBS at ${wsUrl}`);
         useUiStore.getState().addError({ message: errorMsg, source: 'obsClient', level: 'critical' });
         this.setStatus('reconnecting');
         this.handleReconnect();

@@ -3,6 +3,13 @@ import { logger } from '../utils/logger';
 import { httpClient } from './httpClient';
 import { BaseService } from './baseService';
 
+export class ApiError extends Error {
+    constructor(public status: number, message: string, public data?: any) {
+        super(message);
+        this.name = 'ApiError';
+    }
+}
+
 class ApiService extends BaseService {
   private apiName: string;
 
@@ -17,8 +24,15 @@ class ApiService extends BaseService {
   async checkHealth(): Promise<{ ok: boolean; status?: any }> {
     try {
       return await this.withRetry(async () => {
-        const response = await httpClient.get('/api/health');
-        return { ok: true, status: response.data };
+        try {
+            const response = await httpClient.get('/api/health');
+            return { ok: true, status: response.data };
+        } catch (error: any) {
+             if (error.response) {
+                 throw new ApiError(error.response.status, error.message, error.response.data);
+             }
+             throw error;
+        }
       }, 'Health check');
     } catch (error) {
       // We don't want to throw here as the app handles the { ok: false } response
@@ -61,8 +75,26 @@ class ApiService extends BaseService {
             // The backend now handles finding the data path, so we can just return the data.
             return response.data;
         } catch (error: any) {
-            const errorData = error.response?.data?.detail || error.message || 'An unknown error occurred';
-            // logger.error is handled in BaseService for retries, but we throw to trigger retry
+            if (error.response) {
+                const status = error.response.status;
+                let errorMessage = `Request failed with status ${status}`;
+                const errorData = error.response.data;
+
+                if (errorData?.detail) {
+                     errorMessage = typeof errorData.detail === 'string'
+                        ? errorData.detail
+                        : JSON.stringify(errorData.detail);
+                }
+
+                if (status === 401) {
+                    // Event bus or callback to trigger logout
+                    window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+                }
+
+                throw new ApiError(status, errorMessage, errorData);
+            }
+
+            const errorData = error.message || 'An unknown error occurred';
             throw new Error(errorData);
         }
     }, `Search ${this.apiName}`);
