@@ -43,6 +43,10 @@ export interface AIService {
       durationSeconds?: number;
       personGeneration?: string;
       numberOfVideos?: number;
+      referenceImages?: Array<{ data: string; mimeType: string }>;
+      image?: { data: string; mimeType: string };
+      lastFrame?: { data: string; mimeType: string };
+      video?: { uri: string };
     }
   ): Promise<string[]>;
   generateStructuredContent(

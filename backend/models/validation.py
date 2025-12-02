@@ -51,6 +51,17 @@ class SpeechGenerateRequest(BaseModel):
     prompt: str = Field(..., min_length=1, max_length=5000)
     model: str = Field("gemini-1.5-flash-tts-001")
 
+class VideoGenerateRequest(BaseModel):
+    prompt: str = Field(..., min_length=1, max_length=1000)
+    model: str = Field("veo-3.1-generate-preview")
+    aspect_ratio: Optional[str] = Field(None, pattern=r"^(16:9|9:16|1:1)$")
+    duration_seconds: Optional[int] = Field(None)
+    person_generation: Optional[str] = Field(None)
+    reference_images: Optional[List[Dict[str, str]]] = Field(None)
+    image: Optional[Dict[str, str]] = Field(None)
+    last_frame: Optional[Dict[str, str]] = Field(None)
+    video: Optional[Dict[str, str]] = Field(None)
+
 class OBSAction(BaseModel):
     """Represents a single command to be executed in OBS."""
     command: str = Field(..., description="The OBS command to execute, e.g., 'SetCurrentProgramScene'.")

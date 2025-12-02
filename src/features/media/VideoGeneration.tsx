@@ -1,31 +1,28 @@
 import React, { useState } from 'react';
-import useConfigStore from '@/store/configStore';
+
 import { geminiService } from '@/services/geminiService';
 import { CardContent } from '@/components/ui/Card';
 import { Button } from "@/components/ui";
 import { CollapsibleCard } from '@/components/common/CollapsibleCard';
-import { catppuccinAccentColorsHexMap } from '@/types';
 import { Tooltip } from "@/components/ui";
 import { gsap } from 'gsap';
 import { prefersReducedMotion } from '@/lib/utils';
 
 const VideoGeneration: React.FC = () => {
     const [prompt, setPrompt] = useState('');
-    const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
-    const [videoLoading, setVideoLoading] = useState(false);
-    const [videoError, setVideoError] = useState<string | null>(null);
-    const [openVideoGeneration, setOpenVideoGeneration] = useState(true);
-    const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
-
-    // Video generation settings
-    const [model, setModel] = useState('veo-3.0-fast-generate-preview');
+    const [model, setModel] = useState('veo-3.1-generate-preview');
     const [aspectRatio, setAspectRatio] = useState('16:9');
-    const [durationSeconds, setDurationSeconds] = useState(8);
+    const [durationSeconds, setDurationSeconds] = useState(5);
     const [personGeneration, setPersonGeneration] = useState('allow_adult');
     const [numberOfVideos, setNumberOfVideos] = useState(1);
-
-    const accentColorName = useConfigStore(state => state.theme.accent);
-    const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
+    const [videoLoading, setVideoLoading] = useState(false);
+    const [videoError, setVideoError] = useState<string | null>(null);
+    const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
+    const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+    const [openVideoGeneration, setOpenVideoGeneration] = useState(false);
+    const [referenceImages, setReferenceImages] = useState<File[]>([]);
+    const [startFrame, setStartFrame] = useState<File | null>(null);
+    const [endFrame, setEndFrame] = useState<File | null>(null);
 
     const ASPECT_RATIOS = [
         { value: '16:9', label: 'Widescreen (16:9)' },
@@ -39,6 +36,32 @@ const VideoGeneration: React.FC = () => {
         { value: 'dont_allow', label: 'No People' },
     ];
 
+    const fileToBase64 = (file: File): Promise<{ data: string; mimeType: string }> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => {
+                const result = reader.result as string;
+                const base64Data = result.split(',')[1] || '';
+                resolve({ data: base64Data, mimeType: file.type });
+            };
+            reader.onerror = error => reject(error);
+        });
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, setter: (file: File | null) => void) => {
+        if (e.target.files && e.target.files[0]) {
+            setter(e.target.files[0]);
+        }
+    };
+
+    const handleReferenceImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            const files = Array.from(e.target.files).slice(0, 3); // Max 3 images
+            setReferenceImages(files);
+        }
+    };
+
     const handleGenerateVideo = async () => {
         if (!prompt.trim()) {
             setVideoError('Please enter a prompt');
@@ -51,19 +74,36 @@ const VideoGeneration: React.FC = () => {
         setDownloadUrl(null);
 
         try {
-            // API key handled by backend proxy
-            // Generate video using geminiService
-            const videoUrls = await geminiService.generateVideo(prompt, {
+            // Process images
+            const processedRefs = await Promise.all(referenceImages.map(fileToBase64));
+            const processedStart = startFrame ? await fileToBase64(startFrame) : undefined;
+            const processedEnd = endFrame ? await fileToBase64(endFrame) : undefined;
+
+            // Construct options object to avoid passing undefined for optional properties
+            const options: any = {
                 model,
                 aspectRatio,
                 durationSeconds,
                 personGeneration,
                 numberOfVideos,
-            });
+            };
+
+            if (processedRefs.length > 0) {
+                options.referenceImages = processedRefs;
+            }
+            if (processedStart) {
+                options.image = processedStart;
+            }
+            if (processedEnd) {
+                options.lastFrame = processedEnd;
+            }
+
+            // Generate video using geminiService
+            const videoUrls = await geminiService.generateVideo(prompt, options);
 
             if (videoUrls && videoUrls.length > 0) {
-                setGeneratedVideoUrl(videoUrls[0]);
-                setDownloadUrl(videoUrls[0]);
+                setGeneratedVideoUrl(videoUrls[0]!);
+                setDownloadUrl(videoUrls[0]!);
             } else {
                 throw new Error('No video was generated');
             }
@@ -94,15 +134,14 @@ const VideoGeneration: React.FC = () => {
 
     return (
         <CollapsibleCard
-            title="Video Generation"
+            title="Video Generation (Veo 3.1)"
             emoji="🎬"
-            accentColor={accentColor}
             isOpen={openVideoGeneration}
             onToggle={() => setOpenVideoGeneration(!openVideoGeneration)}
         >
             <CardContent className="px-3 pb-3 pt-2">
                 <div className="text-xs md:text-sm text-muted-foreground mb-2">
-                    Generate videos from text prompts using Gemini Veo models.
+                    Generate videos from text prompts using Gemini Veo 3.1 models.
                 </div>
                 
                 <div className="space-y-4">
@@ -132,8 +171,8 @@ const VideoGeneration: React.FC = () => {
                             className="w-full rounded border px-2 py-1 text-xs bg-ctp-base border-ctp-surface1 text-ctp-text focus:ring-ctp-mauve focus:border-ctp-mauve transition-all duration-150"
                             disabled={videoLoading}
                         >
+                            <option value="veo-3.1-generate-preview">Veo 3.1 (Preview)</option>
                             <option value="veo-3.0-fast-generate-preview">Veo 3.0 Fast (Preview)</option>
-                            <option value="veo-3.0-generate-preview">Veo 3.0 (Preview)</option>
                         </select>
                     </div>
 
@@ -227,6 +266,59 @@ const VideoGeneration: React.FC = () => {
                                 <option value={3}>3 videos</option>
                                 <option value={4}>4 videos</option>
                             </select>
+                        </div>
+                    </div>
+
+                    {/* Advanced Inputs */}
+                    <div className="space-y-3 border-t border-ctp-surface1 pt-3">
+                        <div className="text-xs font-semibold">Advanced Inputs</div>
+                        
+                        {/* Reference Images */}
+                        <div>
+                            <label className="block text-xs font-medium mb-1">
+                                Reference Images (Max 3)
+                            </label>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                onChange={handleReferenceImagesChange}
+                                className="w-full text-xs"
+                                disabled={videoLoading}
+                            />
+                            {referenceImages.length > 0 && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                    {referenceImages.length} images selected
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Start Frame */}
+                        <div>
+                            <label className="block text-xs font-medium mb-1">
+                                Start Frame (Image)
+                            </label>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => handleFileChange(e, setStartFrame)}
+                                className="w-full text-xs"
+                                disabled={videoLoading}
+                            />
+                        </div>
+
+                        {/* End Frame */}
+                        <div>
+                            <label className="block text-xs font-medium mb-1">
+                                End Frame (Image)
+                            </label>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => handleFileChange(e, setEndFrame)}
+                                className="w-full text-xs"
+                                disabled={videoLoading}
+                            />
                         </div>
                     </div>
 

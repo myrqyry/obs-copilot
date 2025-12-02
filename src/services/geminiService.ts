@@ -265,6 +265,10 @@ class GeminiService extends BaseService implements AIService {
       durationSeconds?: number;
       personGeneration?: string;
       numberOfVideos?: number;
+      referenceImages?: Array<{ data: string; mimeType: string }>;
+      image?: { data: string; mimeType: string };
+      lastFrame?: { data: string; mimeType: string };
+      video?: { uri: string };
     } = {}
   ): Promise<string[]> {
     const { model = MODEL_CONFIG.video, ...rest } = options;
@@ -272,15 +276,48 @@ class GeminiService extends BaseService implements AIService {
 
     return this.withRetry(async () => {
         try {
-          const response = await httpClient.post('/gemini/generate-video', {
+          // 1. Start generation
+          const response = await httpClient.post<{ operation_name: string }>('/gemini/generate-video', {
             prompt,
             model,
             ...rest,
           });
     
-          const { videoUrls } = response.data;
-          logger.info(`[Gemini] Video generation successful, received ${videoUrls?.length || 0} videos.`);
-          return videoUrls || [];
+          const { operation_name } = response.data;
+          logger.info(`[Gemini] Video generation started, operation: ${operation_name}`);
+
+          // 2. Poll for completion
+          const pollInterval = 5000; // 5 seconds
+          const maxAttempts = 60; // 5 minutes timeout
+          
+          for (let i = 0; i < maxAttempts; i++) {
+              await new Promise(resolve => setTimeout(resolve, pollInterval));
+              
+              // Encode operation name as it might contain slashes
+              const encodedName = encodeURIComponent(operation_name);
+              const statusResponse = await httpClient.get<{ status: string; result?: any; error?: string }>(
+                  `/gemini/operations/${encodedName}`
+              );
+              
+              const { status, result, error } = statusResponse.data;
+              
+              if (status === 'completed') {
+                  logger.info('[Gemini] Video generation completed.');
+                  if (result?.video?.uri) {
+                      return [result.video.uri];
+                  }
+                  // Fallback if structure is different
+                  logger.warn('[Gemini] Video generation completed but URI not found in expected path:', result);
+                  return []; 
+              } else if (status === 'failed') {
+                  throw new Error(`Video generation failed: ${error}`);
+              }
+              
+              // Continue polling if 'processing'
+          }
+          
+          throw new Error('Video generation timed out.');
+
         } catch (error: any) {
           const geminiError = mapToGeminiError(error, 'video generation');
           
@@ -378,7 +415,7 @@ class GeminiService extends BaseService implements AIService {
     }, 'Gemini long context generation');
   }
 
-  async liveConnect(options: any): Promise<any> {
+  async liveConnect(_options: any): Promise<any> {
     logger.warn('[Gemini] liveConnect called but is not supported in proxied mode.');
     try {
       throw new Error('Live API connection not supported in proxied mode');
@@ -454,7 +491,7 @@ class GeminiService extends BaseService implements AIService {
     }
   }
 
-  async refineWidgetConfig(chatSession: any, refinementPrompt: string): Promise<UniversalWidgetConfig> {
+  async refineWidgetConfig(_chatSession: any, refinementPrompt: string): Promise<UniversalWidgetConfig> {
     logger.warn('[Gemini] refineWidgetConfig called but is not supported in proxied mode.');
     try {
       throw new Error('Widget refinement not supported in proxied mode');

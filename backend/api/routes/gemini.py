@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # --- Pydantic Models ---
-from backend.models.validation import GeminiRequest, ImageGenerateRequest, SpeechGenerateRequest, PROMPT_MAX_LENGTH, OBSActionResponse
+from backend.models.validation import GeminiRequest, ImageGenerateRequest, SpeechGenerateRequest, VideoGenerateRequest, PROMPT_MAX_LENGTH, OBSActionResponse
 from pydantic import validator
 
 class SpeechGenerateRequest(BaseModel):
@@ -316,6 +316,94 @@ async def generate_speech(request: Request, speech_request: SpeechGenerateReques
     except Exception as e:
         logger.error(f"Unexpected error in speech generation: {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred.")
+
+# --- Video Generation Endpoints ---
+@router.post("/generate-video")
+@limiter.limit("5/minute")
+async def generate_video(request: Request, video_request: VideoGenerateRequest, client: Any = Depends(get_gemini_client)):
+    try:
+        # Construct configuration
+        config_params = {}
+        if video_request.aspect_ratio:
+            config_params['aspect_ratio'] = video_request.aspect_ratio
+        if video_request.person_generation:
+            config_params['person_generation'] = video_request.person_generation
+        
+        # Handle reference images
+        if video_request.reference_images:
+            ref_images = []
+            for ref in video_request.reference_images:
+                img_bytes = validate_and_decode_image(ref['data'], ref['mime_type'])
+                ref_images.append(types.Part(inline_data=types.Blob(mime_type=ref['mime_type'], data=img_bytes)))
+            config_params['reference_images'] = ref_images
+
+        # Handle last frame
+        if video_request.last_frame:
+            img_bytes = validate_and_decode_image(video_request.last_frame['data'], video_request.last_frame['mime_type'])
+            config_params['last_frame'] = types.Part(inline_data=types.Blob(mime_type=video_request.last_frame['mime_type'], data=img_bytes))
+
+        config = types.GenerateVideosConfig(**config_params)
+
+        # Handle start frame (image)
+        image_param = None
+        if video_request.image:
+             img_bytes = validate_and_decode_image(video_request.image['data'], video_request.image['mime_type'])
+             image_param = types.Part(inline_data=types.Blob(mime_type=video_request.image['mime_type'], data=img_bytes))
+
+        # Call the API
+        operation = await gemini_service.run_in_executor(
+            client.models.generate_videos,
+            model=video_request.model,
+            prompt=video_request.prompt,
+            image=image_param,
+            config=config
+        )
+        
+        return {"operation_name": operation.name}
+
+    except (APIError, GenaiAPIError) as e:
+        logger.error(f"Gemini API error in video generation: {e}")
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"AI service error: {getattr(e, 'message', str(e))}")
+    except Exception as e:
+        logger.error(f"Unexpected error in video generation: {e}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred.")
+
+@router.get("/operations/{operation_name:path}")
+async def get_operation_status(request: Request, operation_name: str, client: Any = Depends(get_gemini_client)):
+    try:
+        operation = await gemini_service.run_in_executor(
+            client.operations.get,
+            name=operation_name
+        )
+        
+        if operation.done():
+            if operation.error:
+                 return {"status": "failed", "error": operation.error.message}
+            
+            # The result is likely a GenerateVideosResponse which has generated_videos list
+            # We need to serialize it properly
+            result_dict = {}
+            if hasattr(operation, 'result'):
+                 # This might be tricky if result is not easily serializable
+                 # But usually for JSON response we want the video URI
+                 try:
+                     # Attempt to extract video URI if possible
+                     if hasattr(operation.result, 'generated_videos') and operation.result.generated_videos:
+                         video = operation.result.generated_videos[0].video
+                         result_dict = {"video": {"uri": video.uri}}
+                     else:
+                         # Fallback
+                         result_dict = {"raw": str(operation.result)}
+                 except:
+                     result_dict = {"raw": str(operation.result)}
+
+            return {"status": "completed", "result": result_dict}
+        else:
+            return {"status": "processing"}
+
+    except Exception as e:
+        logger.error(f"Error getting operation status: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get operation status")
 
 # --- OBS-Aware Caching Endpoint ---
 
