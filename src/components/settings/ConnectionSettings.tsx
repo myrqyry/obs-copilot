@@ -1,141 +1,216 @@
 // src/components/settings/ConnectionSettings.tsx
-import React, { useState, useEffect } from 'react';
-import { useSettingsStore } from '@/store/settingsStore';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import React, { useState } from 'react';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/Button';
+import { Switch } from '@/components/ui/switch';
+import { useSettingsStore } from '@/store/settingsStore';
+import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { obsClient } from '@/services/obsClient';
-import { toast } from 'sonner';
 
 export const ConnectionSettings: React.FC = () => {
     const { settings, updateSettings } = useSettingsStore();
+    const [isTestingOBS, setIsTestingOBS] = useState(false);
+    const [obsTestResult, setObsTestResult] = useState<'success' | 'error' | null>(null);
+    const [isTestingBackend, setIsTestingBackend] = useState(false);
+    const [backendTestResult, setBackendTestResult] = useState<'success' | 'error' | null>(null);
 
-    // Local state for form management
-    const [obsUrl, setObsUrl] = useState(settings.obs.url);
-    const [obsPort, setObsPort] = useState(settings.obs.port.toString());
-    const [obsPassword, setObsPassword] = useState(settings.obs.password || '');
-    const [obsAutoConnect, setObsAutoConnect] = useState(settings.obs.autoConnect);
-    const [backendUrl, setBackendUrl] = useState(settings.backend.url);
+    const handleTestOBSConnection = async () => {
+        setIsTestingOBS(true);
+        setObsTestResult(null);
 
-    // Update local state when store changes (e.g. initial load)
-    useEffect(() => {
-        setObsUrl(settings.obs.url);
-        setObsPort(settings.obs.port.toString());
-        setObsPassword(settings.obs.password || '');
-        setObsAutoConnect(settings.obs.autoConnect);
-        setBackendUrl(settings.backend.url);
-    }, [settings]);
-
-    const handleSaveObs = () => {
-        const port = parseInt(obsPort, 10);
-        if (isNaN(port)) {
-            toast.error('Invalid OBS Port');
-            return;
-        }
-
-        updateSettings('obs', {
-            url: obsUrl,
-            port,
-            password: obsPassword,
-            autoConnect: obsAutoConnect
-        });
-        toast.success('OBS settings saved');
-    };
-
-    const handleSaveBackend = () => {
-        updateSettings('backend', {
-            url: backendUrl
-        });
-        toast.success('Backend settings saved');
-    };
-
-    const handleTestObs = async () => {
         try {
-            const port = parseInt(obsPort, 10);
-            const address = `ws://${obsUrl}:${port}`;
-            await obsClient.connect(address, obsPassword);
-            toast.success('Connected to OBS successfully!');
+            // Temporarily connect to test
+            const wsUrl = `ws://${settings.obs.url}:${settings.obs.port}`;
+            await obsClient.connect(wsUrl, settings.obs.password);
+            setObsTestResult('success');
+
+            // Disconnect after successful test
+            setTimeout(() => {
+                obsClient.disconnect();
+            }, 1000);
         } catch (error) {
-            toast.error('Failed to connect to OBS');
-            console.error(error);
+            console.error('OBS connection test failed:', error);
+            setObsTestResult('error');
+        } finally {
+            setIsTestingOBS(false);
+        }
+    };
+
+    const handleTestBackendConnection = async () => {
+        setIsTestingBackend(true);
+        setBackendTestResult(null);
+
+        try {
+            const response = await fetch(`${settings.backend.url}/api/health`, {
+                method: 'GET',
+                signal: AbortSignal.timeout(5000)
+            });
+
+            if (response.ok) {
+                setBackendTestResult('success');
+            } else {
+                setBackendTestResult('error');
+            }
+        } catch (error) {
+            console.error('Backend connection test failed:', error);
+            setBackendTestResult('error');
+        } finally {
+            setIsTestingBackend(false);
         }
     };
 
     return (
-        <div className="space-y-6 p-4 max-w-2xl mx-auto">
-            <Card>
-                <CardHeader>
-                    <CardTitle>OBS Connection</CardTitle>
-                    <CardDescription>Configure how the dashboard connects to OBS Studio.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="obs-url">Host (IP)</Label>
-                            <Input
-                                id="obs-url"
-                                value={obsUrl}
-                                onChange={(e) => setObsUrl(e.target.value)}
-                                placeholder="localhost"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="obs-port">Port</Label>
-                            <Input
-                                id="obs-port"
-                                value={obsPort}
-                                onChange={(e) => setObsPort(e.target.value)}
-                                placeholder="4455"
-                            />
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="obs-password">Password</Label>
-                        <Input
-                            id="obs-password"
-                            type="password"
-                            value={obsPassword}
-                            onChange={(e) => setObsPassword(e.target.value)}
-                            placeholder="OBS WebSocket Password"
-                        />
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <Checkbox
-                            id="obs-autoconnect"
-                            checked={obsAutoConnect}
-                            onCheckedChange={(c) => setObsAutoConnect(c === true)}
-                        />
-                        <Label htmlFor="obs-autoconnect">Auto-connect on startup</Label>
-                    </div>
-                </CardContent>
-                <CardFooter className="flex justify-between">
-                    <Button variant="outline" onClick={handleTestObs}>Test Connection</Button>
-                    <Button onClick={handleSaveObs}>Save OBS Settings</Button>
-                </CardFooter>
-            </Card>
+        <div className="space-y-6">
+            {/* OBS WebSocket Settings */}
+            <div className="space-y-4 p-4 border rounded-lg">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                    🎥 OBS WebSocket Connection
+                </h3>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Backend API</CardTitle>
-                    <CardDescription>Configure the connection to the Python backend.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                        <Label htmlFor="backend-url">API URL</Label>
+                        <Label htmlFor="obs-url">Host / IP Address</Label>
                         <Input
-                            id="backend-url"
-                            value={backendUrl}
-                            onChange={(e) => setBackendUrl(e.target.value)}
-                            placeholder="http://localhost:8000"
+                            id="obs-url"
+                            type="text"
+                            placeholder="localhost or 192.168.1.100"
+                            value={settings.obs.url}
+                            onChange={(e) => updateSettings('obs', { url: e.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Use 'localhost' if OBS is on this device
+                        </p>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="obs-port">Port</Label>
+                        <Input
+                            id="obs-port"
+                            type="number"
+                            placeholder="4455"
+                            value={settings.obs.port}
+                            onChange={(e) => updateSettings('obs', { port: parseInt(e.target.value) || 4455 })}
                         />
                     </div>
-                </CardContent>
-                <CardFooter className="flex justify-end">
-                    <Button onClick={handleSaveBackend}>Save Backend Settings</Button>
-                </CardFooter>
-            </Card>
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="obs-password">Password (optional)</Label>
+                    <Input
+                        id="obs-password"
+                        type="password"
+                        placeholder="Enter WebSocket password if required"
+                        value={settings.obs.password || ''}
+                        onChange={(e) => updateSettings('obs', { password: e.target.value })}
+                    />
+                </div>
+
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Switch
+                            id="obs-auto-connect"
+                            checked={settings.obs.autoConnect}
+                            onCheckedChange={(checked) => updateSettings('obs', { autoConnect: checked })}
+                        />
+                        <Label htmlFor="obs-auto-connect" className="text-sm cursor-pointer">
+                            Auto-connect on startup
+                        </Label>
+                    </div>
+
+                    <Button
+                        onClick={handleTestOBSConnection}
+                        disabled={isTestingOBS}
+                        variant="outline"
+                        size="sm"
+                    >
+                        {isTestingOBS ? (
+                            <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Testing...
+                            </>
+                        ) : obsTestResult === 'success' ? (
+                            <>
+                                <CheckCircle2 className="w-4 h-4 mr-2 text-green-500" />
+                                Connected!
+                            </>
+                        ) : obsTestResult === 'error' ? (
+                            <>
+                                <AlertCircle className="w-4 h-4 mr-2 text-destructive" />
+                                Failed
+                            </>
+                        ) : (
+                            'Test Connection'
+                        )}
+                    </Button>
+                </div>
+
+                {obsTestResult === 'error' && (
+                    <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+                        ⚠️ Could not connect to OBS. Check that:
+                        <ul className="list-disc list-inside mt-2 space-y-1">
+                            <li>OBS is running</li>
+                            <li>WebSocket server is enabled (Tools → WebSocket Server Settings)</li>
+                            <li>The host/port/password are correct</li>
+                        </ul>
+                    </div>
+                )}
+            </div>
+
+            {/* Backend API Settings */}
+            <div className="space-y-4 p-4 border rounded-lg">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                    🔌 Backend API Connection
+                </h3>
+
+                <div className="space-y-2">
+                    <Label htmlFor="backend-url">API Base URL</Label>
+                    <Input
+                        id="backend-url"
+                        type="url"
+                        placeholder="http://localhost:8000"
+                        value={settings.backend.url}
+                        onChange={(e) => updateSettings('backend', { url: e.target.value })}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                        The base URL for the OBS Copilot backend server
+                    </p>
+                </div>
+
+                <div className="flex justify-end">
+                    <Button
+                        onClick={handleTestBackendConnection}
+                        disabled={isTestingBackend}
+                        variant="outline"
+                        size="sm"
+                    >
+                        {isTestingBackend ? (
+                            <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Testing...
+                            </>
+                        ) : backendTestResult === 'success' ? (
+                            <>
+                                <CheckCircle2 className="w-4 h-4 mr-2 text-green-500" />
+                                Connected!
+                            </>
+                        ) : backendTestResult === 'error' ? (
+                            <>
+                                <AlertCircle className="w-4 h-4 mr-2 text-destructive" />
+                                Failed
+                            </>
+                        ) : (
+                            'Test Connection'
+                        )}
+                    </Button>
+                </div>
+
+                {backendTestResult === 'error' && (
+                    <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+                        ⚠️ Could not reach backend API. Ensure the server is running.
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
