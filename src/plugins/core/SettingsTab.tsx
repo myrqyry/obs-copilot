@@ -171,6 +171,26 @@ const SettingsTab: React.FC = () => {
                 </div>
             </CollapsibleCard>
 
+            {/* API Keys Section */}
+            <CollapsibleCard title="API Keys 🔑" isOpen={true} onToggle={() => {}}>
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="gemini-api-key">Gemini API Key (for Lyria RealTime)</Label>
+                        <Input
+                            id="gemini-api-key"
+                            type="password"
+                            placeholder="Enter your Gemini API Key"
+                            value={useConfigStore(state => state.GEMINI_API_KEY)}
+                            onChange={(e) => useConfigStore.getState().setApiKey('GEMINI_API_KEY', e.target.value)}
+                            className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Required for real-time music generation features. Get one at <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google AI Studio</a>.
+                        </p>
+                    </div>
+                </div>
+            </CollapsibleCard>
+
             {/* Chat Bubbles Section */}
             <CollapsibleCard title="Chat Bubbles 💬" isOpen={openChatBubbles} onToggle={() => setOpenChatBubbles(!openChatBubbles)}>
                 <div className="space-y-4">

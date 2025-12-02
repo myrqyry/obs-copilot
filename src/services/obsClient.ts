@@ -531,6 +531,54 @@ export class ObsClientImpl {
       throw new ObsError(errorMsg);
     }
   }
+
+  async addBrowserSource(
+    sceneName: string,
+    url: string,
+    sourceName: string,
+    width: number = 1920,
+    height: number = 1080
+  ): Promise<number> {
+    try {
+      const { inputId } = await this.call('CreateInput', {
+        sceneName,
+        inputName: sourceName,
+        inputKind: 'browser_source',
+        inputSettings: {
+          url,
+          width,
+          height,
+        },
+      });
+      return inputId;
+    } catch (error) {
+      const errorMsg = handleAppError('OBS addBrowserSource', error, 'Failed to add browser source');
+      useUiStore.getState().addError({ message: errorMsg, source: 'obsClient', level: 'error' });
+      throw new ObsError(errorMsg);
+    }
+  }
+
+  async addImageSource(
+    sceneName: string,
+    url: string,
+    sourceName: string
+  ): Promise<number> {
+    try {
+      const { inputId } = await this.call('CreateInput', {
+        sceneName,
+        inputName: sourceName,
+        inputKind: 'image_source',
+        inputSettings: {
+          file: url,
+        },
+      });
+      return inputId;
+    } catch (error) {
+      const errorMsg = handleAppError('OBS addImageSource', error, 'Failed to add image source');
+      useUiStore.getState().addError({ message: errorMsg, source: 'obsClient', level: 'error' });
+      throw new ObsError(errorMsg);
+    }
+  }
 }
 
 export const obsClient = ObsClientImpl.getInstance();

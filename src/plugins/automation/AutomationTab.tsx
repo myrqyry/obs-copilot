@@ -43,7 +43,7 @@ const AutomationTab: React.FC = () => {
 
   // Use OBS actions hook
   const { handleObsAction } = useObsActions({
-    obsService: null as any,
+    obsClient: null as any,
     obsData,
     onRefreshData: handleRefresh,
     onAddMessage: addMessage,

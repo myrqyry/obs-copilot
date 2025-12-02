@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Crop, Download, ImagePlus, Scissors, Text, Filter, RefreshCcw, RotateCcw, FlipHorizontal, FlipVertical } from 'lucide-react';
 import { generateSourceName } from '@/utils/obsSourceHelpers';
 import { useConnectionManagerStore } from '@/store/connectionManagerStore';
-import { ObsClientImpl as ObsClient } from '@/services/obsClient';
+import { obsClient, ObsClientImpl as ObsClient } from '@/services/obsClient';
 import { handleAppError, createToastError } from '@/lib/errorUtils';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from '../../lib/canvasUtils';
@@ -43,7 +43,7 @@ export const ImageEditor: React.FC = () => {
     const [textX, setTextX] = useState(50);
     const [textY, setTextY] = useState(50);
 
-    const { obsServiceInstance, isConnected, currentProgramScene } = useConnectionManagerStore();
+    const { obsClientInstance, isConnected, currentProgramScene } = useConnectionManagerStore();
 
     useEffect(() => {
         return () => {
@@ -215,22 +215,22 @@ export const ImageEditor: React.FC = () => {
     }, [currentImage, croppedAreaPixels, rotation]);
 
     const handleAddAsSource = useCallback(async (url: string, title: string, type: 'browser' | 'image') => {
-        if (!isConnected || !obsServiceInstance) {
+        if (!isConnected || !obsClientInstance) {
             toast(createToastError('Not Connected', 'Please connect to OBS first'));
             return;
         }
         try {
             const sourceName = generateSourceName(title);
             if (type === 'browser') {
-                await (obsServiceInstance as ObsClient).addBrowserSource(currentProgramScene, url, sourceName, 640, 360);
+                await (obsClientInstance as ObsClient).addBrowserSource(currentProgramScene, url, sourceName, 640, 360);
             } else {
-                await (obsServiceInstance as ObsClient).addImageSource(currentProgramScene, url, sourceName);
+                await (obsClientInstance as ObsClient).addImageSource(currentProgramScene, url, sourceName);
             }
             toast({ title: 'Success', description: `Added "${title}" as ${type} source` });
         } catch (error: any) {
             toast(createToastError('Failed to Add Source', handleAppError(`Adding ${type} source`, error)));
         }
-    }, [isConnected, obsServiceInstance, currentProgramScene]);
+    }, [isConnected, obsClientInstance, currentProgramScene]);
 
     const handleDownloadImage = useCallback(() => {
         if (currentImage) {

@@ -1,17 +1,18 @@
 import { useCallback } from 'react';
-import type { ObsClientImpl } from '@/services/obsClient';
+import { obsClient } from '@/services/obsClient';
 import type { ObsAction, GeminiActionResponse } from '@/types/obsActions';
 import type { OBSData, OBSScene, SupportedDataPart, StreamingHandlers } from '@/types';
 import { logger } from '../utils/logger';
 import { aiSdk5Config } from '@/config';
 import { commandValidationService } from '@/services/commandValidationService';
 import useUiStore from '@/store/uiStore';
+import { handleAppError } from '@/lib/errorUtils';
 
 interface UseObsActionsProps {
-  obsService: ObsClientImpl;
   obsData: OBSData;
   onRefreshData: () => Promise<void>;
   setErrorMessage: (message: string | null) => void;
+  streamingHandlers: StreamingHandlers;
   emitDataPart?: (dataPart: SupportedDataPart) => void;
 }
 
@@ -29,7 +30,6 @@ export const buildObsSystemMessage = (obsData: OBSData): string => {
 };
 
 export const useObsActions = ({
-  obsService,
   obsData,
   onRefreshData,
   setErrorMessage,
@@ -66,21 +66,21 @@ export const useObsActions = ({
                     sceneItemEnabled,
                   };
 
-                  await obsService.call('CreateInput', params);
+                  await obsClient.call('CreateInput', params);
                   successMessage = `Successfully created input "${inputName}" of kind "${inputKind}".`;
                   break;
                 }
 
                 case 'setInputSettings': {
                   const { inputName, inputSettings, overlay } = action;
-                  await obsService.call('SetInputSettings', { inputName, inputSettings, overlay });
+                  await obsClient.call('SetInputSettings', { inputName, inputSettings, overlay });
                   successMessage = `Successfully updated settings for input "${inputName}".`;
                   break;
                 }
 
                 case 'setSceneItemEnabled': {
                   const { sceneName, sourceName, sceneItemEnabled } = action;
-                  const { sceneItems } = await obsService.call<{ sceneItems: { sourceName: string, sceneItemId: number }[] }>('GetSceneItemList', { sceneName });
+                  const { sceneItems } = await obsClient.call<{ sceneItems: { sourceName: string, sceneItemId: number }[] }>('GetSceneItemList', { sceneName });
                   const sceneItem = sceneItems.find(item => item.sourceName === sourceName);
                   
                   if (!sceneItem) {
@@ -88,7 +88,7 @@ export const useObsActions = ({
                   }
                   
                   const enabledValue = typeof sceneItemEnabled === 'boolean' ? sceneItemEnabled : false;
-                  await obsService.call('SetSceneItemEnabled', { sceneName, sceneItemId: sceneItem.sceneItemId, sceneItemEnabled: enabledValue });
+                  await obsClient.call('SetSceneItemEnabled', { sceneName, sceneItemId: sceneItem.sceneItemId, sceneItemEnabled: enabledValue });
                   successMessage = `Successfully ${enabledValue ? 'enabled' : 'disabled'} "${sourceName}" in scene "${sceneName}".`;
                   break;
                 }
@@ -120,7 +120,7 @@ export const useObsActions = ({
         });
       });
     },
-    [obsService, obsData, onRefreshData, setErrorMessage],
+    [obsData, onRefreshData, setErrorMessage],
   );
 
   const handleObsActionWithDataParts = useCallback(async (
@@ -187,7 +187,7 @@ export const useObsActions = ({
         type: 'streamerbot-action',
         value: {
           action: action.type,
-          args: action.args,
+          args: action.args || {},
           status: 'pending',
         },
       };
@@ -198,7 +198,7 @@ export const useObsActions = ({
         type: 'streamerbot-action',
         value: {
           action: action.type,
-          args: action.args,
+          args: action.args || {},
           status: 'executing',
         },
       };
@@ -214,7 +214,7 @@ export const useObsActions = ({
           type: 'streamerbot-action',
           value: {
             action: action.type,
-            args: action.args,
+            args: action.args || {},
             status: 'completed',
             result: { success: true },
           },
@@ -233,7 +233,7 @@ export const useObsActions = ({
           type: 'streamerbot-action',
           value: {
             action: action.type,
-            args: action.args,
+            args: action.args || {},
             status: 'error',
             result: {
               success: false,

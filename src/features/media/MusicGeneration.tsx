@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { useAudioStore } from '@/store/audioStore';
 import useConfigStore from '@/store/configStore';
-import { toast } from '@/components/ui/toast';
+
 import { CardContent } from '@/components/ui/Card';
 import { Button } from "@/components/ui";
 import { TextInput } from '@/components/common/TextInput';
 import { Tooltip } from "@/components/ui";
 import InlineMusicControls from '@/components/ui/InlineMusicControls';
 import { CollapsibleCard } from '@/components/common/CollapsibleCard';
-import { catppuccinAccentColorsHexMap } from '@/types';
+
 
 // Lyria RealTime music generation options
 const LYRIA_SCALES = [
@@ -39,7 +39,7 @@ const LYRIA_MOODS = [
 ];
 
 function getRandomItem<T>(arr: T[]): T {
-    return arr[Math.floor(Math.random() * arr.length)];
+    return arr[Math.floor(Math.random() * arr.length)]!;
 }
 
 function getRandomPrompt() {
@@ -67,8 +67,7 @@ const MusicGeneration: React.FC = () => {
     const [musicGenerationMode, setMusicGenerationMode] = useState('QUALITY');
     const [openMusicGeneration, setOpenMusicGeneration] = useState(true);
 
-    const accentColorName = useConfigStore(state => state.theme.accent);
-    const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
+
 
     // Music generation handler: just calls store action
     const handleGenerateMusic = () => {
@@ -84,6 +83,7 @@ const MusicGeneration: React.FC = () => {
             muteDrums,
             onlyBassAndDrums,
             musicGenerationMode,
+            geminiApiKey: useConfigStore.getState().GEMINI_API_KEY,
         };
         startMusicGeneration(musicPrompt, config);
     };
@@ -97,7 +97,6 @@ const MusicGeneration: React.FC = () => {
         <CollapsibleCard
             title="Music Generation (Lyria RealTime)"
             emoji="🎶"
-            accentColor={accentColor}
             isOpen={openMusicGeneration}
             onToggle={() => setOpenMusicGeneration(!openMusicGeneration)}
         >

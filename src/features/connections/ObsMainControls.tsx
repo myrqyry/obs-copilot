@@ -8,6 +8,7 @@ import { AddToContextButton } from '@/components/common/AddToContextButton';
 import { LockToggle } from '@/components/common/LockToggle';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import useConnectionsStore from '@/store/connections';
+import { obsClient, ObsClientImpl as ObsClient } from '@/services/obsClient';
 import { useLockStore } from '@/store/lockStore';
 import useConfigStore from '@/store/configStore';
 import { useChatStore } from '@/store/chatStore';
@@ -17,15 +18,15 @@ import { handleAppError } from '@/lib/errorUtils'; // Import error utilities
 // No need to import logger here, handleAppError uses it internally
 
 export const ObsMainControls: React.FC = () => {
-  const obsService = useConnectionsStore((state) => state.obs);
+  const obsClient = useConnectionsStore((state) => state.obs);
   const onRefreshData = async () => {
-    if (!obsService) return;
-    const { scenes } = await obsService.call('GetSceneList');
-    const { currentProgramSceneName } = await obsService.call('GetCurrentProgramScene');
-    const { sceneItems } = await obsService.call('GetSceneItemList', { sceneName: currentProgramSceneName });
-    const streamStatus = await obsService.call('GetStreamStatus');
-    const recordStatus = await obsService.call('GetRecordStatus');
-    const videoSettings = await obsService.call('GetVideoSettings');
+    if (!obsClient) return;
+    const { scenes } = await obsClient.call('GetSceneList');
+    const { currentProgramSceneName } = await obsClient.call('GetCurrentProgramScene');
+    const { sceneItems } = await obsClient.call('GetSceneItemList', { sceneName: currentProgramSceneName });
+    const streamStatus = await obsClient.call('GetStreamStatus');
+    const recordStatus = await obsClient.call('GetRecordStatus');
+    const videoSettings = await obsClient.call('GetVideoSettings');
     useConnectionsStore.setState({
       scenes: scenes.map((s: any) => ({ sceneName: s.sceneName, sceneIndex: s.sceneIndex })),
       currentProgramScene: currentProgramSceneName,
@@ -107,7 +108,7 @@ export const ObsMainControls: React.FC = () => {
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      if (!obsService) {
+      if (!obsClient) {
         throw new Error('OBS Service is not connected.');
       }
       await action();
@@ -212,11 +213,11 @@ export const ObsMainControls: React.FC = () => {
   };
 
   const handleSaveVideoSettings = async () => {
-    if (!editableSettings || !obsService) return;
+    if (!editableSettings || !obsClient) return;
     setIsVideoSettingsLoading(true);
     setErrorMessage(null);
     try {
-      await obsService.call('SetVideoSettings', editableSettings);
+      await obsClient.call('SetVideoSettings', editableSettings);
       await onRefreshData();
     } catch (error: unknown) {
       setErrorMessage(handleAppError('Failed to save video settings', error));
@@ -226,30 +227,30 @@ export const ObsMainControls: React.FC = () => {
   };
 
   const handleSetCurrentScene = (sceneName: string) => {
-    if (!obsService) return;
-    handleAction(() => obsService.call('SetCurrentProgramScene', { sceneName }));
+    if (!obsClient) return;
+    handleAction(() => obsClient.call('SetCurrentProgramScene', { sceneName }));
   };
 
   const toggleSourceVisibility = (sceneName: string, sceneItemId: number, enabled: boolean) => {
-    if (!obsService || !sceneName) return;
-    handleAction(() => obsService.call('SetSceneItemEnabled', { sceneName, sceneItemId, sceneItemEnabled: !enabled }));
+    if (!obsClient || !sceneName) return;
+    handleAction(() => obsClient.call('SetSceneItemEnabled', { sceneName, sceneItemId, sceneItemEnabled: !enabled }));
   };
 
   const toggleStream = () => {
-    if (!obsService) return;
+    if (!obsClient) return;
     if (streamStatus?.outputActive) {
-      handleAction(() => obsService.call('StopStream'));
+      handleAction(() => obsClient.call('StopStream'));
     } else {
-      handleAction(() => obsService.call('StartStream'));
+      handleAction(() => obsClient.call('StartStream'));
     }
   };
 
   const toggleRecord = () => {
-    if (!obsService) return;
+    if (!obsClient) return;
     if (recordStatus?.outputActive) {
-      handleAction(() => obsService.call('StopRecord'));
+      handleAction(() => obsClient.call('StopRecord'));
     } else {
-      handleAction(() => obsService.call('StartRecord'));
+      handleAction(() => obsClient.call('StartRecord'));
     }
   };
 

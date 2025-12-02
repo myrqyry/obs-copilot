@@ -1,4 +1,4 @@
-import { ObsClientImpl } from './obsClient';
+import { obsClient, ObsClientImpl } from './obsClient';
 
 // Helper function to get current theme colors from CSS custom properties
 function getCurrentThemeColors() {
@@ -232,7 +232,7 @@ export const HtmlTemplateService = {
   },
 
   async createBrowserSourceWithTemplate(
-    obsService: ObsClientImpl,
+    obsClient: ObsClientImpl,
     sourceName: string,
     sceneName: string,
     config: Partial<TemplateConfig>,
@@ -240,7 +240,7 @@ export const HtmlTemplateService = {
     height: number = 600,
   ): Promise<void> {
     const templateUrl = this.generateTemplateUrl(config);
-    await obsService.addBrowserSource(
+    await obsClient.addBrowserSource(
       sceneName,
       templateUrl,
       sourceName,
@@ -249,11 +249,11 @@ export const HtmlTemplateService = {
     );
   },
   async updateBrowserSourceTemplate(
-    obsService: ObsClientImpl,
+    obsClient: ObsClientImpl,
     sourceName: string,
     config: Partial<TemplateConfig>,
   ): Promise<void> {
     const templateUrl = this.generateTemplateUrl(config);
-    await obsService.call('SetInputSettings', { inputName: sourceName, inputSettings: { url: templateUrl } });
+    await obsClient.call('SetInputSettings', { inputName: sourceName, inputSettings: { url: templateUrl } });
   },
 };

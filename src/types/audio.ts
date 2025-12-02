@@ -137,6 +137,7 @@ export interface MusicGenerationConfig {
   scale?: string;
   durationSeconds?: number;
   instruments?: string[];
+  geminiApiKey?: string;
   // Placeholder for additional generation parameters
   [key: string]: any;
 }

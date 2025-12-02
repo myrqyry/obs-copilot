@@ -75,7 +75,7 @@ export const AIImageEditor: React.FC = () => {
         setLoading,
     } = useImageEditorStore();
     
-    const { obsServiceInstance, isConnected, currentProgramScene } = useConnectionManagerStore();
+    const { obsClientInstance, isConnected, currentProgramScene } = useConnectionManagerStore();
 
     useEffect(() => {
         return () => {
@@ -307,7 +307,7 @@ export const AIImageEditor: React.FC = () => {
 
     // OBS Integration
     const handleAddToOBS = async () => {
-        if (!currentImage || !isConnected || !obsServiceInstance) {
+        if (!currentImage || !isConnected || !obsClientInstance) {
             toast({ variant: "destructive", title: "Error", description: "Please connect to OBS and load an image first." });
             return;
         }
@@ -318,7 +318,7 @@ export const AIImageEditor: React.FC = () => {
             
             // Convert data URL to blob
             // Upload to OBS
-            await obsServiceInstance.call('CreateInput', {
+            await obsClientInstance.call('CreateInput', {
                 inputName: sourceName,
                 inputKind: 'image_source',
                 sceneName: currentProgramScene,

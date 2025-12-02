@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Crop, Download, ImagePlus, Scissors, Text, Filter, RefreshCcw, RotateCcw, FlipHorizontal, FlipVertical } from 'lucide-react';
 import { generateSourceName } from '@/utils/obsSourceHelpers';
 import { useConnectionManagerStore } from '@/store/connectionManagerStore';
-import { ObsClientImpl as ObsClient } from '@/services/obsClient';
+import { obsClient, ObsClientImpl as ObsClient } from '@/services/obsClient';
 import { handleAppError, createToastError } from '@/lib/errorUtils';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from '../../lib/canvasUtils';
@@ -41,7 +41,7 @@ export const ImageEditor: React.FC = () => {
         canRedo,
     } = useImageEditorStore();
     
-    const { obsServiceInstance, isConnected, currentProgramScene } = useConnectionManagerStore();
+    const { obsClientInstance, isConnected, currentProgramScene } = useConnectionManagerStore();
 
     useEffect(() => {
         return () => {
@@ -224,7 +224,7 @@ export const ImageEditor: React.FC = () => {
 
     // OBS Integration
     const handleAddToOBS = async () => {
-        if (!inputState.currentImage || !isConnected || !obsServiceInstance) {
+        if (!inputState.currentImage || !isConnected || !obsClientInstance) {
             toast({ variant: "destructive", title: "Error", description: "Please connect to OBS and load an image first." });
             return;
         }
@@ -233,7 +233,7 @@ export const ImageEditor: React.FC = () => {
             setLoading(true);
             const sourceName = generateSourceName('Edited Image');
             
-            await obsServiceInstance.call('CreateInput', {
+            await obsClientInstance.call('CreateInput', {
                 inputName: sourceName,
                 inputKind: 'image_source',
                 sceneName: currentProgramScene,

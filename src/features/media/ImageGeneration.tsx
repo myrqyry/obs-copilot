@@ -40,7 +40,7 @@ const ImageGeneration: React.FC = () => {
     const [aspectRatio, setAspectRatio] = useState('1:1');
     const [personGeneration, setPersonGeneration] = useState('allow_adult');
 
-    const { obsServiceInstance, currentProgramScene, isConnected } = useConnectionManagerStore();
+    const { obsClientInstance, currentProgramScene, isConnected } = useConnectionManagerStore();
     const accentColorName = useConfigStore(state => state.theme.accent);
     const accentColor = catppuccinAccentColorsHexMap[accentColorName] || '#89b4fa';
 
@@ -90,15 +90,15 @@ const ImageGeneration: React.FC = () => {
     };
 
     const handleAddAsSource = async (imageUrl: string, type: 'browser' | 'image') => {
-        if (!obsServiceInstance || !isConnected || !currentProgramScene) {
+        if (!obsClientInstance || !isConnected || !currentProgramScene) {
             toast(createToastError('Error', 'OBS not connected or no image generated.'));
             return;
         }
         try {
             if (type === 'browser') {
-                await (obsServiceInstance as ObsClient).addBrowserSource(currentProgramScene, imageUrl, generateSourceName('Generated Image'));
+                await (obsClientInstance as ObsClient).addBrowserSource(currentProgramScene, imageUrl, generateSourceName('Generated Image'));
             } else {
-                await (obsServiceInstance as ObsClient).addImageSource(currentProgramScene, imageUrl, generateSourceName('Generated Image'));
+                await (obsClientInstance as ObsClient).addImageSource(currentProgramScene, imageUrl, generateSourceName('Generated Image'));
             }
             toast({
                 title: 'Success',

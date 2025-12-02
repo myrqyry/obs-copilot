@@ -17,6 +17,7 @@ import { httpClient } from './httpClient';
 import { MODEL_CONFIG } from '@/config/modelConfig';
 import { logger } from '@/utils/logger';
 import { useErrorStore } from '@/store/errorStore'; // Import useErrorStore
+import { BaseService } from './baseService';
 
 // Add helper function at the top of the file
 function safeAddError(error: { message: string; source: string; level: 'critical' | 'error' | 'warn' | 'info' | 'debug'; details?: any }) {
@@ -33,9 +34,9 @@ export type StreamEvent = {
     data: any;
 }
 
-class GeminiService implements AIService {
+class GeminiService extends BaseService implements AIService {
   constructor() {
-    // No-op
+    super();
   }
 
   async generateContent(
@@ -60,32 +61,38 @@ class GeminiService implements AIService {
 
     logger.info('[Gemini] Generating content with options:', { model, temperature, maxOutputTokens });
 
-    try {
-      const response = await httpClient.post('/gemini/generate-content', {
-        prompt,
-        model,
-        temperature,
-        maxOutputTokens,
-        topP,
-        topK,
-        history,
-      });
-
-      logger.info('[Gemini] Content generation successful.');
-      return response.data;
-    } catch (error: any) {
-      const geminiError = mapToGeminiError(error, 'content generation');
-      logger.error('[Gemini] Content generation failed:', geminiError);
-      if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
-        safeAddError({
-          message: geminiError.message,
-          source: 'geminiService',
-          level: 'critical',
-          details: { model, error: geminiError.originalError }
-        });
-      }
-      throw geminiError;
-    }
+    return this.withRetry(async () => {
+        try {
+          const response = await httpClient.post('/gemini/generate-content', {
+            prompt,
+            model,
+            temperature,
+            maxOutputTokens,
+            topP,
+            topK,
+            history,
+          });
+    
+          logger.info('[Gemini] Content generation successful.');
+          return response.data;
+        } catch (error: any) {
+          const geminiError = mapToGeminiError(error, 'content generation');
+          // Don't log error here as BaseService handles it for retries
+          // logger.error('[Gemini] Content generation failed:', geminiError);
+          
+          if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
+            safeAddError({
+              message: geminiError.message,
+              source: 'geminiService',
+              level: 'critical',
+              details: { model, error: geminiError.originalError }
+            });
+            // Stop retrying for non-retryable errors
+            throw geminiError; 
+          }
+          throw geminiError;
+        }
+    }, 'Gemini content generation');
   }
 
   async generateStreamingContent(
@@ -99,6 +106,12 @@ class GeminiService implements AIService {
     const { model = MODEL_CONFIG.chat, history = [] } = options;
     logger.info('[Gemini] Generating streaming content with options:', { model });
 
+    // Streaming is tricky with retry because we might have already sent some data.
+    // For now, we will NOT retry streaming requests automatically in the same way,
+    // or we could retry only if no data has been received yet.
+    // Given the complexity, we'll keep the original implementation but wrap it in a try/catch block
+    // that mimics the base service's error handling structure if we wanted to add it later.
+    
     try {
       const response = await httpClient.post('/gemini/stream', {
         prompt,
@@ -166,34 +179,37 @@ class GeminiService implements AIService {
     const { model = MODEL_CONFIG.image, ...rest } = options;
     logger.info('[Gemini] Generating image with options:', { model, ...rest });
 
-    try {
-      const formData = new FormData();
-      formData.append('prompt', prompt);
-      formData.append('model', model);
-      Object.entries(rest).forEach(([key, value]) => {
-        if (value) formData.append(key, value.toString());
-      });
-
-      const response = await httpClient.post('/gemini/generate-image', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-
-      const imageUrls: string[] = response.data.imageUrls || [];
-      logger.info(`[Gemini] Image generation successful, received ${imageUrls.length} images.`);
-      return Promise.all(imageUrls.map((url: string) => dataUrlToBlobUrl(url)));
-    } catch (error: any) {
-      const geminiError = mapToGeminiError(error, 'image generation');
-      logger.error('[Gemini] Image generation failed:', geminiError);
-      if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
-        safeAddError({
-          message: geminiError.message,
-          source: 'geminiService',
-          level: 'critical',
-          details: { model, prompt: prompt.substring(0, 50), error: geminiError.originalError }
-        });
-      }
-      throw geminiError;
-    }
+    return this.withRetry(async () => {
+        try {
+          const formData = new FormData();
+          formData.append('prompt', prompt);
+          formData.append('model', model);
+          Object.entries(rest).forEach(([key, value]) => {
+            if (value) formData.append(key, value.toString());
+          });
+    
+          const response = await httpClient.post('/gemini/generate-image', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+    
+          const imageUrls: string[] = response.data.imageUrls || [];
+          logger.info(`[Gemini] Image generation successful, received ${imageUrls.length} images.`);
+          return Promise.all(imageUrls.map((url: string) => dataUrlToBlobUrl(url)));
+        } catch (error: any) {
+          const geminiError = mapToGeminiError(error, 'image generation');
+          
+          if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
+            safeAddError({
+              message: geminiError.message,
+              source: 'geminiService',
+              level: 'critical',
+              details: { model, prompt: prompt.substring(0, 50), error: geminiError.originalError }
+            });
+            throw geminiError;
+          }
+          throw geminiError;
+        }
+    }, 'Gemini image generation');
   }
 
   async generateSpeech(
@@ -207,35 +223,38 @@ class GeminiService implements AIService {
     const { model = MODEL_CONFIG.speech, ...rest } = options;
     logger.info('[Gemini] Generating speech with options:', { model, ...rest });
 
-    try {
-      const response = await httpClient.post('/gemini/generate-speech', {
-        prompt,
-        model,
-        ...rest,
-      });
-
-      const { audioData } = response.data;
-      if (audioData) {
-        logger.info('[Gemini] Speech generation successful, processing audio data.');
-        const audioBuffer = Buffer.from(audioData, 'base64');
-        const wavUrl = await pcm16ToWavUrl(audioBuffer, 24000, 1);
-        return wavUrl;
-      }
-
-      throw new Error('Speech generation response did not contain expected audio data.');
-    } catch (error: any) {
-      const geminiError = mapToGeminiError(error, 'speech generation');
-      logger.error('[Gemini] Speech generation failed:', geminiError);
-      if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
-        safeAddError({
-          message: geminiError.message,
-          source: 'geminiService',
-          level: 'critical',
-          details: { model, prompt: prompt.substring(0, 50), error: geminiError.originalError }
-        });
-      }
-      throw geminiError;
-    }
+    return this.withRetry(async () => {
+        try {
+          const response = await httpClient.post('/gemini/generate-speech', {
+            prompt,
+            model,
+            ...rest,
+          });
+    
+          const { audioData } = response.data;
+          if (audioData) {
+            logger.info('[Gemini] Speech generation successful, processing audio data.');
+            const audioBuffer = Buffer.from(audioData, 'base64');
+            const wavUrl = await pcm16ToWavUrl(audioBuffer.buffer as ArrayBuffer, 24000, 1);
+            return wavUrl;
+          }
+    
+          throw new Error('Speech generation response did not contain expected audio data.');
+        } catch (error: any) {
+          const geminiError = mapToGeminiError(error, 'speech generation');
+          
+          if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
+            safeAddError({
+              message: geminiError.message,
+              source: 'geminiService',
+              level: 'critical',
+              details: { model, prompt: prompt.substring(0, 50), error: geminiError.originalError }
+            });
+            throw geminiError;
+          }
+          throw geminiError;
+        }
+    }, 'Gemini speech generation');
   }
 
   async generateVideo(
@@ -251,29 +270,32 @@ class GeminiService implements AIService {
     const { model = MODEL_CONFIG.video, ...rest } = options;
     logger.info('[Gemini] Generating video with options:', { model, ...rest });
 
-    try {
-      const response = await httpClient.post('/gemini/generate-video', {
-        prompt,
-        model,
-        ...rest,
-      });
-
-      const { videoUrls } = response.data;
-      logger.info(`[Gemini] Video generation successful, received ${videoUrls?.length || 0} videos.`);
-      return videoUrls || [];
-    } catch (error: any) {
-      const geminiError = mapToGeminiError(error, 'video generation');
-      logger.error('[Gemini] Video generation failed:', geminiError);
-      if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
-        safeAddError({
-          message: geminiError.message,
-          source: 'geminiService',
-          level: 'critical',
-          details: { model, prompt: prompt.substring(0, 50), error: geminiError.originalError }
-        });
-      }
-      throw geminiError;
-    }
+    return this.withRetry(async () => {
+        try {
+          const response = await httpClient.post('/gemini/generate-video', {
+            prompt,
+            model,
+            ...rest,
+          });
+    
+          const { videoUrls } = response.data;
+          logger.info(`[Gemini] Video generation successful, received ${videoUrls?.length || 0} videos.`);
+          return videoUrls || [];
+        } catch (error: any) {
+          const geminiError = mapToGeminiError(error, 'video generation');
+          
+          if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
+            safeAddError({
+              message: geminiError.message,
+              source: 'geminiService',
+              level: 'critical',
+              details: { model, prompt: prompt.substring(0, 50), error: geminiError.originalError }
+            });
+            throw geminiError;
+          }
+          throw geminiError;
+        }
+    }, 'Gemini video generation');
   }
 
   async generateStructuredContent(
@@ -288,29 +310,32 @@ class GeminiService implements AIService {
     const { model = MODEL_CONFIG.structured, ...rest } = options;
     logger.info('[Gemini] Generating structured content with options:', { model, ...rest });
 
-    try {
-      const response = await httpClient.post('/gemini/generate-structured', {
-        prompt,
-        model,
-        ...rest,
-        schema: JSON.stringify(schema),
-      });
-
-      logger.info('[Gemini] Structured content generation successful.');
-      return response.data;
-    } catch (error: any) {
-      const geminiError = mapToGeminiError(error, 'structured content generation');
-      logger.error('[Gemini] Structured content generation failed:', geminiError);
-      if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
-        safeAddError({
-          message: geminiError.message,
-          source: 'geminiService',
-          level: 'critical',
-          details: { model, prompt: prompt.substring(0, 50), schema, error: geminiError.originalError }
-        });
-      }
-      throw geminiError;
-    }
+    return this.withRetry(async () => {
+        try {
+          const response = await httpClient.post('/gemini/generate-structured', {
+            prompt,
+            model,
+            ...rest,
+            schema: JSON.stringify(schema),
+          });
+    
+          logger.info('[Gemini] Structured content generation successful.');
+          return response.data;
+        } catch (error: any) {
+          const geminiError = mapToGeminiError(error, 'structured content generation');
+          
+          if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
+            safeAddError({
+              message: geminiError.message,
+              source: 'geminiService',
+              level: 'critical',
+              details: { model, prompt: prompt.substring(0, 50), schema, error: geminiError.originalError }
+            });
+            throw geminiError;
+          }
+          throw geminiError;
+        }
+    }, 'Gemini structured content generation');
   }
 
   async generateWithLongContext(
@@ -325,29 +350,32 @@ class GeminiService implements AIService {
     const { model = MODEL_CONFIG.longContext, ...rest } = options;
     logger.info('[Gemini] Generating with long context, options:', { model, ...rest });
 
-    try {
-      const response = await httpClient.post('/gemini/generate-long-context', {
-        prompt,
-        context,
-        model,
-        ...rest,
-      });
-
-      logger.info('[Gemini] Long context generation successful.');
-      return response.data;
-    } catch (error: any) {
-      const geminiError = mapToGeminiError(error, 'long context generation');
-      logger.error('[Gemini] Long context generation failed:', geminiError);
-      if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
-        safeAddError({
-          message: geminiError.message,
-          source: 'geminiService',
-          level: 'critical',
-          details: { model, contextLength: context.length, error: geminiError.originalError }
-        });
-      }
-      throw geminiError;
-    }
+    return this.withRetry(async () => {
+        try {
+          const response = await httpClient.post('/gemini/generate-long-context', {
+            prompt,
+            context,
+            model,
+            ...rest,
+          });
+    
+          logger.info('[Gemini] Long context generation successful.');
+          return response.data;
+        } catch (error: any) {
+          const geminiError = mapToGeminiError(error, 'long context generation');
+          
+          if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
+            safeAddError({
+              message: geminiError.message,
+              source: 'geminiService',
+              level: 'critical',
+              details: { model, contextLength: context.length, error: geminiError.originalError }
+            });
+            throw geminiError;
+          }
+          throw geminiError;
+        }
+    }, 'Gemini long context generation');
   }
 
   async liveConnect(options: any): Promise<any> {
@@ -376,32 +404,35 @@ class GeminiService implements AIService {
     const { temperature = 0.1, maxOutputTokens = 2000 } = options;
     logger.info('[Gemini] Generating widget config from prompt:', { description: description.substring(0, 100), ...options });
 
-    try {
-      const response = await httpClient.post('/gemini/generate-widget-config', {
-        description,
-        temperature,
-        maxOutputTokens,
-      });
-
-      const config: UniversalWidgetConfig = response.data;
-      if (!config.id) {
-        config.id = `widget_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      }
-      logger.info('[Gemini] Widget config generation successful:', config.id);
-      return config;
-    } catch (error: any) {
-      const geminiError = mapToGeminiError(error, 'widget config generation');
-      logger.error('[Gemini] Widget config generation failed:', geminiError);
-      if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
-        safeAddError({
-          message: geminiError.message,
-          source: 'geminiService',
-          level: 'critical',
-          details: { description: description.substring(0, 50), error: geminiError.originalError }
-        });
-      }
-      throw geminiError;
-    }
+    return this.withRetry(async () => {
+        try {
+          const response = await httpClient.post('/gemini/generate-widget-config', {
+            description,
+            temperature,
+            maxOutputTokens,
+          });
+    
+          const config: UniversalWidgetConfig = response.data;
+          if (!config.id) {
+            config.id = `widget_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          }
+          logger.info('[Gemini] Widget config generation successful:', config.id);
+          return config;
+        } catch (error: any) {
+          const geminiError = mapToGeminiError(error, 'widget config generation');
+          
+          if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
+            safeAddError({
+              message: geminiError.message,
+              source: 'geminiService',
+              level: 'critical',
+              details: { description: description.substring(0, 50), error: geminiError.originalError }
+            });
+            throw geminiError;
+          }
+          throw geminiError;
+        }
+    }, 'Gemini widget config generation');
   }
 
   async createWidgetChatSession(): Promise<any> {

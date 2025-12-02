@@ -13,7 +13,7 @@ import { copyToClipboard } from '@/utils/persistence';
 import { sanitizeSvg } from '@/lib/sanitizeHtml';
 import { generateSourceName } from '@/utils/obsSourceHelpers';
 import { useConnectionManagerStore } from '@/store/connectionManagerStore';
-import { ObsClientImpl as ObsClient } from '@/services/obsClient';
+import { ObsClientImpl as ObsClient } from '../../services/obsClient';
 import { handleAppError, createToastError } from '@/lib/errorUtils';
 import { StandardApiItem, AssetSearchConfig, SearchFilters, AssetModalActions } from '@/types/assetSearch';
 import { apiMappers } from '@/config/enhancedApiMappers';
@@ -56,7 +56,7 @@ export const EnhancedAssetSearch: React.FC<EnhancedAssetSearchProps> = ({
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const { results, loading, searched, search } = useGenericApiSearch(selectedApi as any);
-  const { obsServiceInstance, isConnected, currentProgramScene } = useConnectionManagerStore();
+  const { obsClientInstance, isConnected, currentProgramScene } = useConnectionManagerStore();
 
   const selectedConfig = useMemo(() => 
     apiConfigs.find(config => config.value === selectedApi),
@@ -96,32 +96,32 @@ export const EnhancedAssetSearch: React.FC<EnhancedAssetSearchProps> = ({
 
   // OBS Integration Actions
   const handleAddAsBrowserSource = useCallback(async (url: string, title: string) => {
-    if (!isConnected || !obsServiceInstance) {
+    if (!isConnected || !obsClientInstance) {
       toast(createToastError('Not Connected', 'Please connect to OBS first'));
       return;
     }
     try {
       const sourceName = generateSourceName(title);
-      await (obsServiceInstance as ObsClient).addBrowserSource(currentProgramScene, url, sourceName, 640, 360);
+      await (obsClientInstance as ObsClient).addBrowserSource(currentProgramScene, url, sourceName, 640, 360);
       toast({ title: 'Success', description: `Added "${title}" as browser source` });
     } catch (error: any) {
       toast(createToastError('Failed to Add Source', handleAppError('Adding browser source', error)));
     }
-  }, [isConnected, obsServiceInstance, currentProgramScene]);
+  }, [isConnected, obsClientInstance, currentProgramScene]);
 
   const handleAddAsImageSource = useCallback(async (url: string, title: string) => {
-    if (!isConnected || !obsServiceInstance) {
+    if (!isConnected || !obsClientInstance) {
       toast(createToastError('Not Connected', 'Please connect to OBS first'));
       return;
     }
     try {
       const sourceName = generateSourceName(title);
-      await (obsServiceInstance as ObsClient).addImageSource(currentProgramScene, url, sourceName);
+      await (obsClientInstance as ObsClient).addImageSource(currentProgramScene, url, sourceName);
       toast({ title: 'Success', description: `Added "${title}" as image source` });
     } catch (error: any) {
       toast(createToastError('Failed to Add Source', handleAppError('Adding image source', error)));
     }
-  }, [isConnected, obsServiceInstance, currentProgramScene]);
+  }, [isConnected, obsClientInstance, currentProgramScene]);
 
   // Default Modal Actions
   const getDefaultModalActions = useCallback((item: StandardApiItem): AssetModalActions[] => {

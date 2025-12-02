@@ -11,6 +11,7 @@ export interface ApiKeyState {
   PIXABAY_API_KEY: string;
   DEVIANTART_CLIENT_ID: string;
   UNSPLASH_ACCESS_KEY: string;
+  GEMINI_API_KEY: string;
 }
 
 export interface ConfigState extends ApiKeyState {
@@ -113,6 +114,7 @@ const useConfigStore = create<ConfigState>()(
       PIXABAY_API_KEY: '',
       DEVIANTART_CLIENT_ID: '',
       UNSPLASH_ACCESS_KEY: '',
+      GEMINI_API_KEY: '',
       setApiKey: (key, value) => set({ [key]: value }),
 
       // OBS Connection

@@ -1,5 +1,6 @@
 // Alias for legacy import paths — keep compatibility with components importing useConnectionManagerStore
 import useConnectionsStore from './connections';
+import { obsClient, ObsClientImpl as ObsClient } from '@/services/obsClient';
 
 /**
  * Compatibility wrapper for legacy `useConnectionManagerStore` usages.
@@ -7,7 +8,7 @@ import useConnectionsStore from './connections';
  * - If called without args, return the full store augmented with a safe `actions` object.
  *
  * The `actions` object provides sensible no-op fallbacks where the original implementation
- * exposed runtime helpers (e.g. uploadLog, handleObsAction). When the real obsServiceInstance
+ * exposed runtime helpers (e.g. uploadLog, handleObsAction). When the real obsClientInstance
  * is available, the wrapper will attempt to call the corresponding method on it.
  *
  * This shim keeps the codebase compiling while we iteratively restore the
@@ -24,11 +25,11 @@ export const useConnectionManagerStore = (selector?: any) => {
   const base = useConnectionsStore();
 
   const actions = {
-    // Attempt to proxy to obsServiceInstance methods if available; otherwise no-op.
+    // Attempt to proxy to obsClient methods if available; otherwise no-op.
     async uploadLog() {
       try {
-        if (base.obs && typeof (base.obs as any).uploadLog === 'function') {
-          return await (base.obs as any).uploadLog();
+        if (obsClient && typeof (obsClient as any).uploadLog === 'function') {
+          return await (obsClient as any).uploadLog();
         }
       } catch (e) {
         // swallow - caller code already handles failures

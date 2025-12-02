@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiService } from '@/services/apiService';
-import { obsService } from '@/services/obsService';
+import { obsClient } from '@/services/obsClient';
 
 export type InitializationStep = 
     | 'connecting-backend'
@@ -81,13 +81,13 @@ export function useAppInitialization(): InitializationState & {
         try {
             // We use the default connection settings or what's stored in local storage/config
             // For now, we assume the service handles connection details internally or we pass defaults
-            // If obsService.connect requires args, we might need to fetch them from config first.
-            // Assuming obsService.connect() can be called without args if it has stored config, 
+            // If obsClient.connect requires args, we might need to fetch them from config first.
+            // Assuming obsClient.connect() can be called without args if it has stored config, 
             // OR we need to provide default localhost:4455.
             // Looking at obsClient.ts, connect takes (address, password).
             // We should probably try to connect with defaults if not configured.
             // For this refactor, let's assume we try localhost:4455 and empty password if no config.
-            await obsService.connect('ws://localhost:4455', undefined);
+            await obsClient.connect('ws://localhost:4455', undefined);
         } catch (error) {
             throw new Error(`OBS connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }

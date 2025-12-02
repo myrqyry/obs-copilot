@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
+import { obsClient, ObsClientImpl as ObsClient } from '@/services/obsClient';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useConnectionManagerStore } from '@/store/connectionManagerStore';
@@ -18,7 +18,7 @@ interface HtmlTemplateBuilderProps {
 
 
 const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({ accentColorName }) => {
-    const { obsServiceInstance, currentProgramScene, isConnected } = useConnectionManagerStore();
+    const { obsClientInstance, currentProgramScene, isConnected } = useConnectionManagerStore();
     const [selectedPreset, setSelectedPreset] = useState<string>('assets-showcase');
     const [customConfig, setCustomConfig] = useState<Partial<TemplateConfig>>({
         layout: 'overlay',
@@ -109,7 +109,7 @@ const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({ accentColorNa
     };
 
     const handleCreateBrowserSource = async () => {
-        if (!obsServiceInstance || !currentProgramScene) {
+        if (!obsClientInstance || !currentProgramScene) {
             setFeedbackMessage('Please connect to OBS first');
             return;
         }
@@ -117,7 +117,7 @@ const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({ accentColorNa
         setIsCreating(true);
         try {
             await HtmlTemplateService.createBrowserSourceWithTemplate(
-                obsServiceInstance,
+                obsClientInstance,
                 sourceName,
                 currentProgramScene,
                 customConfig, // now includes customHtml and customCss
@@ -133,7 +133,7 @@ const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({ accentColorNa
     };
 
     const handleUpdateExistingSource = async () => {
-        if (!obsServiceInstance) {
+        if (!obsClientInstance) {
             setFeedbackMessage('Please connect to OBS first');
             return;
         }
@@ -141,7 +141,7 @@ const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({ accentColorNa
         setIsCreating(true);
         try {
             await HtmlTemplateService.updateBrowserSourceTemplate(
-                obsServiceInstance,
+                obsClientInstance,
                 sourceName,
                 customConfig
             );

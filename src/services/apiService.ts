@@ -1,11 +1,13 @@
 // src/services/apiService.ts
 import { logger } from '../utils/logger';
 import { httpClient } from './httpClient';
+import { BaseService } from './baseService';
 
-class ApiService {
+class ApiService extends BaseService {
   private apiName: string;
 
   constructor(apiName: string = 'general') {
+    super();
     this.apiName = apiName;
   }
 
@@ -14,9 +16,12 @@ class ApiService {
    */
   async checkHealth(): Promise<{ ok: boolean; status?: any }> {
     try {
-      const response = await httpClient.get('/api/health');
-      return { ok: true, status: response.data };
+      return await this.withRetry(async () => {
+        const response = await httpClient.get('/api/health');
+        return { ok: true, status: response.data };
+      }, 'Health check');
     } catch (error) {
+      // We don't want to throw here as the app handles the { ok: false } response
       logger.error('Health check failed:', error);
       return { ok: false };
     }
@@ -50,15 +55,17 @@ class ApiService {
       query: query, // FastAPI will see this as 'q' or 'query' based on the request model
     });
 
-    try {
-      const response = await httpClient.get(`${endpoint}?${params.toString()}`);
-      // The backend now handles finding the data path, so we can just return the data.
-      return response.data;
-    } catch (error: any) {
-      const errorData = error.response?.data?.detail || error.message || 'An unknown error occurred';
-      logger.error(`Error fetching data from '${this.apiName}':`, errorData);
-      throw new Error(errorData);
-    }
+    return this.withRetry(async () => {
+        try {
+            const response = await httpClient.get(`${endpoint}?${params.toString()}`);
+            // The backend now handles finding the data path, so we can just return the data.
+            return response.data;
+        } catch (error: any) {
+            const errorData = error.response?.data?.detail || error.message || 'An unknown error occurred';
+            // logger.error is handled in BaseService for retries, but we throw to trigger retry
+            throw new Error(errorData);
+        }
+    }, `Search ${this.apiName}`);
   }
 }
 

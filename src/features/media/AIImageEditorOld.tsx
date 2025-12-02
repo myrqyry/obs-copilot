@@ -1,76 +1,118 @@
 // src/features/media/AIImageEditor.tsx
-import * as React from "react";
-import { useRef, useEffect, useCallback } from "react";
-import { toast } from "@/components/ui/toast";
-import { Modal } from "@/components/ui/Modal";
-import { Tooltip } from "@/components/ui/Tooltip";
-import { Button } from "@/components/ui/Button";
-import { TextInput } from "@/components/common/TextInput";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import React, { useRef, useEffect, useCallback } from 'react';
+
 import { 
-  Crop, Download, ImagePlus, Scissors, Text, Filter, RefreshCcw, RotateCcw, FlipHorizontal, 
-  FlipVertical, Sparkles, Wand2, Layers, Users, Globe, MessageSquare, Type, Image as ImageIcon,
-  Edit3, Shuffle, Eye, EyeOff
+  RotateCcw, 
+  FlipHorizontal, 
+  FlipVertical, 
+  Sparkles, 
+  Wand2, 
+  Download, 
+  ImagePlus, 
+  Crop, 
+  RefreshCcw,
+  EyeOff
 } from 'lucide-react';
-import { generateSourceName } from '@/utils/obsSourceHelpers';
-import { useConnectionManagerStore } from '@/store/connectionManagerStore';
+
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Modal } from "@/components/ui/Modal";
+import { Input } from "@/components/ui/input";
+import { TextInput } from "@/components/common/TextInput";
 import { ObsClientImpl as ObsClient } from '@/services/obsClient';
-import { handleAppError, createToastError } from '@/lib/errorUtils';
+import { useConnectionManagerStore } from '@/store/connectionManagerStore';
+
 import Cropper from 'react-easy-crop';
 import getCroppedImg from '../../lib/canvasUtils';
+
+import useImageEditorStore from '@/store/imageEditorStore';
+
 import { geminiService } from '@/services/geminiService';
-import { CollapsibleCard } from '@/components/common/CollapsibleCard';
-import { ImageUpload } from '@/components/common/ImageUpload';
-import { ImageUploadResult } from '@/types/audio';
-import { ImageEditorTemplates } from './ImageEditorTemplates';
-import { 
-  useImageEditorStore, 
-  useImageEditorInput, 
-  useImageEditorManipulation, 
-  useImageEditorAI 
-} from '@/store/imageEditorStore';
-import { useUIStateStore } from '@/store/uiStateStore';
-import { Card } from '@/components/ui/Card';
+import { generateSourceName } from '@/utils/obsSourceHelpers';
+import { handleAppError, createToastError } from '@/lib/errorUtils';
+import { toast } from "@/components/ui/toast";
+import Tooltip from "@/components/ui/tooltip";
+
+
 
 export const AIImageEditor: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     
     // Use store selectors for different aspects of the image editor
-    const inputState = useImageEditorInput();
-    const manipulationState = useImageEditorManipulation();
-    const aiState = useImageEditorAI();
+    const store = useImageEditorStore();
     const {
+        inputUrl,
         outputUrl,
-        setOutputImage,
-        setInputModalOpen,
+        currentImage,
+        
+        crop,
+        zoom,
+        rotation,
+        aspect,
+        croppedAreaPixels,
+        isCropping,
+        
+        flipH,
+        flipV,
+        
+        aiPrompt,
+        aiLoading,
+        aiError,
+        generatedImages,
+        showAiPanel,
+        aiModel,
+        aspectRatio,
+        numberOfImages,
+        showGeneratedImages,
+        
         inputModalOpen,
         loading,
+        
+        setInputImage,
+        setOutputImage,
+        setCurrentImage,
+        updateCrop,
+        updateZoom,
+        updateRotation,
+        updateAspect,
+        setCroppedAreaPixels,
+        setIsCropping,
+        setFlipH,
+        setFlipV,
+        
+        setAiPrompt,
+        setAiLoading,
+        setAiError,
+        setGeneratedImages,
+        setShowAiPanel,
+        setAiModel,
+        setAspectRatio,
+        setNumberOfImages,
+        setShowGeneratedImages,
+        
+        setInputModalOpen,
         setLoading,
         resetManipulationStates,
         saveToHistory,
-        undo,
-        redo,
-        canUndo,
-        canRedo,
-    } = useImageEditorStore();
+    } = store;
     
-    const { openModal, closeModal } = useUIStateStore();
-    const { obsServiceInstance, isConnected, currentProgramScene } = useConnectionManagerStore();
+    const { obsClientInstance, isConnected, currentProgramScene } = useConnectionManagerStore();
 
     useEffect(() => {
         return () => {
-            if (inputState.inputUrl) URL.revokeObjectURL(inputState.inputUrl);
+            if (inputUrl) URL.revokeObjectURL(inputUrl);
             if (outputUrl) URL.revokeObjectURL(outputUrl);
-            if (inputState.currentImage) URL.revokeObjectURL(inputState.currentImage);
-            aiState.generatedImages.forEach(url => URL.revokeObjectURL(url));
+            if (currentImage) URL.revokeObjectURL(currentImage);
+            generatedImages.forEach(url => URL.revokeObjectURL(url));
         };
-    }, [inputState.inputUrl, outputUrl, inputState.currentImage, aiState.generatedImages]);
+    }, [inputUrl, outputUrl, currentImage, generatedImages]);
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
         const url = URL.createObjectURL(file);
-        inputState.setInputImage(url, file);
+        setInputImage(url, file);
         setOutputImage(null);
         resetManipulationStates();
         saveToHistory();
@@ -78,11 +120,8 @@ export const AIImageEditor: React.FC = () => {
 
     const applyManipulation = useCallback(async (baseImage: string | null, operations: {
         crop?: { croppedAreaPixels: any, rotation: number },
-        resize?: { width: number | string, height: number | string },
         flipH?: boolean,
         flipV?: boolean,
-        filter?: string,
-        textOverlay?: { text: string, color: string, size: number, x: number, y: number }
     }) => {
         if (!baseImage) return null;
 
@@ -111,23 +150,6 @@ export const AIImageEditor: React.FC = () => {
                 currentHeight = croppedImageObj.naturalHeight;
             }
 
-            // Apply resizing
-            let targetWidth = currentWidth;
-            let targetHeight = currentHeight;
-            if (operations.resize) {
-                targetWidth = operations.resize.width === 'auto' ? currentWidth : Number(operations.resize.width);
-                targetHeight = operations.resize.height === 'auto' ? currentHeight : Number(operations.resize.height);
-                if (operations.resize.width === 'auto' && operations.resize.height !== 'auto') {
-                    targetWidth = (currentWidth / currentHeight) * targetHeight;
-                } else if (operations.resize.height === 'auto' && operations.resize.width !== 'auto') {
-                    targetHeight = (currentHeight / currentWidth) * targetWidth;
-                }
-            }
-            canvas.width = targetWidth;
-            canvas.height = targetHeight;
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
             // Apply flips
             ctx.save();
             if (operations.flipH) {
@@ -139,26 +161,11 @@ export const AIImageEditor: React.FC = () => {
                 ctx.scale(1, -1);
             }
 
-            ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
+            ctx.drawImage(image, 0, 0, currentWidth, currentHeight);
             ctx.restore();
 
-            // Apply filters
-            if (operations.filter && operations.filter !== 'none') {
-                ctx.filter = operations.filter;
-                ctx.drawImage(canvas, 0, 0);
-                ctx.filter = 'none';
-            }
-
-            // Apply text overlay
-            if (operations.textOverlay && operations.textOverlay.text) {
-                ctx.font = `${operations.textOverlay.size}px Arial`;
-                ctx.fillStyle = operations.textOverlay.color;
-                ctx.textAlign = 'left';
-                ctx.fillText(operations.textOverlay.text, operations.textOverlay.x, operations.textOverlay.y);
-            }
-
             const newUrl = canvas.toDataURL('image/png');
-            inputState.setCurrentImage(newUrl);
+            setCurrentImage(newUrl);
             return newUrl;
         } catch (err) {
             console.error("Image manipulation failed:", err);
@@ -167,38 +174,21 @@ export const AIImageEditor: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [setLoading, setCurrentImage]);
 
-    const handleRemoveBackground = async () => {
-        if (!inputBlob) {
-            toast({ variant: "destructive", title: "No image file selected." });
-            return;
-        }
-        setLoading(true);
-        try {
-            // Simple background removal simulation - just show the original image
-            // In a real implementation, you would use a service like remove.bg API
-            toast({ title: "Background Removal", description: "Background removal feature would be implemented with an external service." });
-            // For now, just keep the current image
-            inputState.setCurrentImage(currentImage);
-        } catch (err) {
-            console.error("Background removal failed:", err);
-            toast({ variant: "destructive", title: "Background removal failed", description: err instanceof Error ? err.message : String(err) });
-        }
-        setLoading(false);
-    };
 
-    const onCropComplete = useCallback((croppedArea: any, croppedAreaPixels: any) => {
-        manipulationState.setCroppedAreaPixels(croppedAreaPixels);
-    }, []);
+
+    const onCropComplete = useCallback((_: any, croppedAreaPixels: any) => {
+        setCroppedAreaPixels(croppedAreaPixels);
+    }, [setCroppedAreaPixels]);
 
     const handleCropImage = useCallback(async () => {
-        if (inputState.currentImage && manipulationState.croppedAreaPixels) {
+        if (currentImage && croppedAreaPixels) {
             setLoading(true);
             try {
-                const croppedImg = await getCroppedImg(inputState.currentImage, manipulationState.croppedAreaPixels, manipulationState.rotation);
-                inputState.setCurrentImage(croppedImg);
-                manipulationState.setIsCropping(false);
+                const croppedImg = await getCroppedImg(currentImage, croppedAreaPixels, rotation);
+                setCurrentImage(croppedImg);
+                setIsCropping(false);
             } catch (e) {
                 console.error(e);
                 toast({ variant: "destructive", title: "Error cropping image." });
@@ -206,25 +196,25 @@ export const AIImageEditor: React.FC = () => {
                 setLoading(false);
             }
         }
-    }, [currentImage, croppedAreaPixels, rotation]);
+    }, [currentImage, croppedAreaPixels, rotation, setLoading, setCurrentImage, setIsCropping]);
 
     const handleAddAsSource = useCallback(async (url: string, title: string, type: 'browser' | 'image') => {
-        if (!isConnected || !obsServiceInstance) {
-            toast(createToastError('Not Connected', 'Please connect to OBS first'));
+        if (!isConnected || !obsClientInstance) {
+            createToastError('Not Connected', 'Please connect to OBS first');
             return;
         }
         try {
             const sourceName = generateSourceName(title);
             if (type === 'browser') {
-                await (obsServiceInstance as ObsClient).addBrowserSource(currentProgramScene, url, sourceName, 640, 360);
+                await (obsClientInstance as ObsClient).addBrowserSource(currentProgramScene, url, sourceName, 640, 360);
             } else {
-                await (obsServiceInstance as ObsClient).addImageSource(currentProgramScene, url, sourceName);
+                await (obsClientInstance as ObsClient).addImageSource(currentProgramScene, url, sourceName);
             }
             toast({ title: 'Success', description: `Added "${title}" as ${type} source` });
         } catch (error: any) {
-            toast(createToastError('Failed to Add Source', handleAppError(`Adding ${type} source`, error)));
+            createToastError('Failed to Add Source', handleAppError(`Adding ${type} source`, error));
         }
-    }, [isConnected, obsServiceInstance, currentProgramScene]);
+    }, [isConnected, obsClientInstance, currentProgramScene]);
 
     const handleDownloadImage = useCallback(() => {
         if (currentImage) {
@@ -237,52 +227,29 @@ export const AIImageEditor: React.FC = () => {
         }
     }, [currentImage]);
 
-    const handleApplyFilter = useCallback(async (newFilter: string) => {
-        manipulationState.setFilter(newFilter);
-        await applyManipulation(inputState.currentImage, { filter: newFilter });
-    }, [currentImage, applyManipulation]);
 
-    const handleApplyResize = useCallback(async () => {
-        await applyManipulation(inputState.currentImage, { resize: { width: manipulationState.width, height: manipulationState.height } });
-    }, [inputState.currentImage, applyManipulation, manipulationState.width, manipulationState.height]);
 
-    const handleApplyFlip = useCallback(async (h: boolean, v: boolean) => {
-        manipulationState.setFlipH(h);
-        manipulationState.setFlipV(v);
-        await applyManipulation(inputState.currentImage, { flipH: h, flipV: v });
-    }, [currentImage, applyManipulation]);
 
-    const handleApplyTextOverlay = useCallback(async () => {
-        await applyManipulation(inputState.currentImage, { 
-            textOverlay: { 
-                text: manipulationState.textOverlay, 
-                color: manipulationState.textColor, 
-                size: manipulationState.textSize, 
-                x: manipulationState.textX, 
-                y: manipulationState.textY 
-            } 
-        });
-    }, [inputState.currentImage, applyManipulation, manipulationState.textOverlay, manipulationState.textColor, manipulationState.textSize, manipulationState.textX, manipulationState.textY]);
 
     const handleResetAll = useCallback(async () => {
-        inputState.setCurrentImage(inputState.inputUrl);
+        setCurrentImage(inputUrl || null);
         resetManipulationStates();
         toast({ title: "Reset", description: "All manipulations reset to original image." });
-    }, [inputState.inputUrl]);
+    }, [inputUrl, setCurrentImage, resetManipulationStates]);
 
     const handleRotate = useCallback(async (degrees: number) => {
-        const newRotation = (manipulationState.rotation + degrees) % 360;
-        manipulationState.updateRotation(newRotation);
-        if (manipulationState.isCropping) {
+        const newRotation = (rotation + degrees) % 360;
+        updateRotation(newRotation);
+        if (isCropping) {
             // If cropping, we need to apply the rotation
-            await applyManipulation(inputState.currentImage, { crop: { croppedAreaPixels: manipulationState.croppedAreaPixels, rotation: newRotation } });
+            await applyManipulation(currentImage, { crop: { croppedAreaPixels: croppedAreaPixels, rotation: newRotation } });
         }
-    }, [manipulationState.rotation, manipulationState.isCropping, inputState.currentImage, manipulationState.croppedAreaPixels, applyManipulation]);
+    }, [rotation, isCropping, currentImage, croppedAreaPixels, applyManipulation, updateRotation]);
 
     // AI Image Generation
     const handleGenerateImage = async () => {
-        if (!aiState.aiPrompt.trim()) {
-            aiState.setAiError('Please enter a prompt');
+        if (!aiPrompt.trim()) {
+            setAiError('Please enter a prompt');
             return;
         }
 
@@ -292,17 +259,12 @@ export const AIImageEditor: React.FC = () => {
         setGeneratedImages([]);
 
         try {
-            const imageInput = uploadedImages.length > 0 
-                ? { data: uploadedImages[0].data, mimeType: uploadedImages[0].mimeType } 
-                : undefined;
-
             const generatedImageUrls = await geminiService.generateImage(aiPrompt, {
                 model: aiModel,
                 numberOfImages,
                 outputMimeType: 'image/png',
                 aspectRatio,
                 personGeneration: 'allow_adult',
-                imageInput,
             });
 
             setGeneratedImages(generatedImageUrls);
@@ -316,100 +278,11 @@ export const AIImageEditor: React.FC = () => {
         }
     };
 
-    // AI Image Editing
-    const handleEditImageWithAI = async () => {
-        if (!aiPrompt.trim()) {
-            setAiError('Please enter an edit prompt');
-            return;
-        }
-
-        if (!currentImage) {
-            setAiError('Please upload an image to edit');
-            return;
-        }
-
-        // API key handled by backend proxy
-        setAiLoading(true);
-        setAiError(null);
-
-        try {
-            // Convert current image to base64 for editing
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            if (!ctx) throw new Error("Could not get canvas context");
-
-            const img = new Image();
-            img.src = currentImage;
-            await new Promise(resolve => img.onload = resolve);
-
-            canvas.width = img.naturalWidth;
-            canvas.height = img.naturalHeight;
-            ctx.drawImage(img, 0, 0);
-
-            const imageData = canvas.toDataURL('image/png');
-            const base64Data = imageData.split(',')[1];
-
-            const editedImageUrls = await geminiService.generateImage(aiPrompt, {
-                model: aiModel,
-                imageInput: { data: base64Data, mimeType: 'image/png' },
-            });
-
-            if (editedImageUrls.length > 0) {
-                setCurrentImage(editedImageUrls[0]);
-                toast({ title: "Success", description: "Image edited successfully with AI!" });
-            }
-        } catch (err: unknown) {
-            const errorMessage = handleAppError('AI Image editing', err);
-            setAiError(errorMessage);
-            toast({ variant: "destructive", title: "AI Edit Failed", description: errorMessage });
-        } finally {
-            setAiLoading(false);
-        }
-    };
-
-    const handleImageUpload = (file: File, base64: string) => {
-        const newUpload: ImageUploadResult = {
-            data: base64,
-            mimeType: file.type,
-            fileName: file.name,
-            size: file.size,
-            width: undefined,
-            height: undefined
-        };
-        setUploadedImage([newUpload]);
-    };
-
-    const handleClearImage = () => {
-        setUploadedImage([]);
-    };
-
-    const handleTemplateSelect = (template: any) => {
-        setAiPrompt(template.prompt);
-        setShowAiPanel(true);
-        // Apply template-specific settings
-        if (template.id === 'character-consistency') {
-            setCharacterConsistency(true);
-        } else if (template.id === 'multi-image-fusion') {
-            setMultiImageFusion(true);
-        } else if (template.id === 'world-knowledge') {
-            setWorldKnowledge(true);
-        }
-    };
-
-    // Check for SynthID watermarking
-    const checkSynthIDWatermark = async (imageData: string) => {
-        try {
-            // This would be implemented with actual SynthID detection logic
-            // For now, we'll just show a notification
-            toast({ 
-                title: "SynthID Check", 
-                description: "Image analyzed for AI-generated content markers.",
-                variant: "default"
-            });
-        } catch (error) {
-            console.log("SynthID watermarking check not available");
-        }
-    };
+    const handleApplyFlip = useCallback(async (h: boolean, v: boolean) => {
+        setFlipH(h);
+        setFlipV(v);
+        await applyManipulation(currentImage, { flipH: h, flipV: v });
+    }, [currentImage, applyManipulation, setFlipH, setFlipV]);
 
     return (
         <Card className="w-full rounded-lg border border-border shadow-sm">
@@ -446,29 +319,7 @@ export const AIImageEditor: React.FC = () => {
                                     <Wand2 className="w-4 h-4" /> AI Image Tools
                                 </h3>
 
-                                {/* AI Image Upload for Editing */}
-                                <div>
-                                    <label className="block text-xs font-medium mb-1">
-                                        {uploadedImages.length > 0 ? 'Input Image' : 'Upload Image (optional)'}
-                                    </label>
-                                    <ImageUpload
-                                        onImageSelect={handleImageUpload}
-                                        onClear={handleClearImage}
-                                        placeholder="Upload image for AI editing"
-                                        maxSizeMB={10}
-                                    />
-                                    {uploadedImages.length > 0 && (
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                            {uploadedImages[0].fileName} ({(uploadedImages[0].size / 1024 / 1024).toFixed(2)} MB)
-                                        </p>
-                                    )}
-                                </div>
 
-                                {/* Template Selection */}
-                                <div className="space-y-2">
-                                    <label className="block text-xs font-medium">Templates</label>
-                                    <ImageEditorTemplates onTemplateSelect={handleTemplateSelect} className="max-h-40 overflow-y-auto" />
-                                </div>
 
                                 {/* AI Prompt Input */}
                                 <TextInput
@@ -500,51 +351,7 @@ export const AIImageEditor: React.FC = () => {
                                     </Select>
                                 </div>
 
-                                {/* Advanced AI Options */}
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-2">
-                                        <label className="text-xs font-medium">Advanced Options</label>
-                                    </div>
-                                    
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <Button 
-                                            size="sm" 
-                                            onClick={() => setCharacterConsistency(!characterConsistency)}
-                                            variant={characterConsistency ? "default" : "outline"}
-                                            className="text-xs"
-                                        >
-                                            <Users className="w-3 h-3 mr-1" />
-                                            Characters
-                                        </Button>
-                                        <Button 
-                                            size="sm" 
-                                            onClick={() => setMultiImageFusion(!multiImageFusion)}
-                                            variant={multiImageFusion ? "default" : "outline"}
-                                            className="text-xs"
-                                        >
-                                            <Layers className="w-3 h-3 mr-1" />
-                                            Fusion
-                                        </Button>
-                                        <Button 
-                                            size="sm" 
-                                            onClick={() => setWorldKnowledge(!worldKnowledge)}
-                                            variant={worldKnowledge ? "default" : "outline"}
-                                            className="text-xs"
-                                        >
-                                            <Globe className="w-3 h-3 mr-1" />
-                                            Knowledge
-                                        </Button>
-                                        <Button 
-                                            size="sm" 
-                                            onClick={() => setShowGeneratedImages(!showGeneratedImages)}
-                                            variant={showGeneratedImages ? "default" : "outline"}
-                                            className="text-xs"
-                                        >
-                                            <ImageIcon className="w-3 h-3 mr-1" />
-                                            Gallery
-                                        </Button>
-                                    </div>
-                                </div>
+
 
                                 {/* AI Generation Controls */}
                                 <div className="space-y-2">
@@ -586,13 +393,13 @@ export const AIImageEditor: React.FC = () => {
                                     )}
 
                                     <Button 
-                                        onClick={currentImage ? handleEditImageWithAI : handleGenerateImage}
+                                        onClick={handleGenerateImage}
                                         disabled={aiLoading || !aiPrompt}
                                         className="w-full text-xs"
                                         size="sm"
                                     >
                                         <Sparkles className="w-3 h-3 mr-1" />
-                                        {aiLoading ? 'Processing...' : (currentImage ? 'Edit with AI' : 'Generate Image')}
+                                        {aiLoading ? 'Processing...' : 'Generate Image'}
                                     </Button>
                                 </div>
 
@@ -606,17 +413,7 @@ export const AIImageEditor: React.FC = () => {
                             {/* Quick Actions */}
                             <div className="space-y-3">
                                 <h3 className="text-sm font-semibold text-foreground">Quick Actions</h3>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <Button
-                                        size="sm"
-                                        onClick={handleRemoveBackground}
-                                        disabled={loading}
-                                        className="w-full"
-                                        variant="secondary"
-                                    >
-                                        <Scissors className="w-4 h-4 mr-2" />
-                                        Remove BG
-                                    </Button>
+                                <div className="grid grid-cols-1 gap-2">
                                     <Button
                                         size="sm"
                                         onClick={handleResetAll}
@@ -649,7 +446,7 @@ export const AIImageEditor: React.FC = () => {
                                         <div className="space-y-3">
                                             <div>
                                                 <label className="text-xs text-muted-foreground mb-1 block">Aspect Ratio</label>
-                                                <Select value={aspect?.toString() || 'original'} onValueChange={(val) => setAspect(val === 'original' ? undefined : Number(val))}>
+                                                <Select value={aspect?.toString() || 'original'} onValueChange={(val) => updateAspect(val === 'original' ? undefined : Number(val))}>
                                                     <SelectTrigger className="w-full text-xs">
                                                         <SelectValue placeholder="Aspect Ratio" />
                                                     </SelectTrigger>
@@ -669,31 +466,7 @@ export const AIImageEditor: React.FC = () => {
                                     )}
                                 </div>
 
-                                {/* Resize */}
-                                <div className="space-y-2">
-                                    <label className="text-xs text-muted-foreground">Resize</label>
-                                    <div className="flex gap-2">
-                                        <TextInput
-                                            value={width}
-                                            onChange={(e) => setWidth(e.target.value)}
-                                            placeholder="W"
-                                            type="number"
-                                            className="w-full text-xs"
-                                            size="sm"
-                                        />
-                                        <TextInput
-                                            value={height}
-                                            onChange={(e) => setHeight(e.target.value)}
-                                            placeholder="H"
-                                            type="number"
-                                            className="w-full text-xs"
-                                            size="sm"
-                                        />
-                                    </div>
-                                    <Button size="sm" onClick={handleApplyResize} disabled={loading} className="w-full">
-                                        Apply Resize
-                                    </Button>
-                                </div>
+
 
                                 {/* Rotate & Flip */}
                                 <div className="space-y-2">
@@ -712,85 +485,9 @@ export const AIImageEditor: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Filters */}
-                            <div className="space-y-3">
-                                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                                    <Filter className="w-4 h-4" /> Filters
-                                </h3>
-                                <Select value={filter} onValueChange={handleApplyFilter}>
-                                    <SelectTrigger className="w-full text-xs">
-                                        <SelectValue placeholder="Select Filter" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="none">None</SelectItem>
-                                        <SelectItem value="grayscale(100%)">Grayscale</SelectItem>
-                                        <SelectItem value="sepia(100%)">Sepia</SelectItem>
-                                        <SelectItem value="blur(3px)">Blur</SelectItem>
-                                        <SelectItem value="invert(100%)">Invert</SelectItem>
-                                        <SelectItem value="contrast(150%)">High Contrast</SelectItem>
-                                        <SelectItem value="brightness(150%)">Brightness</SelectItem>
-                                        <SelectItem value="saturate(200%)">Saturate</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
 
-                            {/* Text Overlay */}
-                            <div className="space-y-3">
-                                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                                    <Text className="w-4 h-4" /> Text Overlay
-                                </h3>
-                                <TextInput
-                                    value={textOverlay}
-                                    onChange={(e) => setTextOverlay(e.target.value)}
-                                    placeholder="Enter text..."
-                                    className="w-full text-xs"
-                                    size="sm"
-                                />
-                                <div className="grid grid-cols-2 gap-2">
-                                    <TextInput
-                                        label="Size"
-                                        value={textSize}
-                                        onChange={(e) => setTextSize(Number(e.target.value))}
-                                        type="number"
-                                        className="w-full text-xs"
-                                        size="sm"
-                                    />
-                                    <TextInput
-                                        label="X Pos"
-                                        value={textX}
-                                        onChange={(e) => setTextX(Number(e.target.value))}
-                                        type="number"
-                                        className="w-full text-xs"
-                                        size="sm"
-                                    />
-                                    <TextInput
-                                        label="Y Pos"
-                                        value={textY}
-                                        onChange={(e) => setTextY(Number(e.target.value))}
-                                        type="number"
-                                        className="w-full text-xs"
-                                        size="sm"
-                                    />
-                                    <div>
-                                        <label className="text-xs text-muted-foreground mb-1 block">Color</label>
-                                        <input
-                                            type="color"
-                                            value={textColor}
-                                            onChange={(e) => setTextColor(e.target.value)}
-                                            className="w-full h-8 rounded-md border border-input"
-                                            title="Text Color"
-                                        />
-                                    </div>
-                                </div>
-                                <Button 
-                                    size="sm" 
-                                    onClick={handleApplyTextOverlay} 
-                                    disabled={loading || !textOverlay}
-                                    className="w-full"
-                                >
-                                    Apply Text
-                                </Button>
-                            </div>
+
+
                         </>
                     )}
                 </div>
@@ -882,9 +579,9 @@ export const AIImageEditor: React.FC = () => {
                                         zoom={zoom}
                                         rotation={rotation}
                                         aspect={aspect}
-                                        onCropChange={setCrop}
-                                        onZoomChange={setZoom}
-                                        onRotationChange={setRotation}
+                                        onCropChange={updateCrop}
+                                        onZoomChange={updateZoom}
+                                        onRotationChange={updateRotation}
                                         onCropComplete={onCropComplete}
                                         showGrid={true}
                                         restrictPosition={false}

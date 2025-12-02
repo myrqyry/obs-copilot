@@ -95,11 +95,10 @@ export const useGeminiChat = (
     handleStreamerBotActionWithDataParts,
     buildObsSystemMessage,
   } = useObsActions({
-    obsService: obs,
     obsData,
     onRefreshData: onRefreshData || (() => Promise.resolve()),
     setErrorMessage,
-    emitDataPart,
+    emitDataPart, // Keep emitDataPart here as it's a dependency of useObsActions
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
