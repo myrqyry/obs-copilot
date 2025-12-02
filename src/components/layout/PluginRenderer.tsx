@@ -2,12 +2,11 @@ import React, { Suspense } from 'react';
 import PluginErrorBoundary from '@/components/common/PluginErrorBoundary';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { Plugin } from '@/types/plugin';
+import { useAppLayout } from '@/hooks/useAppLayout';
 import { AlertTriangle } from 'lucide-react';
 
 interface PluginRendererProps {
     plugin: Plugin | undefined;
-    activeTab: string;
-    setActiveTab: (tabId: string) => void;  // Required now
 }
 
 const PluginNotFound: React.FC<{ tabId: string; onRecover: () => void }> = ({ tabId, onRecover }) => (
@@ -40,7 +39,9 @@ const PluginConfigError: React.FC<{ tabId: string; onRecover: () => void }> = ({
     </div>
 );
 
-export const PluginRenderer: React.FC<PluginRendererProps> = ({ plugin, activeTab, setActiveTab }) => {
+export const PluginRenderer: React.FC<PluginRendererProps> = ({ plugin }) => {
+    const { activeTab, setActiveTab } = useAppLayout();
+
     const handleRecover = () => {
         setActiveTab('dashboard');
     };

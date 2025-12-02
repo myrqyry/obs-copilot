@@ -5,6 +5,7 @@ import { useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { Plugin } from '@/types/plugin';
 import { useAnimatedTabs } from '@/hooks/useAnimatedTabs';
+import { useAppLayout } from '@/hooks/useAppLayout';
 import useConfigStore from '@/store/configStore';
 import {
     DndContext,
@@ -317,16 +318,15 @@ const SortableTab: React.FC<SortableTabProps> = (props: SortableTabProps) => {
 };
 
 interface TabNavigationProps {
-    activeTab: string;
-    setActiveTab: (tabId: string) => void;
     tabs: Plugin[];
 }
 
 export const TabNavigation: React.FC<TabNavigationProps> = ({
-    activeTab,
-    setActiveTab,
     tabs,
 }: TabNavigationProps) => {
+    // Use the global layout store directly to avoid prop drilling
+    const { activeTab, setActiveTab } = useAppLayout();
+
     // connection status selectors removed — icon coloring handled inside individual tab components if needed
 
     const { tabBarRef, registerTab, handleTabClick } = useAnimatedTabs(activeTab);
