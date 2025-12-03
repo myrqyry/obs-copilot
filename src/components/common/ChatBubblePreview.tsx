@@ -31,6 +31,7 @@ function hexToRgba(hex: string, alpha: number) {
     return `rgba(${r},${g},${b},${alpha})`;
 }
 
+// Memoized for performance
 export const ChatBubblePreview = React.memo(
     ({
         userColor,
