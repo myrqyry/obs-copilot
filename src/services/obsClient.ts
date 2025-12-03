@@ -1,9 +1,9 @@
 import OBSWebSocket from 'obs-websocket-js';
-import { backoff } from '@/lib/utils';
+
 import { logger } from '@/utils/logger';
 import { handleAppError } from '@/lib/errorUtils';
 import useUiStore from '@/store/uiStore';
-import { useHealthMonitor } from '@/store/healthMonitorStore';
+
 import { useSettingsStore } from '@/store/settingsStore';
 
 import type { UniversalWidgetConfig } from '@/types/universalWidget';
@@ -96,7 +96,7 @@ export class ObsClientImpl {
   private connectOptions: { address: string; password?: string | undefined } | null = null;
   private statusListeners: Set<(status: ConnectionStatus) => void> = new Set();
   private reconnectTimeout: NodeJS.Timeout | null = null;
-  private connectionLock = false;
+
   private connectionPromise: Promise<void> | null = null;
   private isConnecting = false;
   private stateCache: Map<string, { state: any; timestamp: number }> = new Map();
@@ -219,17 +219,17 @@ export class ObsClientImpl {
     this.retryCount = 0;
     this.cleanupReconnectTimeout();
     this.setStatus('connected');
-    useHealthMonitor.getState().setServiceStatus('obs', 'connected');
+
     this.processCommandQueue();
   }
 
   private _onConnectionClosed(data: { code: number }) {
-    useHealthMonitor.getState().setServiceStatus('obs', 'disconnected');
+
 
     if (data.code === 4009) {
       logger.error('[OBS] Connection failed: Invalid password.');
       this.setStatus('error', 'Invalid password');
-      useHealthMonitor.getState().setServiceStatus('obs', 'error', 'Invalid password');
+
       this.connectOptions = null;
       const errorMsg = 'Invalid OBS password. Please update your connection settings.';
       this.rejectStaleCommands(errorMsg);
@@ -252,10 +252,10 @@ export class ObsClientImpl {
   private _onConnectionError(err: any) {
     logger.error('[OBS] Connection error:', err);
     const errorMessage = err instanceof Error ? err.message : String(err);
-    useHealthMonitor.getState().setServiceStatus('obs', 'error', errorMessage);
+
 
     if (this.status !== 'reconnecting') {
-      this.setStatus('reconnecting', 'Connection error');
+      this.setStatus('reconnecting', errorMessage);
 
       // Only auto-reconnect if enabled in settings
       const settings = useSettingsStore.getState().settings;
@@ -305,7 +305,7 @@ export class ObsClientImpl {
     const delay = baseDelay + jitter;
 
     logger.info(`[OBS] Reconnecting in ${delay.toFixed(0)}ms (attempt ${this.retryCount}/${MAX_RETRY_ATTEMPTS})`);
-    useHealthMonitor.getState().setServiceStatus('obs', 'connecting');
+
 
     this.cleanupReconnectTimeout();
     this.reconnectTimeout = setTimeout(async () => {
@@ -340,7 +340,7 @@ export class ObsClientImpl {
       try {
         this.connectOptions = { address: wsUrl, password };
         this.setStatus('connecting');
-        useHealthMonitor.getState().setServiceStatus('obs', 'connecting');
+
 
         this.setupEventListeners();
 
@@ -354,7 +354,7 @@ export class ObsClientImpl {
         const errorMsg = handleAppError('OBS connection', error, `Failed to connect to OBS at ${wsUrl}`);
         useUiStore.getState().addError({ message: errorMsg, source: 'obsClient', level: 'critical' });
         this.setStatus('reconnecting');
-        useHealthMonitor.getState().setServiceStatus('obs', 'error', errorMsg);
+
 
         // Only auto-reconnect if enabled in settings
         const settings = useSettingsStore.getState().settings;
@@ -382,7 +382,7 @@ export class ObsClientImpl {
 
     if (this.status !== 'disconnected') {
       this.setStatus('disconnected');
-      useHealthMonitor.getState().setServiceStatus('obs', 'disconnected');
+
       try {
         await this.obs.disconnect();
       } catch { /* Ignore errors on disconnect */ }
@@ -570,7 +570,7 @@ export class ObsClientImpl {
 
   // --- Convenience Methods (Direct Calls) ---
   getSceneList() {
-    return this.call<{ scenes: { sceneName: string }[] }>('GetSceneList');
+    return this.call<{ scenes: { sceneName: string; sceneIndex: number }[] }>('GetSceneList');
   }
 
   getCurrentProgramScene() {
@@ -605,9 +605,9 @@ export class ObsClientImpl {
         // the value should be passed in a generic `value` parameter.
         params.value = value;
       }
-      await this.call(config.action.requestType, params);
+      await this.call(config.actionType, params);
     } catch (error) {
-      const errorMsg = handleAppError(`OBS widget action ${config.action.requestType}`, error, `Failed to execute OBS widget action: ${config.action.requestType}`);
+      const errorMsg = handleAppError(`OBS widget action ${config.actionType}`, error, `Failed to execute OBS widget action: ${config.actionType}`);
       useUiStore.getState().addError({ message: errorMsg, source: 'obsClient', level: 'error' });
       throw new ObsError(errorMsg);
     }

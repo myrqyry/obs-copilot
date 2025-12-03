@@ -66,7 +66,7 @@ export interface ObsConnectionState {
   resetSettings: () => void;
 }
 
-export const createObsConnectionSlice: StateCreator<ObsConnectionState, [], [], ObsConnectionState> = (set, get) => {
+export const createObsConnectionSlice: StateCreator<ObsConnectionState, [], [], ObsConnectionState> = (set) => {
   const obsClient = connectionManager.getObsConnection('default')!;
   const obsCleanupFunctions: (() => void)[] = [];
 
@@ -175,7 +175,7 @@ export const createObsConnectionSlice: StateCreator<ObsConnectionState, [], [], 
         await obsClient.connect(sanitized, password);
       } catch (error) {
         const appError = errorHandler.handle(error, 'Unable to connect to OBS Studio');
-        set({ obsStatus: 'error', connectionError: appError.userMessage });
+        set({ obsStatus: 'error', connectionError: appError.userMessage || null });
 
         toast({
           title: "Connection Failed",

@@ -1,15 +1,13 @@
 import { useEffect } from 'react';
-import { useHealthMonitor } from '@/store/healthMonitorStore';
+import { useConnectionsStore } from '@/store/connections';
 import { toast } from 'sonner';
 
 export const useConnectionNotifications = () => {
-    const { services } = useHealthMonitor();
-
     useEffect(() => {
-        const unsubscribe = useHealthMonitor.subscribe((state, prevState) => {
+        const unsubscribe = useConnectionsStore.subscribe((state, prevState) => {
             // OBS connection changes
-            if (state.services.obs.status !== prevState.services.obs.status) {
-                switch (state.services.obs.status) {
+            if (state.obsStatus !== prevState.obsStatus) {
+                switch (state.obsStatus) {
                     case 'connected':
                         toast.success('OBS Connected', {
                             description: 'Successfully connected to OBS WebSocket'
@@ -17,7 +15,7 @@ export const useConnectionNotifications = () => {
                         break;
                     case 'disconnected':
                         // Only show if previously connected (avoid initial disconnected spam)
-                        if (prevState.services.obs.status === 'connected') {
+                        if (prevState.obsStatus === 'connected') {
                             toast.warning('OBS Disconnected', {
                                 description: 'Connection to OBS was lost'
                             });
@@ -25,29 +23,29 @@ export const useConnectionNotifications = () => {
                         break;
                     case 'error':
                         toast.error('OBS Connection Error', {
-                            description: state.services.obs.error || 'Failed to connect to OBS'
+                            description: state.connectionError || 'Failed to connect to OBS'
                         });
                         break;
                 }
             }
 
             // Backend connection changes
-            if (state.services.backend.status !== prevState.services.backend.status) {
-                switch (state.services.backend.status) {
+            if (state.backendStatus !== prevState.backendStatus) {
+                switch (state.backendStatus) {
                     case 'connected':
-                        if (prevState.services.backend.status !== 'connected') {
+                        if (prevState.backendStatus !== 'connected') {
                              toast.success('Backend API Connected');
                         }
                         break;
                     case 'disconnected':
-                         if (prevState.services.backend.status === 'connected') {
+                         if (prevState.backendStatus === 'connected') {
                             toast.warning('Backend API Disconnected');
                          }
                         break;
                     case 'error':
-                         if (prevState.services.backend.status !== 'error') {
+                         if (prevState.backendStatus !== 'error') {
                             toast.error('Backend API Error', {
-                                description: state.services.backend.error || 'Failed to reach backend'
+                                description: state.backendError || 'Failed to reach backend'
                             });
                          }
                         break;
