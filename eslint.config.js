@@ -26,6 +26,7 @@ export default tseslint.config(
       ...pluginReactHooks.configs.recommended.rules,
       ...eslintConfigPrettier.rules,
       "react/react-in-jsx-scope": "off",
+      "react/prop-types": "off",
       // Disable type-aware rules for all files by default
       "@typescript-eslint/explicit-module-boundary-types": "off",
       "@typescript-eslint/no-unsafe-assignment": "off",

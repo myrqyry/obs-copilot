@@ -9,7 +9,9 @@ export interface ColorChooserProps {
   onChange: (color: string) => void;
 }
 
-export const ColorChooser: React.FC<ColorChooserProps> = ({
+import { cn } from '@/lib/utils';
+
+export const ColorChooser = React.memo<ColorChooserProps>(({
   label,
   colorsHexMap,
   selectedColorName,
@@ -22,28 +24,50 @@ export const ColorChooser: React.FC<ColorChooserProps> = ({
       <div className="flex flex-wrap gap-1.5">
         {Object.keys(colorsHexMap).map((colorNameIter) => {
           if (!colorNameTypeGuard(colorNameIter)) return null;
-          const hex = colorsHexMap[colorNameIter];
+          const hex = colorsHexMap[colorNameIter] || '';
           const isSelected = selectedColorName === colorNameIter;
           return (
-            <button
+            <ColorSwatch
               key={colorNameIter}
+              name={colorNameIter}
+              hex={hex}
+              isSelected={isSelected}
               onClick={() => onChange(colorNameIter)}
-              className={`w-5 h-5 rounded-full border-2 transition-all duration-150 focus:outline-none ${
-                isSelected ? 'ring-2 ring-offset-2 ring-offset-background border-border' : 'border-border hover:border-muted-foreground'
-              }`}
-              style={{
-                // force the swatch background to the exact color and avoid any background-image
-                backgroundColor: hex,
-                backgroundImage: 'none',
-                mixBlendMode: 'normal',
-                borderColor: isSelected ? hex : undefined,
-              }}
-              aria-label={`Select ${colorNameIter} for ${label}`}
-              title={colorNameIter}
+              label={label}
             />
           );
         })}
       </div>
     </div>
   );
-};
+});
+
+ColorChooser.displayName = 'ColorChooser';
+
+const ColorSwatch = React.memo<{
+  name: string;
+  hex: string;
+  isSelected: boolean;
+  onClick: () => void;
+  label: string;
+}>(({ name, hex, isSelected, onClick, label }) => {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "w-5 h-5 rounded-full border-2 transition-all duration-150 focus:outline-none",
+        isSelected ? 'ring-2 ring-offset-2 ring-offset-background border-border' : 'border-border hover:border-muted-foreground'
+      )}
+      style={{
+        // force the swatch background to the exact color and avoid any background-image
+        backgroundColor: hex,
+        backgroundImage: 'none',
+        mixBlendMode: 'normal',
+        borderColor: isSelected ? hex : undefined,
+      }}
+      aria-label={`Select ${name} for ${label}`}
+      title={name}
+    />
+  );
+});
+ColorSwatch.displayName = 'ColorSwatch';

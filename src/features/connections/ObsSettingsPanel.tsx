@@ -8,7 +8,8 @@ import useConnectionsStore from '@/store/connections';
 
 const ObsSettingsPanel: React.FC = () => {
     const { obsUrl, obsPassword, setObsUrl, setObsPassword } = useConfigStore();
-    const { isConnected, connectToObs, disconnectFromObs } = useConnectionsStore();
+    const { obsStatus, connectToObs, disconnectFromObs } = useConnectionsStore();
+    const isConnected = obsStatus === 'connected';
 
     const handleConnect = () => {
         connectToObs(obsUrl, obsPassword);

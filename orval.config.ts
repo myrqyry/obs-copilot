@@ -8,7 +8,7 @@ export default defineConfig({
       target: 'src/api/generated',
       schemas: 'src/api/model',
       client: 'react-query',
-      mock: false,
+      mock: true,
       baseUrl: 'http://localhost:8000',
     },
   },

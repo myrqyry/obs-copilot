@@ -3,8 +3,9 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { createObsConnectionSlice, ObsConnectionState } from './obsConnectionStore';
 import { createStreamerBotConnectionSlice, StreamerBotConnectionState } from './streamerBotConnectionStore';
 import { createConnectionProfilesSlice, ConnectionProfilesState } from './connectionProfilesStore';
+import { createBackendConnectionSlice, BackendConnectionState } from './backendConnectionStore';
 
-type CombinedState = ObsConnectionState & StreamerBotConnectionState & ConnectionProfilesState;
+type CombinedState = ObsConnectionState & StreamerBotConnectionState & ConnectionProfilesState & BackendConnectionState;
 
 export const useConnectionsStore = create<CombinedState>()(
   persist(
@@ -12,6 +13,7 @@ export const useConnectionsStore = create<CombinedState>()(
       ...createObsConnectionSlice(...args),
       ...createStreamerBotConnectionSlice(...args),
       ...createConnectionProfilesSlice(...args),
+      ...createBackendConnectionSlice(...args),
     }),
     {
       name: 'connection-profiles-storage',
@@ -28,7 +30,7 @@ export const useConnectionsStore = create<CombinedState>()(
 export const createConnectionSelectors = () => ({
   obsStatus: (state: CombinedState) => state.obsStatus,
   isConnected: (state: CombinedState) => state.obsStatus === 'connected',
-  isLoading: (state: CombinedState) => state.obsStatus === 'connecting' || state.obsStatus === 'reconnecting',
+  isLoading: (state: CombinedState) => state.obsStatus === 'connecting' || state.obsStatus === 'reconnecting', // Note: reconnecting is not in ConnectionStatus type in obsClient, but used in UI
   connectionError: (state: CombinedState) => state.connectionError,
   scenes: (state: CombinedState) => state.scenes,
   currentProgramScene: (state: CombinedState) => state.currentProgramScene,
@@ -40,6 +42,9 @@ export const createConnectionSelectors = () => ({
   streamerBotConnectionError: (state: CombinedState) => state.streamerBotConnectionError,
   activeConnectionId: (state: CombinedState) => state.activeConnectionId,
   connectionProfiles: (state: CombinedState) => state.connectionProfiles,
+  backendStatus: (state: CombinedState) => state.backendStatus,
+  backendError: (state: CombinedState) => state.backendError,
+  backendLastChecked: (state: CombinedState) => state.backendLastChecked,
 });
 
 export default useConnectionsStore;
