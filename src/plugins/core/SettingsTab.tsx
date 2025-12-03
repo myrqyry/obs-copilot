@@ -48,11 +48,11 @@ const ThemeColorsSection = React.memo(() => {
 
     const handlePrimaryColorChange = useCallback((color: string) => {
         themeState.setAccent(color as CatppuccinAccentColorName);
-    }, [themeState]);
+    }, [themeState.setAccent]);
 
     const handleSecondaryColorChange = useCallback((color: string) => {
         themeState.setSecondaryAccent(color as CatppuccinAccentColorName);
-    }, [themeState]);
+    }, [themeState.setSecondaryAccent]);
 
     return (
         <CollapsibleCard 
@@ -190,11 +190,11 @@ const ChatBubblesSection = React.memo(() => {
 
     const handleUserChatBubbleChange = useCallback((color: string) => {
         themeState.setUserChatBubble(color);
-    }, [themeState]);
+    }, [themeState.setUserChatBubble]);
 
     const handleModelChatBubbleChange = useCallback((color: string) => {
         themeState.setModelChatBubble(color);
-    }, [themeState]);
+    }, [themeState.setModelChatBubble]);
 
     // ✅ OPTIMIZATION 2: Debounce slider
     const debouncedOpacityChange = useDebouncedCallback(

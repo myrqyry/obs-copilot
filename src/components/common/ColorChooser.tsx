@@ -11,6 +11,7 @@ export interface ColorChooserProps {
 
 import { cn } from '@/lib/utils';
 
+// Memoized for performance
 export const ColorChooser = React.memo<ColorChooserProps>(({
   label,
   colorsHexMap,
