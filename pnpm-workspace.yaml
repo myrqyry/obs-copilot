@@ -1,4 +1,7 @@
 packages:
-  - 'frontend'
-  - 'shared'
-  - 'backend'
+  - frontend
+  - shared
+  - backend
+
+onlyBuiltDependencies:
+  - esbuild

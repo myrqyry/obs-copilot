@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { healthService, HealthReport, ServiceStatus } from '@/services/healthService';
-export type { HealthReport, ServiceStatus };
 import { logger } from '@/utils/logger';
+
+export type { HealthReport, ServiceStatus };
 
 export interface HealthCheckResult {
   reports: HealthReport[];
@@ -11,53 +13,38 @@ export interface HealthCheckResult {
   refreshHealth: () => Promise<void>;
 }
 
+const calculateOverallStatus = (currentReports: HealthReport[]): ServiceStatus => {
+  const statuses = currentReports.map(r => r.status);
+  if (statuses.includes('critical')) return 'critical';
+  if (statuses.includes('degraded')) return 'degraded';
+  if (statuses.includes('unknown')) return 'unknown';
+  return 'healthy';
+};
+
 export const useHealthStatus = (): HealthCheckResult => {
-  const [reports, setReports] = useState<HealthReport[]>([]);
-  const [overallStatus, setOverallStatus] = useState<ServiceStatus>('unknown');
-  const [lastChecked, setLastChecked] = useState<number>(Date.now());
-  const [isChecking, setIsChecking] = useState<boolean>(true);
+  const { data: reports = [], isLoading, refetch, dataUpdatedAt } = useQuery({
+    queryKey: ['health'],
+    queryFn: async () => {
+      logger.info('[useHealthStatus] Refreshing health...');
+      const result = await healthService.runChecks();
+      logger.info('[useHealthStatus] Health refreshed.');
+      return result;
+    },
+    refetchInterval: 30000,
+    refetchOnWindowFocus: true,
+  });
 
-  const calculateOverallStatus = (currentReports: HealthReport[]): ServiceStatus => {
-    const statuses = currentReports.map(r => r.status);
-    if (statuses.includes('critical')) return 'critical';
-    if (statuses.includes('degraded')) return 'degraded';
-    if (statuses.includes('unknown')) return 'unknown';
-    return 'healthy';
-  };
+  const overallStatus = calculateOverallStatus(reports);
 
-  const refreshHealth = useCallback(async (): Promise<void> => {
-    setIsChecking(true);
-    logger.info('[useHealthStatus] Refreshing health...');
-    const newReports = await healthService.runChecks();
-    setReports(newReports);
-    setOverallStatus(calculateOverallStatus(newReports));
-    setLastChecked(Date.now());
-    setIsChecking(false);
-    logger.info('[useHealthStatus] Health refreshed.');
-  }, []);
-
-  useEffect(() => {
-    refreshHealth(); // Initial check
-
-    healthService.startMonitoring();
-    const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        refreshHealth();
-      }
-    };
-    document.addEventListener('visibilitychange', onVisibilityChange);
-
-    return () => {
-      healthService.stopMonitoring();
-      document.removeEventListener('visibilitychange', onVisibilityChange);
-    };
-  }, [refreshHealth]);
+  const refreshHealth = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
 
   return {
     reports,
     overallStatus,
-    lastChecked,
-    isChecking,
+    lastChecked: dataUpdatedAt,
+    isChecking: isLoading,
     refreshHealth,
   };
 };

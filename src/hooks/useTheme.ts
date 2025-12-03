@@ -104,15 +104,15 @@ export const useTheme = () => {
         }
         
         if (!availableColors.includes(themeSettings.userChatBubble)) {
-           if (themeSettings.userChatBubble !== availableColors[0]) {
-             setUserChatBubble(availableColors[0]);
+           if (availableColors[0] && themeSettings.userChatBubble !== availableColors[0]) {
+             setUserChatBubble(availableColors[0] as CatppuccinAccentColorName);
            }
         }
         
         if (!availableColors.includes(themeSettings.modelChatBubble)) {
            const newModel = availableColors[1] || availableColors[0];
-           if (themeSettings.modelChatBubble !== newModel) {
-             setModelChatBubble(newModel);
+           if (newModel && themeSettings.modelChatBubble !== newModel) {
+             setModelChatBubble(newModel as CatppuccinAccentColorName);
            }
         }
       }
@@ -123,9 +123,8 @@ export const useTheme = () => {
     themeSettings.secondaryAccent, 
     themeSettings.userChatBubble, 
     themeSettings.modelChatBubble,
-    // Removing effectiveBase/isSystemDark from dependencies if they only affect currentTheme
-    // currentTheme already depends on them via themeName
     applyThemeToDom,
+    // Stable setters from zustand don't need to be in dependency array, but including them is fine
     setAccent,
     setSecondaryAccent,
     setUserChatBubble,

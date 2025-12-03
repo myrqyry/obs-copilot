@@ -19,7 +19,6 @@ const App: React.FC = () => {
     const plugins = usePlugins();
     const { 
         activeTab, 
-        setActiveTab, 
         layoutClasses, 
         getContentOrderClass 
     } = useAppLayout();
@@ -47,22 +46,18 @@ const App: React.FC = () => {
                     <div className={layoutClasses.container}>
                         <Header headerRef={headerRef} />
                         <TabNavigation
-                            activeTab={activeTab}
-                            setActiveTab={setActiveTab}
                             tabs={plugins}
                         />
                         <div className="flex flex-grow overflow-hidden">
                             <div className={`${layoutClasses.content} ${getContentOrderClass()}`}>
                                 <PluginRenderer 
                                     plugin={activePlugin} 
-                                    activeTab={activeTab}
-                                    setActiveTab={setActiveTab}
                                 />
                             </div>
                         </div>
                         <ConfirmationDialog />
                         <GlobalErrorDisplay />
-                        <Toaster theme={useTheme().theme?.mode || 'system'} richColors position="bottom-right" />
+                        <Toaster theme={useTheme().theme?.type || 'system'} richColors position="bottom-right" />
                     </div>
                 </AppInitializer>
             </TooltipProvider>

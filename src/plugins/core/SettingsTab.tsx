@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/Button';
@@ -98,9 +98,12 @@ const SettingsTab: React.FC = () => {
     const [openPlugins, setOpenPlugins] = useState(true);
 
     // Type guard for available accent colors in current theme
+    // Memoize with JSON.stringify of keys to ensure stability even if theme object reference changes
+    const themeAccentKeys = useMemo(() => Object.keys(theme?.accentColors || {}).sort().join(','), [theme?.accentColors]);
+    
     const isValidAccentColor = useCallback((name: string): name is CatppuccinAccentColorName => {
-        return Object.keys(theme?.accentColors || {}).includes(name);
-    }, [theme]);
+        return themeAccentKeys.includes(name);
+    }, [themeAccentKeys]);
 
     const handlePrimaryColorChange = useCallback((color: string) => {
         themeState.setAccent(color as CatppuccinAccentColorName);
