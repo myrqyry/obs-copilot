@@ -19,7 +19,6 @@ interface ChatBubblePreviewProps {
 }
 
 // Helper to convert hex to rgba
-// Helper to convert hex to rgba
 function hexToRgba(hex: string, alpha: number) {
     if (!hex) return `rgba(137, 220, 235, ${alpha})`; // fallback rgba
     let c = hex.replace('#', '');
@@ -49,8 +48,9 @@ export const ChatBubblePreview: React.FC<ChatBubblePreviewProps> = ({
     const systemRef = useRef<HTMLDivElement | null>(null);
     
     // Resolve color names to hex values
-    const userHex = theme?.accentColors?.[userColor] || '#89dceb'; // fallback to sky
-    const modelHex = theme?.accentColors?.[modelColor] || '#cba6f7'; // fallback to mauve
+    // Memoizing these lookups to prevent unnecessary re-runs if other props change but colors/theme don't
+    const userHex = useMemo(() => theme?.accentColors?.[userColor] || '#89dceb', [theme, userColor]);
+    const modelHex = useMemo(() => theme?.accentColors?.[modelColor] || '#cba6f7', [theme, modelColor]);
     
     // Should we apply glass effect?
     const shouldUseGlassEffect = !!customBackground && bubbleFillOpacity < 1;
@@ -101,6 +101,18 @@ export const ChatBubblePreview: React.FC<ChatBubblePreviewProps> = ({
 
     const glassEffectClass = shouldUseGlassEffect ? (extraDarkMode ? 'chat-bubble-glass-extra-dark' : 'chat-bubble-glass') : '';
 
+    // Optimized background style for the preview container
+    const backgroundStyle = useMemo(() => {
+        if (!customBackground) return {};
+
+        return {
+            backgroundImage: `url(${customBackground})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
+        };
+    }, [customBackground]);
+
     // animate swap when flipSides toggles using GSAP (transform-only)
     useEffect(() => {
         if (!userRef.current || !modelRef.current || !systemRef.current) return;
@@ -129,7 +141,7 @@ export const ChatBubblePreview: React.FC<ChatBubblePreviewProps> = ({
     }, [flipSides, userRef, modelRef, systemRef]);
 
     return (
-        <div ref={containerRef} className="flex flex-col items-stretch justify-center w-full py-3 px-3 rounded-lg border border-border bg-background/60 relative overflow-hidden">
+        <div ref={containerRef} className="flex flex-col items-stretch justify-center w-full py-3 px-3 rounded-lg border border-border bg-background/60 relative overflow-hidden" style={backgroundStyle}>
             {/* Constrain inner area so bubbles don't overflow */}
             <div className="w-full max-w-full min-h-[88px] overflow-hidden">
             {/* Only chat bubbles in this preview: system (secondary), user, model */}

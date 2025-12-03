@@ -5,16 +5,25 @@ import { PluginRenderer } from '@/components/layout/PluginRenderer';
 import ConfirmationDialog from '@/components/common/ConfirmationDialog';
 import GlobalErrorDisplay from '@/components/common/GlobalErrorDisplay';
 import { AppInitializer } from '@/components/common/AppInitializer';
+import { Footer } from '@/components/layout/Footer';
 import { usePlugins } from '@/hooks/usePlugins';
 import { useTheme } from '@/hooks/useTheme';
 import { useAppInitialization } from '@/hooks/useAppInitialization';
 import { useAppLayout } from '@/hooks/useAppLayout';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useConnectionNotifications } from '@/hooks/useConnectionNotifications';
+import { Toaster } from 'sonner';
 
 const MainLayout: React.FC = () => {
+    // Initialize global connection notifications
+    useConnectionNotifications();
+
+    // Initialize keyboard shortcuts
+    useKeyboardShortcuts();
+
     const plugins = usePlugins();
     const { 
         activeTab, 
-        setActiveTab, 
         layoutClasses, 
         getContentOrderClass 
     } = useAppLayout();
@@ -45,8 +54,10 @@ const MainLayout: React.FC = () => {
                         />
                     </div>
                 </div>
+                <Footer />
                 <ConfirmationDialog />
                 <GlobalErrorDisplay />
+                <Toaster theme={useTheme().theme?.mode || 'system'} richColors position="bottom-right" />
             </div>
         </AppInitializer>
     );
