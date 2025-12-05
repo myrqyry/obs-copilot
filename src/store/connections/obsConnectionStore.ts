@@ -1,3 +1,6 @@
+import { create } from 'zustand';
+import { devtools, persist } from 'zustand/middleware';
+import { immer } from 'zustand/middleware/immer';
 import { StateCreator } from 'zustand';
 import { ObsClientImpl, ObsError, ConnectionStatus } from '@/services/obsClient';
 import type { OBSScene, OBSSource, OBSVideoSettings, OBSStreamStatus, OBSRecordStatus } from '@/types/obs';
@@ -66,14 +69,25 @@ export interface ObsConnectionState {
   resetSettings: () => void;
 }
 
-export const createObsConnectionSlice: StateCreator<ObsConnectionState, [], [], ObsConnectionState> = (set) => {
+const computeActiveScene = (state: ObsConnectionState): OBSScene | undefined =>
+  state.scenes.find(s => s.sceneName === state.currentProgramScene);
+
+const computeIsStreaming = (state: ObsConnectionState): boolean =>
+  state.streamStatus?.outputActive ?? false;
+
+export const createObsConnectionSlice: StateCreator<
+  ObsConnectionState,
+  [['zustand/devtools', never], ['zustand/persist', unknown], ['zustand/immer', never]],
+  [],
+  ObsConnectionState
+> = (set) => {
   const obsClient = connectionManager.getObsConnection('default')!;
   const obsCleanupFunctions: (() => void)[] = [];
 
   const statusUnsub = obsClient.addStatusListener((status: ConnectionStatus) => {
-    set({
-      obsStatus: status,
-      connectionError: status === 'error' ? 'Connection failed' : null,
+    set(state => {
+      state.obsStatus = status;
+      state.connectionError = status === 'error' ? 'Connection failed' : null;
     });
 
     if (status === 'connected') {
@@ -90,15 +104,14 @@ export const createObsConnectionSlice: StateCreator<ObsConnectionState, [], [], 
           sourceKind: input.inputKind,
           ...input
         }));
-        set(state => ({
-          ...state,
-          scenes: scenes.scenes,
-          currentProgramScene: currentProgramScene.currentProgramSceneName,
-          sources,
-          streamStatus: streamStatus as OBSStreamStatus,
-          recordStatus: recordStatus as OBSRecordStatus,
-          videoSettings: videoSettings as OBSVideoSettings,
-        }));
+        set(state => {
+          state.scenes = scenes.scenes;
+          state.currentProgramScene = currentProgramScene.currentProgramSceneName;
+          state.sources = sources;
+          state.streamStatus = streamStatus as OBSStreamStatus;
+          state.recordStatus = recordStatus as OBSRecordStatus;
+          state.videoSettings = videoSettings as OBSVideoSettings;
+        });
       }).catch(err => {
         if (!(err instanceof ObsError && err.message.includes('Stale'))) {
           console.error('[OBS] Failed to fetch initial state:', err);
@@ -109,16 +122,16 @@ export const createObsConnectionSlice: StateCreator<ObsConnectionState, [], [], 
   obsCleanupFunctions.push(statusUnsub);
 
   obsCleanupFunctions.push(obsClient.on('SceneListChanged', ({ scenes }) => {
-    set({ scenes });
+    set(state => { state.scenes = scenes; });
   }));
   obsCleanupFunctions.push(obsClient.on('CurrentProgramSceneChanged', ({ sceneName }) => {
-    set({ currentProgramScene: sceneName });
+    set(state => { state.currentProgramScene = sceneName; });
   }));
   obsCleanupFunctions.push(obsClient.on('StreamStateChanged', (data: OBSStreamStatus) => {
-    set({ streamStatus: data });
+    set(state => { state.streamStatus = data; });
   }));
   obsCleanupFunctions.push(obsClient.on('RecordStateChanged', (data: OBSRecordStatus) => {
-    set({ recordStatus: data });
+    set(state => { state.recordStatus = data; });
   }));
 
   return {
@@ -148,13 +161,19 @@ export const createObsConnectionSlice: StateCreator<ObsConnectionState, [], [], 
     },
 
     connectToObs: async (url: string, password?: string) => {
-      set({ obsStatus: 'connecting', connectionError: null });
+      set(state => {
+        state.obsStatus = 'connecting';
+        state.connectionError = null;
+      });
 
       const { url: sanitized, error: reason } = sanitizeOBSUrl(url);
 
       if (!sanitized) {
         const errorMsg = `Invalid OBS URL: ${reason}`;
-        set({ obsStatus: 'error', connectionError: errorMsg });
+        set(state => {
+          state.obsStatus = 'error';
+          state.connectionError = errorMsg;
+        });
         toast({
           title: "Connection Failed",
           description: errorMsg,
@@ -175,7 +194,10 @@ export const createObsConnectionSlice: StateCreator<ObsConnectionState, [], [], 
         await obsClient.connect(sanitized, password);
       } catch (error) {
         const appError = errorHandler.handle(error, 'Unable to connect to OBS Studio');
-        set({ obsStatus: 'error', connectionError: appError.userMessage || null });
+        set(state => {
+          state.obsStatus = 'error';
+          state.connectionError = appError.userMessage || null;
+        });
 
         toast({
           title: "Connection Failed",
@@ -187,23 +209,42 @@ export const createObsConnectionSlice: StateCreator<ObsConnectionState, [], [], 
 
     disconnectFromObs: async () => {
       await obsClient.disconnect();
-      set({
-        obsStatus: 'disconnected',
-        connectionError: null,
-        streamStatus: null,
-        recordStatus: null,
-        videoSettings: null,
+      set(state => {
+        state.obsStatus = 'disconnected';
+        state.connectionError = null;
+        state.streamStatus = null;
+        state.recordStatus = null;
+        state.videoSettings = null;
       });
     },
 
-    setScenes: (scenes: OBSScene[]) => set({ scenes }),
-    setCurrentProgramScene: (sceneName: string | null) => set({ currentProgramScene: sceneName }),
-    setSources: (sources: OBSSource[]) => set({ sources }),
-    setStreamStatus: (status: OBSStreamStatus | null) => set({ streamStatus: status }),
-    setRecordStatus: (status: OBSRecordStatus | null) => set({ recordStatus: status }),
-    setVideoSettings: (settings: OBSVideoSettings | null) => set({ videoSettings: settings }),
+    setScenes: (scenes: OBSScene[]) => set(state => { state.scenes = scenes; }),
+    setCurrentProgramScene: (sceneName: string | null) => set(state => { state.currentProgramScene = sceneName; }),
+    setSources: (sources: OBSSource[]) => set(state => { state.sources = sources; }),
+    setStreamStatus: (status: OBSStreamStatus | null) => set(state => { state.streamStatus = status; }),
+    setRecordStatus: (status: OBSRecordStatus | null) => set(state => { state.recordStatus = status; }),
+    setVideoSettings: (settings: OBSVideoSettings | null) => set(state => { state.videoSettings = settings; }),
 
-    setEditableSettings: (settings: OBSVideoSettings | null) => set({ editableSettings: settings }),
-    resetSettings: () => set({ editableSettings: null }),
+    setEditableSettings: (settings: OBSVideoSettings | null) => set(state => { state.editableSettings = settings; }),
+    resetSettings: () => set(state => { state.editableSettings = null; }),
   };
 };
+
+const useObsStore = create<ObsConnectionState>()(
+  devtools(
+    persist(
+      immer(createObsConnectionSlice),
+      {
+        name: 'obs-store',
+        partialize: (state) => ({
+          scenes: state.scenes,
+          currentProgramScene: state.currentProgramScene,
+        }),
+      }
+    ),
+    { name: 'OBS Store' }
+  )
+);
+
+export const useActiveScene = () => useObsStore(computeActiveScene);
+export const useIsStreaming = () => useObsStore(computeIsStreaming);

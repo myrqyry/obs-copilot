@@ -1,20 +1,31 @@
-import React, { lazy } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
+import RouteErrorBoundary from '@/components/common/RouteErrorBoundary';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
+// Lazy load route components
 const App = lazy(() => import('./App'));
 const TwitchCallback = lazy(() => import('@/features/auth/TwitchCallback'));
 
 const router = createBrowserRouter([
-    {
-        path: '/',
-        element: <App />,
-    },
-    {
-        path: '/auth/twitch/callback',
-        element: <TwitchCallback />,
-    },
+  {
+    path: '/',
+    element: (
+      <Suspense fallback={<LoadingSpinner fullscreen />}>
+        <App />
+      </Suspense>
+    ),
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: '/auth/twitch/callback',
+    element: (
+      <Suspense fallback={<LoadingSpinner fullscreen />}>
+        <TwitchCallback />
+      </Suspense>
+    ),
+    errorElement: <RouteErrorBoundary />,
+  },
 ]);
 
-export const AppRouter: React.FC = () => {
-    return <RouterProvider router={router} />;
-};
+export const AppRouter = () => <RouterProvider router={router} />;

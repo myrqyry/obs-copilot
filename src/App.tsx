@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import { memo, useMemo, useRef } from 'react';
 import { Header } from '@/components/layout/Header';
 import { TabNavigation } from '@/components/layout/TabNavigation';
 import { PluginRenderer } from '@/components/layout/PluginRenderer';
@@ -13,56 +13,66 @@ import { useAppInitialization } from '@/hooks/useAppInitialization';
 import { useAppLayout } from '@/hooks/useAppLayout';
 import { Toaster } from 'sonner';
 import { useConnectionNotifications } from '@/hooks/useConnectionNotifications';
+import React from 'react';
 
-const App: React.FC = () => {
-    useConnectionNotifications();
-    const plugins = usePlugins();
-    const { 
-        activeTab, 
-        layoutClasses, 
-        getContentOrderClass 
-    } = useAppLayout();
-    
-    const headerRef = useRef<HTMLDivElement>(null);
-    
-    // Initialize and apply themes
-    useTheme();
+// Separate concerns into custom hook
+const useAppState = () => {
+  const plugins = usePlugins();
+  const layout = useAppLayout();
+  const init = useAppInitialization();
+  const theme = useTheme();
 
-    // App Initialization (Connection & Loading State)
-    const { isInitialized, initError, retryInit, stepLabel, progress } = useAppInitialization();
-
-    const activePlugin = plugins.find(p => p.id === activeTab);
-
-    return (
-        <ComprehensiveErrorBoundary>
-            <TooltipProvider>
-                <AppInitializer 
-                    isInitialized={isInitialized} 
-                    error={initError}
-                    onRetry={retryInit}
-                    stepLabel={stepLabel}
-                    progress={progress}
-                >
-                    <div className={layoutClasses.container}>
-                        <Header headerRef={headerRef} />
-                        <TabNavigation
-                            tabs={plugins}
-                        />
-                        <div className="flex flex-grow overflow-hidden">
-                            <div className={`${layoutClasses.content} ${getContentOrderClass()}`}>
-                                <PluginRenderer 
-                                    plugin={activePlugin} 
-                                />
-                            </div>
-                        </div>
-                        <ConfirmationDialog />
-                        <GlobalErrorDisplay />
-                        <Toaster theme={useTheme().theme?.type || 'system'} richColors position="bottom-right" />
-                    </div>
-                </AppInitializer>
-            </TooltipProvider>
-        </ComprehensiveErrorBoundary>
-    );
+  return { plugins, layout, init, theme };
 };
+
+const App: React.FC = memo(() => {
+  useConnectionNotifications();
+  const headerRef = useRef<HTMLDivElement>(null);
+  const { plugins, layout, init, theme } = useAppState();
+
+  // Memoize expensive computations
+  const activePlugin = useMemo(
+    () => plugins.find((p) => p.id === layout.activeTab),
+    [plugins, layout.activeTab]
+  );
+
+  const contentClasses = useMemo(
+    () => `${layout.layoutClasses.content} ${layout.getContentOrderClass()}`,
+    [layout.layoutClasses.content, layout.getContentOrderClass]
+  );
+
+  return (
+    <ComprehensiveErrorBoundary>
+      <TooltipProvider>
+        <AppInitializer
+          isInitialized={init.isInitialized}
+          error={init.initError}
+          onRetry={init.retryInit}
+          stepLabel={init.stepLabel}
+          progress={init.progress}
+        >
+          <div className={layout.layoutClasses.container}>
+            <Header headerRef={headerRef} />
+            <TabNavigation tabs={plugins} />
+            <div className="flex flex-grow overflow-hidden">
+              <div className={contentClasses}>
+                <PluginRenderer plugin={activePlugin} />
+              </div>
+            </div>
+            <ConfirmationDialog />
+            <GlobalErrorDisplay />
+            <Toaster
+              theme={theme.theme?.type || 'system'}
+              richColors
+              position="bottom-right"
+            />
+          </div>
+        </AppInitializer>
+      </TooltipProvider>
+    </ComprehensiveErrorBoundary>
+  );
+});
+
+App.displayName = 'App';
 
 export default App;
