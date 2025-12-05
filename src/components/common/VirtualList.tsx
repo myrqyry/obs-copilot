@@ -1,10 +1,9 @@
-// src/components/common/VirtualList.tsx - Enhanced version
+// src/components/common/VirtualList.tsx - Fixed version
 import {
   forwardRef,
   useImperativeHandle,
   useRef,
   useMemo,
-  useEffect,
 } from 'react';
 import {
   FixedSizeList,
@@ -12,7 +11,6 @@ import {
   VariableSizeList,
 } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
-import { memo, forwardRef, useMemo } from 'react';
 
 export interface VirtualListHandle {
   scrollToItem: (
@@ -39,7 +37,7 @@ interface VirtualListProps<T> {
   ) => void;
 }
 
-export const VirtualList = forwardRef<VirtualListHandle, any>(
+export const VirtualList = forwardRef<VirtualListHandle, VirtualListProps<any>>(
   (
     {
       items,
@@ -48,7 +46,7 @@ export const VirtualList = forwardRef<VirtualListHandle, any>(
       className = '',
       overscanCount = 5,
       onScroll,
-    }: VirtualListProps<any>,
+    },
     ref,
   ) => {
     const isVariableSize = typeof itemHeight === 'function';

@@ -35,8 +35,22 @@ export type StreamEvent = {
 }
 
 class GeminiService extends BaseService implements AIService {
+  private apiKey: string | null = null;
+
   constructor() {
     super();
+  }
+
+  isConfigured(): boolean {
+    return !!this.apiKey && this.apiKey.length > 0;
+  }
+
+  getApiKey(): string | null {
+    return this.apiKey;
+  }
+
+  setApiKey(key: string): void {
+    this.apiKey = key;
   }
 
   async generateContent(

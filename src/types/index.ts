@@ -1,29 +1,40 @@
-export * from './ai.ts';
-export * from './api.ts';
-export * from './assetSearch.ts';
-export * from './audio.ts';
-export * from './automation.ts';
-export * from './chatBackground.ts';
-export * from './connections.ts';
-export * from './declarations.d.ts';
-export * from './dnd-kit.d.ts';
-export * from './gemini.ts';
-export * from './genai-augment.d.ts';
-export * from './giphy.ts';
-export * from './index.ts';
-export * from './mkody-twitch-emoticons.d.ts';
-export * from './obs-websocket-js.d.ts';
-export * from './obs.ts';
-export * from './obsActions.ts';
-export * from './obsEvents.ts';
-export * from './overlay.ts';
-export * from './plugin.ts';
-export * from './plugins.ts';
-export * from './sevenTVCosmetics.ts';
-export * from './shims-genai.d.ts';
-export * from './shims-plugins.d.ts';
-export * from './streamerbot.ts';
-export * from './themes.ts';
-export * from './tmi.d.ts';
-export * from './ui.ts';
-export * from './universalWidget.ts';
+export * from './ai';
+export * from './api';
+export * from './assetSearch';
+export * from './audio';
+export * from './automation';
+export * from './chatBackground';
+export * from './connections';
+export * from './declarations.d';
+export * from './dnd-kit.d';
+export * from './gemini';
+export * from './genai-augment.d';
+export * from './giphy';
+export * from './mkody-twitch-emoticons.d';
+export * from './obs-websocket-js.d';
+export * from './obs';
+export * from './obsActions';
+export * from './obsEvents';
+export * from './overlay';
+export * from './plugin';
+export * from './plugins';
+export * from './sevenTVCosmetics';
+export * from './shims-genai.d';
+export * from './shims-plugins.d';
+export * from './streamerbot';
+export * from './themes';
+export * from './tmi.d';
+export * from './ui';
+export * from './universalWidget';
+
+// Re-export commonly used types with aliases for convenience
+export type {
+  OBSScene as Scene,
+  OBSSource as Source,
+  OBSSourceType as SourceType,
+} from './obs';
+
+export type {
+  GeminiMessage as AIMessage,
+  GeminiResponse as AIResponse,
+} from './gemini';

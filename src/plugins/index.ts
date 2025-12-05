@@ -49,9 +49,9 @@ const plugins: PluginDefinition[] = [
     dependencies: ['connections'], // Requires connections to be registered first
     async onInit(context) {
       console.log('[Gemini Chat Plugin] Initializing...');
-      // Validate API key
       if (!context.gemini.isConfigured()) {
-        throw new Error('Gemini API key not configured');
+        console.warn('Gemini API key not configured - plugin functionality will be limited');
+        // Don't throw - allow plugin to load but show warning
       }
     },
     async onActivate() {

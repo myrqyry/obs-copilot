@@ -1,46 +1,59 @@
-// src/hooks/usePlugins.ts
+// src/hooks/usePlugins.tsx
 import { useState, useEffect } from 'react';
-import { pluginManager } from '@/plugins';
-import { Plugin } from '@/types/plugin';
-import { PluginDefinition } from '@/plugins/core/PluginManager';
+import { pluginManager, initializePlugins } from '@/plugins';
 
-const mapPluginDefinitionToPlugin = (plugin: PluginDefinition): Plugin => ({
-  id: plugin.id,
-  name: plugin.name,
-  icon: plugin.icon,
-  component: plugin.component as React.ComponentType<any>, // Cast to any to satisfy the type
-  enabled: true, // Assuming all registered plugins are enabled
-  order: 0, // Assuming a default order
-  version: plugin.version,
-  description: plugin.description,
-});
-
-
-export function usePlugins(): Plugin[] {
-  const [plugins, setPlugins] = useState<Plugin[]>(
-    pluginManager.getAllPlugins().map(mapPluginDefinitionToPlugin)
-  );
+export function usePlugins() {
+  const [plugins, setPlugins] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    const handlePluginsLoaded = () => {
-      console.log('HOOK: usePlugins handling plugins:loaded event');
-      const allPlugins = pluginManager.getAllPlugins();
-      console.log(`HOOK: Found ${allPlugins.length} plugins.`);
-      setPlugins(allPlugins.map(mapPluginDefinitionToPlugin));
+    let mounted = true;
+
+    async function loadPlugins() {
+      try {
+        await initializePlugins();
+        if (mounted) {
+          setPlugins(pluginManager.getAllPlugins().map((plugin) => ({
+            id: plugin.id,
+            name: plugin.name,
+            icon: plugin.icon,
+            component: plugin.component,
+          })));
+          setIsLoading(false);
+        }
+      } catch (err) {
+        console.error('Failed to initialize plugins:', err);
+        if (mounted) {
+          setError(err as Error);
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadPlugins();
+
+    // Listen for plugin changes
+    const handlePluginChange = () => {
+      if (mounted) {
+        setPlugins(pluginManager.getAllPlugins().map((plugin) => ({
+          id: plugin.id,
+          name: plugin.name,
+          icon: plugin.icon,
+          component: plugin.component,
+        })));
+      }
     };
 
-    console.log('HOOK: usePlugins effect setup');
-    // Listen for the final "loaded" event
-    pluginManager.on('plugins:loaded', handlePluginsLoaded);
-
-    // Initial check in case plugins are already loaded
-    handlePluginsLoaded();
+    pluginManager.on('plugin:registered', handlePluginChange);
+    pluginManager.on('plugin:unregistered', handlePluginChange);
 
     return () => {
-      console.log('HOOK: usePlugins effect cleanup');
-      pluginManager.off('plugins:loaded', handlePluginsLoaded);
+      mounted = false;
+      pluginManager.off('plugin:registered', handlePluginChange);
+      pluginManager.off('plugin:unregistered', handlePluginChange);
     };
   }, []);
 
-  return plugins;
+  return { plugins, isLoading, error };
 }
