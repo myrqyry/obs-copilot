@@ -1,47 +1,33 @@
 // src/components/core/GlobalCommandHotkeys.tsx
-import React, { useEffect } from 'react';
+import React from 'react';
+import { useHotkeys } from 'react-hotkeys-hook';
 import { useCommandPaletteStore } from '@/store/commandPaletteStore';
+
+// A component to register a single hotkey
+const Hotkey: React.FC<{
+  shortcut: string;
+  action: () => void;
+}> = ({ shortcut, action }) => {
+  useHotkeys(shortcut, action);
+  return null;
+};
 
 const GlobalCommandHotkeys: React.FC = () => {
   const { commands } = useCommandPaletteStore();
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const { key, metaKey, ctrlKey, shiftKey, altKey } = event;
-      const lowerKey = key.toLowerCase();
-
-      // Find a command that matches the current key combination
-      const matchedCommand = commands.find((command) => {
-        if (!command.shortcut) return false;
-
-        const shortcutParts = command.shortcut.toLowerCase().split('+');
-        const shortcutKey = shortcutParts.pop();
-
-        if (shortcutKey !== lowerKey) return false;
-
-        const modKeys = {
-          mod: metaKey || ctrlKey,
-          shift: shiftKey,
-          alt: altKey,
-        };
-
-        return shortcutParts.every((part) => modKeys[part]);
-      });
-
-      if (matchedCommand) {
-        event.preventDefault();
-        matchedCommand.action();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [commands]);
-
-  return null; // This component does not render anything
+  return (
+    <>
+      {commands.map((command) =>
+        command.shortcut ? (
+          <Hotkey
+            key={command.id}
+            shortcut={command.shortcut}
+            action={command.action}
+          />
+        ) : null,
+      )}
+    </>
+  );
 };
 
 export default GlobalCommandHotkeys;
