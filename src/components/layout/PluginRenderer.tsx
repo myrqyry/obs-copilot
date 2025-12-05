@@ -1,9 +1,10 @@
 import React, { Suspense } from 'react';
-import PluginErrorBoundary from '@/components/common/PluginErrorBoundary';
+import { PluginErrorBoundary } from '@/components/common/PluginErrorBoundary';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { Plugin } from '@/types/plugin';
 import { useAppLayout } from '@/hooks/useAppLayout';
 import { AlertTriangle } from 'lucide-react';
+import { pluginManager } from '@/plugins';
 
 interface PluginRendererProps {
     plugin: Plugin | undefined;
@@ -57,7 +58,7 @@ export const PluginRenderer: React.FC<PluginRendererProps> = ({ plugin }) => {
     }
 
     return (
-        <PluginErrorBoundary pluginId={plugin.id}>
+        <PluginErrorBoundary pluginName={plugin.name}>
             <Suspense 
                 fallback={
                     <div className="flex flex-col justify-center items-center h-full gap-3" role="status">
@@ -69,7 +70,7 @@ export const PluginRenderer: React.FC<PluginRendererProps> = ({ plugin }) => {
                     </div>
                 }
             >
-                <TabComponent />
+                <TabComponent context={pluginManager.getContext()} />
             </Suspense>
         </PluginErrorBoundary>
     );

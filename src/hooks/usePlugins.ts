@@ -1,61 +1,46 @@
-import { useMemo } from 'react';
-import { allPlugins } from '@/plugins';
-import useConfigStore from '@/store/configStore';
+// src/hooks/usePlugins.ts
+import { useState, useEffect } from 'react';
+import { pluginManager } from '@/plugins';
 import { Plugin } from '@/types/plugin';
-import { useHealthStatus } from './useHealthStatus';
+import { PluginDefinition } from '@/plugins/core/PluginManager';
 
-export const usePlugins = (): Plugin[] => {
-  // REASON: The original implementation had a large dependency array and complex filtering logic.
-  // This has been updated to simplify the filtering logic and reduce the dependency array.
-  const { reports } = useHealthStatus();
-  const { tabOrder, ...pluginSettings } = useConfigStore();
+const mapPluginDefinitionToPlugin = (plugin: PluginDefinition): Plugin => ({
+  id: plugin.id,
+  name: plugin.name,
+  icon: plugin.icon,
+  component: plugin.component as React.ComponentType<any>, // Cast to any to satisfy the type
+  enabled: true, // Assuming all registered plugins are enabled
+  order: 0, // Assuming a default order
+  version: plugin.version,
+  description: plugin.description,
+});
 
-  const filteredPlugins = useMemo(() => {
-    const obsHealth = reports.find(r => r.service.startsWith('OBS'))?.status;
-    const geminiHealth = reports.find(r => r.service === 'Gemini')?.status;
 
-    const healthFilters: Record<string, boolean> = {
-      'obs-studio': obsHealth === 'healthy',
-      'obs-controls': obsHealth === 'healthy',
-      'streaming-assets': obsHealth === 'healthy',
-      'gemini': geminiHealth === 'healthy',
-      'create': geminiHealth === 'healthy',
+export function usePlugins(): Plugin[] {
+  const [plugins, setPlugins] = useState<Plugin[]>(
+    pluginManager.getAllPlugins().map(mapPluginDefinitionToPlugin)
+  );
+
+  useEffect(() => {
+    const handlePluginsLoaded = () => {
+      console.log('HOOK: usePlugins handling plugins:loaded event');
+      const allPlugins = pluginManager.getAllPlugins();
+      console.log(`HOOK: Found ${allPlugins.length} plugins.`);
+      setPlugins(allPlugins.map(mapPluginDefinitionToPlugin));
     };
 
-    let plugins = allPlugins.filter(plugin => {
-      const isEnabled = (pluginSettings as any)[`${plugin.id}PluginEnabled`];
-      const healthCheck = healthFilters[plugin.id];
-      return (isEnabled === undefined || isEnabled) && (healthCheck === undefined || healthCheck);
-    });
+    console.log('HOOK: usePlugins effect setup');
+    // Listen for the final "loaded" event
+    pluginManager.on('plugins:loaded', handlePluginsLoaded);
 
-    // Map to Plugin type
-    let mappedPlugins: Plugin[] = plugins.map(p => ({
-        ...p,
-        enabled: true, // They are already filtered by enabled status
-        order: 0 // Default order
-    }));
+    // Initial check in case plugins are already loaded
+    handlePluginsLoaded();
 
-    if (!tabOrder || tabOrder.length === 0) return mappedPlugins;
+    return () => {
+      console.log('HOOK: usePlugins effect cleanup');
+      pluginManager.off('plugins:loaded', handlePluginsLoaded);
+    };
+  }, []);
 
-    const byOrder: Record<string, Plugin> = {};
-    mappedPlugins.forEach(p => byOrder[p.id] = p);
-
-    const ordered: Plugin[] = [];
-    tabOrder.forEach(id => {
-      const plugin = byOrder[id];
-      if (plugin) {
-        ordered.push(plugin);
-        delete byOrder[id];
-      }
-    });
-
-    Object.keys(byOrder).forEach(k => {
-        const p = byOrder[k];
-        if (p) ordered.push(p);
-    });
-
-    return ordered;
-  }, [reports, tabOrder, pluginSettings]);
-
-  return filteredPlugins;
-};
+  return plugins;
+}

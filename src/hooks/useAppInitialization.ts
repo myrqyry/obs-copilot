@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiService } from '@/services/apiService';
 import { obsClient } from '@/services/obsClient';
+import { initializePlugins } from '@/plugins'; // Import the initializer
 
 export type InitializationStep = 
     | 'connecting-backend'
@@ -12,7 +13,7 @@ export type InitializationStep =
 interface StepConfig {
     label: string;
     progress: number;
-    critical: boolean;  // Can the app function without this step?
+    critical: boolean;
 }
 
 interface InitializationState {
@@ -27,8 +28,8 @@ interface InitializationState {
 const STEP_CONFIG: Record<InitializationStep, StepConfig> = {
     'connecting-backend': { label: 'Connecting to backend...', progress: 20, critical: true },
     'loading-config': { label: 'Loading configuration...', progress: 40, critical: true },
-    'connecting-obs': { label: 'Connecting to OBS WebSocket...', progress: 60, critical: false },
-    'loading-plugins': { label: 'Loading plugins...', progress: 80, critical: true },
+    'loading-plugins': { label: 'Loading plugins...', progress: 60, critical: true },
+    'connecting-obs': { label: 'Connecting to OBS WebSocket...', progress: 80, critical: false },
     'complete': { label: 'Ready', progress: 100, critical: true }
 };
 
@@ -79,14 +80,6 @@ export function useAppInitialization(): InitializationState & {
 
     const connectToOBS = async () => {
         try {
-            // We use the default connection settings or what's stored in local storage/config
-            // For now, we assume the service handles connection details internally or we pass defaults
-            // If obsClient.connect requires args, we might need to fetch them from config first.
-            // Assuming obsClient.connect() can be called without args if it has stored config, 
-            // OR we need to provide default localhost:4455.
-            // Looking at obsClient.ts, connect takes (address, password).
-            // We should probably try to connect with defaults if not configured.
-            // For this refactor, let's assume we try localhost:4455 and empty password if no config.
             await obsClient.connect('ws://localhost:4455', undefined);
         } catch (error) {
             throw new Error(`OBS connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -95,14 +88,7 @@ export function useAppInitialization(): InitializationState & {
 
     const loadPlugins = async () => {
         try {
-            // Dynamic plugin loading logic
-            // In a real app, this might iterate over a list of plugins to load.
-            // For now, we just simulate a delay or rely on the fact that plugins are imported elsewhere.
-            // If we need to explicitly load them, we would do it here.
-            // The user snippet had `await import('@/plugins');`.
-            // We'll assume there is an index file in plugins that initializes them.
-            // If not, we can just wait a bit.
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await initializePlugins();
         } catch (error) {
             throw new Error(`Plugin load failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
@@ -123,7 +109,6 @@ export function useAppInitialization(): InitializationState & {
             updateStep(step);
             await stepExecutors[step]();
             
-            // If this was the failed step, continue initialization from here
             const steps = Object.keys(STEP_CONFIG) as InitializationStep[];
             const currentIndex = steps.indexOf(step);
             
@@ -174,7 +159,6 @@ export function useAppInitialization(): InitializationState & {
             failedStep: undefined
         }));
 
-        // Continue initialization from next step
         const steps = Object.keys(STEP_CONFIG) as InitializationStep[];
         const currentIndex = steps.indexOf(step);
         if (currentIndex < steps.length - 1) {
@@ -194,13 +178,16 @@ export function useAppInitialization(): InitializationState & {
 
             try {
                 updateStep(step);
+                console.log(`INIT: Starting step: ${step}`);
                 await stepExecutors[step]();
+                console.log(`INIT: Finished step: ${step}`);
             } catch (error) {
                 if (STEP_CONFIG[step].critical) {
+                    console.error(`INIT: Critical step ${step} failed`, error);
                     updateStep(step, error instanceof Error ? error : new Error('Unknown error'));
-                    return; // Stop initialization on critical failure
+                    return;
                 } else {
-                    console.warn(`Non-critical step ${step} failed, continuing...`);
+                    console.warn(`INIT: Non-critical step ${step} failed, continuing...`);
                     setState(prev => ({
                         ...prev,
                         skippedSteps: [...prev.skippedSteps, step]
@@ -209,6 +196,7 @@ export function useAppInitialization(): InitializationState & {
             }
         }
 
+        console.log('INIT: All steps complete. Setting isInitialized to true.');
         setState(prev => ({
             ...prev,
             isInitialized: true,
