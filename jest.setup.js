@@ -41,13 +41,12 @@ afterEach(() => {
 });
 
 // Polyfill for ResizeObserver, which is not available in JSDOM
-const ResizeObserverMock = vi.fn(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}));
-
-vi.stubGlobal('ResizeObserver', ResizeObserverMock);
+class ResizeObserver {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+}
+vi.stubGlobal('ResizeObserver', ResizeObserver);
 
 // Polyfill for matchMedia
 Object.defineProperty(window, 'matchMedia', {
@@ -68,19 +67,25 @@ vi.mock('import.meta.env', () => ({
   VITE_GEMINI_API_KEY: 'test-api-key',
 }));
 
-vi.mock('obs-websocket-js');
+vi.mock('obs-websocket-js', () => {
+  return {
+    default: vi.fn().mockImplementation(() => ({
+      connect: vi.fn().mockResolvedValue(undefined),
+      disconnect: vi.fn().mockResolvedValue(undefined),
+      call: vi.fn().mockResolvedValue({}),
+      on: vi.fn(),
+      off: vi.fn(),
+    })),
+  };
+});
 
-vi.mock('@/utils/logger', () => ({
-  logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  },
-}));
-
-vi.mock('buffer', () => ({
+vi.mock('buffer', () => {
+  const bufferMock = {
     Buffer: {
-        from: vi.fn(),
+      from: vi.fn((str) => ({
+        toString: vi.fn(() => str),
+      })),
     },
-}));
+  };
+  return { ...bufferMock, default: bufferMock };
+});

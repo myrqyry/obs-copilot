@@ -9,6 +9,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      'buffer': 'buffer/',
     },
   },
   server: {
@@ -40,7 +41,7 @@ export default defineConfig({
     port: 4173,
   },
   optimizeDeps: {
-    include: ['buffer'],
+
   },
   define: {
     // Some libraries reference global or globalThis.Buffer; we ensure references don't crash before polyfills load.
