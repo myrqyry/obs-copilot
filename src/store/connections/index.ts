@@ -1,16 +1,16 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { createObsConnectionSlice, ObsConnectionState } from './obsConnectionStore';
+import { useOBSConnectionStore, OBSConnectionState } from './obsConnectionStore';
 import { createStreamerBotConnectionSlice, StreamerBotConnectionState } from './streamerBotConnectionStore';
 import { createConnectionProfilesSlice, ConnectionProfilesState } from './connectionProfilesStore';
 import { createBackendConnectionSlice, BackendConnectionState } from './backendConnectionStore';
 
-type CombinedState = ObsConnectionState & StreamerBotConnectionState & ConnectionProfilesState & BackendConnectionState;
+type CombinedState = OBSConnectionState & StreamerBotConnectionState & ConnectionProfilesState & BackendConnectionState;
 
 export const useConnectionsStore = create<CombinedState>()(
   persist(
     (...args) => ({
-      ...createObsConnectionSlice(...args),
+      ...useOBSConnectionStore.getState(),
       ...createStreamerBotConnectionSlice(...args),
       ...createConnectionProfilesSlice(...args),
       ...createBackendConnectionSlice(...args),
@@ -28,16 +28,16 @@ export const useConnectionsStore = create<CombinedState>()(
 );
 
 export const createConnectionSelectors = () => ({
-  obsStatus: (state: CombinedState) => state.obsStatus,
-  isConnected: (state: CombinedState) => state.obsStatus === 'connected',
-  isLoading: (state: CombinedState) => state.obsStatus === 'connecting' || state.obsStatus === 'reconnecting', // Note: reconnecting is not in ConnectionStatus type in obsClient, but used in UI
-  connectionError: (state: CombinedState) => state.connectionError,
+  obsStatus: (state: CombinedState) => state.connected ? 'connected' : 'disconnected',
+  isConnected: (state: CombinedState) => state.connected,
+  isLoading: (state: CombinedState) => state.connecting,
+  connectionError: (state: CombinedState) => state.error,
   scenes: (state: CombinedState) => state.scenes,
-  currentProgramScene: (state: CombinedState) => state.currentProgramScene,
+  currentProgramScene: (state: CombinedState) => state.currentScene,
   sources: (state: CombinedState) => state.sources,
-  streamStatus: (state: CombinedState) => state.streamStatus,
-  recordStatus: (state: CombinedState) => state.recordStatus,
-  videoSettings: (state: CombinedState) => state.videoSettings,
+  streamStatus: (state: CombinedState) => state.streaming,
+  recordStatus: (state: CombinedState) => state.recording,
+  videoSettings: (state: CombinedState) => null, // This is not in the new store, so I'll set it to null
   isStreamerBotConnected: (state: CombinedState) => state.isStreamerBotConnected,
   streamerBotConnectionError: (state: CombinedState) => state.streamerBotConnectionError,
   activeConnectionId: (state: CombinedState) => state.activeConnectionId,

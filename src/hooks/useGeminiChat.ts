@@ -12,7 +12,6 @@ import type { GeminiActionResponse, ObsAction, StreamingHandlers, SupportedDataP
 import { OBSScene, OBSSource } from '@/types';
 
 import { useObsActions } from './useObsActions';
-import { aiSdk5Config } from '@/config';
 
 export const useGeminiChat = (
   onRefreshData: (() => Promise<void>) | undefined,
@@ -56,49 +55,13 @@ export const useGeminiChat = (
     [scenes, currentProgramScene, sources, streamStatus, recordStatus, videoSettings]
   );
 
-  // AI SDK 5 Data Parts streaming support
-  const emitDataPart = useCallback((dataPart: SupportedDataPart, messageId?: string) => {
-    if (!aiSdk5Config.enableDataParts) return;
-
-    // Add timestamp if not present
-    const enrichedDataPart = {
-      ...dataPart,
-      id: dataPart.id || `${Date.now()}-${Math.random()}`,
-      timestamp: dataPart.timestamp || new Date(),
-    };
-
-    // If we have a message ID, update that specific message with the data part
-    if (messageId) {
-      const currentMessages = useChatStore.getState().geminiMessages;
-      const messageIndex = currentMessages.findIndex(m => m.id === messageId);
-      
-      if (messageIndex >= 0) {
-        const updatedMessage = {
-          role: currentMessages[messageIndex].role,
-          text: currentMessages[messageIndex].text,
-          dataParts: [...(currentMessages[messageIndex].dataParts || []), enrichedDataPart as SupportedDataPart],
-        };
-        chatActions.replaceMessage(messageId, updatedMessage);
-      }
-    } else {
-      // Create a new system message with the data part for status updates
-      chatActions.addMessage({
-        role: 'system',
-        text: `Status: ${enrichedDataPart.type}`,
-        dataParts: [enrichedDataPart as SupportedDataPart],
-      });
-    }
-  }, [chatActions]);
-
   const {
-    handleObsActionWithDataParts,
-    handleStreamerBotActionWithDataParts,
+    handleObsAction,
     buildObsSystemMessage,
   } = useObsActions({
     obsData,
     onRefreshData: onRefreshData || (() => Promise.resolve()),
     setErrorMessage,
-    emitDataPart, // Keep emitDataPart here as it's a dependency of useObsActions
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -193,7 +156,7 @@ export const useGeminiChat = (
             ...(action.args || {}),
           } as ObsAction;
 
-          const actionResult = await handleObsActionWithDataParts(obsAction, streamingHandlers);
+          const actionResult = await handleObsAction(obsAction, streamingHandlers);
 
           // Provide immediate feedback for each action
           const feedbackMessage = actionResult.success
@@ -225,7 +188,7 @@ export const useGeminiChat = (
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, isConnected, chatActions, setErrorMessage, onRefreshData, handleObsActionWithDataParts]);
+  }, [isLoading, isConnected, chatActions, setErrorMessage, onRefreshData, handleObsAction]);
 
   return {
     isLoading,
@@ -234,10 +197,7 @@ export const useGeminiChat = (
     contextMessages,
     handleAddToContext,
     handleSend,
-    handleObsAction: handleObsActionWithDataParts,
+    handleObsAction: handleObsAction,
     handleRegenerate, // Expose handleRegenerate
-    // AI SDK 5 compatibility methods
-    emitDataPart,
-    isDataPartsEnabled: aiSdk5Config.enableDataParts,
   };
 };
