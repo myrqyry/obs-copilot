@@ -1,4 +1,4 @@
-import { memo, useMemo, useRef } from 'react';
+import { memo, useMemo, useRef, useEffect } from 'react';
 import { Header } from '@/components/layout/Header';
 import { TabNavigation } from '@/components/layout/TabNavigation';
 import { PluginRenderer } from '@/components/layout/PluginRenderer';
@@ -14,31 +14,34 @@ import { useAppLayout } from '@/hooks/useAppLayout';
 import { Toaster } from 'sonner';
 import { useConnectionNotifications } from '@/hooks/useConnectionNotifications';
 import React from 'react';
+import { PluginErrorBoundary } from '@/components/common/PluginErrorBoundary';
+import { initializePlugins, pluginManager } from '@/plugins';
+import { Plugin } from '@/types';
 
-// Separate concerns into custom hook
-const useAppState = () => {
+const App: React.FC = memo(() => {
+  useConnectionNotifications();
+  const headerRef = useRef<HTMLDivElement>(null);
+
   const plugins = usePlugins();
   const layout = useAppLayout();
   const init = useAppInitialization();
   const theme = useTheme();
 
-  return { plugins, layout, init, theme };
-};
-
-const App: React.FC = memo(() => {
-  useConnectionNotifications();
-  const headerRef = useRef<HTMLDivElement>(null);
-  const { plugins, layout, init, theme } = useAppState();
+  console.log('APP: Rendering App component', {
+    isInitialized: init.isInitialized,
+    pluginCount: plugins.length,
+    activeTab: layout.activeTab
+  });
 
   // Memoize expensive computations
   const activePlugin = useMemo(
     () => plugins.find((p) => p.id === layout.activeTab),
-    [plugins, layout.activeTab]
+    [plugins, layout.activeTab],
   );
 
   const contentClasses = useMemo(
     () => `${layout.layoutClasses.content} ${layout.getContentOrderClass()}`,
-    [layout.layoutClasses.content, layout.getContentOrderClass]
+    [layout.layoutClasses.content, layout.getContentOrderClass],
   );
 
   return (
@@ -51,6 +54,11 @@ const App: React.FC = memo(() => {
           stepLabel={init.stepLabel}
           progress={init.progress}
         >
+          {plugins.length === 0 ? (
+            <div className="flex h-full w-full items-center justify-center">
+              <LoadingSpinner />
+            </div>
+          ) : (
           <div className={layout.layoutClasses.container}>
             <Header headerRef={headerRef} />
             <TabNavigation tabs={plugins} />
@@ -67,6 +75,7 @@ const App: React.FC = memo(() => {
               position="bottom-right"
             />
           </div>
+          )}
         </AppInitializer>
       </TooltipProvider>
     </ComprehensiveErrorBoundary>

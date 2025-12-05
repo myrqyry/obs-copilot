@@ -1,85 +1,120 @@
-import { TabPlugin } from '@/types/plugins';
-import React, { lazy } from 'react';
-import LinkIcon from '@mui/icons-material/Link';
-import MovieIcon from '@mui/icons-material/Movie';
-import DeveloperBoardIcon from '@mui/icons-material/DeveloperBoard';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import ImageIcon from '@mui/icons-material/Image';
-import SettingsIcon from '@mui/icons-material/Settings';
-import BuildIcon from '@mui/icons-material/Build';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import FavoriteIcon from '@mui/icons-material/Favorite';
+// src/plugins/index.ts - Update plugin registration
+import {
+  PluginManager,
+  PluginDefinition,
+} from '@/plugins/core/PluginManager';
+import { PluginErrorBoundary } from '@/components/common/PluginErrorBoundary';
+import { obsClient } from '@/services/obsClient';
+import { geminiService } from '@/services/geminiService';
 
-// Lazy load all plugin components
-const ConnectionsTab = lazy(() => import('./core/ConnectionsTab'));
-const NewObsStudioTab = lazy(() => import('./core/NewObsStudioTab'));
-const ObsControlsTab = lazy(() => import('./core/ObsControlsTab'));
-const GeminiTab = lazy(() => import('./core/GeminiTab'));
-const GenerateTab = lazy(() => import('./core/GenerateTab'));
-const StreamingAssetsTab = lazy(() => import('./core/StreamingAssetsTab'));
-const SettingsTab = lazy(() => import('./core/SettingsTab'));
-const AdvancedPanel = lazy(() => import('./core/AdvancedPanel'));
-const HealthDashboard = lazy(() => import('@/components/debug/HealthDashboard'));
+// Import plugin components
+import React from 'react';
 
-export const corePlugins: TabPlugin[] = [
+const ConnectionsTab = React.lazy(() => import('@/plugins/core/ConnectionsTab'));
+const GeminiTab = React.lazy(() => import('@/plugins/core/GeminiTab'));
+const TwitchChat = React.lazy(() => import('@/plugins/twitch-chat/TwitchChat'));
+const AutomationTab = React.lazy(() => import('@/plugins/automation/AutomationTab'));
+
+// Create plugin manager instance
+export const pluginManager = new PluginManager({
+  obs: obsClient,
+  gemini: geminiService,
+});
+
+// Define plugins with full lifecycle
+const plugins: PluginDefinition[] = [
   {
     id: 'connections',
     name: 'Connections',
-    icon: (props: any) => React.createElement(LinkIcon, props),
+    version: '1.0.0',
+    description: 'Manage OBS and backend connections',
     component: ConnectionsTab,
+    async onInit(context) {
+      console.log('[Connections Plugin] Initializing...');
+      // Pre-load connection status
+    },
+    async onActivate() {
+      console.log('[Connections Plugin] Activated');
+    },
+    async onDeactivate() {
+      console.log('[Connections Plugin] Deactivated');
+    },
   },
   {
-    id: 'obs-studio',
-    name: 'OBS Studio',
-    icon: (props: any) => React.createElement(MovieIcon, props),
-    component: NewObsStudioTab,
-  },
-  {
-    id: 'obs-controls',
-    name: 'OBS Controls',
-    icon: (props: any) => React.createElement(DashboardIcon, props),
-    component: ObsControlsTab,
-  },
-  {
-    id: 'gemini',
-    name: 'Gemini',
-    icon: (props: any) => React.createElement(DeveloperBoardIcon, props),
+    id: 'gemini-chat',
+    name: 'Gemini Chat',
+    version: '1.0.0',
+    description: 'AI-powered chat assistant',
     component: GeminiTab,
+    dependencies: ['connections'], // Requires connections to be registered first
+    async onInit(context) {
+      console.log('[Gemini Chat Plugin] Initializing...');
+      // Validate API key
+      if (!context.gemini.isConfigured()) {
+        throw new Error('Gemini API key not configured');
+      }
+    },
+    async onActivate() {
+      console.log('[Gemini Chat Plugin] Activated');
+      // Start listening for chat events
+    },
+    async onDeactivate() {
+      console.log('[Gemini Chat Plugin] Deactivated');
+      // Clean up event listeners
+    },
+    async onDestroy() {
+      console.log('[Gemini Chat Plugin] Destroyed');
+      // Cancel pending requests
+    },
   },
   {
-    id: 'create',
-    name: 'Generate',
-    icon: (props: any) => React.createElement(AutoAwesomeIcon, props),
-    component: GenerateTab,
+    id: 'twitch-chat',
+    name: 'Twitch Chat',
+    version: '1.0.0',
+    description: 'Twitch chat integration with emote support',
+    component: TwitchChat,
+    async onInit(context) {
+      console.log('[Twitch Chat Plugin] Initializing...');
+      // Pre-load emote data
+    },
+    async onActivate() {
+      console.log('[Twitch Chat Plugin] Activated');
+    },
+    async onDeactivate() {
+      console.log('[Twitch Chat Plugin] Deactivated');
+      // Disconnect from Twitch if connected
+    },
   },
   {
-    id: 'streaming-assets',
-    name: 'Streaming Assets',
-    icon: (props: any) => React.createElement(ImageIcon, props),
-    component: StreamingAssetsTab,
-  },
-  {
-    id: 'settings',
-    name: 'Settings',
-    icon: (props: any) => React.createElement(SettingsIcon, props),
-    component: SettingsTab,
-  },
-  {
-    id: 'advanced',
-    name: 'Advanced',
-    icon: (props: any) => React.createElement(BuildIcon, props),
-    component: AdvancedPanel,
-  },
-  {
-    id: 'health',
-    name: 'Health',
-    icon: (props: any) => React.createElement(FavoriteIcon, props),
-    component: HealthDashboard,
+    id: 'automation',
+    name: 'Automation',
+    version: '1.0.0',
+    description: 'Create automated workflows',
+    component: AutomationTab,
+    dependencies: ['connections'],
+    async onInit(context) {
+      console.log('[Automation Plugin] Initializing...');
+    },
+    async onActivate() {
+      console.log('[Automation Plugin] Activated');
+      // Resume automation rules
+    },
+    async onDeactivate() {
+      console.log('[Automation Plugin] Deactivated');
+      // Pause automation rules
+    },
   },
 ];
 
-import { twitchChatPlugin } from './twitch-chat';
-import { automationPlugin } from './automation';
-import { emoteWallPlugin } from './emote-wall';
-
-export const allPlugins = [...corePlugins, twitchChatPlugin, automationPlugin, emoteWallPlugin];
+// Register all plugins
+export async function initializePlugins() {
+  for (const plugin of plugins) {
+    try {
+      await pluginManager.register(plugin);
+    } catch (error) {
+      console.error(`Failed to register plugin "${plugin.name}":`, error);
+    }
+  }
+  // Notify the system that all plugins are loaded
+  pluginManager.emit('plugins:loaded');
+}
