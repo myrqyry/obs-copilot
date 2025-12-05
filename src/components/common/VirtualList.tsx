@@ -12,6 +12,7 @@ import {
   VariableSizeList,
 } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
+import { memo, forwardRef, useMemo } from 'react';
 
 export interface VirtualListHandle {
   scrollToItem: (
