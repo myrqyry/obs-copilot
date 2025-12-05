@@ -223,8 +223,9 @@ const TwitchChat: React.FC = () => {
 
       // Estimate height based on content
       const baseHeight = 30;
-      const emoteCount =
-        message.parsed.segments.filter((p) => p.type === 'emote').length || 0;
+      // Use the correct property - check your ParsedMessage type definition
+      const parts = message.parsed.parts || message.parsed.segments || [];
+      const emoteCount = parts.filter((p: any) => p.type === 'emote').length;
       const textLength = message.raw.length;
 
       // Rough calculation: base + emotes + text wrapping
