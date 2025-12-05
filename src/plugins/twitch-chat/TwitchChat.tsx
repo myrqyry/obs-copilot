@@ -15,6 +15,7 @@ import useEmoteWallStore from '@/store/emoteWallStore';
 import ConfigSection from '@/components/common/ConfigSection';
 import ConfigInput from '@/components/common/ConfigInput';
 import ConfigToggle from '@/components/common/ConfigToggle';
+import { VirtualList } from '@/components/common/VirtualList';
 
 // Define a new type for messages that include the parsed content
 type ProcessedMessage = ChatMessage & { parsed: ParsedMessage };
@@ -164,36 +165,50 @@ const TwitchChat: React.FC = () => {
 
           {/* New Message List */}
           <div
-            ref={listRef}
-            className="flex-1 min-h-[50vh] max-h-[70vh] w-full overflow-auto border p-2 text-white scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800"
+            className="flex-1 min-h-[50vh] max-h-[70vh] w-full overflow-auto border p-2 text-white"
             style={themeStyle}
             role="log"
             aria-live="polite"
             aria-label="Twitch chat messages"
           >
-            {filteredMessages.map((message) => {
-              const userStyle: React.CSSProperties = {
+            <VirtualList
+              items={filteredMessages}
+              itemHeight={30}
+              renderItem={(message, index, style) => {
+                const userStyle: React.CSSProperties = {
                   color: message.user.color || 'var(--username-color)',
-                  ...message.user.paintStyle
-              };
+                  ...message.user.paintStyle,
+                };
 
-              return (
-               <div key={message.id} className="mb-2" style={{ marginBottom: `${selectedTheme.messageSpacing}px`}}>
-                  {customizations.effects.showTimestamps && (
-                      <span className="text-xs mr-2" style={{ color: 'var(--timestamp-color)' }}>
+                return (
+                  <div style={style}>
+                    <div
+                      className="mb-2"
+                      style={{
+                        marginBottom: `${selectedTheme.messageSpacing}px`,
+                      }}
+                    >
+                      {customizations.effects.showTimestamps && (
+                        <span
+                          className="text-xs mr-2"
+                          style={{ color: 'var(--timestamp-color)' }}
+                        >
                           {new Date(message.timestamp).toLocaleTimeString()}
+                        </span>
+                      )}
+                      <span className="font-bold mr-1" style={userStyle}>
+                        {message.user.displayName}:
                       </span>
-                  )}
-                  <span className="font-bold mr-1" style={userStyle}>
-                    {message.user.displayName}:
-                  </span>
-                  <MessageRenderer
-                      parsedMessage={message.parsed}
-                      animateEmotes={customizations.effects.animateEmotes}
-                      emoteScale={customizations.effects.emoteScale}
-                  />
-              </div>
-            )})}
+                      <MessageRenderer
+                        parsedMessage={message.parsed}
+                        animateEmotes={customizations.effects.animateEmotes}
+                        emoteScale={customizations.effects.emoteScale}
+                      />
+                    </div>
+                  </div>
+                );
+              }}
+            />
           </div>
         </ConfigSection>
       </div>
