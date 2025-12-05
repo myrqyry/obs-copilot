@@ -12,10 +12,10 @@ let consoleError: SpyInstance;
 describe('Logger', () => {
   beforeEach(async () => {
     // Spy on console methods and provide a mock implementation to avoid logging to the console during tests.
-    consoleDebug = vi.spyOn(console, 'debug').mockImplementation(() => {});
-    consoleInfo = vi.spyOn(console, 'info').mockImplementation(() => {});
-    consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    consoleDebug = vi.spyOn(console, 'debug');
+    consoleInfo = vi.spyOn(console, 'info');
+    consoleWarn = vi.spyOn(console, 'warn');
+    consoleError = vi.spyOn(console, 'error');
 
     // Reset modules to ensure we get a fresh instance of the logger for each test
     vi.resetModules();

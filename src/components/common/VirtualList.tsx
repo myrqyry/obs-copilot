@@ -5,11 +5,7 @@ import {
   useRef,
   useMemo,
 } from 'react';
-import {
-  FixedSizeList,
-  ListChildComponentProps,
-  VariableSizeList,
-} from 'react-window';
+import * as ReactWindow from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 
 export interface VirtualListHandle {
@@ -50,7 +46,7 @@ export const VirtualList = forwardRef<VirtualListHandle, VirtualListProps<any>>(
     ref,
   ) => {
     const isVariableSize = typeof itemHeight === 'function';
-    const listRef = useRef<FixedSizeList | VariableSizeList>(null);
+    const listRef = useRef<ReactWindow.FixedSizeList | ReactWindow.VariableSizeList>(null);
 
     // Expose imperative methods
     useImperativeHandle(ref, () => ({
@@ -72,7 +68,7 @@ export const VirtualList = forwardRef<VirtualListHandle, VirtualListProps<any>>(
 
     const Row = useMemo(
       () =>
-        ({ index, style }: ListChildComponentProps) => (
+        ({ index, style }: ReactWindow.ListChildComponentProps) => (
           <div style={style}>{renderItem(items[index], index, style)}</div>
         ),
       [items, renderItem],
@@ -83,8 +79,8 @@ export const VirtualList = forwardRef<VirtualListHandle, VirtualListProps<any>>(
         <AutoSizer>
           {({ height, width }) =>
             isVariableSize ? (
-              <VariableSizeList
-                ref={listRef as React.RefObject<VariableSizeList>}
+              <ReactWindow.VariableSizeList
+                ref={listRef as React.RefObject<ReactWindow.VariableSizeList>}
                 height={height}
                 width={width}
                 itemCount={items.length}
@@ -95,10 +91,10 @@ export const VirtualList = forwardRef<VirtualListHandle, VirtualListProps<any>>(
                 }}
               >
                 {Row}
-              </VariableSizeList>
+              </ReactWindow.VariableSizeList>
             ) : (
-              <FixedSizeList
-                ref={listRef as React.RefObject<FixedSizeList>}
+              <ReactWindow.FixedSizeList
+                ref={listRef as React.RefObject<ReactWindow.FixedSizeList>}
                 height={height}
                 width={width}
                 itemCount={items.length}
@@ -109,7 +105,7 @@ export const VirtualList = forwardRef<VirtualListHandle, VirtualListProps<any>>(
                 }}
               >
                 {Row}
-              </FixedSizeList>
+              </ReactWindow.FixedSizeList>
             )
           }
         </AutoSizer>

@@ -14,6 +14,7 @@ import { useAppInitialization } from '@/hooks/useAppInitialization';
 import { useAppLayout } from '@/hooks/useAppLayout';
 import { Toaster } from 'sonner';
 import { useConnectionNotifications } from '@/hooks/useConnectionNotifications';
+import GlobalCommandHotkeys from '@/components/core/GlobalCommandHotkeys';
 import React from 'react';
 
 const App: React.FC = memo(() => {
@@ -52,6 +53,7 @@ const App: React.FC = memo(() => {
     <ComprehensiveErrorBoundary>
       <TooltipProvider>
         <div className={layout.layoutClasses.container}>
+          <GlobalCommandHotkeys />
           <Header headerRef={headerRef} />
           <TabNavigation tabs={plugins} />
           <div className="flex flex-grow overflow-hidden">
