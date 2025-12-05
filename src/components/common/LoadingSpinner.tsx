@@ -1,70 +1,70 @@
 import React from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
-import { Loader2 } from 'lucide-react';
 
-interface LoadingSpinnerProps {
-    size?: 'small' | 'medium' | 'large';
-    variant?: 'primary' | 'secondary' | 'muted' | 'white';
-    className?: string;
-    text?: string;
-    fullScreen?: boolean;
-    speed?: 'slow' | 'normal' | 'fast';
+const spinnerVariants = cva(
+  'inline-flex items-center justify-center',
+  {
+    variants: {
+      variant: {
+        default: 'text-primary',
+        destructive: 'text-destructive',
+        accent: 'text-accent',
+        secondary: 'text-secondary',
+      },
+      size: {
+        small: 'h-4 w-4 border-2',
+        medium: 'h-8 w-8 border-4',
+        large: 'h-16 w-16 border-8',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+      size: 'medium',
+    },
+  }
+);
+
+export interface SpinnerProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof spinnerVariants> {
+  text?: string;
+  fullscreen?: boolean;
 }
 
-const sizeClasses = {
-    small: 'w-4 h-4',
-    medium: 'w-8 h-8',
-    large: 'w-12 h-12'
-};
-
-const variantClasses = {
-    primary: 'text-primary',
-    secondary: 'text-secondary',
-    muted: 'text-muted-foreground',
-    white: 'text-white'
-};
-
-const speedClasses = {
-    slow: 'animate-spin-slow',
-    normal: 'animate-spin',
-    fast: 'animate-spin-fast'
-};
-
-export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
-    size = 'medium',
-    variant = 'primary',
-    className,
-    text,
-    fullScreen = false,
-    speed = 'normal'
-}) => {
-    const spinnerContent = (
-        <div 
-            className={cn(
-                "flex flex-col items-center justify-center gap-3",
-                fullScreen && "fixed inset-0 bg-background/80 backdrop-blur-sm z-50",
-                className
-            )}
-            role="status"
-            aria-live="polite"
-            aria-busy="true"
-        >
-            <Loader2 
-                className={cn(
-                    sizeClasses[size],
-                    variantClasses[variant],
-                    speedClasses[speed]
-                )}
-                aria-hidden="true"
-            />
-            {text && (
-                <p className="text-sm font-medium text-muted-foreground animate-pulse">
-                    {text}
-                </p>
-            )}
-            <span className="sr-only">{text || 'Loading...'}</span>
-        </div>
+const LoadingSpinner = React.forwardRef<HTMLDivElement, SpinnerProps>(
+  ({ className, variant, size, text, fullscreen = false, ...props }, ref) => {
+    const spinner = (
+      <div
+        className={cn(
+          'animate-spin rounded-full border-b-transparent',
+          spinnerVariants({ variant, size, className })
+        )}
+        ref={ref}
+        {...props}
+      />
     );
 
-    return spinnerContent;
-};
+    if (fullscreen) {
+      return (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
+          {spinner}
+          {text && <p className="mt-4 text-lg text-foreground">{text}</p>}
+        </div>
+      );
+    }
+
+    if (text) {
+        return (
+            <div className='inline-flex items-center'>
+                {spinner}
+                <span className='ml-2'>{text}</span>
+            </div>
+        )
+    }
+
+    return spinner;
+  }
+);
+
+LoadingSpinner.displayName = 'LoadingSpinner';
+
+export { LoadingSpinner, spinnerVariants };

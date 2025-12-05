@@ -63,3 +63,24 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: vi.fn(),
   })),
 });
+
+vi.mock('import.meta.env', () => ({
+  VITE_GEMINI_API_KEY: 'test-api-key',
+}));
+
+vi.mock('obs-websocket-js');
+
+vi.mock('@/utils/logger', () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+vi.mock('buffer', () => ({
+    Buffer: {
+        from: vi.fn(),
+    },
+}));
