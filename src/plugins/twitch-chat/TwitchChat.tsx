@@ -8,6 +8,7 @@ import React, {
 } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
+import { useRegisterCommand } from '@/hooks/useCommandPalette';
 import { geminiService } from '@/services/geminiService';
 import { useChat } from '@/features/chat/hooks/useChat';
 import { EmoteEngine } from '@/features/chat/core/EmoteEngine';
@@ -29,6 +30,7 @@ import {
   VirtualListHandle,
 } from '@/components/common/VirtualList';
 import { VariableSizeList } from 'react-window';
+import { analytics } from '@/utils/analytics';
 
 // Define a new type for messages that include the parsed content
 type ProcessedMessage = ChatMessage & { parsed: ParsedMessage };
@@ -174,9 +176,20 @@ const TwitchChat: React.FC = () => {
       message.raw.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const handleConnect = () => {
+  const handleConnect = useCallback(() => {
     if (channel) connect(channel);
-  };
+  }, [channel, connect]);
+
+  // Register command palette shortcut
+  useRegisterCommand({
+    id: 'twitch-connect',
+    name: 'Connect to Twitch',
+    description: 'Connect to Twitch chat',
+    shortcut: 'mod+shift+t',
+    keywords: ['twitch', 'connect', 'chat'],
+    action: handleConnect,
+    category: 'plugin',
+  });
 
   const handleDisconnect = () => {
     disconnect();
@@ -246,24 +259,29 @@ const TwitchChat: React.FC = () => {
   }, [filteredMessages.length]);
 
   const renderMessage = useCallback(
-    (message: ProcessedMessage, index: number, style: React.CSSProperties) => (
-      <ChatMessageItem
-        key={message.id}
-        message={message}
-        style={style}
-        showTimestamps={customizations.effects.showTimestamps}
-        animateEmotes={customizations.effects.animateEmotes}
-        emoteScale={customizations.effects.emoteScale}
-        messageSpacing={selectedTheme.messageSpacing}
-        onHeightChange={(height) => {
-          // Update actual measured height
-          if (itemHeights.current.get(message.id) !== height) {
-            itemHeights.current.set(message.id, height);
-            listRef.current?.resetAfterIndex(index);
-          }
-        }}
-      />
-    ),
+    (message: ProcessedMessage, index: number, style: React.CSSProperties) =>
+      analytics.trackPerformance(
+        'render-message',
+        () => (
+          <ChatMessageItem
+            key={message.id}
+            message={message}
+            style={style}
+            showTimestamps={customizations.effects.showTimestamps}
+            animateEmotes={customizations.effects.animateEmotes}
+            emoteScale={customizations.effects.emoteScale}
+            messageSpacing={selectedTheme.messageSpacing}
+            onHeightChange={(height) => {
+              // Update actual measured height
+              if (itemHeights.current.get(message.id) !== height) {
+                itemHeights.current.set(message.id, height);
+                listRef.current?.resetAfterIndex(index);
+              }
+            }}
+          />
+        ),
+        { index, messageId: message.id },
+      ),
     [
       customizations.effects.showTimestamps,
       customizations.effects.animateEmotes,
