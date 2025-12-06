@@ -51,5 +51,9 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
+    setupFiles: ['./jest.setup.js'],
+    css: true,
+    include: ['**/*.{test,spec}.{ts,tsx}'],
+    exclude: ['node_modules', 'dist', 'backend/**'],
   },
 });
