@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from "@/components/ui";
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { useToast } from '@/components/ui/toast';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { ConnectionProfile, ObsConnectionProfile, StreamerbotConnectionProfile, ConnectionType } from '@/types/connections';
+import { Button } from "@/shared/components/ui";
+import { Card, CardHeader, CardTitle, CardContent } from '@/shared/components/ui/Card';
+import { Label } from '@/shared/components/ui/label';
+import { Input } from '@/shared/components/ui/input';
+import { useToast } from '@/shared/components/ui/toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
+import type { ConnectionProfile, ObsConnectionProfile, StreamerbotConnectionProfile, ConnectionType } from '@/shared/types/connections';
 import { nanoid } from 'nanoid';
 
 // Helper function for URL validation

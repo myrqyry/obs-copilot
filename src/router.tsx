@@ -1,7 +1,7 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
-import RouteErrorBoundary from '@/components/common/RouteErrorBoundary';
-import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import RouteErrorBoundary from '@/shared/components/common/RouteErrorBoundary';
+import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
 
 // Lazy load route components
 const App = lazy(() => import('./App'));

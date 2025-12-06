@@ -1,10 +1,10 @@
 import React from 'react';
-import { Button } from "@/components/ui";
-import { AutomationAction, FileExistsActionData, FolderExistsActionData, StreamerBotActionData } from '@/types/automation';
-import { ObsAction, SetCurrentProgramSceneAction } from '@/types/obsActions';
-import useConnectionsStore from '@/store/connections';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from "@/shared/components/ui";
+import { AutomationAction, FileExistsActionData, FolderExistsActionData, StreamerBotActionData } from '@/shared/types/automation';
+import { ObsAction, SetCurrentProgramSceneAction } from '@/shared/types/obsActions';
+import useConnectionsStore from '@/app/store/connections';
+import { Input } from '@/shared/components/ui/input';
+import { Label } from '@/shared/components/ui/label';
 
 // Type guards for safe ObsAction type checking
 function isObsAction(data: unknown): data is ObsAction {

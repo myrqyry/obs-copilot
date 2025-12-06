@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HtmlTemplateService, TemplateConfig } from '@/services/htmlTemplateService';
+import { HtmlTemplateService, TemplateConfig } from '@/shared/services/htmlTemplateService';
 
 const TemplateWizard: React.FC = () => {
     const [step, setStep] = useState(0);

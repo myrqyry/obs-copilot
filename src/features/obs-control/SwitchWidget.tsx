@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Switch } from '@/components/ui/switch';
-import { obsClient } from '@/services/obsClient';
-import { UniversalWidgetConfig } from '@/types/universalWidget';
+import { Switch } from '@/shared/components/ui/switch';
+import { obsClient } from '@/shared/services/obsClient';
+import { UniversalWidgetConfig } from '@/shared/types/universalWidget';
 import { useWidgetStore } from './widgetStore';
 
 interface SwitchWidgetProps {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { UniversalWidgetConfig } from '@/types/universalWidget';
+import { UniversalWidgetConfig } from '@/shared/types/universalWidget';
 
 interface BaseWidgetProps {
   config: UniversalWidgetConfig;

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { BaseWidget } from './BaseWidget';
-import { UniversalWidgetConfig } from '@/types/universalWidget';
-import useConnectionsStore from '@/store/connections';
-import { logger } from '@/utils/logger';
+import { UniversalWidgetConfig } from '@/shared/types/universalWidget';
+import useConnectionsStore from '@/app/store/connections';
+import { logger } from '@/shared/utils/logger';
 
 interface StatusWidgetProps {
   config: UniversalWidgetConfig;

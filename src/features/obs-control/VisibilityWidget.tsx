@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useUniversalWidgetStore } from '@/store/widgetsStore';
-import { obsClient } from '@/services/obsClient';
+import { useUniversalWidgetStore } from '@/app/store/widgetsStore';
+import { obsClient } from '@/shared/services/obsClient';
 import gsap from 'gsap';
-import { Button } from '@/components/ui/Button';
-import type { UniversalWidgetConfig } from '@/types/universalWidget';
+import { Button } from '@/shared/components/ui/Button';
+import type { UniversalWidgetConfig } from '@/shared/types/universalWidget';
 
 interface VisibilityWidgetProps extends UniversalWidgetConfig {
   config: { sceneName?: string; sceneItemId?: string };

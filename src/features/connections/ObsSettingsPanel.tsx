@@ -1,10 +1,10 @@
 import React from 'react';
-import { Button } from "@/components/ui";
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import useConfigStore from '@/store/configStore';
-import useConnectionsStore from '@/store/connections';
+import { Button } from "@/shared/components/ui";
+import { Card, CardHeader, CardTitle, CardContent } from '@/shared/components/ui/Card';
+import { Label } from '@/shared/components/ui/label';
+import { Input } from '@/shared/components/ui/input';
+import useConfigStore from '@/app/store/configStore';
+import useConnectionsStore from '@/app/store/connections';
 
 const ObsSettingsPanel: React.FC = () => {
     const { obsUrl, obsPassword, setObsUrl, setObsPassword } = useConfigStore();

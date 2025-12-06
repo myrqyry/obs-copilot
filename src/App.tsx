@@ -1,20 +1,20 @@
 // src/App.tsx - Update to handle loading state
 import { memo, useMemo, useRef } from 'react';
-import { Header } from '@/components/layout/Header';
-import { TabNavigation } from '@/components/layout/TabNavigation';
-import { PluginRenderer } from '@/components/layout/PluginRenderer';
-import ConfirmationDialog from '@/components/common/ConfirmationDialog';
-import GlobalErrorDisplay from '@/components/common/GlobalErrorDisplay';
-import { AppInitializer } from '@/components/common/AppInitializer';
-import ComprehensiveErrorBoundary from '@/components/common/ComprehensiveErrorBoundary';
-import { TooltipProvider } from '@/components/ui/tooltip';
-import { usePlugins } from '@/hooks/usePlugins';
-import { useTheme } from '@/hooks/useTheme';
-import { useAppInitialization } from '@/hooks/useAppInitialization';
-import { useAppLayout } from '@/hooks/useAppLayout';
+import { Header } from '@/shared/components/layout/Header';
+import { TabNavigation } from '@/shared/components/layout/TabNavigation';
+import { PluginRenderer } from '@/shared/components/layout/PluginRenderer';
+import ConfirmationDialog from '@/shared/components/common/ConfirmationDialog';
+import GlobalErrorDisplay from '@/shared/components/common/GlobalErrorDisplay';
+import { AppInitializer } from '@/shared/components/common/AppInitializer';
+import ComprehensiveErrorBoundary from '@/shared/components/common/ComprehensiveErrorBoundary';
+import { TooltipProvider } from '@/shared/components/ui/tooltip';
+import { usePlugins } from '@/shared/hooks/usePlugins';
+import { useTheme } from '@/shared/hooks/useTheme';
+import { useAppInitialization } from '@/shared/hooks/useAppInitialization';
+import { useAppLayout } from '@/shared/hooks/useAppLayout';
 import { Toaster } from 'sonner';
-import { useConnectionNotifications } from '@/hooks/useConnectionNotifications';
-import GlobalCommandHotkeys from '@/components/core/GlobalCommandHotkeys';
+import { useConnectionNotifications } from '@/shared/hooks/useConnectionNotifications';
+import GlobalCommandHotkeys from '@/shared/components/core/GlobalCommandHotkeys';
 import React from 'react';
 
 const App: React.FC = memo(() => {

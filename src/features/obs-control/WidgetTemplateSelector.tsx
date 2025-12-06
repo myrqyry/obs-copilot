@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useUniversalWidgetStore } from '@/store/widgetsStore';
-import type { UniversalWidgetConfig } from '@/types/universalWidget';
+import { useUniversalWidgetStore } from '@/app/store/widgetsStore';
+import type { UniversalWidgetConfig } from '@/shared/types/universalWidget';
 
 interface WidgetTemplate {
   name: string;

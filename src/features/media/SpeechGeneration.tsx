@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { geminiService } from '@/services/geminiService';
-import { createToastError } from '@/lib/errorUtils';
-import { toast } from '@/components/ui/toast';
+import { geminiService } from '@/shared/services/geminiService';
+import { createToastError } from '@/shared/lib/errorUtils';
+import { toast } from '@/shared/components/ui/toast';
 import { Loader2, Play, Download } from 'lucide-react';
 
 interface Speaker {

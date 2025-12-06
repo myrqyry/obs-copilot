@@ -1,4 +1,4 @@
-import { TabPlugin } from '@/types/plugins';
+import { TabPlugin } from '@/shared/types/plugins';
 import React, { lazy } from 'react';
 import ChatBubbleIcon from '@mui/icons-material/ChatBubble';
 

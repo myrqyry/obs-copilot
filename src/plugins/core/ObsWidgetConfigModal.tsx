@@ -6,21 +6,21 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogDescription,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from '@/shared/components/ui/dialog';
+import { Button } from '@/shared/components/ui/Button';
+import { Input } from '@/shared/components/ui/input';
+import { Label } from '@/shared/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { ObsWidgetConfig, WidgetType } from '@/types/obs';
-import useConnectionsStore from '@/store/connections';
-import { ActionConfigForm } from '@/components/obs-config-forms/ActionConfigForm';
-import { ControlConfigForm } from '@/components/obs-config-forms/ControlConfigForm';
+} from '@/shared/components/ui/select';
+import { ObsWidgetConfig, WidgetType } from '@/shared/types/obs';
+import useConnectionsStore from '@/app/store/connections';
+import { ActionConfigForm } from '@/shared/components/obs-config-forms/ActionConfigForm';
+import { ControlConfigForm } from '@/shared/components/obs-config-forms/ControlConfigForm';
 
 interface ObsWidgetConfigModalProps {
   onSave: (config: ObsWidgetConfig) => void;

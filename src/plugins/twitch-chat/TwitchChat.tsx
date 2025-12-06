@@ -6,10 +6,10 @@ import React, {
   useMemo,
   useCallback,
 } from 'react';
-import { Button } from '@/components/ui/Button';
-import { Modal } from '@/components/ui/Modal';
-import { useRegisterCommand } from '@/hooks/useCommandPalette';
-import { geminiService } from '@/services/geminiService';
+import { Button } from '@/shared/components/ui/Button';
+import { Modal } from '@/shared/components/ui/Modal';
+import { useRegisterCommand } from '@/shared/hooks/useCommandPalette';
+import { geminiService } from '@/shared/services/geminiService';
 import { useChat } from '@/features/chat/hooks/useChat';
 import { EmoteEngine } from '@/features/chat/core/EmoteEngine';
 import MessageRenderer from '@/features/chat/components/MessageRenderer';
@@ -21,16 +21,16 @@ import ChatSearch from '@/features/chat/components/ChatSearch';
 import { ChatThemes } from '@/features/chat/styles/ChatThemes';
 import type { ChatMessage } from '@/features/chat/core/types';
 import type { ParsedMessage } from '@/features/chat/core/emoteTypes';
-import useEmoteWallStore from '@/store/emoteWallStore';
-import ConfigSection from '@/components/common/ConfigSection';
-import ConfigInput from '@/components/common/ConfigInput';
-import ConfigToggle from '@/components/common/ConfigToggle';
+import useEmoteWallStore from '@/app/store/emoteWallStore';
+import ConfigSection from '@/shared/components/common/ConfigSection';
+import ConfigInput from '@/shared/components/common/ConfigInput';
+import ConfigToggle from '@/shared/components/common/ConfigToggle';
 import {
   VirtualList,
   VirtualListHandle,
-} from '@/components/common/VirtualList';
+} from '@/shared/components/common/VirtualList';
 import { VariableSizeList } from 'react-window';
-import { analytics } from '@/utils/analytics';
+import { analytics } from '@/shared/utils/analytics';
 
 // Define a new type for messages that include the parsed content
 type ProcessedMessage = ChatMessage & { parsed: ParsedMessage };

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useUniversalWidgetStore } from '@/store/widgetsStore';
-import { obsClient } from '@/services/obsClient';
-import type { UniversalWidgetConfig } from '@/types/universalWidget';
-import type { AudioConfig } from '@/types/universalWidget';
+import { useUniversalWidgetStore } from '@/app/store/widgetsStore';
+import { obsClient } from '@/shared/services/obsClient';
+import type { UniversalWidgetConfig } from '@/shared/types/universalWidget';
+import type { AudioConfig } from '@/shared/types/universalWidget';
 
 interface AudioMixerWidgetProps {
   config: UniversalWidgetConfig & { audioConfig?: AudioConfig };

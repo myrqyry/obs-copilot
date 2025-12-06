@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useUniversalWidgetStore } from '@/store/widgetsStore';
-import { obsClient } from '@/services/obsClient';
-import type { UniversalWidgetConfig } from '@/types/universalWidget';
-import { Input } from '@/components/ui/input';
+import { useUniversalWidgetStore } from '@/app/store/widgetsStore';
+import { obsClient } from '@/shared/services/obsClient';
+import type { UniversalWidgetConfig } from '@/shared/types/universalWidget';
+import { Input } from '@/shared/components/ui/input';
 
 interface SceneItem {
   sceneItemId: string;

@@ -1,9 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/Button';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/Card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
+import { Badge } from '@/shared/components/ui/badge';
+import { Button } from '@/shared/components/ui/Button';
+import { ScrollArea } from '@/shared/components/ui/scroll-area';
 import {
   Image,
   Music,
@@ -16,12 +16,12 @@ import {
   Camera,
   Headphones
 } from 'lucide-react';
-import { EnhancedImageGenerator } from '@/components/generate/EnhancedImageGenerator';
-import { SpeechGenerator } from '@/components/generate/SpeechGenerator';
-import { MusicGenerator } from '@/components/generate/MusicGenerator';
-import { VideoGenerator } from '@/components/generate/VideoGenerator';
-import { GenerationHistory } from '@/components/generate/GenerationHistory';
-import { useGenerateStore } from '@/store/generateStore';
+import { EnhancedImageGenerator } from '@/shared/components/generate/EnhancedImageGenerator';
+import { SpeechGenerator } from '@/shared/components/generate/SpeechGenerator';
+import { MusicGenerator } from '@/shared/components/generate/MusicGenerator';
+import { VideoGenerator } from '@/shared/components/generate/VideoGenerator';
+import { GenerationHistory } from '@/shared/components/generate/GenerationHistory';
+import { useGenerateStore } from '@/app/store/generateStore';
 
 interface GenerateCategory {
   id: string;

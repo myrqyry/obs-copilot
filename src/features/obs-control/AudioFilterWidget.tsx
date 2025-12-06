@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useUniversalWidgetStore } from '@/store/widgetsStore';
-import { obsClient } from '@/services/obsClient';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/Button';
-import type { UniversalWidgetConfig } from '@/types/universalWidget';
+import { useUniversalWidgetStore } from '@/app/store/widgetsStore';
+import { obsClient } from '@/shared/services/obsClient';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
+import { Input } from '@/shared/components/ui/input';
+import { Button } from '@/shared/components/ui/Button';
+import type { UniversalWidgetConfig } from '@/shared/types/universalWidget';
 
 interface AudioFilterWidgetProps {
   config: UniversalWidgetConfig & { filterType: string; params?: Record<string, unknown> };

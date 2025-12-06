@@ -1,15 +1,15 @@
 import React from 'react';
-import { Button } from '@/components/ui/Button';
-import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent } from '@/components/ui/Card';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { useObsWidget } from '@/hooks/useObsWidget';
-import { UniversalWidgetConfig, WidgetControlType } from '@/types/universalWidget';
-import { logger } from '@/utils/logger';
+import { Button } from '@/shared/components/ui/Button';
+import { Slider } from '@/shared/components/ui/slider';
+import { Switch } from '@/shared/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
+import { Card, CardContent } from '@/shared/components/ui/Card';
+import { Label } from '@/shared/components/ui/label';
+import { Input } from '@/shared/components/ui/input';
+import { Badge } from '@/shared/components/ui/badge';
+import { useObsWidget } from '@/shared/hooks/useObsWidget';
+import { UniversalWidgetConfig, WidgetControlType } from '@/shared/types/universalWidget';
+import { logger } from '@/shared/utils/logger';
 
 interface UniversalWidgetEngineProps {
   config: UniversalWidgetConfig;

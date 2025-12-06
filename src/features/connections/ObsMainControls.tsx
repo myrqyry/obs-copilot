@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { shallow } from 'zustand/shallow';
-import { CatppuccinAccentColorName, OBSVideoSettings, OBSScene, OBSSource, catppuccinAccentColorsHexMap } from '@/types';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AddToContextButton } from '@/components/common/AddToContextButton';
-import { LockToggle } from '@/components/common/LockToggle';
-import { LoadingSpinner } from '@/components/common/LoadingSpinner';
-import useConnectionsStore from '@/store/connections';
-import { obsClient, ObsClientImpl as ObsClient } from '@/services/obsClient';
-import { useLockStore } from '@/store/lockStore';
-import useConfigStore from '@/store/configStore';
-import { useChatStore } from '@/store/chatStore';
-import { COMMON_RESOLUTIONS, COMMON_FPS } from '@/constants';
-import { CollapsibleCard } from '@/components/common/CollapsibleCard';
-import { handleAppError } from '@/lib/errorUtils'; // Import error utilities
+import { CatppuccinAccentColorName, OBSVideoSettings, OBSScene, OBSSource, catppuccinAccentColorsHexMap } from '@/shared/types';
+import { Button } from '@/shared/components/ui/Button';
+import { Input } from '@/shared/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
+import { AddToContextButton } from '@/shared/components/common/AddToContextButton';
+import { LockToggle } from '@/shared/components/common/LockToggle';
+import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
+import useConnectionsStore from '@/app/store/connections';
+import { obsClient, ObsClientImpl as ObsClient } from '@/shared/services/obsClient';
+import { useLockStore } from '@/app/store/lockStore';
+import useConfigStore from '@/app/store/configStore';
+import { useChatStore } from '@/app/store/chatStore';
+import { COMMON_RESOLUTIONS, COMMON_FPS } from '@/shared/constants';
+import { CollapsibleCard } from '@/shared/components/common/CollapsibleCard';
+import { handleAppError } from '@/shared/lib/errorUtils'; // Import error utilities
 // No need to import logger here, handleAppError uses it internally
 
 export const ObsMainControls: React.FC = () => {

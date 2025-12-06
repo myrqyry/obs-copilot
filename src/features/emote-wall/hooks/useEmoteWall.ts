@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { EmoteWallEngine } from '../core/EmoteWallEngine';
-import useConnectionsStore from '@/store/connections';
+import useConnectionsStore from '@/app/store/connections';
 import { chatEngine } from '@/features/chat/core/ChatEngine';
-import useEmoteWallStore from '@/store/emoteWallStore';
+import useEmoteWallStore from '@/app/store/emoteWallStore';
 
 export const useEmoteWall = (containerRef: React.RefObject<HTMLDivElement>) => {
   const [emoteWallEngine, setEmoteWallEngine] = useState<EmoteWallEngine | null>(null);

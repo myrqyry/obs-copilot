@@ -1,5 +1,5 @@
 import React, { lazy } from 'react';
-import { TabPlugin } from '@/types/plugins';
+import { TabPlugin } from '@/shared/types/plugins';
 import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
 
 const EmoteWallTab = lazy(() => import('./EmoteWallTab'));

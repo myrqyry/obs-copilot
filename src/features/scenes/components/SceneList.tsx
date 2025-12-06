@@ -1,10 +1,10 @@
 // src/features/scenes/components/SceneList.tsx
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/api/queryClient';
-import { SceneListSkeleton } from '@/components/common/SceneListSkeleton';
-import { obsClient } from '@/services/obsClient';
+import { SceneListSkeleton } from '@/shared/components/common/SceneListSkeleton';
+import { obsClient } from '@/shared/services/obsClient';
 import React from 'react';
-import { OBSScene } from '@/types';
+import { OBSScene } from '@/shared/types';
 
 const SceneItem: React.FC<{ scene: OBSScene }> = ({ scene }) => (
   <div className="flex items-center gap-3 p-3 border rounded">

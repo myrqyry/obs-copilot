@@ -46,7 +46,7 @@ export const get7tvCosmeticsApiProxy7tvCosmeticsGet = (
     
     
     return axios.get(
-      `http://localhost:8000/api/proxy/7tv/cosmetics`,{
+      `/api/proxy/7tv/cosmetics`,{
     ...options,
         params: {...params, ...options?.params},}
     );
@@ -57,7 +57,7 @@ export const get7tvCosmeticsApiProxy7tvCosmeticsGet = (
 
 export const getGet7tvCosmeticsApiProxy7tvCosmeticsGetQueryKey = (params?: Get7tvCosmeticsApiProxy7tvCosmeticsGetParams,) => {
     return [
-    `http://localhost:8000/api/proxy/7tv/cosmetics`, ...(params ? [params]: [])
+    `/api/proxy/7tv/cosmetics`, ...(params ? [params]: [])
     ] as const;
     }
 

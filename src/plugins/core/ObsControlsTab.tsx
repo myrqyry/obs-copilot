@@ -1,17 +1,17 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Responsive, WidthProvider, Layout } from 'react-grid-layout';
 import { Plus, Settings, Save, Download, Upload, Grid, List } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { Card, CardContent, CardHeader } from '@/components/ui/Card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import useConnectionsStore from '@/store/connections';
+import { Button } from '@/shared/components/ui/Button';
+import { Card, CardContent, CardHeader } from '@/shared/components/ui/Card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
+import { Badge } from '@/shared/components/ui/badge';
+import useConnectionsStore from '@/app/store/connections';
 import useWidgetStore from '@/features/obs-control/widgetStore';
 import UniversalWidgetEngine from '@/features/obs-control/UniversalWidgetEngine';
-import useUiStore from '@/store/uiStore';
+import useUiStore from '@/app/store/uiStore';
 import { WidgetPalette } from './components/WidgetPalette';
 import { WidgetConfigPanel } from './components/WidgetConfigPanel';
-import { UniversalWidgetConfig } from '@/types/universalWidget';
+import { UniversalWidgetConfig } from '@/shared/types/universalWidget';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 

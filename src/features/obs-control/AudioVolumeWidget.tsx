@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useUniversalWidgetStore } from '@/store/widgetsStore';
-import { obsClient } from '@/services/obsClient';
-import type { UniversalWidgetConfig } from '@/types/universalWidget';
-import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
-import { Button } from '@/components/ui/Button';
-import type { AudioConfig } from '@/types/universalWidget'; // Extended for Phase 3
+import { useUniversalWidgetStore } from '@/app/store/widgetsStore';
+import { obsClient } from '@/shared/services/obsClient';
+import type { UniversalWidgetConfig } from '@/shared/types/universalWidget';
+import { Label } from '@/shared/components/ui/label';
+import { Slider } from '@/shared/components/ui/slider';
+import { Switch } from '@/shared/components/ui/switch';
+import { Button } from '@/shared/components/ui/Button';
+import type { AudioConfig } from '@/shared/types/universalWidget'; // Extended for Phase 3
 
 interface AudioVolumeWidgetProps {
   config: UniversalWidgetConfig & { 

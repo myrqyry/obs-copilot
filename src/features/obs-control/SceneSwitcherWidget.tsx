@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useUniversalWidgetStore } from '@/store/widgetsStore';
-import { obsClient } from '@/services/obsClient';
-import type { UniversalWidgetConfig } from '@/types/universalWidget';
+import { useUniversalWidgetStore } from '@/app/store/widgetsStore';
+import { obsClient } from '@/shared/services/obsClient';
+import type { UniversalWidgetConfig } from '@/shared/types/universalWidget';
 import { FixedSizeList as List } from 'react-window';
-import type { OBSScene } from '@/types/obs';
+import type { OBSScene } from '@/shared/types/obs';
 
 interface SceneSwitcherWidgetProps extends UniversalWidgetConfig {
   config: { showItems?: boolean };

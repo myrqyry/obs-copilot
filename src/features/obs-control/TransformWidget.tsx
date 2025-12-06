@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useUniversalWidgetStore } from '@/store/widgetsStore';
-import { obsClient } from '@/services/obsClient';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/Button';
-import type { UniversalWidgetConfig } from '@/types/universalWidget';
+import { useUniversalWidgetStore } from '@/app/store/widgetsStore';
+import { obsClient } from '@/shared/services/obsClient';
+import { Label } from '@/shared/components/ui/label';
+import { Input } from '@/shared/components/ui/input';
+import { Button } from '@/shared/components/ui/Button';
+import type { UniversalWidgetConfig } from '@/shared/types/universalWidget';
 
 interface TransformWidgetProps extends UniversalWidgetConfig {
   config: { sceneName?: string; sceneItemId?: string };

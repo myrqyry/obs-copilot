@@ -1,4 +1,4 @@
-import { StandardApiItem } from '@/types/assetSearch';
+import { StandardApiItem } from '@/shared/types/assetSearch';
 
 type MapperFunction = (item: any) => StandardApiItem;
 

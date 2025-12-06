@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChatMessage } from '@/types';
+import { ChatMessage } from '@/shared/types';
 
 interface ChoicePromptProps {
     message: ChatMessage;

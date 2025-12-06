@@ -1,16 +1,16 @@
-import { Tooltip } from "@/components/ui";
+import { Tooltip } from "@/shared/components/ui";
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { obsClient, ObsClientImpl as ObsClient } from '@/services/obsClient';
-import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
-import { useConnectionManagerStore } from '@/store/connectionManagerStore';
-import { HtmlTemplateService, TemplateConfig } from '@/services/htmlTemplateService';
-import { catppuccinAccentColorsHexMap, CatppuccinAccentColorName } from '@/types';
-import { SecureHtmlRenderer } from '@/components/ui/SecureHtmlRenderer';
-import { handleAppError } from '@/lib/errorUtils'; // Import error utilities
+import { Button } from '@/shared/components/ui/Button';
+import { Input } from '@/shared/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
+import { obsClient, ObsClientImpl as ObsClient } from '@/shared/services/obsClient';
+import { Switch } from '@/shared/components/ui/switch';
+import { Textarea } from '@/shared/components/ui/textarea';
+import { useConnectionManagerStore } from '@/app/store/connectionManagerStore';
+import { HtmlTemplateService, TemplateConfig } from '@/shared/services/htmlTemplateService';
+import { catppuccinAccentColorsHexMap, CatppuccinAccentColorName } from '@/shared/types';
+import { SecureHtmlRenderer } from '@/shared/components/ui/SecureHtmlRenderer';
+import { handleAppError } from '@/shared/lib/errorUtils'; // Import error utilities
 
 interface HtmlTemplateBuilderProps {
     accentColorName: CatppuccinAccentColorName;

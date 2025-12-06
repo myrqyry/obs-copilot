@@ -1,4 +1,4 @@
-import { AssetSearchConfig, AssetCategory } from '@/types/assetSearch';
+import { AssetSearchConfig, AssetCategory } from '@/shared/types/assetSearch';
 
 const allAssetConfigs: AssetSearchConfig[] = [
   // Backgrounds

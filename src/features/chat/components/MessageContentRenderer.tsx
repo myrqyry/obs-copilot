@@ -1,6 +1,6 @@
 import React from 'react';
-import { SecureHtmlRenderer } from '@/components/ui/SecureHtmlRenderer';
-import { CodeBlock } from '@/components/ai-elements/code-block';
+import { SecureHtmlRenderer } from '@/shared/components/ui/SecureHtmlRenderer';
+import { CodeBlock } from '@/shared/components/ai-elements/code-block';
 
 interface MessageContentRendererProps {
     text: string;

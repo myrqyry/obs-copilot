@@ -51,7 +51,7 @@ export const streamApiOverlaysStreamGet = (
     
     
     return axios.get(
-      `http://localhost:8000/api/overlays/stream`,{
+      `/api/overlays/stream`,{
     ...options,
         params: {...params, ...options?.params},}
     );
@@ -62,7 +62,7 @@ export const streamApiOverlaysStreamGet = (
 
 export const getStreamApiOverlaysStreamGetQueryKey = (params?: StreamApiOverlaysStreamGetParams,) => {
     return [
-    `http://localhost:8000/api/overlays/stream`, ...(params ? [params]: [])
+    `/api/overlays/stream`, ...(params ? [params]: [])
     ] as const;
     }
 
@@ -144,7 +144,7 @@ export const publishApiOverlaysPublishPost = (
     
     
     return axios.post(
-      `http://localhost:8000/api/overlays/publish`,
+      `/api/overlays/publish`,
       publishRequest,options
     );
   }

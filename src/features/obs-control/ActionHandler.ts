@@ -1,5 +1,5 @@
-import { ObsClientImpl } from '@/services/obsClient';
-import { actionQueueService } from '@/services/actionQueueService';
+import { ObsClientImpl } from '@/shared/services/obsClient';
+import { actionQueueService } from '@/shared/services/actionQueueService';
 import { 
   ActionHandler, 
   ActionResult, 
@@ -10,7 +10,7 @@ import {
   RetryConfig,
   ActionHandlerFunc
 } from './types';
-import { logger } from '@/utils/logger';
+import { logger } from '@/shared/utils/logger';
 
 const obsClient = ObsClientImpl.getInstance();
 

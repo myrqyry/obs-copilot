@@ -1,7 +1,7 @@
 import React from 'react';
-import { Button } from "@/components/ui";
-import { TextInput } from '@/components/common/TextInput';
-import { AutomationCondition, CONDITION_FIELD_OPTIONS } from '@/types/automation';
+import { Button } from "@/shared/components/ui";
+import { TextInput } from '@/shared/components/common/TextInput';
+import { AutomationCondition, CONDITION_FIELD_OPTIONS } from '@/shared/types/automation';
 
 interface ConditionsStepProps {
     conditions: AutomationCondition[];

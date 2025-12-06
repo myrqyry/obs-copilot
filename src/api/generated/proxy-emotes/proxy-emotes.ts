@@ -47,7 +47,7 @@ export const bttvGlobalApiProxyEmotesBttvGlobalGet = (
     
     
     return axios.get(
-      `http://localhost:8000/api/proxy/emotes/bttv/global`,options
+      `/api/proxy/emotes/bttv/global`,options
     );
   }
 
@@ -56,7 +56,7 @@ export const bttvGlobalApiProxyEmotesBttvGlobalGet = (
 
 export const getBttvGlobalApiProxyEmotesBttvGlobalGetQueryKey = () => {
     return [
-    `http://localhost:8000/api/proxy/emotes/bttv/global`
+    `/api/proxy/emotes/bttv/global`
     ] as const;
     }
 
@@ -137,7 +137,7 @@ export const bttvChannelApiProxyEmotesBttvChannelGet = (
     
     
     return axios.get(
-      `http://localhost:8000/api/proxy/emotes/bttv/channel`,{
+      `/api/proxy/emotes/bttv/channel`,{
     ...options,
         params: {...params, ...options?.params},}
     );
@@ -148,7 +148,7 @@ export const bttvChannelApiProxyEmotesBttvChannelGet = (
 
 export const getBttvChannelApiProxyEmotesBttvChannelGetQueryKey = (params?: BttvChannelApiProxyEmotesBttvChannelGetParams,) => {
     return [
-    `http://localhost:8000/api/proxy/emotes/bttv/channel`, ...(params ? [params]: [])
+    `/api/proxy/emotes/bttv/channel`, ...(params ? [params]: [])
     ] as const;
     }
 
@@ -229,7 +229,7 @@ export const ffzGlobalApiProxyEmotesFfzGlobalGet = (
     
     
     return axios.get(
-      `http://localhost:8000/api/proxy/emotes/ffz/global`,options
+      `/api/proxy/emotes/ffz/global`,options
     );
   }
 
@@ -238,7 +238,7 @@ export const ffzGlobalApiProxyEmotesFfzGlobalGet = (
 
 export const getFfzGlobalApiProxyEmotesFfzGlobalGetQueryKey = () => {
     return [
-    `http://localhost:8000/api/proxy/emotes/ffz/global`
+    `/api/proxy/emotes/ffz/global`
     ] as const;
     }
 
@@ -319,7 +319,7 @@ export const ffzChannelApiProxyEmotesFfzChannelGet = (
     
     
     return axios.get(
-      `http://localhost:8000/api/proxy/emotes/ffz/channel`,{
+      `/api/proxy/emotes/ffz/channel`,{
     ...options,
         params: {...params, ...options?.params},}
     );
@@ -330,7 +330,7 @@ export const ffzChannelApiProxyEmotesFfzChannelGet = (
 
 export const getFfzChannelApiProxyEmotesFfzChannelGetQueryKey = (params?: FfzChannelApiProxyEmotesFfzChannelGetParams,) => {
     return [
-    `http://localhost:8000/api/proxy/emotes/ffz/channel`, ...(params ? [params]: [])
+    `/api/proxy/emotes/ffz/channel`, ...(params ? [params]: [])
     ] as const;
     }
 
@@ -411,7 +411,7 @@ export const sevenTvGlobalApiProxyEmotes7tvGlobalGet = (
     
     
     return axios.get(
-      `http://localhost:8000/api/proxy/emotes/7tv/global`,options
+      `/api/proxy/emotes/7tv/global`,options
     );
   }
 
@@ -420,7 +420,7 @@ export const sevenTvGlobalApiProxyEmotes7tvGlobalGet = (
 
 export const getSevenTvGlobalApiProxyEmotes7tvGlobalGetQueryKey = () => {
     return [
-    `http://localhost:8000/api/proxy/emotes/7tv/global`
+    `/api/proxy/emotes/7tv/global`
     ] as const;
     }
 
@@ -501,7 +501,7 @@ export const sevenTvChannelApiProxyEmotes7tvChannelGet = (
     
     
     return axios.get(
-      `http://localhost:8000/api/proxy/emotes/7tv/channel`,{
+      `/api/proxy/emotes/7tv/channel`,{
     ...options,
         params: {...params, ...options?.params},}
     );
@@ -512,7 +512,7 @@ export const sevenTvChannelApiProxyEmotes7tvChannelGet = (
 
 export const getSevenTvChannelApiProxyEmotes7tvChannelGetQueryKey = (params?: SevenTvChannelApiProxyEmotes7tvChannelGetParams,) => {
     return [
-    `http://localhost:8000/api/proxy/emotes/7tv/channel`, ...(params ? [params]: [])
+    `/api/proxy/emotes/7tv/channel`, ...(params ? [params]: [])
     ] as const;
     }
 

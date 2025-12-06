@@ -1,9 +1,9 @@
 import React from 'react';
 import tmi from 'tmi.js';
-import { handleAppError } from '@/lib/errorUtils';
-import useUiStore from '@/store/uiStore';
-import * as emoteService from '@/services/chatEmoteService';
-import twitchResolver from '@/services/twitchResolver';
+import { handleAppError } from '@/shared/lib/errorUtils';
+import useUiStore from '@/app/store/uiStore';
+import * as emoteService from '@/shared/services/chatEmoteService';
+import twitchResolver from '@/shared/services/twitchResolver';
 import type { ChatProvider, ChatMessage, ChatUser, TmiTags } from '../core/types';
 
 // This was in useTmi.ts, moving it here since that file is deleted.

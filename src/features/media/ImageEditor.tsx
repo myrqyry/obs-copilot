@@ -1,24 +1,24 @@
 // ImageEditor.tsx
 import * as React from "react";
 import { useRef, useEffect, useCallback } from "react";
-import { toast } from "@/components/ui/toast";
-import { Modal } from "@/components/ui/Modal";
-import { Tooltip } from "@/components/ui/Tooltip";
-import { Button } from "@/components/ui/Button";
-import { TextInput } from "@/components/common/TextInput";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "@/shared/components/ui/toast";
+import { Modal } from "@/shared/components/ui/Modal";
+import { Tooltip } from "@/shared/components/ui/tooltip";
+import { Button } from "@/shared/components/ui/Button";
+import { TextInput } from "@/shared/components/common/TextInput";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
 import { Crop, Download, ImagePlus, Scissors, Text, Filter, RefreshCcw, RotateCcw, FlipHorizontal, FlipVertical } from 'lucide-react';
-import { generateSourceName } from '@/utils/obsSourceHelpers';
-import { useConnectionManagerStore } from '@/store/connectionManagerStore';
-import { obsClient, ObsClientImpl as ObsClient } from '@/services/obsClient';
-import { handleAppError, createToastError } from '@/lib/errorUtils';
+import { generateSourceName } from '@/shared/utils/obsSourceHelpers';
+import { useConnectionManagerStore } from '@/app/store/connectionManagerStore';
+import { obsClient, ObsClientImpl as ObsClient } from '@/shared/services/obsClient';
+import { handleAppError, createToastError } from '@/shared/lib/errorUtils';
 import Cropper from 'react-easy-crop';
-import getCroppedImg from '../../lib/canvasUtils';
+import getCroppedImg from '@/shared/lib/canvasUtils';
 import { 
   useImageEditorStore, 
   useImageEditorInput, 
   useImageEditorManipulation 
-} from '@/store/imageEditorStore';
+} from '@/app/store/imageEditorStore';
 
 export const ImageEditor: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);

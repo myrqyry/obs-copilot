@@ -1,7 +1,7 @@
 // src/api/queryClient.ts
 import { QueryClient, QueryCache, MutationCache } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { errorLogger } from '@/lib/errorHandling';
+import { errorLogger } from '@/shared/lib/errorHandling';
 
 export const queryClient = new QueryClient({
   defaultOptions: {

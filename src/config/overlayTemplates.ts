@@ -1,4 +1,4 @@
-import { OverlayConfig } from '@/types/overlay';
+import { OverlayConfig } from '@/shared/types/overlay';
 
 export const overlayTemplates: OverlayConfig[] = [
   {

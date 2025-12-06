@@ -1,17 +1,17 @@
 import React, { useState, useCallback } from 'react';
 import { X, Save, Trash2, Copy, Eye, EyeOff } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Slider } from '@/components/ui/slider';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/shared/components/ui/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/Card';
+import { Input } from '@/shared/components/ui/input';
+import { Label } from '@/shared/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
+import { Switch } from '@/shared/components/ui/switch';
+import { Slider } from '@/shared/components/ui/slider';
+import { Badge } from '@/shared/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import useWidgetStore, { useWidget } from '@/features/obs-control/widgetStore';
-import { WidgetControlType, UniversalWidgetConfig } from '@/types/universalWidget';
-import useConnectionsStore from '@/store/connections';
+import { WidgetControlType, UniversalWidgetConfig } from '@/shared/types/universalWidget';
+import useConnectionsStore from '@/app/store/connections';
 
 interface WidgetConfigPanelProps {
   widgetId: string;

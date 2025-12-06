@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { useGeminiLive } from '@/hooks/useGeminiLive';
-import { Button } from "@/components/ui";
-import { TextInput } from '@/components/common/TextInput';
+import { useGeminiLive } from '@/shared/hooks/useGeminiLive';
+import { Button } from "@/shared/components/ui";
+import { TextInput } from '@/shared/components/common/TextInput';
 
 const LiveAPIDemo: React.FC = () => {
   const {

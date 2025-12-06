@@ -1,4 +1,4 @@
-import { Theme } from './types/themes';
+import { Theme } from './shared/types/themes';
 import { colorTokens } from './styles/theme/tokens';
 
 export const themes: Theme[] = [

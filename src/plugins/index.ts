@@ -3,9 +3,9 @@ import {
   PluginManager,
   PluginDefinition,
 } from '@/plugins/core/PluginManager';
-import { PluginErrorBoundary } from '@/components/common/PluginErrorBoundary';
-import { obsClient } from '@/services/obsClient';
-import { geminiService } from '@/services/geminiService';
+import { PluginErrorBoundary } from '@/shared/components/common/PluginErrorBoundary';
+import { obsClient } from '@/shared/services/obsClient';
+import { geminiService } from '@/shared/services/geminiService';
 
 // Import plugin components
 import React from 'react';

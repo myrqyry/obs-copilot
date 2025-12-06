@@ -1,13 +1,13 @@
 import React from 'react';
-import { Button } from '@/components/ui/Button';
-import { Modal } from '@/components/ui/Modal';
-import { useAutomationRuleBuilder } from '@/hooks/useAutomationRuleBuilder';
+import { Button } from '@/shared/components/ui/Button';
+import { Modal } from '@/shared/components/ui/Modal';
+import { useAutomationRuleBuilder } from '@/shared/hooks/useAutomationRuleBuilder';
 import { TriggerStep } from './TriggerStep';
 import { ConditionsStep } from './ConditionsStep';
 import { ActionsStep } from './ActionsStep';
 import { ReviewStep } from './ReviewStep';
-import { AutomationRule } from '@/types/automation';
-import { cn } from '@/lib/utils';
+import { AutomationRule } from '@/shared/types/automation';
+import { cn } from '@/shared/lib/utils';
 
 interface AutomationRuleBuilderProps {
     isOpen: boolean;

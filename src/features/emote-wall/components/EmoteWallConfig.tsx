@@ -1,12 +1,12 @@
 import React from 'react';
-import useEmoteWallStore from '@/store/emoteWallStore';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Input } from '@/components/ui/input';
+import useEmoteWallStore from '@/app/store/emoteWallStore';
+import { Label } from '@/shared/components/ui/label';
+import { Switch } from '@/shared/components/ui/switch';
+import { Input } from '@/shared/components/ui/input';
 import EmoteWallThemeSelector from './EmoteWallThemeSelector';
-import ConfigSection from '@/components/common/ConfigSection';
-import ConfigToggle from '@/components/common/ConfigToggle';
-import ConfigInput from '@/components/common/ConfigInput';
+import ConfigSection from '@/shared/components/common/ConfigSection';
+import ConfigToggle from '@/shared/components/common/ConfigToggle';
+import ConfigInput from '@/shared/components/common/ConfigInput';
 
 const EmoteWallConfig: React.FC = () => {
   const { enabled, setEnabled, themeId, setThemeId, channel, setChannel } = useEmoteWallStore();

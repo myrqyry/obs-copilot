@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Slider } from '@/components/ui/slider';
-import { ControlConfig } from '@/types/obs';
-import { executeObsWidgetAction } from '@/services/actionMapper';
+import { Slider } from '@/shared/components/ui/slider';
+import { ControlConfig } from '@/shared/types/obs';
+import { executeObsWidgetAction } from '@/shared/services/actionMapper';
 
 interface ObsSliderWidgetProps {
   config: ControlConfig;

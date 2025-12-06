@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { persist, PersistStorage } from 'zustand/middleware';
 import { Layout } from 'react-grid-layout';
-import { saveDashboard, loadDashboard } from '@/services/persistenceService';
-import { UniversalWidgetConfig, WidgetState } from '@/types/universalWidget';
+import { saveDashboard, loadDashboard } from '@/shared/services/persistenceService';
+import { UniversalWidgetConfig, WidgetState } from '@/shared/types/universalWidget';
 
 export interface WidgetContext {
   config: UniversalWidgetConfig;

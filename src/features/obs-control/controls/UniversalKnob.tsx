@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from 'react';
-import { Slider } from '@/components/ui/slider';
+import { Slider } from '@/shared/components/ui/slider';
 import { useWidgetStore } from '../widgetStore';
-import ComprehensiveErrorBoundary from '@/components/common/ComprehensiveErrorBoundary';
-import { UniversalWidgetConfig } from '@/types/universalWidget';
+import ComprehensiveErrorBoundary from '@/shared/components/common/ComprehensiveErrorBoundary';
+import { UniversalWidgetConfig } from '@/shared/types/universalWidget';
 
 interface UniversalKnobProps {
   config: UniversalWidgetConfig;

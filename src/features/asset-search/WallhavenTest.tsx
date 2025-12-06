@@ -1,6 +1,6 @@
 // src/features/asset-search/WallhavenTest.tsx
 import React, { useState } from 'react';
-import { EnhancedAssetSearch } from '@/components/asset-search/EnhancedAssetSearch';
+import { EnhancedAssetSearch } from '@/shared/components/asset-search/EnhancedAssetSearch';
 import { ASSET_SEARCH_CONFIGS } from '@/config/assetSearchConfigs';
 
 export const WallhavenTest: React.FC = () => {

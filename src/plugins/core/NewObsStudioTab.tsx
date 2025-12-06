@@ -4,9 +4,9 @@ import React, { useState, useEffect } from 'react';
 import GridLayout, { WidthProvider, type Layout } from 'react-grid-layout';
 import ObsWidget from './ObsWidget';
 import ObsWidgetConfigModal from './ObsWidgetConfigModal';
-import { ObsWidgetConfig } from '@/types/obs';
-import useConnectionsStore from '@/store/connections';
-import { useWidgetsStore } from '@/store/widgetsStore';
+import { ObsWidgetConfig } from '@/shared/types/obs';
+import useConnectionsStore from '@/app/store/connections';
+import { useWidgetsStore } from '@/app/store/widgetsStore';
 
 const ReactGridLayout = WidthProvider(GridLayout as any);
 

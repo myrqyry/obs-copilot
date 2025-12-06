@@ -57,7 +57,7 @@ export const streamContentApiGeminiStreamPost = (
     
     
     return axios.post(
-      `http://localhost:8000/api/gemini/stream`,
+      `/api/gemini/stream`,
       geminiRequest,options
     );
   }
@@ -118,7 +118,7 @@ export const generateImageEnhancedApiGeminiGenerateImageEnhancedPost = (
     
     
     return axios.post(
-      `http://localhost:8000/api/gemini/generate-image-enhanced`,
+      `/api/gemini/generate-image-enhanced`,
       imageGenerateRequest,options
     );
   }
@@ -179,7 +179,7 @@ export const generateSpeechApiGeminiGenerateSpeechPost = (
     
     
     return axios.post(
-      `http://localhost:8000/api/gemini/generate-speech`,
+      `/api/gemini/generate-speech`,
       speechGenerateRequest,options
     );
   }
@@ -240,7 +240,7 @@ export const generateVideoApiGeminiGenerateVideoPost = (
     
     
     return axios.post(
-      `http://localhost:8000/api/gemini/generate-video`,
+      `/api/gemini/generate-video`,
       videoGenerateRequest,options
     );
   }
@@ -301,7 +301,7 @@ export const getOperationStatusApiGeminiOperationsOperationNameGet = (
     
     
     return axios.get(
-      `http://localhost:8000/api/gemini/operations/${operationName}`,options
+      `/api/gemini/operations/${operationName}`,options
     );
   }
 
@@ -310,7 +310,7 @@ export const getOperationStatusApiGeminiOperationsOperationNameGet = (
 
 export const getGetOperationStatusApiGeminiOperationsOperationNameGetQueryKey = (operationName?: string,) => {
     return [
-    `http://localhost:8000/api/gemini/operations/${operationName}`
+    `/api/gemini/operations/${operationName}`
     ] as const;
     }
 
@@ -392,7 +392,7 @@ export const obsAwareQueryApiGeminiObsAwareQueryPost = (
     
     
     return axios.post(
-      `http://localhost:8000/api/gemini/obs-aware-query`,
+      `/api/gemini/obs-aware-query`,
       oBSAwareRequest,options
     );
   }
@@ -454,7 +454,7 @@ export const cleanupCachesApiGeminiCacheCleanupPost = (
     
     
     return axios.post(
-      `http://localhost:8000/api/gemini/cache/cleanup`,undefined,options
+      `/api/gemini/cache/cleanup`,undefined,options
     );
   }
 
@@ -515,7 +515,7 @@ export const processOrchestrationApiGeminiProcessPost = (
     
     
     return axios.post(
-      `http://localhost:8000/api/gemini/process`,
+      `/api/gemini/process`,
       processOrchestrationApiGeminiProcessPostBody,options
     );
   }
@@ -576,7 +576,7 @@ export const functionCallingQueryApiGeminiFunctionCallingQueryPost = (
     
     
     return axios.post(
-      `http://localhost:8000/api/gemini/function-calling-query`,
+      `/api/gemini/function-calling-query`,
       functionCallingRequest,options
     );
   }

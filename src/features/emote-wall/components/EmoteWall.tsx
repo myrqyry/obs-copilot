@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { EmoteWallEngine } from '../core/EmoteWallEngine';
-import { useEmoteWallConfig } from '@/store/emoteWallStore';
+import { useEmoteWallConfig } from '@/app/store/emoteWallStore';
 import { chatEngine } from '@/features/chat/core/ChatEngine';
 
 const EmoteWall: React.FC = () => {

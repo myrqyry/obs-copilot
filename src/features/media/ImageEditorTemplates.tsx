@@ -1,7 +1,7 @@
 // src/features/media/ImageEditorTemplates.tsx
 import React from 'react';
-import { Button } from "@/components/ui";
-import { CardContent } from '@/components/ui/Card';
+import { Button } from "@/shared/components/ui";
+import { CardContent } from '@/shared/components/ui/Card';
 import { Sparkles, Users, Globe, BookOpen, Camera, Palette } from 'lucide-react';
 
 interface Template {

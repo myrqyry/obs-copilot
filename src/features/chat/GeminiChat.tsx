@@ -1,17 +1,17 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { useGeminiChat } from '@/hooks/useGeminiChat';
+import { useGeminiChat } from '@/shared/hooks/useGeminiChat';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
-import { useChatStore, ChatState } from '@/store/chatStore';
-import useConfigStore from '@/store/configStore';
-import useConnectionsStore from '@/store/connections';
-import { ChatMessage, CatppuccinAccentColorName } from '@/types';
-import { geminiService } from '@/services/geminiService';
-import { handleAppError } from '@/lib/errorUtils';
-import useUiStore from '@/store/uiStore';
-import type { ChatBackgroundType, ChatPattern } from '@/types/chatBackground';
+import { useChatStore, ChatState } from '@/app/store/chatStore';
+import useConfigStore from '@/app/store/configStore';
+import useConnectionsStore from '@/app/store/connections';
+import { ChatMessage, CatppuccinAccentColorName } from '@/shared/types';
+import { geminiService } from '@/shared/services/geminiService';
+import { handleAppError } from '@/shared/lib/errorUtils';
+import useUiStore from '@/app/store/uiStore';
+import type { ChatBackgroundType, ChatPattern } from '@/shared/types/chatBackground';
 import { Session } from '@google/genai';
-import { Card } from '@/components/ui/Card';
+import { Card } from '@/shared/components/ui/Card';
 
 interface GeminiChatProps {
     onRefreshData?: () => Promise<void>;

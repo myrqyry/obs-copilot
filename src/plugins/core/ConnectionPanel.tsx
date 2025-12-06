@@ -1,9 +1,9 @@
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Button } from "@/components/ui";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/Card';
+import { Button } from "@/shared/components/ui";
 import { ConnectionStatusIcon } from './ConnectionStatusIcon';
-import { ConnectionProfile, ObsConnectionProfile, StreamerbotConnectionProfile } from '@/types/connections';
-import useConnectionsStore from '@/store/connections';
+import { ConnectionProfile, ObsConnectionProfile, StreamerbotConnectionProfile } from '@/shared/types/connections';
+import useConnectionsStore from '@/app/store/connections';
 
 interface ConnectionPanelProps {
   connection: ConnectionProfile;

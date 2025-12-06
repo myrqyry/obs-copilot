@@ -2,8 +2,8 @@ import React, { useRef } from 'react';
 import EmoteWall from '@/features/emote-wall/components/EmoteWall';
 import EmoteWallConfig from '@/features/emote-wall/components/EmoteWallConfig';
 import { useEmoteWall } from '@/features/emote-wall/hooks/useEmoteWall';
-import { useEmoteWallConfig } from '@/store/emoteWallStore';
-import useEmoteWallStore from '@/store/emoteWallStore';
+import { useEmoteWallConfig } from '@/app/store/emoteWallStore';
+import useEmoteWallStore from '@/app/store/emoteWallStore';
 
 const EmoteWallTab: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);

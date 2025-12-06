@@ -21,7 +21,7 @@
     "setup:backend": "cd backend && poetry install --no-root",
     "setup:all": "pnpm setup",
     "// === Development ===": "",
-    "dev": "orval --config orval.config.ts && vite",
+    "dev": "orval --config orval.config.ts && concurrently \"pnpm:dev:frontend\" \"pnpm:dev:backend\"",
     "dev:frontend": "vite",
     "dev:backend": "cd backend && PYTHONPATH=$(pwd)/.. poetry run uvicorn main:app --reload --host 0.0.0.0 --port 8000",
     "dev:mock": "concurrently \"pnpm:dev:frontend\" \"pnpm:mock-obs\"",

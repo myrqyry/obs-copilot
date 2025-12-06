@@ -1,5 +1,5 @@
 import React from 'react';
-import { Suggestions, Suggestion } from '@/components/ai-elements/suggestion';
+import { Suggestions, Suggestion } from '@/shared/components/ai-elements/suggestion';
 
 interface SuggestionType {
     id: string;

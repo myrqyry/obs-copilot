@@ -1,26 +1,26 @@
 import React, { useState } from 'react';
-import { useConnectionManagerStore } from '@/store/connectionManagerStore';
-// import useConfigStore from '@/store/configStore';
-import { toast } from '@/components/ui/toast';
-import { ObsClientImpl as ObsClient } from '@/services/obsClient';
-import { catppuccinAccentColorsHexMap } from '@/types';
-import { generateSourceName } from '@/utils/obsSourceHelpers';
-import { copyToClipboard } from '@/utils/persistence';
-import { CardContent } from '@/components/ui/Card';
-import { Modal } from '@/components/ui/Modal';
-import { Button } from "@/components/ui";
-import { CollapsibleCard } from '@/components/common/CollapsibleCard';
-import { TextInput } from '@/components/common/TextInput';
-import { ImageUpload } from '@/components/common/ImageUpload';
-import { geminiService } from '@/services/geminiService';
+import { useConnectionManagerStore } from '@/app/store/connectionManagerStore';
+// import useConfigStore from '@/app/store/configStore';
+import { toast } from '@/shared/components/ui/toast';
+import { ObsClientImpl as ObsClient } from '@/shared/services/obsClient';
+import { catppuccinAccentColorsHexMap } from '@/shared/types';
+import { generateSourceName } from '@/shared/utils/obsSourceHelpers';
+import { copyToClipboard } from '@/shared/utils/persistence';
+import { CardContent } from '@/shared/components/ui/Card';
+import { Modal } from '@/shared/components/ui/Modal';
+import { Button } from "@/shared/components/ui";
+import { CollapsibleCard } from '@/shared/components/common/CollapsibleCard';
+import { TextInput } from '@/shared/components/common/TextInput';
+import { ImageUpload } from '@/shared/components/common/ImageUpload';
+import { geminiService } from '@/shared/services/geminiService';
 import {
   IMAGE_FORMATS,
   ASPECT_RATIOS,
   PERSON_GENERATION_OPTIONS,
   ImageUploadResult,
-} from '@/types/audio';
+} from '@/shared/types/audio';
 import { Settings, Sparkles } from 'lucide-react';
-import { handleAppError, createToastError } from '@/lib/errorUtils'; // Import error utilities
+import { handleAppError, createToastError } from '@/shared/lib/errorUtils'; // Import error utilities
 
 const ImageGeneration: React.FC = () => {
     const [prompt, setPrompt] = useState('');

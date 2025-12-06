@@ -8,7 +8,16 @@ const mockObs = {
   disconnect: vi.fn(),
 };
 const mockGemini = {
+  isConfigured: vi.fn(() => true),
+  getApiKey: vi.fn(() => 'test-key'),
+  setApiKey: vi.fn(),
   generateContent: vi.fn(),
+  generateImage: vi.fn(),
+  generateSpeech: vi.fn(),
+  generateVideo: vi.fn(),
+  generateStructuredContent: vi.fn(),
+  generateWithLongContext: vi.fn(),
+  liveConnect: vi.fn(),
 };
 
 describe('PluginManager', () => {

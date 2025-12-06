@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Paperclip } from 'lucide-react';
 import * as PopoverPrimitive from '@radix-ui/react-popover';
 import { ZodError } from 'zod';
-import { chatInputSchema } from '@/lib/validations';
+import { chatInputSchema } from '@/shared/lib/validations';
 import {
     PromptInput,
     PromptInputTextarea,
@@ -10,10 +10,10 @@ import {
     PromptInputSubmit,
     PromptInputTools,
     PromptInputToolbar,
-} from '@/components/ai-elements/prompt-input';
+} from '@/shared/components/ai-elements/prompt-input';
 // Local ChatStatus type to avoid depending on external 'ai' types at runtime
 type ChatStatus = 'submitted' | 'streaming' | 'error' | undefined;
-import { VoiceInput } from '@/components/ui/voice-input';
+import { VoiceInput } from '@/shared/components/ui/voice-input';
 
 interface ChatInputProps {
     chatInputValue: string;

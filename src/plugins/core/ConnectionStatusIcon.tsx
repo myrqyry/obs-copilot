@@ -1,11 +1,11 @@
-import { Tooltip } from "@/components/ui";
+import { Tooltip } from "@/shared/components/ui";
 
 import React, { useRef, useEffect } from 'react';
 import { gsap } from 'gsap';
-import { prefersReducedMotion } from '@/lib/utils';
+import { prefersReducedMotion } from '@/shared/lib/utils';
 
-import useConnectionsStore from '@/store/connections';
-import { ConnectionStatus } from '@/services/obsClient';
+import useConnectionsStore from '@/app/store/connections';
+import { ConnectionStatus } from '@/shared/services/obsClient';
 
 interface ConnectionStatusIconProps {
   onClick?: () => void;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChatMessageDataPart } from '@/types';
+import { ChatMessageDataPart } from '@/shared/types';
 
 interface DataPartsRendererProps {
     dataParts: ChatMessageDataPart[];

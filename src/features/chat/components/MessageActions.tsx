@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { Clipboard, RefreshCw, MessageCircle } from 'lucide-react';
-import { Tooltip } from "@/components/ui";
-import { ChatMessage } from '@/types';
+import { Tooltip } from "@/shared/components/ui";
+import { ChatMessage } from '@/shared/types';
 
 interface MessageActionsProps {
     message: ChatMessage;

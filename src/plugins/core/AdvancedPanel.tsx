@@ -1,7 +1,7 @@
 // src/components/ui/AdvancedPanel.tsx
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import SnapshotManager from '@/components/settings/SnapshotManager';
+import { Card, CardHeader, CardTitle, CardContent } from '@/shared/components/ui/Card';
+import SnapshotManager from '@/shared/components/settings/SnapshotManager';
 
 const AdvancedPanel: React.FC = () => {
   return (

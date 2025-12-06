@@ -3,7 +3,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import UniversalWidgetEngine from './UniversalWidgetEngine';
-import { UniversalWidgetConfig, WidgetControlType } from '@/types/universalWidget';
+import { UniversalWidgetConfig, WidgetControlType } from '@/shared/types/universalWidget';
 
 // Mock child components and hooks with proper named exports
 vi.mock('@/hooks/useObsWidget', () => ({

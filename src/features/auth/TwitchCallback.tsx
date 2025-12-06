@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import axios from 'axios';
-import useConfigStore from '@/store/configStore';
+import useConfigStore from '@/app/store/configStore';
 
 const TwitchCallback: React.FC = () => {
   const {

@@ -1,7 +1,7 @@
 import React from 'react';
-import { Button } from '@/components/ui/Button';
-import { obsClient } from '@/services/obsClient';
-import { UniversalWidgetConfig } from '@/types/universalWidget';
+import { Button } from '@/shared/components/ui/Button';
+import { obsClient } from '@/shared/services/obsClient';
+import { UniversalWidgetConfig } from '@/shared/types/universalWidget';
 import { useWidgetStore } from './widgetStore';
 
 interface ButtonWidgetProps {

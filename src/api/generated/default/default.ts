@@ -41,7 +41,7 @@ export const readRootGet = (
     
     
     return axios.get(
-      `http://localhost:8000/`,options
+      `/`,options
     );
   }
 
@@ -50,7 +50,7 @@ export const readRootGet = (
 
 export const getReadRootGetQueryKey = () => {
     return [
-    `http://localhost:8000/`
+    `/`
     ] as const;
     }
 
@@ -132,7 +132,7 @@ export const getSecureData = (
     
     
     return axios.get(
-      `http://localhost:8000/secure`,options
+      `/secure`,options
     );
   }
 
@@ -141,7 +141,7 @@ export const getSecureData = (
 
 export const getGetSecureDataQueryKey = () => {
     return [
-    `http://localhost:8000/secure`
+    `/secure`
     ] as const;
     }
 

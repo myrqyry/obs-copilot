@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
-import { useUniversalWidgetStore } from '@/store/widgetsStore';
-import { obsClient } from '@/services/obsClient';
-import type { UniversalWidgetConfig } from '@/types/universalWidget';
+import { useUniversalWidgetStore } from '@/app/store/widgetsStore';
+import { obsClient } from '@/shared/services/obsClient';
+import type { UniversalWidgetConfig } from '@/shared/types/universalWidget';
 
 interface SceneItem {
   sourceName: string;

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { BaseWidget } from './BaseWidget';
-import { UniversalWidgetConfig } from '@/types/universalWidget';
-import useConnectionsStore from '@/store/connections';
-import { logger } from '@/utils/logger';
+import { UniversalWidgetConfig } from '@/shared/types/universalWidget';
+import useConnectionsStore from '@/app/store/connections';
+import { logger } from '@/shared/utils/logger';
 
 interface PickerWidgetProps {
   config: UniversalWidgetConfig;

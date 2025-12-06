@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Knob } from '@/components/ui/Knob';
-import { ControlConfig } from '@/types/obs';
-import { executeObsWidgetAction } from '@/services/actionMapper';
+import { Knob } from '@/shared/components/ui/Knob';
+import { ControlConfig } from '@/shared/types/obs';
+import { executeObsWidgetAction } from '@/shared/services/actionMapper';
 
 interface ObsKnobWidgetProps {
   config: ControlConfig;

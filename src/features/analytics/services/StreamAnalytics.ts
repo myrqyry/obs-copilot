@@ -1,5 +1,5 @@
-import { AIService } from '@/types/ai';
-import { geminiService } from '@/services/geminiService';
+import { AIService } from '@/shared/types/ai';
+import { geminiService } from '@/shared/services/geminiService';
 import { StreamMetrics, StreamInsights } from '../types';
 
 class StreamAnalytics {

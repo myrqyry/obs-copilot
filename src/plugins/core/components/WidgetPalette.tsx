@@ -1,12 +1,12 @@
 import React, { useState, useCallback } from 'react';
 import { X, Search, Sliders, ToggleLeft, Volume2, Palette, Monitor } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { UniversalWidgetConfig, WidgetControlType } from '@/types/universalWidget';
-import useConnectionsStore from '@/store/connections';
+import { Button } from '@/shared/components/ui/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/Card';
+import { Input } from '@/shared/components/ui/input';
+import { Badge } from '@/shared/components/ui/badge';
+import { ScrollArea } from '@/shared/components/ui/scroll-area';
+import { UniversalWidgetConfig, WidgetControlType } from '@/shared/types/universalWidget';
+import useConnectionsStore from '@/app/store/connections';
 
 interface WidgetPaletteProps {
   onAddWidget: (config: UniversalWidgetConfig) => void;

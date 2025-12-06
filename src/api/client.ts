@@ -1,7 +1,7 @@
 // src/api/client.ts
 import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 import { toast } from 'sonner';
-import { API_CONFIG } from '@/constants/api';
+import { API_CONFIG } from '@/shared/constants/api';
 
 // Custom error class
 export class APIError extends Error {

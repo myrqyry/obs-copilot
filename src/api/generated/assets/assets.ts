@@ -50,7 +50,7 @@ export const searchAssetsApiAssetsSearchApiNameGet = (
     
     
     return axios.get(
-      `http://localhost:8000/api/assets/search/${apiName}`,{
+      `/api/assets/search/${apiName}`,{
     ...options,
         params: {...params, ...options?.params},}
     );
@@ -62,7 +62,7 @@ export const searchAssetsApiAssetsSearchApiNameGet = (
 export const getSearchAssetsApiAssetsSearchApiNameGetQueryKey = (apiName?: string,
     params?: SearchAssetsApiAssetsSearchApiNameGetParams,) => {
     return [
-    `http://localhost:8000/api/assets/search/${apiName}`, ...(params ? [params]: [])
+    `/api/assets/search/${apiName}`, ...(params ? [params]: [])
     ] as const;
     }
 
@@ -151,7 +151,7 @@ export const searchAssetsRootApiAssetsSearchGet = (
     
     
     return axios.get(
-      `http://localhost:8000/api/assets/search`,{
+      `/api/assets/search`,{
     ...options,
         params: {...params, ...options?.params},}
     );
@@ -162,7 +162,7 @@ export const searchAssetsRootApiAssetsSearchGet = (
 
 export const getSearchAssetsRootApiAssetsSearchGetQueryKey = (params?: SearchAssetsRootApiAssetsSearchGetParams,) => {
     return [
-    `http://localhost:8000/api/assets/search`, ...(params ? [params]: [])
+    `/api/assets/search`, ...(params ? [params]: [])
     ] as const;
     }
 
@@ -244,7 +244,7 @@ export const proxyImageApiAssetsProxyImageGet = (
     
     
     return axios.get(
-      `http://localhost:8000/api/assets/proxy-image`,options
+      `/api/assets/proxy-image`,options
     );
   }
 
@@ -253,7 +253,7 @@ export const proxyImageApiAssetsProxyImageGet = (
 
 export const getProxyImageApiAssetsProxyImageGetQueryKey = (imageProxyRequest?: ImageProxyRequest,) => {
     return [
-    `http://localhost:8000/api/assets/proxy-image`, imageProxyRequest
+    `/api/assets/proxy-image`, imageProxyRequest
     ] as const;
     }
 

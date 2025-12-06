@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { CollapsibleSection } from '@/components/common/CollapsibleSection';
+import { CollapsibleSection } from '@/shared/components/common/CollapsibleSection';
 import WidgetTemplateSelector from '@/features/obs-control/WidgetTemplateSelector';
 import ActionParameterMapper from './ActionParameterMapper';
-import { useUniversalWidgetStore } from '@/store/widgetsStore';
-import { useObsWidget } from '@/hooks/useObsWidget';
-import type { UniversalWidgetConfig } from '@/types/universalWidget';
+import { useUniversalWidgetStore } from '@/app/store/widgetsStore';
+import { useObsWidget } from '@/shared/hooks/useObsWidget';
+import type { UniversalWidgetConfig } from '@/shared/types/universalWidget';
 
 interface UniversalWidgetConfigModalProps {
   isOpen: boolean;

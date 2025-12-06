@@ -1,14 +1,14 @@
 import React, { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/Card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
+import { Badge } from '@/shared/components/ui/badge';
 import { Settings, Download, Palette, Image, FileText, Smile } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { EnhancedAssetSearch } from '@/components/asset-search/EnhancedAssetSearch';
-import { AssetSettingsPanel } from '@/components/asset-search/AssetSettingsPanel';
+import { Button } from '@/shared/components/ui/Button';
+import { ScrollArea } from '@/shared/components/ui/scroll-area';
+import { EnhancedAssetSearch } from '@/shared/components/asset-search/EnhancedAssetSearch';
+import { AssetSettingsPanel } from '@/shared/components/asset-search/AssetSettingsPanel';
 import { getConfigsByCategory } from '@/config/assetSearchConfigs';
-import useConfigStore from '@/store/configStore';
+import useConfigStore from '@/app/store/configStore';
 
 interface CategoryInfo {
   id: string;

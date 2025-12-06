@@ -14,25 +14,25 @@ import {
   EyeOff
 } from 'lucide-react';
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import { Modal } from "@/components/ui/Modal";
-import { Input } from "@/components/ui/input";
-import { TextInput } from "@/components/common/TextInput";
-import { ObsClientImpl as ObsClient } from '@/services/obsClient';
-import { useConnectionManagerStore } from '@/store/connectionManagerStore';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
+import { Button } from "@/shared/components/ui/Button";
+import { Card } from "@/shared/components/ui/Card";
+import { Modal } from "@/shared/components/ui/Modal";
+import { Input } from "@/shared/components/ui/input";
+import { TextInput } from "@/shared/components/common/TextInput";
+import { ObsClientImpl as ObsClient } from '@/shared/services/obsClient';
+import { useConnectionManagerStore } from '@/app/store/connectionManagerStore';
 
 import Cropper from 'react-easy-crop';
-import getCroppedImg from '../../lib/canvasUtils';
+import getCroppedImg from '@/shared/lib/canvasUtils';
 
-import useImageEditorStore from '@/store/imageEditorStore';
+import useImageEditorStore from '@/app/store/imageEditorStore';
 
-import { geminiService } from '@/services/geminiService';
-import { generateSourceName } from '@/utils/obsSourceHelpers';
-import { handleAppError, createToastError } from '@/lib/errorUtils';
-import { toast } from "@/components/ui/toast";
-import Tooltip from "@/components/ui/tooltip";
+import { geminiService } from '@/shared/services/geminiService';
+import { generateSourceName } from '@/shared/utils/obsSourceHelpers';
+import { handleAppError, createToastError } from '@/shared/lib/errorUtils';
+import { toast } from "@/shared/components/ui/toast";
+import Tooltip from "@/shared/components/ui/tooltip";
 
 
 

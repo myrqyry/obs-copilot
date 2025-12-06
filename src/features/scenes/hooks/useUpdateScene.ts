@@ -1,7 +1,7 @@
 // src/features/scenes/hooks/useUpdateScene.ts
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/api/queryClient';
-import type { OBSScene } from '@/types/obs';
+import type { OBSScene } from '@/shared/types/obs';
 import { apiClient } from '@/api/client';
 
 export function useUpdateScene() {

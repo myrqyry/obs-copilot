@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import ConnectionForm from './ConnectionForm';
 import { ConnectionPanel } from './ConnectionPanel';
-import useConnectionsStore from '@/store/connections';
-import { ConnectionProfile } from '@/types/connections';
+import useConnectionsStore from '@/app/store/connections';
+import { ConnectionProfile } from '@/shared/types/connections';
 import {
   Dialog,
   DialogContent,
@@ -10,11 +10,11 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogDescription,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui";
-import useConfigStore from '@/store/configStore';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from "@/shared/components/ui/dialog";
+import { Button } from "@/shared/components/ui";
+import useConfigStore from '@/app/store/configStore';
+import { Input } from '@/shared/components/ui/input';
+import { Label } from '@/shared/components/ui/label';
 
 export const ConnectionsTab: React.FC = () => {
   const {

@@ -41,7 +41,7 @@ export const healthCheckApiHealthGet = (
     
     
     return axios.get(
-      `http://localhost:8000/api/health/`,options
+      `/api/health/`,options
     );
   }
 
@@ -50,7 +50,7 @@ export const healthCheckApiHealthGet = (
 
 export const getHealthCheckApiHealthGetQueryKey = () => {
     return [
-    `http://localhost:8000/api/health/`
+    `/api/health/`
     ] as const;
     }
 
@@ -132,7 +132,7 @@ export const geminiHealthApiHealthGeminiGet = (
     
     
     return axios.get(
-      `http://localhost:8000/api/health/gemini`,options
+      `/api/health/gemini`,options
     );
   }
 
@@ -141,7 +141,7 @@ export const geminiHealthApiHealthGeminiGet = (
 
 export const getGeminiHealthApiHealthGeminiGetQueryKey = () => {
     return [
-    `http://localhost:8000/api/health/gemini`
+    `/api/health/gemini`
     ] as const;
     }
 
@@ -223,7 +223,7 @@ export const obsHealthApiHealthObsGet = (
     
     
     return axios.get(
-      `http://localhost:8000/api/health/obs`,options
+      `/api/health/obs`,options
     );
   }
 
@@ -232,7 +232,7 @@ export const obsHealthApiHealthObsGet = (
 
 export const getObsHealthApiHealthObsGetQueryKey = () => {
     return [
-    `http://localhost:8000/api/health/obs`
+    `/api/health/obs`
     ] as const;
     }
 
@@ -314,7 +314,7 @@ export const mcpHealthApiHealthMcpGet = (
     
     
     return axios.get(
-      `http://localhost:8000/api/health/mcp`,options
+      `/api/health/mcp`,options
     );
   }
 
@@ -323,7 +323,7 @@ export const mcpHealthApiHealthMcpGet = (
 
 export const getMcpHealthApiHealthMcpGetQueryKey = () => {
     return [
-    `http://localhost:8000/api/health/mcp`
+    `/api/health/mcp`
     ] as const;
     }
 

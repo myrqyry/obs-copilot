@@ -1,11 +1,11 @@
-import { ObsClientImpl } from '@/services/obsClient';
+import { ObsClientImpl } from '@/shared/services/obsClient';
 import { 
   WidgetError, 
   ActionResult, 
   ActionConfig,
   ActionExecutionOptions,
   ObsActionType
-} from '@/types/universalWidget';
+} from '@/shared/types/universalWidget';
 import { 
   ActionExecutionContext, 
   ActionHandler, 
@@ -20,14 +20,14 @@ import type {
   StreamOutputStateEvent,
   ScenesChangedEvent,
   ObsEventPayload,
-} from '@/types/obsEvents';
+} from '@/shared/types/obsEvents';
 
 // Import additional types from canonical location
 import type {
   UniversalWidgetConfig,
   WidgetContext,
   WidgetState,
-} from '@/types/universalWidget';
+} from '@/shared/types/universalWidget';
 import { EventEmitter } from 'eventemitter3';
 
 const obsClient = ObsClientImpl.getInstance();

@@ -6,14 +6,14 @@ import {
     ChatMessage,
     OBSSource,
     CatppuccinChatBubbleColorName
-} from '@/types';
+} from '@/shared/types';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { gsap } from 'gsap';
-import { getRandomSuggestions } from '@/constants/chatSuggestions';
-import useConfigStore from '@/store/configStore';
-import { Tooltip } from "@/components/ui";
-import { Message, MessageContent } from '@/components/ai-elements';
-import { Sources, SourcesTrigger, SourcesContent, Source } from '@/components/ai-elements/source';
+import { getRandomSuggestions } from '@/shared/constants/chatSuggestions';
+import useConfigStore from '@/app/store/configStore';
+import { Tooltip } from "@/shared/components/ui";
+import { Message, MessageContent } from '@/shared/components/ai-elements';
+import { Sources, SourcesTrigger, SourcesContent, Source } from '@/shared/components/ai-elements/source';
 
 // New component imports
 import { MessageContentRenderer } from './components/MessageContentRenderer';

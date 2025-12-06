@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { useAudioStore } from '@/store/audioStore';
-import useConfigStore from '@/store/configStore';
+import { useAudioStore } from '@/app/store/audioStore';
+import useConfigStore from '@/app/store/configStore';
 
-import { CardContent } from '@/components/ui/Card';
-import { Button } from "@/components/ui";
-import { TextInput } from '@/components/common/TextInput';
-import { Tooltip } from "@/components/ui";
-import InlineMusicControls from '@/components/ui/InlineMusicControls';
-import { CollapsibleCard } from '@/components/common/CollapsibleCard';
+import { CardContent } from '@/shared/components/ui/Card';
+import { Button } from "@/shared/components/ui";
+import { TextInput } from '@/shared/components/common/TextInput';
+import { Tooltip } from "@/shared/components/ui";
+import InlineMusicControls from '@/shared/components/ui/InlineMusicControls';
+import { CollapsibleCard } from '@/shared/components/common/CollapsibleCard';
 
 
 // Lyria RealTime music generation options

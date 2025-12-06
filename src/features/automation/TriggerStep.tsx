@@ -1,9 +1,9 @@
 import React from 'react';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { OBS_EVENT_LIST } from '@/constants/obsEvents';
-import { EVENT_DATA_CONFIGS, AutomationTrigger } from '@/types/automation';
+import { Input } from '@/shared/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
+import { Switch } from '@/shared/components/ui/switch';
+import { OBS_EVENT_LIST } from '@/shared/constants/obsEvents';
+import { EVENT_DATA_CONFIGS, AutomationTrigger } from '@/shared/types/automation';
 
 interface TriggerStepProps {
     ruleName: string;

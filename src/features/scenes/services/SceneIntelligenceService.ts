@@ -1,4 +1,4 @@
-import { AIService } from '@/types/ai';
+import { AIService } from '@/shared/types/ai';
 import { StreamContext, SceneSuggestion } from '../types';
 
 class SceneIntelligenceService {

@@ -1,10 +1,10 @@
 import React, { useRef, useEffect } from 'react';
 import { gsap } from 'gsap';
 import { ChatMessageItem } from './ChatMessageItem';
-import { LoadingSpinner } from '@/components/common/LoadingSpinner';
-import { ChatMessage, CatppuccinAccentColorName } from '@/types';
-import type { ChatBackgroundType, ChatPattern } from '@/types/chatBackground';
-import { generatePatternCSS } from '@/lib/backgroundPatterns';
+import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
+import { ChatMessage, CatppuccinAccentColorName } from '@/shared/types';
+import type { ChatBackgroundType, ChatPattern } from '@/shared/types/chatBackground';
+import { generatePatternCSS } from '@/shared/lib/backgroundPatterns';
 
 interface MessageListProps {
     messages: ChatMessage[];

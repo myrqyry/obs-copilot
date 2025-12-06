@@ -1,7 +1,7 @@
 import React from 'react';
 import { DefaultThemes, EmoteWallTheme } from '../presets/StylePresets';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
+import { Label } from '@/shared/components/ui/label';
 
 interface EmoteWallThemeSelectorProps {
   currentThemeId: string;

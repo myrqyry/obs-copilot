@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Button } from '@/components/ui/Button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/shared/components/ui/Button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/Card';
+import { Badge } from '@/shared/components/ui/badge';
 import AutomationRuleBuilder from '@/features/automation/AutomationRuleBuilder';
-import { useAutomationStore } from '@/store/automationStore';
-import useConnectionsStore from '@/store/connections';
-import { useChatStore } from '@/store/chatStore';
-import { useObsActions } from '@/hooks/useObsActions';
-import { automationService } from '@/services/automationService';
-import useConfigStore from '@/store/configStore';
-import { AutomationRule } from '@/types/automation';
-import { obsClient } from '@/services/obsClient';
-import { logger } from '@/utils/logger';
+import { useAutomationStore } from '@/app/store/automationStore';
+import useConnectionsStore from '@/app/store/connections';
+import { useChatStore } from '@/app/store/chatStore';
+import { useObsActions } from '@/shared/hooks/useObsActions';
+import { automationService } from '@/shared/services/automationService';
+import useConfigStore from '@/app/store/configStore';
+import { AutomationRule } from '@/shared/types/automation';
+import { obsClient } from '@/shared/services/obsClient';
+import { logger } from '@/shared/utils/logger';
 
 const AutomationTab: React.FC = () => {
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);

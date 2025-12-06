@@ -1,7 +1,7 @@
 // src/plugins/core/PluginManager.ts
 import { EventEmitter } from 'eventemitter3';
-import type { obsClient } from '@/services/obsClient';
-import type { geminiService } from '@/services/geminiService';
+import type { obsClient } from '@/shared/services/obsClient';
+import type { geminiService } from '@/shared/services/geminiService';
 
 export interface PluginContext {
   obs: typeof obsClient;

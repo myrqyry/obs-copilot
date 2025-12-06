@@ -1,7 +1,7 @@
 // Legacy API mappers - maintained for backward compatibility
 // For new implementations, use @/config/enhancedApiMappers instead
 
-import { StandardApiItem } from '@/types/api';
+import { StandardApiItem } from '@/shared/types/api';
 import { 
   apiMappers as enhancedApiMappers,
   mapWallhavenToStandard as enhancedMapWallhavenToStandard,

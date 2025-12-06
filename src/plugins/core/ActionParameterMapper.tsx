@@ -1,5 +1,5 @@
 import React from 'react';
-import { TextInput } from '@/components/common/TextInput';
+import { TextInput } from '@/shared/components/common/TextInput';
 
 interface ActionParameterMapperProps {
     parameters: Record<string, any>;

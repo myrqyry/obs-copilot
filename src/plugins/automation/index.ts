@@ -1,5 +1,5 @@
 import React from 'react';
-import { TabPlugin } from '@/types/plugins';
+import { TabPlugin } from '@/shared/types/plugins';
 import AutomationTab from './AutomationTab';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 

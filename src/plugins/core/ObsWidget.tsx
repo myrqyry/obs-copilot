@@ -1,9 +1,9 @@
 import React from 'react';
-import { ObsWidgetConfig } from '@/types/obs';
-import { Button } from '@/components/ui/Button';
+import { ObsWidgetConfig } from '@/shared/types/obs';
+import { Button } from '@/shared/components/ui/Button';
 import { ObsSliderWidget } from '@/features/obs-control/ObsSliderWidget';
 import { ObsKnobWidget } from '@/features/obs-control/ObsKnobWidget';
-import { executeObsWidgetAction } from '@/services/actionMapper';
+import { executeObsWidgetAction } from '@/shared/services/actionMapper';
 
 const ObsWidget: React.FC<ObsWidgetConfig> = (config) => {
   if (config.type === 'control') {

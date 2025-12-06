@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 
-import { geminiService } from '@/services/geminiService';
-import { CardContent } from '@/components/ui/Card';
-import { Button } from "@/components/ui";
-import { CollapsibleCard } from '@/components/common/CollapsibleCard';
-import { Tooltip } from "@/components/ui";
+import { geminiService } from '@/shared/services/geminiService';
+import { CardContent } from '@/shared/components/ui/Card';
+import { Button } from "@/shared/components/ui";
+import { CollapsibleCard } from '@/shared/components/common/CollapsibleCard';
+import { Tooltip } from "@/shared/components/ui";
 import { gsap } from 'gsap';
-import { prefersReducedMotion } from '@/lib/utils';
+import { prefersReducedMotion } from '@/shared/lib/utils';
 
 const VideoGeneration: React.FC = () => {
     const [prompt, setPrompt] = useState('');

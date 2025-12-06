@@ -1,6 +1,6 @@
 import React from 'react';
-import { AutomationRule } from '@/types/automation';
-import { ObsAction } from '@/types/obsActions';
+import { AutomationRule } from '@/shared/types/automation';
+import { ObsAction } from '@/shared/types/obsActions';
 
 interface ReviewStepProps {
     rule: AutomationRule;

@@ -1,23 +1,23 @@
 import * as React from "react";
 import { useRef, useEffect, useCallback } from "react";
-import { toast } from "@/components/ui/toast";
-import { Modal } from "@/components/ui/Modal";
-import { Button } from "@/components/ui/Button";
-import { TextInput } from "@/components/common/TextInput";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "@/shared/components/ui/toast";
+import { Modal } from "@/shared/components/ui/Modal";
+import { Button } from "@/shared/components/ui/Button";
+import { TextInput } from "@/shared/components/common/TextInput";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
 import { 
   Crop, Download, ImagePlus, RefreshCcw, RotateCcw, FlipHorizontal, 
   FlipVertical, Sparkles, Wand2, Layers, Image as ImageIcon
 } from 'lucide-react';
-import { generateSourceName } from '@/utils/obsSourceHelpers';
-import { useConnectionManagerStore } from '@/store/connectionManagerStore';
+import { generateSourceName } from '@/shared/utils/obsSourceHelpers';
+import { useConnectionManagerStore } from '@/app/store/connectionManagerStore';
 import Cropper from 'react-easy-crop';
-import getCroppedImg from '../../lib/canvasUtils';
-import { geminiService } from '@/services/geminiService';
-import { CollapsibleCard } from '@/components/common/CollapsibleCard';
-import { ImageUpload } from '@/components/common/ImageUpload';
-import { ImageUploadResult } from '@/types/audio';
-import { useImageEditorStore } from '@/store/imageEditorStore';
+import getCroppedImg from '@/shared/lib/canvasUtils';
+import { geminiService } from '@/shared/services/geminiService';
+import { CollapsibleCard } from '@/shared/components/common/CollapsibleCard';
+import { ImageUpload } from '@/shared/components/common/ImageUpload';
+import { ImageUploadResult } from '@/shared/types/audio';
+import { useImageEditorStore } from '@/app/store/imageEditorStore';
 
 export const AIImageEditor: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
