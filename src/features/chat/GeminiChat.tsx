@@ -58,12 +58,14 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
 
     const onAddMessage = chatActions.addMessage;
     const chatInputRef = useRef<HTMLTextAreaElement>(null);
-    const [screenshotWidth] = useState<number>(1920);
-    const [screenshotHeight] = useState<number>(1080);
+    // Make screenshot dimensions configurable constants (moved from state)
+    const SCREENSHOT_WIDTH = 1920;
+    const SCREENSHOT_HEIGHT = 1080;
     const [liveSession, setLiveSession] = useState<Session | null>(null);
+    const liveSessionRef = useRef<Session | null>(null);
 
     const handleAudioInput = async (audioBlob: Blob) => {
-        let session = liveSession;
+      let session = liveSessionRef.current as Session | null;
         if (!session) {
             session = await geminiService.liveConnect({
                 model: 'gemini-1.5-flash',
@@ -83,6 +85,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
                     },
                 },
             });
+            liveSessionRef.current = session;
             setLiveSession(session);
         }
 
@@ -96,7 +99,11 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
     };
 
     // The function that will take an action and send it to OBS
-    const handleObsAction = useCallback(async (action: { type: string; args?: Record<string, unknown> }) => {
+    type ObsSetSceneAction = { type: 'SetScene'; args: { sceneName: string } };
+    type ObsGetScreenshotAction = { type: 'GetSourceScreenshot'; args: { sourceName: string; imageFormat: string; imageWidth?: number; imageHeight?: number } };
+    type ObsActionType = ObsSetSceneAction | ObsGetScreenshotAction;
+
+    const handleObsAction = useCallback(async (action: ObsActionType) => {
       if (!isConnected) {
         const errorMsg = handleAppError('GeminiChat OBS action', new Error('Not connected'), 'Not connected to OBS.');
         useUiStore.getState().addError({
@@ -106,7 +113,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
           details: { actionType: action.type }
         });
         onAddMessage({ role: 'system', text: "❌ Not connected to OBS." });
-        return undefined;
+        throw new Error('Not connected to OBS');
       }
     
       if (!obs || typeof obs.call !== 'function') {
@@ -118,7 +125,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
           details: { actionType: action.type }
         });
         onAddMessage({ role: 'system', text: "❌ OBS client is not initialized." });
-        return undefined;
+        throw new Error('OBS client not initialized');
       }
     
       try {
@@ -153,6 +160,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
               details: { actionType: action.type }
             });
             onAddMessage({ role: 'system', text: `🤷‍♂️ Unknown OBS action: ${action.type}` });
+            throw new Error(`Unknown OBS action type: ${action.type}`);
         }
       } catch (error) {
         const errorMsg = handleAppError(`GeminiChat OBS action ${action.type}`, error, `Error executing OBS action ${action.type}`);
@@ -191,8 +199,8 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
           args: {
             sourceName: currentProgramScene,
             imageFormat: 'png',
-            imageWidth: screenshotWidth,
-            imageHeight: screenshotHeight
+            imageWidth: SCREENSHOT_WIDTH,
+            imageHeight: SCREENSHOT_HEIGHT
           }
         });
         if (screenshotResult && (screenshotResult as any).imageData) {
@@ -221,7 +229,24 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
     };
 
     // Handle image uploads from the chat input
+    const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+    const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
     const handleImageSelect = async (file: File, base64: string) => {
+      // Validate file size
+      if (file.size > MAX_IMAGE_SIZE) {
+        const errorMsg = `Image too large: ${Math.round(file.size / 1024 / 1024)}MB (max 10MB)`;
+        useUiStore.getState().addError({ message: errorMsg, source: 'GeminiChat', level: 'error', details: { fileName: file.name, fileSize: file.size } });
+        onAddMessage({ role: 'system', text: `❌ ${errorMsg}` });
+        return;
+      }
+      // Validate file type
+      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+        const errorMsg = `Unsupported image type: ${file.type}`;
+        useUiStore.getState().addError({ message: errorMsg, source: 'GeminiChat', level: 'error', details: { fileName: file.name, fileType: file.type } });
+        onAddMessage({ role: 'system', text: `❌ ${errorMsg}` });
+        return;
+      }
       try {
         // Create a data URL for preview or storage if needed
         const dataUrl = `data:${file.type};base64,${base64}`;
@@ -271,12 +296,14 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
     // Add cleanup in useEffect:
     useEffect(() => {
       return () => {
-        if (liveSession) {
-          liveSession.close?.();
+        // Cleanup on unmount only; use ref so we don't close sessions inadvertently
+        if (liveSessionRef.current) {
+          liveSessionRef.current.close?.();
+          liveSessionRef.current = null;
           setLiveSession(null);
         }
       };
-    }, [liveSession]);
+    }, []);
 
 
     return (
