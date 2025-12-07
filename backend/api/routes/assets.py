@@ -6,9 +6,9 @@ import json
 from fastapi import APIRouter, HTTPException, Request, Depends, status
 from fastapi.responses import Response
 from urllib.parse import urlparse
-from auth import get_api_key
-from services import obs_client_stub  # expose stub for tests that patch obs_client
-from api.models import SearchRequest, ImageProxyRequest
+from ...auth import get_api_key
+from ...services import obs_client_stub  # expose stub for tests that patch obs_client
+from ..models import SearchRequest, ImageProxyRequest
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -84,7 +84,7 @@ API_CONFIGS = {
 }
 
 
-from utils.cacheManager import cache_manager
+from ...utils.cacheManager import cache_manager
 
 @router.get("/search/{api_name}")
 async def search_assets(api_name: str, request: SearchRequest = Depends(), useCache: bool = True, api_key: str = Depends(get_api_key)):

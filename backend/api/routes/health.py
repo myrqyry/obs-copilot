@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends
 from starlette.responses import JSONResponse
 import asyncio
 import logging
-from config import settings
-from services.gemini_service import gemini_service
+from ...config import settings
+from ...services.gemini_service import gemini_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

@@ -7,10 +7,10 @@ from typing import Any, Optional, List, Dict, AsyncGenerator
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, HTTPException, Depends, status, Request
 from fastapi.responses import StreamingResponse
-from auth import get_api_key
+from ...auth import get_api_key
 from google.genai import types  # type: ignore
 from google.genai.errors import APIError as GenaiAPIError  # type: ignore
-from services.gemini_client import get_client
+from ...services.gemini_client import get_client
 
 try:
     from google.api_core.exceptions import APIError
@@ -18,21 +18,21 @@ except Exception:
     APIError = Exception
 
 # Rate limiting
-from rate_limiter import limiter
+from ...rate_limiter import limiter
 
 # Local imports
-from services.gemini_service import gemini_service
-from api.routes.knowledge import save_knowledge_entry
-from config import settings
-from services.gemini_cache_service import gemini_cache_service
-from services.obs_context_service import OBSContextBuilder, OBSContextState
+from ...services.gemini_service import gemini_service
+from .knowledge import save_knowledge_entry
+from ...config import settings
+from ...services.gemini_cache_service import gemini_cache_service
+from ...services.obs_context_service import OBSContextBuilder, OBSContextState
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # --- Pydantic Models ---
-from models.validation import GeminiRequest, ImageGenerateRequest, SpeechGenerateRequest, VideoGenerateRequest, PROMPT_MAX_LENGTH, OBSActionResponse, OBSAction
+from ...models.validation import GeminiRequest, ImageGenerateRequest, SpeechGenerateRequest, VideoGenerateRequest, PROMPT_MAX_LENGTH, OBSActionResponse, OBSAction
 from pydantic import validator
 
 class SpeechGenerateRequest(BaseModel):

@@ -3,7 +3,7 @@ import os
 import logging
 from typing import Optional
 from fastapi import Request, Depends, HTTPException, status
-from config import settings # Import centralized settings
+from .config import settings # Import centralized settings
 from functools import lru_cache
 from collections import defaultdict
 import time

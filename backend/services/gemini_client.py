@@ -7,7 +7,7 @@ access the client. Keeping a single factory simplifies testing and mocking.
 from typing import Optional
 import logging
 from google import genai  # type: ignore
-from config import settings
+from ..config import settings
 
 logger = logging.getLogger(__name__)
 

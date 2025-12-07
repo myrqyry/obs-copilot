@@ -4,9 +4,9 @@ from typing import List
 import os, uuid, re
 from pathlib import Path
 from ..models import KnowledgeCreateRequest, KnowledgeSnippetResponse
-from backend.auth import get_api_key
-from utils.error_handlers import create_error_response, ErrorCode, ErrorDetail, log_error, get_request_id
-from services import gemini_service
+from ...auth import get_api_key
+from ...utils.error_handlers import create_error_response, ErrorCode, ErrorDetail, log_error, get_request_id
+from ...services import gemini_service
 import logging
 
 logger = logging.getLogger(__name__)
@@ -103,7 +103,7 @@ def extract_snippet(content: str, query: str) -> str:
     return ' '.join(best.split()[:200])
 
 
-@router.post('/', response_model=KnowledgeSnippetResponse, status_code=201)
+@router.post('', response_model=KnowledgeSnippetResponse, status_code=201)
 async def create_knowledge(request: Request, payload: KnowledgeCreateRequest, api_key: str = Depends(get_api_key)):
     """Create a new knowledge entry by writing a markdown file.
 

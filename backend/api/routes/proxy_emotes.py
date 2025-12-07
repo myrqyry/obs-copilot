@@ -3,8 +3,8 @@ import httpx
 from urllib.parse import quote
 import time
 from typing import Optional
-from api.models import EmoteRequest
-from auth import get_api_key
+from ..models import EmoteRequest
+from ...auth import get_api_key
 
 router = APIRouter()
 

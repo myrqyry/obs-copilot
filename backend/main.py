@@ -14,19 +14,19 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 # Import the centralized settings
-from config import settings
-from config.cors import CorsConfig, parse_cors_origins
-from config.validation import validate_environment, ValidationError
-from auth import get_api_key
-from api.routes import gemini, assets, overlays, proxy_7tv, proxy_emotes, health
-from api.routes import knowledge
-from services.gemini_service import gemini_service
-from middleware import EnhancedLoggingMiddleware
-from middleware.timeout import TimeoutMiddleware
+from .config import settings
+from .config.cors import CorsConfig, parse_cors_origins
+from .config.validation import validate_environment, ValidationError
+from .auth import get_api_key
+from .api.routes import gemini, assets, overlays, proxy_7tv, proxy_emotes, health
+from .api.routes import knowledge
+from .services.gemini_service import gemini_service
+from .middleware import EnhancedLoggingMiddleware
+from .middleware.timeout import TimeoutMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from rate_limiter import limiter
-from utils.error_handlers import ErrorCode, ErrorDetail, create_error_response, log_error, get_request_id
+from .rate_limiter import limiter
+from .utils.error_handlers import ErrorCode, ErrorDetail, create_error_response, log_error, get_request_id
 
 # Configure logging based on settings
 logging.basicConfig(level=settings.LOG_LEVEL.upper())

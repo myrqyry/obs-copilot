@@ -6,10 +6,10 @@ from typing import Any, Dict, Optional
 
 from google import genai  # type: ignore
 from google.genai import types  # type: ignore
-from services.gemini_client import get_client
+from .gemini_client import get_client
 
-from config import settings
-from services.gemini_service import gemini_service
+from ..config import settings
+from .gemini_service import gemini_service
 
 logger = logging.getLogger(__name__)
 
