@@ -65,14 +65,13 @@ function runCommand(command, options = {}) {
   }
 }
 
-function ensurePoetry() {
+function ensureUv() {
   try {
-    runCommand('poetry --version');
-    logSuccess('Poetry found');
+    runCommand('uv --version');
+    logSuccess('uv found');
     return true;
   } catch (error) {
-    logError('Poetry not found. Please install it first:');
-    console.log('  curl -sSL https://install.python-poetry.org | python3 -');
+    logError('uv not found. Please install it first.');
     process.exit(1);
   }
 }
@@ -86,13 +85,13 @@ async function installDependencies() {
   }
 
   try {
-    logInfo('Installing Python dependencies with Poetry...');
-    runCommand('poetry install', { cwd: path.join(process.cwd(), 'backend') });
+    logInfo('Installing Python dependencies with uv...');
+    runCommand('uv install', { cwd: path.join(process.cwd(), 'backend') });
     logSuccess('Dependencies installed successfully');
     return true;
   } catch (error) {
     logWarning('Failed to install dependencies. You may need to install them manually:');
-    console.log('  cd backend && poetry install');
+    console.log('  cd backend && uv install');
     return false;
   }
 }
@@ -161,9 +160,9 @@ async function startUvicorn() {
   }
 
   logInfo(`Starting backend server at http://${host}:${port}`);
-  logInfo(`Using Poetry to run uvicorn`);
+  logInfo(`Using uv to run uvicorn`);
 
-  const child = spawn('poetry', uvicornArgs, {
+  const child = spawn('uv', uvicornArgs, {
     stdio: 'inherit',
     cwd: path.join(process.cwd(), 'backend'),
     env: { ...process.env, FORCE_COLOR: '1' }
@@ -195,8 +194,8 @@ async function main() {
   try {
     console.log(`\n${COLORS.bright}🚀 Starting OBS Copilot Backend${COLORS.reset}\n`);
 
-    // 1. Ensure Poetry is installed
-    ensurePoetry();
+    // 1. Ensure uv is installed
+    ensureUv();
 
     // 2. Install dependencies (best effort)
     await installDependencies();
