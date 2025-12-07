@@ -1,13 +1,15 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from pydantic import ValidationError
 from typing import List
 import os, uuid, re
 from pathlib import Path
 from ..models import KnowledgeCreateRequest, KnowledgeSnippetResponse
 from backend.auth import get_api_key
-from utils.error_handlers import create_error_response, ErrorCode
-from fastapi import Request
+from utils.error_handlers import create_error_response, ErrorCode, ErrorDetail, log_error
 from services import gemini_service
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -15,27 +17,45 @@ KB_DIR = Path.cwd() / 'memory_bank'
 KB_DIR.mkdir(parents=True, exist_ok=True)
 
 def slugify_title(title: str) -> str:
-    s = title.lower()
+    if not title or not isinstance(title, str):
+        logger.warning(f"Invalid title provided for slugify: {title!r}")
+        return str(uuid.uuid4())
+
+    s = title.lower().strip()
     s = re.sub(r"[^a-z0-9]+", '-', s).strip('-')
     if not s:
         s = str(uuid.uuid4())
+    if len(s) > 200:
+        s = s[:200].rstrip('-')
     return s
 
 def read_markdown(file_path: Path):
+    if not file_path.exists():
+        logger.error(f"File not found: {file_path}")
+        return None
+
     try:
         text = file_path.read_text(encoding='utf-8')
-        match = re.match(r'^---\n([\s\S]*?)\n---\n([\s\S]*)$', text)
-        if match:
-            front = match.group(1)
-            content = match.group(2)
-            title_match = re.search(r"title:\s*['\"]?(.*?)['\"]?$", front, flags=re.M)
-            tags_match = re.search(r"tags:\s*\[([^\]]+)\]", front)
-            title = title_match.group(1) if title_match else file_path.stem
-            tags = [t.strip().strip('"').strip("'") for t in tags_match.group(1).split(',')] if tags_match else None
-            return { 'text': content, 'title': title, 'tags': tags }
-        return { 'text': text, 'title': file_path.stem }
-    except Exception:
+    except (UnicodeDecodeError, PermissionError) as e:
+        logger.error(f"Error reading file {file_path}: {e}")
         return None
+
+    match = re.match(r'^---\n([\s\S]*?)\n---\n([\s\S]*)$', text)
+    if match:
+        front = match.group(1)
+        content = match.group(2)
+        title_match = re.search(r"title:\s*['\"]?(.*?)['\"]?$", front, flags=re.M)
+        tags_match = re.search(r"tags:\s*\[([^\]]+)\]", front)
+        title = title_match.group(1).strip() if title_match else file_path.stem
+        tags = None
+        if tags_match:
+            try:
+                tags = [t.strip().strip('"').strip("'") for t in tags_match.group(1).split(',') if t.strip()]
+            except Exception as e:
+                logger.warning(f"Failed to parse tags in {file_path}: {e}")
+        return {'text': content.strip(), 'title': title, 'tags': tags}
+
+    return {'text': text.strip(), 'title': file_path.stem}
 
 
 def save_knowledge_entry(title: str, content: str, tags: List[str] | None = None) -> str:
@@ -45,7 +65,14 @@ def save_knowledge_entry(title: str, content: str, tags: List[str] | None = None
         p = KB_DIR / f"{slug}-{uuid.uuid4().hex[:8]}.md"
     tags_line = f"tags: [{', '.join([repr(t) for t in tags])}]\n" if tags else ''
     front = f"---\ntitle: {repr(title)}\n{tags_line}---\n\n"
-    p.write_text(front + content, encoding='utf-8')
+    try:
+        p.write_text(front + content, encoding='utf-8')
+    except PermissionError as e:
+        logger.error(f"Permission denied writing file {p}: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"Failed to save knowledge entry to {p}: {e}")
+        raise
     return str(p.name)
 
 def calculate_relevance(content: dict, query: str) -> float:
@@ -77,7 +104,8 @@ def extract_snippet(content: str, query: str) -> str:
 
 
 @router.post('/', response_model=KnowledgeSnippetResponse, status_code=201)
-async def create_knowledge(payload: KnowledgeCreateRequest, api_key: str = Depends(get_api_key)):
+async def create_knowledge(request: Request, payload: KnowledgeCreateRequest, api_key: str = Depends(get_api_key)):
+    request_id = getattr(request.state, 'request_id', 'unknown')
     try:
         # Create file
         slug = slugify_title(payload.title)
@@ -88,13 +116,26 @@ async def create_knowledge(payload: KnowledgeCreateRequest, api_key: str = Depen
         tags_line = f"tags: [{', '.join([repr(t) for t in payload.tags])}]\n" if payload.tags else ''
         front = f"---\ntitle: {repr(payload.title)}\n{tags_line}---\n\n"
         path.write_text(front + payload.content, encoding='utf-8')
+        # Optionally publish create event here (SSE/Redis) - TODO
         return KnowledgeSnippetResponse(source=str(path.name), title=payload.title, content=extract_snippet(payload.content, payload.title), relevance=1.0)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        await log_error(
+            request=request,
+            error_type=type(e).__name__,
+            message=f"Error creating knowledge entry: {e}",
+            status_code=500,
+            exc_info=e,
+        )
+        return create_error_response(
+            status_code=500,
+            detail='An unexpected error occurred while creating knowledge entry.',
+            code=ErrorCode.INTERNAL_ERROR,
+            request_id=request_id,
+        )
 
 
 @router.get('/search', response_model=List[KnowledgeSnippetResponse])
-async def search_knowledge(query: str = Query(..., min_length=1), limit: int = Query(3, ge=1, le=50)):
+async def search_knowledge(request: Request, query: str = Query(..., min_length=1), limit: int = Query(3, ge=1, le=50)):
     try:
         results = []
         for p in KB_DIR.glob('**/*.md'):
@@ -111,20 +152,64 @@ async def search_knowledge(query: str = Query(..., min_length=1), limit: int = Q
         sorted_results = sorted(results, key=lambda x: x['relevance'], reverse=True)[:limit]
         return sorted_results
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        await log_error(
+            request=request,
+            error_type=type(e).__name__,
+            message=f"Error searching knowledge base: {e}",
+            status_code=500,
+            exc_info=e,
+        )
+        return create_error_response(
+            status_code=500,
+            detail='An error occurred while searching knowledge base.',
+            code=ErrorCode.INTERNAL_ERROR,
+            request_id=getattr(request.state, 'request_id', 'unknown'),
+        )
 
 
 @router.get('/{filename}', response_model=KnowledgeSnippetResponse)
-async def get_knowledge(filename: str):
+async def get_knowledge(request: Request, filename: str):
     try:
-        p = KB_DIR / filename
+        # Sanitize filename to base name to avoid path traversal
+        safe_filename = Path(filename).name
+        if safe_filename != filename:
+            return create_error_response(
+                status_code=400,
+                detail='Invalid filename',
+                code=ErrorCode.VALIDATION_ERROR,
+                request_id=getattr(request.state, 'request_id', 'unknown'),
+            )
+
+        p = KB_DIR / safe_filename
         if not p.exists():
-            raise HTTPException(status_code=404, detail='Not found')
+            return create_error_response(
+                status_code=404,
+                detail=f"Knowledge entry '{filename}' not found",
+                code=ErrorCode.HTTP_ERROR,
+                request_id=getattr(request.state, 'request_id', 'unknown'),
+            )
         content = read_markdown(p)
         if not content:
-            raise HTTPException(status_code=500, detail='Failed to parse file')
+            return create_error_response(
+                status_code=500,
+                detail='Failed to parse file',
+                code=ErrorCode.INTERNAL_ERROR,
+                request_id=getattr(request.state, 'request_id', 'unknown'),
+            )
         return KnowledgeSnippetResponse(source=filename, title=content.get('title', p.stem), content=content.get('text', ''), relevance=1.0)
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        await log_error(
+            request=request,
+            error_type=type(e).__name__,
+            message=f"Error retrieving knowledge entry {filename}: {e}",
+            status_code=500,
+            exc_info=e,
+        )
+        return create_error_response(
+            status_code=500,
+            detail='An error occurred while retrieving knowledge entry',
+            code=ErrorCode.INTERNAL_ERROR,
+            request_id=getattr(request.state, 'request_id', 'unknown'),
+        )
