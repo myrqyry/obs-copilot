@@ -41,3 +41,13 @@ uv install
 echo -e "\n${GREEN}✅ Backend uv setup completed successfully!${NC}"
 echo -e "\nTo start the backend server, run: ${YELLOW}pnpm dev${NC}"
 echo -e "Or run uv commands directly: ${YELLOW}cd backend && uv run uvicorn main:app --reload${NC}\n"
+
+# Advise on inotify watchers if low (watchfiles may hit limits when using reload)
+if [ -f /proc/sys/fs/inotify/max_user_watches ]; then
+    CURRENT_WATCHES=$(cat /proc/sys/fs/inotify/max_user_watches)
+    if [ "$CURRENT_WATCHES" -lt 524288 ]; then
+        echo -e "\n${YELLOW}⚠️  The system inotify watch limit is low (${CURRENT_WATCHES}). This can cause \"OS file watch limit reached\" errors when running the backend in reload mode.\n${NC}"
+        echo -e "${BLUE}You can increase it (temporary): sudo sysctl -w fs.inotify.max_user_watches=524288${NC}"
+        echo -e "${BLUE}Or to persist it, add 'fs.inotify.max_user_watches=524288' to /etc/sysctl.conf and run 'sudo sysctl -p'.${NC}\n"
+    fi
+fi

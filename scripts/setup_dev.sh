@@ -50,6 +50,15 @@ if [ $? -ne 0 ]; then
 fi
 
 echo -e "\n${GREEN}🎉 Development environment setup completed successfully!${NC}"
+if [ -f /proc/sys/fs/inotify/max_user_watches ]; then
+    CURRENT_WATCHES=$(cat /proc/sys/fs/inotify/max_user_watches)
+    if [ "$CURRENT_WATCHES" -lt 524288 ]; then
+        echo -e "\n${YELLOW}⚠️  Your inotify watch limit (${CURRENT_WATCHES}) may be low and could cause dev servers to fail with 'watch limit' errors.${NC}"
+        echo -e "${BLUE}If you see errors when running 'pnpm dev', increase it temporarily with:${NC}"
+        echo -e "  sudo sysctl -w fs.inotify.max_user_watches=524288"
+        echo -e "Or to persist across reboots, add 'fs.inotify.max_user_watches=524288' to /etc/sysctl.conf and run 'sudo sysctl -p'.\n"
+    fi
+fi
 echo -e "\n${BLUE}Next steps:${NC}"
 echo -e "1. Start the development server: ${YELLOW}pnpm dev${NC}"
 echo -e "   - Frontend will be available at ${YELLOW}http://localhost:5173${NC}"
