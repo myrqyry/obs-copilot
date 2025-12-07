@@ -119,3 +119,5 @@ digest.txt
 # Build logs
 tsc_output*.txt
 build-logs/
+repomix-output.xml
+repomix-output.md
