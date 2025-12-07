@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, HttpUrl, validator
 from typing import Optional, Dict, Any
 import re
+from typing import List
 
 class SearchRequest(BaseModel):
     """Validation for asset search queries."""
@@ -32,3 +33,16 @@ class EmoteRequest(BaseModel):
     """Base validation for emote endpoints."""
     twitch_id: Optional[str] = Field(None, min_length=1, max_length=20, pattern=r"^\d+$")
     channel_name: Optional[str] = Field(None, min_length=1, max_length=50, pattern=r"^[a-zA-Z0-9_]+$")
+
+
+class KnowledgeCreateRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=200)
+    content: str = Field(..., min_length=1, max_length=20000)
+    tags: Optional[List[str]] = Field(default=None)
+
+
+class KnowledgeSnippetResponse(BaseModel):
+    source: str
+    title: str
+    content: str
+    relevance: float

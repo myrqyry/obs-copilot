@@ -22,6 +22,7 @@ from rate_limiter import limiter
 
 # Local imports
 from services.gemini_service import gemini_service
+from api.routes.knowledge import save_knowledge_entry
 from config import settings
 from services.gemini_cache_service import gemini_cache_service
 from services.obs_context_service import OBSContextBuilder, OBSContextState
@@ -694,6 +695,16 @@ async def function_calling_query(
             return {"status": "generating", "prompt": prompt}
 
         tools_list.append(generate_sound_effect)
+
+        def save_to_kb(title: str, content: str, tags: List[str] | None = None):
+            # Save note to knowledge base; return a short acknowledgment
+            try:
+                filename = save_knowledge_entry(title, content, tags)
+                return {"status": "saved", "filename": filename}
+            except Exception as e:
+                return {"status": "error", "message": str(e)}
+
+        tools_list.append(save_to_kb)
 
         # 2. Build Context
         system_instruction = context_builder.base_system_instruction

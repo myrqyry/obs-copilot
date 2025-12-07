@@ -25,15 +25,46 @@ const App: React.FC = memo(() => {
   const init = useAppInitialization();
   const theme = useTheme();
 
-  // Show loading if plugins or app not ready
-  if (pluginsLoading || !init.isInitialized) {
+  const loadingState = useMemo(() => {
+    if (init.initError) {
+      return {
+        type: 'error' as const,
+        error: init.initError,
+        label: 'Initialization failed',
+      };
+    }
+    if (pluginsError) {
+      return {
+        type: 'error' as const,
+        error: pluginsError,
+        label: 'Plugin loading failed',
+      };
+    }
+    if (!init.isInitialized) {
+      return {
+        type: 'loading' as const,
+        label: init.stepLabel,
+        progress: init.progress,
+      };
+    }
+    if (pluginsLoading) {
+      return {
+        type: 'loading' as const,
+        label: 'Loading plugins...',
+        progress: 75,
+      };
+    }
+    return { type: 'ready' as const };
+  }, [pluginsLoading, init, pluginsError]);
+
+  if (loadingState.type !== 'ready') {
     return (
       <AppInitializer
         isInitialized={false}
-        error={pluginsError || init.initError}
+        error={loadingState.type === 'error' ? loadingState.error : undefined}
         onRetry={init.retryInit}
-        stepLabel={pluginsLoading ? 'Loading plugins...' : init.stepLabel}
-        progress={init.progress}
+        stepLabel={loadingState.type === 'loading' ? loadingState.label : loadingState.label}
+        progress={loadingState.type === 'loading' ? loadingState.progress : 0}
       />
     );
   }

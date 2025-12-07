@@ -16,48 +16,23 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 # Import the centralized settings
 from config import settings
 from config.cors import CorsConfig, parse_cors_origins
+from config.validation import validate_environment, ValidationError
 from auth import get_api_key
 from api.routes import gemini, assets, overlays, proxy_7tv, proxy_emotes, health
+from api.routes import knowledge
 from services.gemini_service import gemini_service
 from middleware import EnhancedLoggingMiddleware
 from middleware.timeout import TimeoutMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from rate_limiter import limiter
+from utils.error_handlers import ErrorCode, ErrorDetail, create_error_response, log_error
 
 # Configure logging based on settings
 logging.basicConfig(level=settings.LOG_LEVEL.upper())
 logger = logging.getLogger(__name__)
 
 from contextlib import asynccontextmanager
-
-def validate_environment():
-    """Validate required environment variables at startup."""
-    required_vars = {
-        'GEMINI_API_KEY': settings.GEMINI_API_KEY,
-        'BACKEND_API_KEY': settings.BACKEND_API_KEY,
-    }
-    
-    missing_vars = []
-    invalid_vars = []
-    
-    for var_name, var_value in required_vars.items():
-        if not var_value:
-            missing_vars.append(var_name)
-        elif var_name.endswith('_KEY') and len(var_value) < 10:
-            invalid_vars.append(f"{var_name} (appears too short)")
-    
-    if missing_vars or invalid_vars:
-        error_msg = "Environment configuration errors:\n"
-        if missing_vars:
-            error_msg += f"  Missing: {', '.join(missing_vars)}\n"
-        if invalid_vars:
-            error_msg += f"  Invalid: {', '.join(invalid_vars)}\n"
-        error_msg += "\nPlease check your .env file and ensure all required variables are set."
-        logger.error(error_msg)
-        raise RuntimeError(error_msg)
-    
-    logger.info("Environment validation passed ✓")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -66,9 +41,9 @@ async def lifespan(app: FastAPI):
     
     # Validate environment first
     try:
-        validate_environment()
-    except RuntimeError as e:
-        logger.critical(f"Startup failed: {e}")
+        validate_environment(settings)
+    except ValidationError as e:
+        logger.critical(f"Startup failed during environment validation: {e}")
         raise
 
     # Initialize services
@@ -165,84 +140,35 @@ class MiddlewarePriority(IntEnum):
 
 def register_middleware_stack(app: FastAPI):
     """
-    Register middleware in the correct order.
-    
-    Middleware execution order (request → response):
-    1. TrustedHost → validates allowed hosts
-    2. SecurityHeaders → adds security headers
-    3. CORS → handles cross-origin requests
-    4. RequestValidation → validates payload size
-    5. Timeout → enforces request timeouts
-    6. EnhancedLogging → logs requests/responses
+    Register middleware in execution order (first registered = first to process requests).
+    Request flow: TrustedHost → Security → CORS → Validation → Timeout → Logging → Routes
     """
-    
-    middleware_stack: list[Tuple[int, Any, Dict[str, Any]]] = []
-    
-    # Build middleware stack with priorities
-    middleware_stack.append((
-        MiddlewarePriority.LOGGING,
-        EnhancedLoggingMiddleware,
-        {}
-    ))
-    
-    middleware_stack.append((
-        MiddlewarePriority.TIMEOUT,
-        TimeoutMiddleware,
-        {"timeout": settings.REQUEST_TIMEOUT}
-    ))
-    
-    middleware_stack.append((
-        MiddlewarePriority.VALIDATION,
-        RequestValidationMiddleware,
-        {}
-    ))
-    
-    # CORS configuration
+
     cors_config = CorsConfig.for_environment(settings.ENV)
     allowed_origins = parse_cors_origins(settings.ALLOWED_ORIGINS, cors_config)
-    
-    middleware_stack.append((
-        MiddlewarePriority.CORS,
-        CORSMiddleware,
-        {
+
+    middleware_pipeline = [
+        ("TrustedHost", TrustedHostMiddleware, {"allowed_hosts": ["*"] if settings.ENV in ("development", "test") else ["localhost", "127.0.0.1", "*.netlify.app"]}),
+        ("SecurityHeaders", SecurityMiddleware, {}),
+        ("CORS", CORSMiddleware, {
             "allow_origins": allowed_origins,
             "allow_credentials": True,
             "allow_methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization", "X-API-KEY", "X-Requested-With"],
             "expose_headers": ["X-Request-ID"],
             "max_age": 3600,
-        }
-    ))
-    
-    middleware_stack.append((
-        MiddlewarePriority.SECURITY_HEADERS,
-        SecurityMiddleware,
-        {}
-    ))
-    
-    # Trusted host (environment-specific)
-    if settings.ENV in ("development", "test"):
-        allowed_hosts = ["*"]
-    else:
-        allowed_hosts = ["localhost", "127.0.0.1", "*.netlify.app"]
-    
-    middleware_stack.append((
-        MiddlewarePriority.TRUSTED_HOST,
-        TrustedHostMiddleware,
-        {"allowed_hosts": allowed_hosts}
-    ))
-    
-    # Sort by priority (descending) and register
-    # FastAPI's LIFO means we add highest priority last
-    middleware_stack.sort(key=lambda x: x[0], reverse=True)
-    
-    logger.info("Registering middleware stack in execution order:")
-    for priority, middleware_class, kwargs in middleware_stack:
-        middleware_name = middleware_class.__name__
-        logger.info(f"  {priority.value}. {middleware_name}")
+        }),
+        ("RequestValidation", RequestValidationMiddleware, {}),
+        ("Timeout", TimeoutMiddleware, {"timeout": settings.REQUEST_TIMEOUT}),
+        ("EnhancedLogging", EnhancedLoggingMiddleware, {}),
+    ]
+
+    logger.info("Registering middleware pipeline in execution order:")
+    for idx, (name, middleware_class, kwargs) in enumerate(middleware_pipeline, 1):
+        logger.info(f"  {idx}. {name} ({middleware_class.__name__})")
         app.add_middleware(middleware_class, **kwargs)
-    
-    logger.info("Middleware stack registered successfully ✓")
+
+    logger.info("Middleware pipeline configured successfully")
 
 # Register middleware
 register_middleware_stack(app)
@@ -258,38 +184,45 @@ app.include_router(overlays.router, prefix="/api/overlays", tags=["overlays"])
 app.include_router(proxy_7tv.router, prefix="/api/proxy", tags=["proxy"])
 app.include_router(proxy_emotes.router, prefix="/api/proxy/emotes", tags=["proxy_emotes"])
 app.include_router(health.router, prefix="/api/health", tags=["health"])
+app.include_router(knowledge.router, prefix="/api/knowledge", tags=["knowledge"])
 
 # --- Global Exception Handlers ---
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
-    logger.error(f"HTTP {exc.status_code} error at {request.url.path}: {exc.detail}", extra={
-        "method": request.method,
-        "client": request.client.host if request.client else None
-    })
-    return JSONResponse(
+    request_id = getattr(request.state, 'request_id', 'unknown')
+    await log_error(
+        request=request,
+        error_type='HTTP_ERROR',
+        message=f"HTTP {exc.status_code}: {exc.detail}",
+        status_code=exc.status_code
+    )
+    return create_error_response(
         status_code=exc.status_code,
-        content={"detail": exc.detail, "code": "HTTP_ERROR"},
-        headers=exc.headers if exc.headers else {}
+        detail=exc.detail,
+        code=ErrorCode.HTTP_ERROR,
+        request_id=request_id,
+        headers=exc.headers if exc.headers else None,
     )
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    errors = []
-    for error in exc.errors():
-        field = '.'.join(str(loc) for loc in error['loc'])
-        errors.append({
-            'field': field,
-            'message': error['msg'],
-            'type': error['type']
-        })
-
-    return JSONResponse(
+    request_id = getattr(request.state, 'request_id', 'unknown')
+    errors = [
+        ErrorDetail(field='.'.join(str(loc) for loc in error['loc']), message=error['msg'], type=error['type'])
+        for error in exc.errors()
+    ]
+    await log_error(
+        request=request,
+        error_type='VALIDATION_ERROR',
+        message='Request validation failed',
+        status_code=422
+    )
+    return create_error_response(
         status_code=422,
-        content={
-            "detail": "Request validation failed",
-            "errors": errors,
-            "code": "VALIDATION_ERROR"
-        }
+        detail='Request validation failed',
+        code=ErrorCode.VALIDATION_ERROR,
+        request_id=request_id,
+        errors=errors,
     )
 
 import uuid
@@ -312,26 +245,18 @@ async def add_request_id(request: Request, call_next):
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
     request_id = getattr(request.state, 'request_id', 'unknown')
-
-    logger.error(
-        f"Unhandled exception at {request.url.path}",
-        exc_info=True,
-        extra={
-            "request_id": request_id,
-            "method": request.method,
-            "client": request.client.host if request.client else None,
-            "user_agent": request.headers.get("user-agent", ""),
-            "exception_type": type(exc).__name__
-        }
-    )
-
-    return JSONResponse(
+    await log_error(
+        request=request,
+        error_type=type(exc).__name__,
+        message='Unhandled exception occurred',
         status_code=500,
-        content={
-            "detail": "An unexpected error occurred. Please try again later.",
-            "code": "INTERNAL_SERVER_ERROR",
-            "request_id": request_id
-        }
+        exc_info=exc,
+    )
+    return create_error_response(
+        status_code=500,
+        detail='An unexpected error occurred. Please try again later.',
+        code=ErrorCode.INTERNAL_ERROR,
+        request_id=request_id,
     )
 
 # --- Public & Secure Endpoints ---

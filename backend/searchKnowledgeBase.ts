@@ -1,8 +1,8 @@
-import { promises as fs } from 'fs';
-import path from 'path';
-import * as glob from 'glob'; // Import glob as a namespace
-import { promisify } from 'util';
-import { logger } from '../utils/logger'; // Import logger
+// NOTE: This TypeScript file was moved to the frontend `src/services/searchKnowledgeBase.ts`.
+// Keeping this placeholder for now to avoid accidental re-introduction in the backend.
+// If you see this file, remove it or migrate code to a Python backend implementation.
+
+export {};
 
 // Backend API handler to perform glob-based knowledge base search server-side
 const globAsync = promisify(glob.glob); // Use glob.glob
@@ -109,10 +109,4 @@ export async function handleSearchKnowledgeBase(req: Request): Promise<Response>
   }
 }
 
-export default async function middleware(req: Request) {
-  if (req.method === 'GET' && req.url?.startsWith('/api/search-knowledge-base')) {
-    return await handleSearchKnowledgeBase(req);
-  }
-  // fallback: 404
-  return new Response('Not Found', { status: 404 });
-}
+// Placeholder ended

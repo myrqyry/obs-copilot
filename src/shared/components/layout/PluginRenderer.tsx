@@ -57,8 +57,14 @@ export const PluginRenderer: React.FC<PluginRendererProps> = ({ plugin }) => {
         return <PluginConfigError tabId={activeTab} onRecover={handleRecover} />;
     }
 
+    const handlePluginError = (error: Error) => {
+        // Optional: Send to error tracking service
+        console.error(`Plugin ${plugin.id} crashed:`, error);
+        // TODO: Send telemetry if configured
+    };
+
     return (
-        <PluginErrorBoundary pluginName={plugin.name}>
+        <PluginErrorBoundary pluginName={plugin.name} onError={handlePluginError}>
             <Suspense 
                 fallback={
                     <div className="flex flex-col justify-center items-center h-full gap-3" role="status">

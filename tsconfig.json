@@ -25,7 +25,16 @@
     "esModuleInterop": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@/api/*": ["src/api/*"],
+      "@/app/*": ["src/app/*"],
+      "@/features/*": ["src/features/*"],
+      "@/shared/*": ["src/shared/*"],
+      "@/config/*": ["src/config/*"],
+      "@/contexts/*": ["src/contexts/*"],
+      "@/plugins/*": ["src/plugins/*"],
+      "@/routes/*": ["src/routes/*"],
+      "@/styles/*": ["src/styles/*"]
     }
   },
   "include": ["src", "vite.config.ts", "vitest.config.ts", "src/features/obs-control/UniversalWidgetEngine.tsx"],
