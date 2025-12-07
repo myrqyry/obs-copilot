@@ -26,7 +26,7 @@ from middleware.timeout import TimeoutMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from rate_limiter import limiter
-from utils.error_handlers import ErrorCode, ErrorDetail, create_error_response, log_error
+from utils.error_handlers import ErrorCode, ErrorDetail, create_error_response, log_error, get_request_id
 
 # Configure logging based on settings
 logging.basicConfig(level=settings.LOG_LEVEL.upper())
@@ -189,7 +189,7 @@ app.include_router(knowledge.router, prefix="/api/knowledge", tags=["knowledge"]
 # --- Global Exception Handlers ---
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
-    request_id = getattr(request.state, 'request_id', 'unknown')
+    request_id = get_request_id(request)
     await log_error(
         request=request,
         error_type='HTTP_ERROR',
@@ -206,7 +206,7 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    request_id = getattr(request.state, 'request_id', 'unknown')
+    request_id = get_request_id(request)
     errors = [
         ErrorDetail(field='.'.join(str(loc) for loc in error['loc']), message=error['msg'], type=error['type'])
         for error in exc.errors()
@@ -244,7 +244,7 @@ async def add_request_id(request: Request, call_next):
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
-    request_id = getattr(request.state, 'request_id', 'unknown')
+    request_id = get_request_id(request)
     await log_error(
         request=request,
         error_type=type(exc).__name__,

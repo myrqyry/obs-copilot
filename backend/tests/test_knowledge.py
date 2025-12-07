@@ -54,3 +54,30 @@ async def test_create_and_fetch_knowledge():
         entry = g.json()
         assert entry['title'] == payload['title']
         assert 'testing' in entry['content'] or 'test' in entry['content']
+
+
+@pytest.mark.asyncio
+async def test_get_knowledge_path_traversal_blocked():
+    headers = {'X-API-KEY': os.environ.get('BACKEND_API_KEY')}
+    payload = {
+        'title': 'Traverse Entry',
+        'content': 'This entry is used to test path traversal.',
+    }
+    async with AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as ac:
+        r = await ac.post('/api/knowledge', json=payload, headers=headers)
+        assert r.status_code == 201
+        body = r.json()
+        # Attempt path traversal - should be blocked
+        g = await ac.get('/api/knowledge/../../etc/passwd')
+        assert g.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_search_when_kb_dir_missing():
+    # Ensure KB_DIR is removed
+    if KB_DIR.exists():
+        shutil.rmtree(KB_DIR)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as ac:
+        s = await ac.get('/api/knowledge/search', params={'query': 'anything'})
+        assert s.status_code == 200
+        assert s.json() == []

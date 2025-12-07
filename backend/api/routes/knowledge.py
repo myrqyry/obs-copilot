@@ -5,7 +5,7 @@ import os, uuid, re
 from pathlib import Path
 from ..models import KnowledgeCreateRequest, KnowledgeSnippetResponse
 from backend.auth import get_api_key
-from utils.error_handlers import create_error_response, ErrorCode, ErrorDetail, log_error
+from utils.error_handlers import create_error_response, ErrorCode, ErrorDetail, log_error, get_request_id
 from services import gemini_service
 import logging
 
@@ -105,7 +105,12 @@ def extract_snippet(content: str, query: str) -> str:
 
 @router.post('/', response_model=KnowledgeSnippetResponse, status_code=201)
 async def create_knowledge(request: Request, payload: KnowledgeCreateRequest, api_key: str = Depends(get_api_key)):
-    request_id = getattr(request.state, 'request_id', 'unknown')
+    """Create a new knowledge entry by writing a markdown file.
+
+    The function slugifies the title and writes the content as a file into the memory bank.
+    Returns a KnowledgeSnippetResponse containing the stored filename and snippet.
+    """
+    request_id = get_request_id(request)
     try:
         # Create file
         slug = slugify_title(payload.title)
@@ -136,20 +141,54 @@ async def create_knowledge(request: Request, payload: KnowledgeCreateRequest, ap
 
 @router.get('/search', response_model=List[KnowledgeSnippetResponse])
 async def search_knowledge(request: Request, query: str = Query(..., min_length=1), limit: int = Query(3, ge=1, le=50)):
+    """
+    Search the knowledge base for a query.
+
+    Returns a list of matching knowledge snippet objects sorted by relevance.
+    """
+    request_id = get_request_id(request)
+    query = (query or '').strip()
+    # Basic validation: disallow excessively long queries
+    if len(query) > 200:
+        return create_error_response(
+            status_code=400,
+            detail='Query too long',
+            code=ErrorCode.VALIDATION_ERROR,
+            request_id=request_id,
+        )
+
     try:
         results = []
+        # If the KB directory doesn't exist, return an empty list
+        if not KB_DIR.exists():
+            logger.info(f"Knowledge base directory doesn't exist: {KB_DIR}")
+            return []
+
+        files_processed = 0
+        files_with_errors = 0
         for p in KB_DIR.glob('**/*.md'):
-            content = read_markdown(p)
-            if not content: continue
-            relevance = calculate_relevance(content, query)
-            if relevance > 0:
-                results.append({
-                    'source': p.name,
-                    'title': content.get('title') or p.stem,
-                    'content': extract_snippet(content.get('text', ''), query),
-                    'relevance': relevance,
-                })
+            try:
+                files_processed += 1
+                content = read_markdown(p)
+                if not content:
+                    files_with_errors += 1
+                    continue
+                relevance = calculate_relevance(content, query)
+                if relevance > 0:
+                    results.append({
+                        'source': p.name,
+                        'title': content.get('title') or p.stem,
+                        'content': extract_snippet(content.get('text', ''), query),
+                        'relevance': relevance,
+                    })
+            except Exception as e:
+                files_with_errors += 1
+                logger.warning(f"Error processing file {p}: {e}")
+                continue
         sorted_results = sorted(results, key=lambda x: x['relevance'], reverse=True)[:limit]
+        logger.info(
+            f"Search query='{query}' processed {files_processed} files, {files_with_errors} errors, {len(sorted_results)} results"
+        )
         return sorted_results
     except Exception as e:
         await log_error(
@@ -163,30 +202,71 @@ async def search_knowledge(request: Request, query: str = Query(..., min_length=
             status_code=500,
             detail='An error occurred while searching knowledge base.',
             code=ErrorCode.INTERNAL_ERROR,
-            request_id=getattr(request.state, 'request_id', 'unknown'),
+            request_id=get_request_id(request),
         )
 
 
 @router.get('/{filename}', response_model=KnowledgeSnippetResponse)
 async def get_knowledge(request: Request, filename: str):
+    """
+    Retrieve a knowledge entry by filename.
+
+    This endpoint includes safeguards against path traversal and symlink attacks.
+    """
     try:
-        # Sanitize filename to base name to avoid path traversal
+        # Sanitize filename to base name to avoid trivial path traversal attempts
         safe_filename = Path(filename).name
         if safe_filename != filename:
+            await log_error(
+                request=request,
+                error_type="SECURITY_ERROR",
+                message=f"Path traversal attempt detected: {filename}",
+                status_code=400,
+            )
             return create_error_response(
                 status_code=400,
                 detail='Invalid filename',
                 code=ErrorCode.VALIDATION_ERROR,
-                request_id=getattr(request.state, 'request_id', 'unknown'),
+                request_id=get_request_id(request),
             )
 
         p = KB_DIR / safe_filename
+        # Verify that resolved path remains within KB_DIR (protect against symlinks)
+        try:
+            if not p.resolve().is_relative_to(KB_DIR.resolve()):
+                await log_error(
+                    request=request,
+                    error_type="SECURITY_ERROR",
+                    message=f"Path escape attempt: {filename} -> {p.resolve()}",
+                    status_code=403,
+                )
+                return create_error_response(
+                    status_code=403,
+                    detail='Access denied',
+                    code=ErrorCode.AUTHENTICATION_ERROR,
+                    request_id=get_request_id(request),
+                )
+        except AttributeError:
+            # Python <3.9 - fallback to string comparison
+            if not str(p.resolve()).startswith(str(KB_DIR.resolve())):
+                await log_error(
+                    request=request,
+                    error_type="SECURITY_ERROR",
+                    message=f"Path escape attempt: {filename} -> {p.resolve()}",
+                    status_code=403,
+                )
+                return create_error_response(
+                    status_code=403,
+                    detail='Access denied',
+                    code=ErrorCode.AUTHENTICATION_ERROR,
+                    request_id=get_request_id(request),
+                )
         if not p.exists():
             return create_error_response(
                 status_code=404,
                 detail=f"Knowledge entry '{filename}' not found",
                 code=ErrorCode.HTTP_ERROR,
-                request_id=getattr(request.state, 'request_id', 'unknown'),
+                request_id=get_request_id(request),
             )
         content = read_markdown(p)
         if not content:
@@ -194,7 +274,7 @@ async def get_knowledge(request: Request, filename: str):
                 status_code=500,
                 detail='Failed to parse file',
                 code=ErrorCode.INTERNAL_ERROR,
-                request_id=getattr(request.state, 'request_id', 'unknown'),
+                request_id=get_request_id(request),
             )
         return KnowledgeSnippetResponse(source=filename, title=content.get('title', p.stem), content=content.get('text', ''), relevance=1.0)
     except HTTPException:
@@ -211,5 +291,5 @@ async def get_knowledge(request: Request, filename: str):
             status_code=500,
             detail='An error occurred while retrieving knowledge entry',
             code=ErrorCode.INTERNAL_ERROR,
-            request_id=getattr(request.state, 'request_id', 'unknown'),
+            request_id=get_request_id(request),
         )

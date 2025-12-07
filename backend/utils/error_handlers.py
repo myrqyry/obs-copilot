@@ -71,3 +71,11 @@ async def log_error(
         logger.error(message, extra=log_data, exc_info=exc_info)
     else:
         logger.warning(message, extra=log_data)
+
+
+def get_request_id(request: Request) -> str:
+    """Extract request ID from request state, with a safe fallback.
+
+    This central helper ensures a single place to change request_id logic later.
+    """
+    return getattr(request.state, 'request_id', 'unknown')
