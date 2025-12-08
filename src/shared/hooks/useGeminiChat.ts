@@ -13,6 +13,7 @@ import { OBSScene, OBSSource } from '@/shared/types';
 
 import { useObsActions } from './useObsActions';
 import { obsActionValidator } from '@/shared/services/obsActionValidator';
+import { normalizeObsActionType } from '@/shared/services/actionUtils';
 import { obsActionExecutor } from '@/shared/services/obsActionExecutor';
 import { obsStateManager } from '@/shared/services/obsStateManager';
 
@@ -155,8 +156,7 @@ export const useGeminiChat = (
       // Execute the actions with validation and transaction semantics
       if (actions && actions.length > 0 && isConnected) {
         const obsActions = actions.map(a => {
-          const command = String(a.command || '').trim();
-          const normalizedType = command ? (command.charAt(0).toLowerCase() + command.slice(1)) : command;
+          const normalizedType = normalizeObsActionType(a.command);
           return { type: normalizedType, ...(a.args || {}) } as ObsAction;
         });
 

@@ -12,6 +12,7 @@ import useUiStore from '@/app/store/uiStore';
 import type { ChatBackgroundType, ChatPattern } from '@/shared/types/chatBackground';
 import { Session } from '@google/genai';
 import { Card } from '@/shared/components/ui/Card';
+import { normalizeObsActionType } from '@/shared/services/actionUtils';
 
 interface GeminiChatProps {
     onRefreshData?: () => Promise<void>;
@@ -129,7 +130,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
       }
     
       try {
-        const normalizedType = String(action.type || '').toLowerCase();
+        const normalizedType = normalizeObsActionType(action.type);
         switch (normalizedType) {
           case 'setscene':
           case 'setcurrentprogramscene':

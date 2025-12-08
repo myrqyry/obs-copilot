@@ -1,5 +1,6 @@
 import { logger } from '@/shared/utils/logger';
 import type { ObsAction } from '@/shared/types/obsActions';
+import { normalizeObsActionType } from '@/shared/services/actionUtils';
 
 export interface ValidationResult {
   valid: boolean;
@@ -23,43 +24,43 @@ export class ObsActionValidator {
       return { valid: false, error: 'Action type is required' };
     }
 
-    const normalizedType = String(action.type).toLowerCase();
+    const normalizedType = normalizeObsActionType(action.type);
 
     switch (normalizedType) {
-      case 'setcurrentprogramscene':
+      case 'setCurrentProgramScene':
         return this.validateSetScene(action as any, obsState);
         
-      case 'setcurrentpreviewscene':
+      case 'setCurrentPreviewScene':
         return this.validateSetScene(action as any, obsState, true);
         
-      case 'setinputsettings':
-      case 'setinputvolume':
-      case 'setinputmute':
+      case 'setInputSettings':
+      case 'setInputVolume':
+      case 'setInputMute':
         return this.validateInputAction(action, obsState);
         
-      case 'createinput':
+      case 'createInput':
         return this.validateCreateInput(action, obsState);
         
-      case 'removeinput':
+      case 'removeInput':
         return this.validateRemoveInput(action, obsState);
         
-      case 'setsceneitemenabled':
-      case 'setsceneitemtransform':
+      case 'setSceneItemEnabled':
+      case 'setSceneItemTransform':
         return this.validateSceneItemAction(action, obsState);
         
-      case 'startstream':
+      case 'startStream':
         return this.validateStartStream(action, obsState);
         
-      case 'stopstream':
+      case 'stopStream':
         return this.validateStopStream(action, obsState);
         
-      case 'startrecord':
+      case 'startRecord':
         return this.validateStartRecord(action, obsState);
         
-      case 'stoprecord':
+      case 'stopRecord':
         return this.validateStopRecord(action, obsState);
         
-      case 'getsourcescreenshot':
+      case 'getSourceScreenshot':
         return this.validateScreenshot(action, obsState);
         
       default:
@@ -284,7 +285,7 @@ export class ObsActionValidator {
     return { valid: true };
   }
 
-  private validateStartStream(action: any, obsState: any): ValidationResult {
+  private validateStartStream(_action: any, obsState: any): ValidationResult {
     if (obsState.streaming_status) {
       return {
         valid: false,
@@ -295,7 +296,7 @@ export class ObsActionValidator {
     return { valid: true };
   }
 
-  private validateStopStream(action: any, obsState: any): ValidationResult {
+  private validateStopStream(_action: any, obsState: any): ValidationResult {
     if (!obsState.streaming_status) {
       return {
         valid: false,
@@ -306,7 +307,7 @@ export class ObsActionValidator {
     return { valid: true };
   }
 
-  private validateStartRecord(action: any, obsState: any): ValidationResult {
+  private validateStartRecord(_action: any, obsState: any): ValidationResult {
     if (obsState.recording_status) {
       return {
         valid: false,
@@ -317,7 +318,7 @@ export class ObsActionValidator {
     return { valid: true };
   }
 
-  private validateStopRecord(action: any, obsState: any): ValidationResult {
+  private validateStopRecord(_action: any, obsState: any): ValidationResult {
     if (!obsState.recording_status) {
       return {
         valid: false,
@@ -353,12 +354,12 @@ export class ObsActionValidator {
 
   private detectConflicts(actions: any[]): Array<{ action: any; message: string }> {
     const conflicts: Array<{ action: any; message: string }> = [];
-    const types = actions.map(a => String(a.type || '').toLowerCase());
+    const types = actions.map(a => normalizeObsActionType(a.type));
 
     // Check for conflicting stream actions
-    if (types.includes('startstream') && types.includes('stopstream')) {
-      const startIdx = types.indexOf('startstream');
-      const stopIdx = types.indexOf('stopstream');
+    if (types.includes('startStream') && types.includes('stopStream')) {
+      const startIdx = types.indexOf('startStream');
+      const stopIdx = types.indexOf('stopStream');
       const maxIdx = Math.max(startIdx, stopIdx);
       const conflictAction = actions[maxIdx] ?? actions[startIdx] ?? actions[stopIdx];
       if (conflictAction) {
@@ -370,9 +371,9 @@ export class ObsActionValidator {
     }
 
     // Check for conflicting record actions
-    if (types.includes('startrecord') && types.includes('stoprecord')) {
-      const startIdx = types.indexOf('startrecord');
-      const stopIdx = types.indexOf('stoprecord');
+    if (types.includes('startRecord') && types.includes('stopRecord')) {
+      const startIdx = types.indexOf('startRecord');
+      const stopIdx = types.indexOf('stopRecord');
       const maxIdx = Math.max(startIdx, stopIdx);
       const conflictAction = actions[maxIdx] ?? actions[startIdx] ?? actions[stopIdx];
       if (conflictAction) {
@@ -384,7 +385,7 @@ export class ObsActionValidator {
     }
 
     // Check for multiple scene changes
-    const sceneChanges = actions.filter(a => String(a.type || '').toLowerCase() === 'setcurrentprogramscene');
+    const sceneChanges = actions.filter(a => normalizeObsActionType(a.type) === 'setCurrentProgramScene');
     if (sceneChanges.length > 1) {
       const last = sceneChanges[sceneChanges.length - 1];
       if (last) {
@@ -396,8 +397,8 @@ export class ObsActionValidator {
     }
 
     // Check for create/remove conflicts
-    const creates = actions.filter(a => String(a.type || '').toLowerCase() === 'createinput').map(a => a.inputName);
-    const removes = actions.filter(a => String(a.type || '').toLowerCase() === 'removeinput').map(a => a.inputName);
+    const creates = actions.filter(a => normalizeObsActionType(a.type) === 'createInput').map(a => a.inputName);
+    const removes = actions.filter(a => normalizeObsActionType(a.type) === 'removeInput').map(a => a.inputName);
     const createRemoveOverlap = creates.filter(name => removes.includes(name));
     
     if (createRemoveOverlap.length > 0) {
@@ -453,7 +454,7 @@ export class ObsActionValidator {
   private levenshteinDistance(a: string, b: string): number {
     const alen = a.length;
     const blen = b.length;
-    const dp: number[][] = Array.from({ length: alen + 1 }, () => new Array<number>(blen + 1).fill(0));
+    const dp: number[][] = Array.from({ length: alen + 1 }, () => Array.from({ length: blen + 1 }, () => 0));
 
     for (let i = 0; i <= alen; i++) dp[i][0] = i;
     for (let j = 0; j <= blen; j++) dp[0][j] = j;
@@ -462,14 +463,14 @@ export class ObsActionValidator {
       for (let j = 1; j <= blen; j++) {
         const cost = a.charAt(i - 1) === b.charAt(j - 1) ? 0 : 1;
         dp[i][j] = Math.min(
-          dp[i - 1][j] + 1,
-          dp[i][j - 1] + 1,
-          dp[i - 1][j - 1] + cost
+          (dp[i - 1][j] ?? Number.MAX_SAFE_INTEGER) + 1,
+          (dp[i][j - 1] ?? Number.MAX_SAFE_INTEGER) + 1,
+          (dp[i - 1][j - 1] ?? Number.MAX_SAFE_INTEGER) + cost
         );
       }
     }
 
-    return dp[alen][blen];
+    return dp[alen][blen] ?? 0;
   }
 }
 

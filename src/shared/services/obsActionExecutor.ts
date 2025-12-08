@@ -2,6 +2,7 @@ import { logger } from '@/shared/utils/logger';
 import { obsClient } from './obsClient';
 import { obsActionValidator } from './obsActionValidator';
 import type { ObsAction } from '@/shared/types/obsActions';
+import { normalizeObsActionType } from '@/shared/services/actionUtils';
 
 export interface ActionResult {
   success: boolean;
@@ -142,37 +143,37 @@ export class ObsActionExecutor {
   private sortActionsByDependency(actions: ObsAction[]): ObsAction[] {
     const priorities: Record<string, number> = {
       // Create operations first
-      'createscene': 1,
-      'createinput': 2,
-      'createsceneitem': 3,
+      'createScene': 1,
+      'createInput': 2,
+      'createSceneItem': 3,
       
       // Configure before showing
-      'setinputsettings': 4,
-      'setinputvolume': 4,
-      'setinputmute': 4,
-      'setsceneitemtransform': 4,
+      'setInputSettings': 4,
+      'setInputVolume': 4,
+      'setInputMute': 4,
+      'setSceneItemTransform': 4,
       
       // Then enable/show
-      'setsceneitemenabled': 5,
+      'setSceneItemEnabled': 5,
       
       // Scene switching
-      'setcurrentprogramscene': 6,
-      'setcurrentpreviewscene': 6,
+      'setCurrentProgramScene': 6,
+      'setCurrentPreviewScene': 6,
       
       // Output controls last
-      'startstream': 10,
-      'stopstream': 10,
-      'startrecord': 10,
-      'stoprecord': 10,
+      'startStream': 10,
+      'stopStream': 10,
+      'startRecord': 10,
+      'stopRecord': 10,
       
       // Remove operations last
-      'removeinput': 15,
-      'removescene': 15
+      'removeInput': 15,
+      'removeScene': 15
     };
 
     return [...actions].sort((a, b) => {
-      const priorityA = priorities[String(a.type || '').toLowerCase()] || 5;
-      const priorityB = priorities[String(b.type || '').toLowerCase()] || 5;
+      const priorityA = priorities[normalizeObsActionType(a.type) || ''] || 5;
+      const priorityB = priorities[normalizeObsActionType(b.type) || ''] || 5;
       return priorityA - priorityB;
     });
   }
@@ -185,31 +186,36 @@ export class ObsActionExecutor {
     _resultData: any,
     originalState: any
   ): (() => Promise<void>) | null {
-    switch (String(action.type || '').toLowerCase()) {
-      case 'createinput':
+    const normalized = normalizeObsActionType(action.type || '');
+    switch (normalized) {
+      case 'createInput': {
+        const a = action as any; // CreateInputAction
         return async () => {
           try {
-            await obsClient.call('RemoveInput', { inputName: action.inputName });
-            logger.info(`[Rollback] Removed input: ${action.inputName}`);
+            await obsClient.call('RemoveInput', { inputName: a.inputName });
+            logger.info(`[Rollback] Removed input: ${a.inputName}`);
           } catch (error) {
-            logger.warn(`[Rollback] Failed to remove input ${action.inputName}:`, error);
+            logger.warn(`[Rollback] Failed to remove input ${a.inputName}:`, error);
           }
         };
+      }
 
-      case 'createscene':
+      case 'createScene': {
+        const a = action as any; // CreateSceneAction
         return async () => {
           try {
-            await obsClient.call('RemoveScene', { sceneName: action.sceneName });
-            logger.info(`[Rollback] Removed scene: ${action.sceneName}`);
+            await obsClient.call('RemoveScene', { sceneName: a.sceneName });
+            logger.info(`[Rollback] Removed scene: ${a.sceneName}`);
           } catch (error) {
-            logger.warn(`[Rollback] Failed to remove scene ${action.sceneName}:`, error);
+            logger.warn(`[Rollback] Failed to remove scene ${a.sceneName}:`, error);
           }
         };
+      }
 
-      case 'setcurrentprogramscene':
+      case 'setCurrentProgramScene': {
         return async () => {
           try {
-            if (originalState.current_scene) {
+            if (originalState?.current_scene) {
               await obsClient.call('SetCurrentProgramScene', { 
                 sceneName: originalState.current_scene 
               });
@@ -219,24 +225,25 @@ export class ObsActionExecutor {
             logger.warn(`[Rollback] Failed to restore scene:`, error);
           }
         };
+      }
 
-      case 'setsceneitemenabled':
-        // Would need to capture original state before action
+      case 'setSceneItemEnabled': {
+        const a = action as any; // SetSceneItemEnabledAction
         return async () => {
           try {
-            // Toggle back to original state
             await obsClient.call('SetSceneItemEnabled', {
-              sceneName: action.sceneName,
-              sceneItemId: action.sceneItemId,
-              sceneItemEnabled: !action.sceneItemEnabled
+              sceneName: a.sceneName,
+              sourceName: a.sourceName,
+              sceneItemEnabled: !a.sceneItemEnabled
             });
-            logger.info(`[Rollback] Toggled scene item: ${action.sceneItemId}`);
+            logger.info(`[Rollback] Toggled scene item: ${a.sourceName}`);
           } catch (error) {
             logger.warn(`[Rollback] Failed to toggle scene item:`, error);
           }
         };
+      }
 
-      case 'startstream':
+      case 'startStream': {
         return async () => {
           try {
             await obsClient.call('StopStream');
@@ -245,12 +252,13 @@ export class ObsActionExecutor {
             logger.warn(`[Rollback] Failed to stop stream:`, error);
           }
         };
+      }
 
-      case 'stopstream':
+      case 'stopStream':
         // Can't really rollback stopping a stream
         return null;
 
-      case 'startrecord':
+      case 'startRecord': {
         return async () => {
           try {
             await obsClient.call('StopRecord');
@@ -259,6 +267,7 @@ export class ObsActionExecutor {
             logger.warn(`[Rollback] Failed to stop recording:`, error);
           }
         };
+      }
 
       default:
         // No rollback for unknown actions
