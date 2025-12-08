@@ -1,9 +1,5 @@
 import { logger } from '@/shared/utils/logger';
-
-export interface ObsAction {
-  type: string;
-  [key: string]: any;
-}
+import type { ObsAction } from '@/shared/types/obsActions';
 
 export interface ValidationResult {
   valid: boolean;
@@ -21,47 +17,49 @@ export class ObsActionValidator {
   /**
    * Validate a single OBS action against current state
    */
-  async validate(action: ObsAction, obsState: any): Promise<ValidationResult> {
+  async validate(action: any, obsState: any): Promise<ValidationResult> {
     // Basic type validation
     if (!action.type) {
       return { valid: false, error: 'Action type is required' };
     }
 
-    switch (action.type) {
-      case 'SetCurrentProgramScene':
-        return this.validateSetScene(action, obsState);
+    const normalizedType = String(action.type).toLowerCase();
+
+    switch (normalizedType) {
+      case 'setcurrentprogramscene':
+        return this.validateSetScene(action as any, obsState);
         
-      case 'SetCurrentPreviewScene':
-        return this.validateSetScene(action, obsState, true);
+      case 'setcurrentpreviewscene':
+        return this.validateSetScene(action as any, obsState, true);
         
-      case 'SetInputSettings':
-      case 'SetInputVolume':
-      case 'SetInputMute':
+      case 'setinputsettings':
+      case 'setinputvolume':
+      case 'setinputmute':
         return this.validateInputAction(action, obsState);
         
-      case 'CreateInput':
+      case 'createinput':
         return this.validateCreateInput(action, obsState);
         
-      case 'RemoveInput':
+      case 'removeinput':
         return this.validateRemoveInput(action, obsState);
         
-      case 'SetSceneItemEnabled':
-      case 'SetSceneItemTransform':
+      case 'setsceneitemenabled':
+      case 'setsceneitemtransform':
         return this.validateSceneItemAction(action, obsState);
         
-      case 'StartStream':
+      case 'startstream':
         return this.validateStartStream(action, obsState);
         
-      case 'StopStream':
+      case 'stopstream':
         return this.validateStopStream(action, obsState);
         
-      case 'StartRecord':
+      case 'startrecord':
         return this.validateStartRecord(action, obsState);
         
-      case 'StopRecord':
+      case 'stoprecord':
         return this.validateStopRecord(action, obsState);
         
-      case 'GetSourceScreenshot':
+      case 'getsourcescreenshot':
         return this.validateScreenshot(action, obsState);
         
       default:
@@ -74,7 +72,7 @@ export class ObsActionValidator {
   /**
    * Validate a batch of actions together
    */
-  async validateBatch(actions: ObsAction[], obsState: any): Promise<BatchValidationResult> {
+  async validateBatch(actions: any[], obsState: any): Promise<BatchValidationResult> {
     const errors: Array<{ action: ObsAction; error: string; suggestion?: string }> = [];
     const warnings: Array<{ action: ObsAction; warning: string }> = [];
 
@@ -108,7 +106,7 @@ export class ObsActionValidator {
 
   // ==================== Specific Validators ====================
 
-  private validateSetScene(action: ObsAction, obsState: any, isPreview = false): ValidationResult {
+  private validateSetScene(action: any, obsState: any, isPreview = false): ValidationResult {
     if (!action.sceneName) {
       return { 
         valid: false, 
@@ -138,7 +136,8 @@ export class ObsActionValidator {
     return { valid: true };
   }
 
-  private validateInputAction(action: ObsAction, obsState: any): ValidationResult {
+  private validateInputAction(action: any, obsState: any): ValidationResult {
+    const actionType = String(action.type || '').toLowerCase();
     if (!action.inputName) {
       return { 
         valid: false, 
@@ -158,7 +157,7 @@ export class ObsActionValidator {
     }
 
     // Action-specific validation
-    if (action.type === 'SetInputVolume') {
+    if (actionType === 'setinputvolume') {
       if (action.inputVolumeDb === undefined && action.inputVolumeMul === undefined) {
         return {
           valid: false,
@@ -178,7 +177,7 @@ export class ObsActionValidator {
       }
     }
 
-    if (action.type === 'SetInputMute') {
+    if (actionType === 'setinputmute') {
       if (typeof action.inputMuted !== 'boolean') {
         return {
           valid: false,
@@ -191,7 +190,7 @@ export class ObsActionValidator {
     return { valid: true };
   }
 
-  private validateCreateInput(action: ObsAction, obsState: any): ValidationResult {
+  private validateCreateInput(action: any, obsState: any): ValidationResult {
     if (!action.inputName || !action.inputKind) {
       return { 
         valid: false, 
@@ -239,7 +238,7 @@ export class ObsActionValidator {
     return { valid: true };
   }
 
-  private validateRemoveInput(action: ObsAction, obsState: any): ValidationResult {
+  private validateRemoveInput(action: any, obsState: any): ValidationResult {
     if (!action.inputName) {
       return { 
         valid: false, 
@@ -259,7 +258,7 @@ export class ObsActionValidator {
     return { valid: true };
   }
 
-  private validateSceneItemAction(action: ObsAction, obsState: any): ValidationResult {
+  private validateSceneItemAction(action: any, obsState: any): ValidationResult {
     if (!action.sceneName) {
       return {
         valid: false,
@@ -285,7 +284,7 @@ export class ObsActionValidator {
     return { valid: true };
   }
 
-  private validateStartStream(action: ObsAction, obsState: any): ValidationResult {
+  private validateStartStream(action: any, obsState: any): ValidationResult {
     if (obsState.streaming_status) {
       return {
         valid: false,
@@ -296,7 +295,7 @@ export class ObsActionValidator {
     return { valid: true };
   }
 
-  private validateStopStream(action: ObsAction, obsState: any): ValidationResult {
+  private validateStopStream(action: any, obsState: any): ValidationResult {
     if (!obsState.streaming_status) {
       return {
         valid: false,
@@ -307,7 +306,7 @@ export class ObsActionValidator {
     return { valid: true };
   }
 
-  private validateStartRecord(action: ObsAction, obsState: any): ValidationResult {
+  private validateStartRecord(action: any, obsState: any): ValidationResult {
     if (obsState.recording_status) {
       return {
         valid: false,
@@ -318,7 +317,7 @@ export class ObsActionValidator {
     return { valid: true };
   }
 
-  private validateStopRecord(action: ObsAction, obsState: any): ValidationResult {
+  private validateStopRecord(action: any, obsState: any): ValidationResult {
     if (!obsState.recording_status) {
       return {
         valid: false,
@@ -329,7 +328,7 @@ export class ObsActionValidator {
     return { valid: true };
   }
 
-  private validateScreenshot(action: ObsAction, obsState: any): ValidationResult {
+  private validateScreenshot(action: any, obsState: any): ValidationResult {
     if (!action.sourceName) {
       return {
         valid: false,
@@ -352,14 +351,14 @@ export class ObsActionValidator {
 
   // ==================== Helper Methods ====================
 
-  private detectConflicts(actions: ObsAction[]): Array<{ action: ObsAction; message: string }> {
-    const conflicts: Array<{ action: ObsAction; message: string }> = [];
-    const types = actions.map(a => a.type);
+  private detectConflicts(actions: any[]): Array<{ action: any; message: string }> {
+    const conflicts: Array<{ action: any; message: string }> = [];
+    const types = actions.map(a => String(a.type || '').toLowerCase());
 
     // Check for conflicting stream actions
-    if (types.includes('StartStream') && types.includes('StopStream')) {
-      const startIdx = types.indexOf('StartStream');
-      const stopIdx = types.indexOf('StopStream');
+    if (types.includes('startstream') && types.includes('stopstream')) {
+      const startIdx = types.indexOf('startstream');
+      const stopIdx = types.indexOf('stopstream');
       const maxIdx = Math.max(startIdx, stopIdx);
       const conflictAction = actions[maxIdx] ?? actions[startIdx] ?? actions[stopIdx];
       if (conflictAction) {
@@ -371,9 +370,9 @@ export class ObsActionValidator {
     }
 
     // Check for conflicting record actions
-    if (types.includes('StartRecord') && types.includes('StopRecord')) {
-      const startIdx = types.indexOf('StartRecord');
-      const stopIdx = types.indexOf('StopRecord');
+    if (types.includes('startrecord') && types.includes('stoprecord')) {
+      const startIdx = types.indexOf('startrecord');
+      const stopIdx = types.indexOf('stoprecord');
       const maxIdx = Math.max(startIdx, stopIdx);
       const conflictAction = actions[maxIdx] ?? actions[startIdx] ?? actions[stopIdx];
       if (conflictAction) {
@@ -385,7 +384,7 @@ export class ObsActionValidator {
     }
 
     // Check for multiple scene changes
-    const sceneChanges = actions.filter(a => a.type === 'SetCurrentProgramScene');
+    const sceneChanges = actions.filter(a => String(a.type || '').toLowerCase() === 'setcurrentprogramscene');
     if (sceneChanges.length > 1) {
       const last = sceneChanges[sceneChanges.length - 1];
       if (last) {
@@ -397,8 +396,8 @@ export class ObsActionValidator {
     }
 
     // Check for create/remove conflicts
-    const creates = actions.filter(a => a.type === 'CreateInput').map(a => a.inputName);
-    const removes = actions.filter(a => a.type === 'RemoveInput').map(a => a.inputName);
+    const creates = actions.filter(a => String(a.type || '').toLowerCase() === 'createinput').map(a => a.inputName);
+    const removes = actions.filter(a => String(a.type || '').toLowerCase() === 'removeinput').map(a => a.inputName);
     const createRemoveOverlap = creates.filter(name => removes.includes(name));
     
     if (createRemoveOverlap.length > 0) {

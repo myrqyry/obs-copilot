@@ -1,6 +1,7 @@
 import { logger } from '@/shared/utils/logger';
 import { obsClient } from './obsClient';
-import { ObsAction, obsActionValidator } from './obsActionValidator';
+import { obsActionValidator } from './obsActionValidator';
+import type { ObsAction } from '@/shared/types/obsActions';
 
 export interface ActionResult {
   success: boolean;
@@ -141,37 +142,37 @@ export class ObsActionExecutor {
   private sortActionsByDependency(actions: ObsAction[]): ObsAction[] {
     const priorities: Record<string, number> = {
       // Create operations first
-      'CreateScene': 1,
-      'CreateInput': 2,
-      'CreateSceneItem': 3,
+      'createscene': 1,
+      'createinput': 2,
+      'createsceneitem': 3,
       
       // Configure before showing
-      'SetInputSettings': 4,
-      'SetInputVolume': 4,
-      'SetInputMute': 4,
-      'SetSceneItemTransform': 4,
+      'setinputsettings': 4,
+      'setinputvolume': 4,
+      'setinputmute': 4,
+      'setsceneitemtransform': 4,
       
       // Then enable/show
-      'SetSceneItemEnabled': 5,
+      'setsceneitemenabled': 5,
       
       // Scene switching
-      'SetCurrentProgramScene': 6,
-      'SetCurrentPreviewScene': 6,
+      'setcurrentprogramscene': 6,
+      'setcurrentpreviewscene': 6,
       
       // Output controls last
-      'StartStream': 10,
-      'StopStream': 10,
-      'StartRecord': 10,
-      'StopRecord': 10,
+      'startstream': 10,
+      'stopstream': 10,
+      'startrecord': 10,
+      'stoprecord': 10,
       
       // Remove operations last
-      'RemoveInput': 15,
-      'RemoveScene': 15
+      'removeinput': 15,
+      'removescene': 15
     };
 
     return [...actions].sort((a, b) => {
-      const priorityA = priorities[a.type] || 5;
-      const priorityB = priorities[b.type] || 5;
+      const priorityA = priorities[String(a.type || '').toLowerCase()] || 5;
+      const priorityB = priorities[String(b.type || '').toLowerCase()] || 5;
       return priorityA - priorityB;
     });
   }
@@ -184,8 +185,8 @@ export class ObsActionExecutor {
     _resultData: any,
     originalState: any
   ): (() => Promise<void>) | null {
-    switch (action.type) {
-      case 'CreateInput':
+    switch (String(action.type || '').toLowerCase()) {
+      case 'createinput':
         return async () => {
           try {
             await obsClient.call('RemoveInput', { inputName: action.inputName });
@@ -195,7 +196,7 @@ export class ObsActionExecutor {
           }
         };
 
-      case 'CreateScene':
+      case 'createscene':
         return async () => {
           try {
             await obsClient.call('RemoveScene', { sceneName: action.sceneName });
@@ -205,7 +206,7 @@ export class ObsActionExecutor {
           }
         };
 
-      case 'SetCurrentProgramScene':
+      case 'setcurrentprogramscene':
         return async () => {
           try {
             if (originalState.current_scene) {
@@ -219,7 +220,7 @@ export class ObsActionExecutor {
           }
         };
 
-      case 'SetSceneItemEnabled':
+      case 'setsceneitemenabled':
         // Would need to capture original state before action
         return async () => {
           try {
@@ -235,7 +236,7 @@ export class ObsActionExecutor {
           }
         };
 
-      case 'StartStream':
+      case 'startstream':
         return async () => {
           try {
             await obsClient.call('StopStream');
@@ -245,11 +246,11 @@ export class ObsActionExecutor {
           }
         };
 
-      case 'StopStream':
+      case 'stopstream':
         // Can't really rollback stopping a stream
         return null;
 
-      case 'StartRecord':
+      case 'startrecord':
         return async () => {
           try {
             await obsClient.call('StopRecord');

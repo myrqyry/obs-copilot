@@ -103,7 +103,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
     type ObsGetScreenshotAction = { type: 'GetSourceScreenshot'; args: { sourceName: string; imageFormat: string; imageWidth?: number; imageHeight?: number } };
     type ObsActionType = ObsSetSceneAction | ObsGetScreenshotAction;
 
-    const handleObsAction = useCallback(async (action: ObsActionType) => {
+    const handleObsAction = useCallback(async (action: any) => {
       if (!isConnected) {
         const errorMsg = handleAppError('GeminiChat OBS action', new Error('Not connected'), 'Not connected to OBS.');
         useUiStore.getState().addError({
@@ -129,8 +129,10 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
       }
     
       try {
-        switch (action.type) {
-          case 'SetScene':
+        const normalizedType = String(action.type || '').toLowerCase();
+        switch (normalizedType) {
+          case 'setscene':
+          case 'setcurrentprogramscene':
             if (action.args?.sceneName) {
               const result = await obs.call('SetCurrentProgramScene', { 'sceneName': action.args.sceneName });
               // Add validation:
@@ -139,8 +141,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
               }
               return result;
             }
-            break;
-          case 'GetSourceScreenshot':
+          case 'getsourcescreenshot':
             if (action.args?.sourceName && action.args?.imageFormat) {
               const result = await obs.call('GetSourceScreenshot', {
                 sourceName: action.args.sourceName,

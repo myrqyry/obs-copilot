@@ -154,7 +154,11 @@ export const useGeminiChat = (
 
       // Execute the actions with validation and transaction semantics
       if (actions && actions.length > 0 && isConnected) {
-        const obsActions = actions.map(a => ({ type: a.command, ...(a.args || {}) })) as ObsAction[];
+        const obsActions = actions.map(a => {
+          const command = String(a.command || '').trim();
+          const normalizedType = command ? (command.charAt(0).toLowerCase() + command.slice(1)) : command;
+          return { type: normalizedType, ...(a.args || {}) } as ObsAction;
+        });
 
         // Validate actions before execution
         const validation = await obsActionValidator.validateBatch(obsActions, stateWithChanges.full_state);
@@ -180,7 +184,14 @@ export const useGeminiChat = (
         chatActions.addMessage({ role: 'system', text: `⚙️ Executing ${actions.length} action(s)...` });
         const executionResult = await obsActionExecutor.executeActionsWithTransaction(
           obsActions,
-          (action) => handleObsAction(action, streamingHandlers),
+          async (action) => {
+            try {
+              const data = await handleObsAction(action, streamingHandlers);
+              return { success: true, data };
+            } catch (err) {
+              return { success: false, error: err instanceof Error ? err.message : String(err) };
+            }
+          },
           stateWithChanges.full_state,
           (completed, total, currentAction) => {
             chatActions.replaceMessage(modelMessageId, { role: 'model', text: `${reasoning}\n\n⚙️ Progress: ${completed}/${total} - ${currentAction}` });
