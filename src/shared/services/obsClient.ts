@@ -113,6 +113,7 @@ export class ObsClientImpl {
   private onConnectionClosed: (data: { code: number }) => void;
   private onConnectionError: (err: any) => void;
   private cacheInvalidationListeners: Map<string, () => void> = new Map();
+  private pendingStateRequest: Promise<any> | null = null;
 
   private constructor() {
     this.obs = new (OBSWebSocket as any)();
@@ -505,6 +506,11 @@ export class ObsClientImpl {
 
   // --- Full State Method for AI Context ---
   async getFullState(): Promise<any> {
+    // Coalesce concurrent requests for full state
+    if (this.pendingStateRequest) {
+      logger.info('[OBS Cache] Coalescing state request');
+      return this.pendingStateRequest;
+    }
     const cacheKey = 'fullState';
     const ttl = this.CACHE_TTL_MS.default;
     const cached = this.stateCache.get(cacheKey);
@@ -518,35 +524,40 @@ export class ObsClientImpl {
       return this.getEmptyState();
     }
 
-    logger.info('[OBS Cache] Building fresh full state from cached components.');
-    try {
-      // Use cached wrapper methods to build state
-      // We run them sequentially or parallel - parallel is fine as they handle their own caching
-      const [programScene, sceneList, inputList, streamStatus, recordStatus] = await Promise.all([
+    this.pendingStateRequest = (async () => {
+      logger.info('[OBS Cache] Building fresh full state from cached components.');
+      try {
+        // Use cached wrapper methods to build state
+        const [programScene, sceneList, inputList, streamStatus, recordStatus] = await Promise.all([
           this.getCurrentProgramSceneCached(),
           this.getSceneListCached(),
           this.getInputListCached(),
           this.getStreamStatusCached(),
           this.getRecordStatusCached()
-      ]);
+        ]);
 
-      const newState = {
-        current_scene: programScene.currentProgramSceneName,
-        available_scenes: sceneList.scenes.map((s: any) => s.sceneName),
-        active_sources: inputList.inputs.filter((i: any) => i.inputKind !== 'scene'),
-        streaming_status: streamStatus.outputActive,
-        recording_status: recordStatus.outputActive,
-        recent_commands: [],
-      };
+        const newState = {
+          current_scene: programScene.currentProgramSceneName,
+          available_scenes: sceneList.scenes.map((s: any) => s.sceneName),
+          active_sources: inputList.inputs.filter((i: any) => i.inputKind !== 'scene'),
+          streaming_status: streamStatus.outputActive,
+          recording_status: recordStatus.outputActive,
+          recent_commands: [],
+        };
 
-      this.stateCache.set(cacheKey, { state: newState, timestamp: Date.now() });
-      return newState;
-    } catch (error) {
-      handleAppError('OBS getFullState', error, 'Failed to retrieve full OBS state.');
-      // Invalidate cache on error to avoid serving stale/bad data
-      this.invalidateCache();
-      return this.getEmptyState();
-    }
+        this.stateCache.set(cacheKey, { state: newState, timestamp: Date.now() });
+        return newState;
+      } catch (error) {
+        handleAppError('OBS getFullState', error, 'Failed to retrieve full OBS state.');
+        // Invalidate cache on error to avoid serving stale/bad data
+        this.invalidateCache();
+        return this.getEmptyState();
+      } finally {
+        this.pendingStateRequest = null;
+      }
+    })();
+
+    return this.pendingStateRequest;
   }
 
   private getEmptyState() {
