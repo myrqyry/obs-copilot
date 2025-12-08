@@ -1,56 +1,28 @@
 import React, { useRef, useEffect } from 'react';
+import { type VariantProps } from 'class-variance-authority';
 import { cn, safeGsapTo, safeGsapSet } from '@/shared/lib/utils';
+import { cardVariants, badgeVariants } from './variants';
 
-interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: 'default' | 'glass' | 'elevated' | 'outlined' | 'gradient' | 'neon' | 'frosted' | 'minimal' | 'accent-gradient' | 'accent-outline' | 'primary-glow';
-  size?: 'sm' | 'md' | 'lg' | 'xl';
-  hover?: boolean;
+export interface CardProps
+  extends React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof cardVariants> {
   accentColor?: string;
   withAnimation?: boolean;
-  interactive?: boolean;
-  glow?: boolean;
 }
 
 export const Card: React.FC<CardProps> = ({
   className,
-  variant = 'default',
-  size = 'md',
-  hover = false,
+  variant,
+  size,
+  hover,
   accentColor,
   withAnimation = true,
-  interactive = false,
-  glow = false,
+  interactive,
+  glow,
   children,
   ...props
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
-
-  const baseStyles = 'rounded-xl transition-all duration-300 ease-out relative overflow-hidden';
-  
-  const variantStyles = {
-    default: 'bg-card border border-border shadow-sm hover:shadow-md hover:border-primary/20',
-    glass: 'glass-card backdrop-blur-md border border-white/10 shadow-glass hover:shadow-glass-lg hover:border-accent/20',
-    elevated: 'bg-card border border-border shadow-lg hover:shadow-xl hover:-translate-y-1 hover:border-primary/30',
-    outlined: 'bg-transparent border-2 border-border hover:border-primary/50 hover:shadow-sm',
-    gradient: 'bg-gradient-to-br from-card via-card/80 to-card/60 border border-border shadow-lg hover:shadow-xl hover:border-accent/40',
-    neon: 'bg-card/80 border border-primary/30 shadow-glow hover:shadow-glow-lg backdrop-blur-sm hover:border-accent/50',
-    frosted: 'bg-card/5 backdrop-blur-xl border border-white/10 shadow-lg hover:shadow-xl hover:border-primary/20',
-    minimal: 'bg-transparent border border-border/50 hover:border-accent/60',
-    // New accent-focused variants
-    'accent-gradient': 'bg-gradient-to-br from-primary/10 via-accent/5 to-primary/10 border border-primary/20 shadow-sm hover:shadow-md hover:border-accent/40',
-    'accent-outline': 'bg-transparent border-2 border-accent/30 hover:border-accent hover:bg-accent/5 shadow-sm hover:shadow-md',
-    'primary-glow': 'bg-card border border-primary/40 shadow-glow hover:shadow-glow-lg hover:border-primary/60 backdrop-blur-sm'
-  };
-
-  const sizeStyles = {
-    sm: 'p-3',
-    md: 'p-4',
-    lg: 'p-6',
-    xl: 'p-8'
-  };
-
-  const hoverStyles = hover ? 'hover:scale-[1.02] hover:shadow-xl cursor-pointer' : '';
-  const glowStyles = glow ? 'shadow-glow hover:shadow-glow-lg' : '';
 
   // GSAP animations
   useEffect(() => {
@@ -102,15 +74,7 @@ export const Card: React.FC<CardProps> = ({
   return (
     <div
       ref={cardRef}
-      className={cn(
-        baseStyles,
-        variantStyles[variant],
-        sizeStyles[size],
-        hoverStyles,
-        glowStyles,
-        interactive && 'cursor-pointer',
-        className
-      )}
+      className={cn(cardVariants({ variant, size, hover, glow, interactive, className }))}
       style={accentColor ? { '--accent-color': accentColor } as React.CSSProperties : undefined}
       {...props}
     >
@@ -169,27 +133,15 @@ export const CardFooter: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
   </div>
 );
 
-export const CardBadge: React.FC<React.HTMLAttributes<HTMLSpanElement> & { variant?: 'default' | 'success' | 'warning' | 'error' | 'info' }> = ({
+export const CardBadge: React.FC<React.HTMLAttributes<HTMLSpanElement> & VariantProps<typeof badgeVariants>> = ({
   className,
-  variant = 'default',
+  variant,
   children,
   ...props
 }) => {
-  const variantStyles = {
-    default: 'bg-primary/10 text-primary border border-primary/20',
-    success: 'bg-accent/10 text-accent border border-accent/20',
-    warning: 'bg-warning/10 text-warning border border-warning/20',
-    error: 'bg-destructive/10 text-destructive border border-destructive/20',
-    info: 'bg-info/10 text-info border border-info/20'
-  };
-
   return (
     <span
-      className={cn(
-        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-        variantStyles[variant],
-        className
-      )}
+      className={cn(badgeVariants({ variant, className }))}
       {...props}
     >
       {children}

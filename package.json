@@ -54,10 +54,14 @@
     "quality": "pnpm lint && pnpm type-check && pnpm test:coverage",
     "// === Utilities ===": "",
     "mock-obs": "node scripts/mock-obs-server.js",
-    "audit": "pnpm audit --audit-level moderate"
+    "audit": "pnpm audit --audit-level moderate",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "devDependencies": {
     "@faker-js/faker": "^10.1.0",
+    "@storybook/react": "^10.1.4",
+    "@tailwindcss/container-queries": "^0.1.1",
     "@tanstack/react-query-devtools": "^5.91.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.8.0",
@@ -90,7 +94,17 @@
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.46.0",
     "vite": "^7.1.4",
-    "vitest": "^4.0.3"
+    "vitest": "^4.0.3",
+    "storybook": "^10.1.4",
+    "@storybook/react-vite": "^10.1.4",
+    "@chromatic-com/storybook": "^4.1.3",
+    "@storybook/addon-vitest": "^10.1.4",
+    "@storybook/addon-a11y": "^10.1.4",
+    "@storybook/addon-docs": "^10.1.4",
+    "@storybook/addon-onboarding": "^10.1.4",
+    "eslint-plugin-storybook": "^10.1.4",
+    "playwright": "^1.57.0",
+    "@vitest/browser-playwright": "^4.0.3"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
