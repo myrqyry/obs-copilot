@@ -108,6 +108,19 @@ describe('GeminiService', () => {
       });
     });
 
+    it('should include inline audio data when provided', async () => {
+      const mockResponse = { candidates: [{ content: { parts: [{ text: 'Audio response' }] } }] };
+      mockPost.mockResolvedValueOnce({ data: mockResponse });
+
+      const inlineAudio = { data: 'base64audio', mimeType: 'audio/mp3' };
+      await geminiService.generateContent('Transcribe this audio', { audioInline: inlineAudio });
+
+      expect(mockPost).toHaveBeenCalledWith('/gemini/generate-content', expect.objectContaining({
+        prompt: 'Transcribe this audio',
+        audioInline: { data: 'base64audio', mimeType: 'audio/mp3' },
+      }));
+    });
+
     it('should handle 401/403 errors by adding to uiStore', async () => {
       const mockError = { response: { status: 401 } };
       mockPost.mockRejectedValueOnce(mockError);

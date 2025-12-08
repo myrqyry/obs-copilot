@@ -17,6 +17,10 @@ export interface AIService {
       topP?: number;
       topK?: number;
       history?: Array<{role: string, parts: Array<{text: string}>}>;
+      // Optional inline audio for transcription / multimodal prompts
+      audioInline?: { data: string; mimeType: string } | null;
+      // Optional file URI pointing to an uploaded audio file (Files API)
+      audioFileUri?: string | null;
     }
   ): Promise<GeminiGenerateContentResponse>;
   generateImage(

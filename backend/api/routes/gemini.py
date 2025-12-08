@@ -396,6 +396,66 @@ async def generate_speech(request: Request, speech_request: SpeechGenerateReques
         logger.error(f"Unexpected error in speech generation: {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred.")
 
+
+class GenerateContentRequest(BaseModel):
+    prompt: str = Field(..., min_length=1, max_length=PROMPT_MAX_LENGTH)
+    model: str = Field("gemini-1.5-flash-001")
+    history: Optional[List[dict]] = Field(None)
+    audio_inline: Optional[Dict[str, str]] = Field(None, description="Inline audio as base64 with keys {data, mime_type}")
+    audio_file_uri: Optional[str] = Field(None, description="URI of uploaded audio file")
+
+
+@router.post("/generate-content")
+@limiter.limit("20/minute")
+async def generate_content(request: Request, body: GenerateContentRequest, client: Any = Depends(get_gemini_client)):
+    """Generate content with optional inline or URI-referenced audio parts."""
+    try:
+        history = body.history or []
+        contents = [*history, {"role": "user", "parts": [{"text": body.prompt}]}]
+
+        if body.audio_inline and body.audio_inline.get('data') and body.audio_inline.get('mime_type'):
+            audio_bytes = base64.b64decode(body.audio_inline['data'])
+            contents.append(types.Part(inline_data=types.Blob(mime_type=body.audio_inline['mime_type'], data=audio_bytes)))
+
+        if body.audio_file_uri:
+            contents.append(types.Part(uri=body.audio_file_uri))
+
+        response = await asyncio.wait_for(
+            gemini_service.run_in_executor(
+                client.models.generate_content,
+                model=body.model,
+                contents=contents,
+            ),
+            timeout=45.0
+        )
+
+        # Try to synthesize a simple JSON-friendly response
+        out = {"candidates": []}
+        if response.candidates:
+            for candidate in response.candidates:
+                candidate_parts = []
+                for part in candidate.content.parts:
+                    # Inline data -> base64
+                    if getattr(part, 'inline_data', None) and getattr(part.inline_data, 'data', None):
+                        candidate_parts.append({
+                            "inline_data": base64.b64encode(part.inline_data.data).decode(),
+                            "mime_type": part.inline_data.mime_type
+                        })
+                    elif getattr(part, 'text', None):
+                        candidate_parts.append({"text": part.text})
+                    elif getattr(part, 'uri', None):
+                        candidate_parts.append({"uri": part.uri})
+                out["candidates"].append({"parts": candidate_parts})
+
+        return out
+
+    except (APIError, GenaiAPIError) as e:
+        logger.error(f"Gemini API error in generate_content: {e}")
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"AI service error: {getattr(e, 'message', str(e))}")
+    except Exception as e:
+        logger.error(f"Unexpected error in generate_content: {e}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred.")
+
 # --- Video Generation Endpoints ---
 @router.post("/generate-video")
 @limiter.limit("5/minute")

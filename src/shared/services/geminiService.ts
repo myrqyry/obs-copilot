@@ -62,6 +62,10 @@ class GeminiService extends BaseService implements AIService {
       topP?: number;
       topK?: number;
       history?: Array<{role: string, parts: Array<{text: string}>}>;
+      // Optional audio payload for transcription or multimodal prompts
+      audioInline?: { data: string; mimeType: string } | null;
+      // fileUri if uploaded via Files API or remote location
+      audioFileUri?: string | null;
     } = {}
   ): Promise<GeminiGenerateContentResponse> {
     const {
@@ -77,7 +81,8 @@ class GeminiService extends BaseService implements AIService {
 
     return this.withRetry(async () => {
         try {
-          const response = await httpClient.post('/gemini/generate-content', {
+          // Build payload and include optional audio information
+          const payload: any = {
             prompt,
             model,
             temperature,
@@ -85,7 +90,20 @@ class GeminiService extends BaseService implements AIService {
             topP,
             topK,
             history,
-          });
+          };
+
+          if (options.audioInline) {
+            payload.audioInline = {
+              data: options.audioInline.data,
+              mimeType: options.audioInline.mimeType,
+            };
+          }
+
+          if (options.audioFileUri) {
+            payload.audioFileUri = options.audioFileUri;
+          }
+
+          const response = await httpClient.post('/gemini/generate-content', payload);
     
           logger.info('[Gemini] Content generation successful.');
           return response.data;
