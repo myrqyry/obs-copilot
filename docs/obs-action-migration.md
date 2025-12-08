@@ -54,3 +54,16 @@ This document summarizes the changes required to integrate enhanced validation, 
 ## Rollback
 If the feature causes issues, remove any imports of the new modules and re-run tests or revert to previous commit. The new files will not run unless they are imported and used.
 
+## Post-Migration Enhancements
+
+### Dynamic OBS Action Handling
+
+The `useObsActions` hook has been refactored to dynamically handle any OBS action type. Previously, it only supported a few hardcoded actions. Now, it uses a generic fallback handler that maps camelCase action types from the AI to PascalCase request types for the OBS WebSocket API.
+
+This change provides the following benefits:
+
+*   **Complete API Coverage:** Any action defined in the `ObsAction` type that follows the standard OBS naming convention will work without explicit handling.
+*   **Future-Proofing:** New OBS actions can be supported by simply adding them to the type definitions.
+*   **Simplified Maintenance:** No need to add a new `case` for every new action.
+
+The implementation details can be found in `src/shared/hooks/useObsActions.ts`.

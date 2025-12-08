@@ -1,11 +1,10 @@
 import { useCallback } from 'react';
 import { obsClient } from '@/shared/services/obsClient';
-import type { ObsAction, GeminiActionResponse } from '@/shared/types/obsActions';
-import type { OBSData, OBSScene, SupportedDataPart, StreamingHandlers } from '@/shared/types';
+import type { ObsAction } from '@/shared/types/obsActions';
+import type { OBSData, OBSScene, StreamingHandlers } from '@/shared/types';
 import { logger } from '../utils/logger';
 import { commandValidationService } from '@/shared/services/commandValidationService';
 import useUiStore from '@/app/store/uiStore';
-import { handleAppError } from '@/shared/lib/errorUtils';
 
 interface UseObsActionsProps {
   obsData: OBSData;
@@ -36,21 +35,29 @@ export const useObsActions = ({
     async (action: ObsAction): Promise<ActionResult> => {
       return new Promise<ActionResult>((resolve) => {
         const { showConfirmation } = useUiStore.getState();
+        const actionType = action.type;
 
         showConfirmation({
           title: 'Confirm AI Action',
-          description: `Are you sure you want to execute the following OBS action: ${action.type}?`,
+          description: `Are you sure you want to execute the following OBS action: ${actionType}?`,
           onConfirm: async () => {
             try {
+              // Basic validation check
               if (!commandValidationService.validateObsAction(action)) {
-                throw new Error('Invalid or disallowed OBS action.');
+                throw new Error(`Invalid or disallowed OBS action: ${actionType}`);
               }
 
               let successMessage = '';
-              switch (action.type) {
+              let resultData: any = undefined;
+
+              switch (actionType) {
+                // --- Custom Logic Handlers (Complex Workflows) ---
+                
                 case 'createInput': {
                   const { inputName, inputKind, inputSettings, sceneItemEnabled } = action;
                   let { sceneName } = action;
+                  
+                  // Validate or fallback scene
                   if (sceneName && !obsData.scenes.find((s: OBSScene) => s.sceneName === sceneName)) {
                     sceneName = obsData.currentProgramScene || undefined;
                   }
@@ -90,22 +97,35 @@ export const useObsActions = ({
                   break;
                 }
 
+                // --- Generic Fallback Handler ---
                 default: {
-                  const unknownActionType = (action as { type: string }).type;
-                  throw new Error(`Unsupported OBS action type: ${unknownActionType}`);
+                  // Dynamically map action types (e.g., 'setCurrentProgramScene' -> 'SetCurrentProgramScene')
+                  // This assumes the action type key in ObsAction types matches the OBS request type 
+                  // except for the first letter casing.
+                  const requestType = actionType.charAt(0).toUpperCase() + actionType.slice(1);
+                  
+                  // Extract parameters by excluding the 'type' field
+                  const { type: _, ...params } = action as any;
+                  
+                  // Execute the generic call
+                  resultData = await obsClient.call(requestType, params);
+                  successMessage = `Successfully executed ${requestType}`;
+                  break;
                 }
               }
 
+              // Refresh global state after successful action
               await onRefreshData();
 
               resolve({
                 success: true,
                 message: successMessage,
+                data: resultData
               });
             } catch (err: unknown) {
               const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-              logger.error(`OBS Action "${action.type}" failed:`, err);
-              setErrorMessage(`OBS Action "${action.type}" failed: ${errorMessage}`);
+              logger.error(`OBS Action "${actionType}" failed:`, err);
+              setErrorMessage(`OBS Action "${actionType}" failed: ${errorMessage}`);
 
               resolve({
                 success: false,
