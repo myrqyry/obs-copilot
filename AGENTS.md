@@ -47,3 +47,4 @@ Here are the key points for how we build:
 * **Don't** let the app start with missing environment variables.  
 * **Don't** poll for updates (no `setInterval`). We have real-time events for that.
 
+1
