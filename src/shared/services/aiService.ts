@@ -12,6 +12,9 @@ export interface OBSAwareQueryRequest {
   };
   use_explicit_cache?: boolean;
   cache_ttl_minutes?: number;
+  state_changes?: Record<string, any> | null;
+  recent_changes?: Array<Record<string, any>> | null;
+  is_first_query?: boolean;
 }
 
 export class AIService {

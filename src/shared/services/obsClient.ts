@@ -185,16 +185,37 @@ export class ObsClientImpl {
     this.obs.on('ConnectionClosed', this.onConnectionClosed);
     this.obs.on('ConnectionError', this.onConnectionError);
 
-    // --- Cache Invalidation Listeners ---
-    // Map events to specific cache keys that should be invalidated
+    // --- UPDATED Cache Invalidation Listeners ---
     const invalidationMap: Record<string, string[]> = {
-        'CurrentProgramSceneChanged': ['fullState', 'getCurrentProgramScene'],
-        'SceneListChanged': ['fullState', 'getSceneList'],
-        'InputCreated': ['fullState', 'getInputList'],
-        'InputRemoved': ['fullState', 'getInputList'],
-        'InputNameChanged': ['fullState', 'getInputList'],
-        'StreamStateChanged': ['fullState', 'getStreamStatus'],
-        'RecordStateChanged': ['fullState', 'getRecordStatus'],
+      // Scene-related events
+      'CurrentProgramSceneChanged': ['fullState', 'getCurrentProgramScene', 'getSceneList'],
+      'CurrentPreviewSceneChanged': ['fullState', 'getCurrentProgramScene'],
+      'SceneListChanged': ['fullState', 'getSceneList'],
+      'SceneNameChanged': ['fullState', 'getSceneList'],
+      'SceneCreated': ['fullState', 'getSceneList'],
+      'SceneRemoved': ['fullState', 'getSceneList'],
+      
+      // Input/Source-related events
+      'InputCreated': ['fullState', 'getInputList'],
+      'InputRemoved': ['fullState', 'getInputList'],
+      'InputNameChanged': ['fullState', 'getInputList'],
+      'InputVolumeChanged': ['getInputList'], // Don't invalidate full state for minor changes
+      'InputMuteStateChanged': ['getInputList'],
+      'InputSettingsChanged': ['getInputList'],
+      
+      // Scene Items (sources in scenes)
+      'SceneItemCreated': ['fullState', 'getSceneList'],
+      'SceneItemRemoved': ['fullState', 'getSceneList'],
+      'SceneItemEnableStateChanged': ['fullState', 'getSceneList'],
+      'SceneItemListReindexed': ['fullState', 'getSceneList'],
+      
+      // Output status
+      'StreamStateChanged': ['fullState', 'getStreamStatus'],
+      'RecordStateChanged': ['fullState', 'getRecordStatus'],
+      'ReplayBufferStateChanged': ['getRecordStatus'],
+      
+      // Virtual Cam
+      'VirtualcamStateChanged': ['fullState'],
     };
 
     for (const [event, cacheKeys] of Object.entries(invalidationMap)) {
@@ -376,6 +397,13 @@ export class ObsClientImpl {
     this.cleanupReconnectTimeout();
     this.connectOptions = null;
     this.rejectStaleCommands('Connection manually closed.');
+    // NEW: reset state manager tracking (dynamic import to avoid circular import)
+    try {
+      const module = await import('./obsStateManager');
+      module.obsStateManager.reset();
+    } catch (err) {
+      logger.warn('[OBS] Failed to reset state manager:', err);
+    }
     
     // Important: Clean up listeners to prevent leaks
     this.cleanupEventListeners();

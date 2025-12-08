@@ -490,6 +490,10 @@ class OBSAwareRequest(BaseModel):
     prompt: str = Field(..., min_length=1, max_length=1000)
     model: str = Field("gemini-1.5-flash-001")
     obs_state: Dict = Field(..., description="Current OBS state")
+    # NEW: Optional change detection fields
+    state_changes: Optional[Dict] = Field(None, description="Changes detected in OBS state since last query")
+    recent_changes: Optional[List[Dict]] = Field(None, description="List of recent change records")
+    is_first_query: Optional[bool] = Field(False, description="If true, indicates this is the first OBS state query (no deltas)")
     use_explicit_cache: bool = Field(False, description="Use explicit caching for repeated contexts")
     cache_ttl_minutes: int = Field(30, ge=5, le=120, description="Cache TTL in minutes")
 

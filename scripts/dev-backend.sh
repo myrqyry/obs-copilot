@@ -4,6 +4,8 @@ set -euo pipefail
 # Start backend server with reload; if WatchFiles error occurs, fallback to no-reload
 ROOT_DIR=$(pwd)
 export PYTHONPATH="$ROOT_DIR"
+# Exclude unimportant directories from watchfiles to reduce watchers usage
+export WATCHFILES_IGNORE='**/backend/venv/**,**/backend/venv/**/site-packages/**,**/__pycache__/**,**/*.pyc,**/*.log,**/build-logs/**,**/coverage/**'
 CMD_RELOAD=(uv run uvicorn backend.main:app --reload --reload-dir backend --host 0.0.0.0 --port 8000)
 CMD_NORELOAD=(uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000)
 

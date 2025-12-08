@@ -12,6 +12,9 @@ import type { GeminiActionResponse, ObsAction, StreamingHandlers, SupportedDataP
 import { OBSScene, OBSSource } from '@/shared/types';
 
 import { useObsActions } from './useObsActions';
+import { obsActionValidator } from '@/shared/services/obsActionValidator';
+import { obsActionExecutor } from '@/shared/services/obsActionExecutor';
+import { obsStateManager } from '@/shared/services/obsStateManager';
 
 export const useGeminiChat = (
   onRefreshData: (() => Promise<void>) | undefined,
@@ -132,11 +135,14 @@ export const useGeminiChat = (
     chatActions.addMessage({ role: 'model', text: '...', id: modelMessageId });
 
     try {
-      const obsState = await obsClient.getFullState();
+      const stateWithChanges = await obsStateManager.getStateWithChanges();
 
       const result = await aiService.queryWithOBSContext({
         prompt: userMessageText,
-        obs_state: obsState,
+        obs_state: stateWithChanges.full_state,
+        state_changes: stateWithChanges.changes,
+        recent_changes: stateWithChanges.recent_changes,
+        is_first_query: stateWithChanges.is_first_query,
         model: 'gemini-1.5-flash-001',
       });
 
@@ -146,31 +152,56 @@ export const useGeminiChat = (
       // Update the UI with the model's reasoning.
       chatActions.replaceMessage(modelMessageId, { role: 'model', text: reasoning });
 
-      // Execute the actions.
+      // Execute the actions with validation and transaction semantics
       if (actions && actions.length > 0 && isConnected) {
-        let allSucceeded = true;
-        for (const action of actions) {
-          // Adapt the action format for handleObsActionWithDataParts
-          const obsAction = {
-            type: action.command,
-            ...(action.args || {}),
-          } as ObsAction;
+        const obsActions = actions.map(a => ({ type: a.command, ...(a.args || {}) })) as ObsAction[];
 
-          const actionResult = await handleObsAction(obsAction, streamingHandlers);
-
-          // Provide immediate feedback for each action
-          const feedbackMessage = actionResult.success
-            ? `Action successful: ${action.command}`
-            : `Action failed: ${action.command} - ${actionResult.error}`;
-          chatActions.addMessage({ role: 'system', text: feedbackMessage });
-
-          if (!actionResult.success) {
-            allSucceeded = false;
-            break; // Stop on first failure
-          }
+        // Validate actions before execution
+        const validation = await obsActionValidator.validateBatch(obsActions, stateWithChanges.full_state);
+        if (!validation.valid) {
+          const errorMessages = validation.errors.map(e => 
+            `• ${e.action.type}: ${e.error}${e.suggestion ? ` (Suggestion: ${e.suggestion})` : ''}`
+          ).join('\n');
+          
+          chatActions.replaceMessage(modelMessageId, { 
+            role: 'system', 
+            text: `❌ Action validation failed:\n${errorMessages}` 
+          });
+          setIsLoading(false);
+          return;
         }
 
-        // Refresh OBS data after all actions are executed
+        if (validation.warnings.length > 0) {
+          const warningText = validation.warnings.map(w => `⚠️ ${w.warning}`).join('\n');
+          chatActions.addMessage({ role: 'system', text: warningText });
+        }
+
+        // Execute with transaction support
+        chatActions.addMessage({ role: 'system', text: `⚙️ Executing ${actions.length} action(s)...` });
+        const executionResult = await obsActionExecutor.executeActionsWithTransaction(
+          obsActions,
+          (action) => handleObsAction(action, streamingHandlers),
+          stateWithChanges.full_state,
+          (completed, total, currentAction) => {
+            chatActions.replaceMessage(modelMessageId, { role: 'model', text: `${reasoning}\n\n⚙️ Progress: ${completed}/${total} - ${currentAction}` });
+          }
+        );
+
+        if (executionResult.success) {
+          chatActions.addMessage({ role: 'system', text: '✅ All actions completed successfully!' });
+          chatActions.replaceMessage(modelMessageId, { role: 'model', text: reasoning });
+        } else {
+          chatActions.addMessage({ 
+            role: 'system', 
+            text: `❌ ${executionResult.error}` 
+          });
+          chatActions.replaceMessage(
+            modelMessageId, 
+            { role: 'model', text: `${reasoning}\n\n❌ Execution failed at action ${(executionResult.failedAt ?? 0) + 1}` }
+          );
+        }
+
+        // Refresh OBS data after actions
         if (onRefreshData) {
           await onRefreshData();
         }

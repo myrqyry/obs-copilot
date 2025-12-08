@@ -23,7 +23,7 @@ export default defineConfig({
         secure: false,
       },
     },
-    // Ignore Python/backend artifacts during frontend dev
+    // Ignore Python/backend artifacts and large generated files during frontend dev
     watch: {
       ignored: [
         '**/backend/**',
@@ -32,6 +32,12 @@ export default defineConfig({
         '**/.mypy_cache/**',
         '**/*.pyc',
         '**/*.pyo',
+        '**/node_modules/**',
+        '**/.git/**',
+        '**/build-logs/**',
+        '**/coverage/**',
+        '**/tsc_output*',
+        '**/*.log',
       ],
       usePolling: false,
       interval: 1000,

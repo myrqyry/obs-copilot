@@ -5,7 +5,7 @@ import HealthStatusIndicator from '../HealthStatusIndicator';
 import useHealthStatus from '@/shared/hooks/useHealthStatus';
 
 // Mock the health status hook
-vi.mock('@/hooks/useHealthStatus');
+vi.mock('@/shared/hooks/useHealthStatus');
 
 describe('HealthStatusIndicator', () => {
   const mockUseHealthStatus = useHealthStatus as vi.MockedFunction<typeof useHealthStatus>; // Keep this line as is

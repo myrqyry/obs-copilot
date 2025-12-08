@@ -14,6 +14,7 @@ const ConnectionsTab = React.lazy(() => import('@/plugins/core/ConnectionsTab'))
 const GeminiTab = React.lazy(() => import('@/plugins/core/GeminiTab'));
 const TwitchChat = React.lazy(() => import('@/plugins/twitch-chat/TwitchChat'));
 const AutomationTab = React.lazy(() => import('@/plugins/automation/AutomationTab'));
+const HealthDashboard = React.lazy(() => import('@/shared/components/debug/HealthDashboard'));
 
 // Create plugin manager instance
 export const pluginManager = new PluginManager({
@@ -104,6 +105,22 @@ const plugins: PluginDefinition[] = [
       // Pause automation rules
     },
   },
+  {
+    id: 'dashboard',
+    name: 'Dashboard',
+    version: '1.0.0',
+    description: 'Main dashboard overview',
+    component: HealthDashboard,
+    async onInit(context) {
+      console.log('[Dashboard Plugin] Initializing...');
+    },
+    async onActivate() {
+      console.log('[Dashboard Plugin] Activated');
+    },
+    async onDeactivate() {
+      console.log('[Dashboard Plugin] Deactivated');
+    },
+  },
 ];
 
 // Register all plugins
@@ -117,4 +134,5 @@ export async function initializePlugins() {
   }
   // Notify the system that all plugins are loaded
   pluginManager.emit('plugins:loaded');
+  console.info('[plugins] All plugins registered:', pluginManager.getAllPlugins().map(p => p.id));
 }
