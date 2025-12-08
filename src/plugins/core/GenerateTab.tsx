@@ -90,19 +90,19 @@ const GenerateTab: React.FC = () => {
   const historyCount = generationHistory.length;
 
   return (
-    <div className="flex h-full bg-gray-50">
+    <div className="flex h-full bg-muted/10">
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-white border-b p-4">
+        <div className="bg-card border-b p-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg">
-                <Sparkles className="w-6 h-6 text-white" />
+              <div className="p-2 bg-gradient-to-r from-accent to-accent rounded-lg">
+                <Sparkles className="w-6 h-6 text-foreground" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">AI Generation Studio</h2>
-                <p className="text-gray-600">Create amazing content with Gemini AI</p>
+                <h2 className="text-2xl font-bold text-foreground">AI Generation Studio</h2>
+                <p className="text-muted-foreground">Create amazing content with Gemini AI</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -129,7 +129,7 @@ const GenerateTab: React.FC = () => {
         </div>
 
         {/* Category Tabs */}
-        <div className="bg-white border-b">
+        <div className="bg-card border-b">
           <Tabs value={activeCategory} onValueChange={setActiveCategory}>
             <TabsList className="w-full justify-start bg-transparent border-b-0 p-0">
               <ScrollArea className="w-full whitespace-nowrap">
@@ -138,7 +138,7 @@ const GenerateTab: React.FC = () => {
                     <TabsTrigger
                       key={category.id}
                       value={category.id}
-                      className="flex items-center gap-3 px-6 py-4 border-b-2 data-[state=active]:border-purple-500"
+                      className="flex items-center gap-3 px-6 py-4 border-b-2 data-[state=active]:border-accent"
                     >
                       <div className={`p-2 rounded-lg bg-${category.color}-100`}>
                         {category.icon}
@@ -155,7 +155,7 @@ const GenerateTab: React.FC = () => {
                             </Badge>
                           )}
                         </div>
-                        <span className="text-xs text-gray-500 hidden sm:block">
+                        <span className="text-xs text-muted-foreground hidden sm:block">
                           {category.description}
                         </span>
                       </div>
@@ -177,10 +177,10 @@ const GenerateTab: React.FC = () => {
                   <div className={`inline-flex p-4 rounded-full bg-${currentCategory.color}-100 mb-4`}>
                     {currentCategory.icon}
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                  <h3 className="text-2xl font-bold text-foreground mb-2">
                     {currentCategory.name} Generation
                   </h3>
-                  <p className="text-gray-600 max-w-2xl mx-auto">
+                  <p className="text-muted-foreground max-w-2xl mx-auto">
                     {currentCategory.description}
                   </p>
                   {currentModel && (

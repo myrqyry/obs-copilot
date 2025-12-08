@@ -46,19 +46,19 @@ const WidgetTemplateSelector: React.FC<WidgetTemplateSelectorProps> = ({ onSelec
   const categories = ['all', 'audio', 'scene', 'transform', 'visibility'];
 
   return (
-    <div className="p-4 bg-gray-800 rounded-lg shadow-lg max-w-sm mx-auto">
-      <h3 className="text-white text-lg font-bold mb-2">Widget Template Selector</h3>
+    <div className="p-4 bg-card rounded-lg shadow-lg max-w-sm mx-auto">
+      <h3 className="text-foreground text-lg font-bold mb-2">Widget Template Selector</h3>
       <input
         type="text"
         placeholder="Search templates..."
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        className="w-full p-2 mb-2 bg-gray-700 text-white rounded"
+        className="w-full p-2 mb-2 bg-muted/70 text-foreground rounded"
       />
       <select
         value={selectedCategory}
         onChange={(e) => setSelectedCategory(e.target.value)}
-        className="w-full p-2 mb-4 bg-gray-700 text-white rounded"
+        className="w-full p-2 mb-4 bg-muted/70 text-foreground rounded"
       >
         {categories.map(cat => (
           <option key={cat} value={cat}>
@@ -68,9 +68,9 @@ const WidgetTemplateSelector: React.FC<WidgetTemplateSelectorProps> = ({ onSelec
       </select>
       <div className="space-y-2 max-h-60 overflow-y-auto">
         {filteredTemplates.map((template, index) => (
-          <div key={index} className="p-2 bg-gray-700 rounded cursor-pointer hover:bg-gray-600" onClick={() => handleSelect(template)}>
-            <div className="text-white text-sm">{template.name}</div>
-            <div className="text-gray-300 text-xs">{template.category}</div>
+          <div key={index} className="p-2 bg-muted/70 rounded cursor-pointer hover:bg-muted/70" onClick={() => handleSelect(template)}>
+            <div className="text-foreground text-sm">{template.name}</div>
+            <div className="text-muted-foreground text-xs">{template.category}</div>
           </div>
         ))}
       </div>

@@ -26,9 +26,9 @@ export const UniversalKnob: React.FC<UniversalKnobProps> = ({ config }) => {
 
   if (error) {
     return (
-      <div className="p-2 bg-red-100 text-red-700 rounded">
+      <div className="p-2 bg-error/10 text-error rounded">
         Error: {error}
-        <button onClick={() => setError(null)} className="ml-2 px-2 py-1 bg-red-500 text-white rounded">
+        <button onClick={() => setError(null)} className="ml-2 px-2 py-1 bg-error/100 text-foreground rounded">
           Retry
         </button>
       </div>

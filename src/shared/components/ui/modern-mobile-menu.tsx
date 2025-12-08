@@ -135,7 +135,7 @@ const ModernMobileMenu = ({ items }: ModernMobileMenuProps) => {
         </Button>
       </DialogPrimitive.Trigger>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 bg-black/50" />
+        <DialogPrimitive.Overlay className="fixed inset-0 bg-overlay/50" />
         <DialogPrimitive.Content className="fixed inset-0 flex flex-col items-center justify-center">
           <div className="bg-background p-4 rounded-md shadow-md w-full max-w-md">
             <div className="flex items-center justify-between mb-4">

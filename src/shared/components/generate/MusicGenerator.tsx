@@ -12,7 +12,7 @@ export const MusicGenerator: React.FC = () => {
           Music Generation (Preview)
         </CardTitle>
       </CardHeader>
-      <CardContent className="text-center text-gray-500">
+      <CardContent className="text-center text-muted-foreground">
         <p className="mb-4">
           AI-powered music generation is coming soon. Generate background music,
           sound effects, and more directly within the app.

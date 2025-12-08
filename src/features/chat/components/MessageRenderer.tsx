@@ -50,7 +50,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
         return (
           <span
             key={index}
-            className="text-blue-400 font-medium hover:text-blue-300 cursor-pointer"
+            className="text-primary font-medium hover:text-primary/90 cursor-pointer"
             onClick={() => handleMention(mention.userName)}
           >
             {segment.content}
@@ -65,7 +65,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
             href={link.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-400 underline hover:text-blue-300"
+            className="text-primary underline hover:text-primary/90"
           >
             {segment.content}
           </a>

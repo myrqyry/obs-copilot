@@ -90,7 +90,7 @@ const SceneSwitcherWidget: React.FC<SceneSwitcherWidgetProps> = React.memo(({ co
   };
 
   return (
-    <div className="p-4 bg-gray-800 rounded-lg shadow-lg max-w-sm mx-auto h-full flex flex-col">
+    <div className="p-4 bg-card rounded-lg shadow-lg max-w-sm mx-auto h-full flex flex-col">
       <h3 className="text-foreground text-lg font-bold mb-2 flex-shrink-0">Scene Switcher</h3>
       <div className="flex-grow mb-4" style={{ minHeight: '150px' }}>
         <List
@@ -104,16 +104,16 @@ const SceneSwitcherWidget: React.FC<SceneSwitcherWidgetProps> = React.memo(({ co
       </div>
       {config.showItems && currentScene && (
         <div className="flex-shrink-0">
-          <h4 className="text-white mb-2">Items in: {currentScene}</h4>
-          <div className="text-gray-300 text-sm space-y-1 max-h-40 overflow-y-auto">
+          <h4 className="text-foreground mb-2">Items in: {currentScene}</h4>
+          <div className="text-muted-foreground text-sm space-y-1 max-h-40 overflow-y-auto">
             {sceneItems.length > 0 ? (
               sceneItems.map((item, index) => (
-                <div key={index} className="p-1 bg-gray-700 rounded truncate">
+                <div key={index} className="p-1 bg-muted/70 rounded truncate">
                   {item.sourceName}
                 </div>
               ))
             ) : (
-              <div className="p-1 bg-gray-700 rounded">No items in scene</div>
+              <div className="p-1 bg-muted/70 rounded">No items in scene</div>
             )}
           </div>
         </div>

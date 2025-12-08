@@ -104,7 +104,7 @@ const ErrorViewer: React.FC<ErrorViewerProps> = ({ isOpen, onClose, className })
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-overlay/50 flex items-center justify-center z-50 p-4"
             onClick={onClose}
           >
             <motion.div
@@ -112,29 +112,29 @@ const ErrorViewer: React.FC<ErrorViewerProps> = ({ isOpen, onClose, className })
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
-              className={`bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col ${className || ''}`}
+              className={`bg-card rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col ${className || ''}`}
               onClick={(e: React.MouseEvent) => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-900">Error Logs & System Status</h2>
+              <div className="flex items-center justify-between p-6 border-b border-border">
+                <h2 className="text-xl font-semibold text-foreground">Error Logs & System Status</h2>
                 <button
                   onClick={onClose}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  className="p-2 hover:bg-muted/30 rounded-full transition-colors"
                   aria-label="Close error viewer"
                 >
-                  <X className="w-5 h-5 text-gray-500" />
+                  <X className="w-5 h-5 text-muted-foreground" />
                 </button>
               </div>
   
               {/* Controls */}
-              <div className="p-4 border-b border-gray-200 bg-gray-50">
+              <div className="p-4 border-b border-border bg-muted/10">
                 <div className="flex flex-wrap items-center gap-4">
                   {/* Level Filter */}
                   <select
                     value={filters.level}
                     onChange={(e) => setFilters(prev => ({ ...prev, level: e.target.value as any }))}
-                    className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    className="px-3 py-2 border border-border rounded-md text-sm"
                   >
                     <option value="all">All Levels</option>
                     <option value="critical">Critical Errors</option>
@@ -148,7 +148,7 @@ const ErrorViewer: React.FC<ErrorViewerProps> = ({ isOpen, onClose, className })
                     placeholder="Search logs..."
                     value={filters.search}
                     onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                    className="px-3 py-2 border border-gray-300 rounded-md text-sm min-w-[200px]"
+                    className="px-3 py-2 border border-border rounded-md text-sm min-w-[200px]"
                   />
   
                   {/* Authenticated Only */}
@@ -175,7 +175,7 @@ const ErrorViewer: React.FC<ErrorViewerProps> = ({ isOpen, onClose, className })
               {/* Logs List */}
               <div className="overflow-y-auto flex-grow">
                 {filteredLogs.length === 0 ? (
-                  <div className="text-center p-8 text-gray-500 flex flex-col items-center justify-center h-full">
+                  <div className="text-center p-8 text-muted-foreground flex flex-col items-center justify-center h-full">
                     <Info className="w-12 h-12 mx-auto mb-4 opacity-50" />
                     <p>No critical errors to display</p>
                   </div>
@@ -195,12 +195,12 @@ const ErrorViewer: React.FC<ErrorViewerProps> = ({ isOpen, onClose, className })
                                 <p className="text-sm font-medium truncate">
                                   {log.message}
                                 </p>
-                                <span className="text-xs text-gray-500 ml-2 flex-shrink-0">
+                                <span className="text-xs text-muted-foreground ml-2 flex-shrink-0">
                                   {formatTimestamp(log.timestamp)}
                                 </span>
                               </div>
                         
-                              <div className="mt-1 flex items-center space-x-4 text-xs text-gray-600">
+                              <div className="mt-1 flex items-center space-x-4 text-xs text-muted-foreground">
                                 <span>Source: {log.source}</span>
                                 {log.details?.requestId && <span>Request ID: {log.details.requestId}</span>}
                                 {log.retry && (
@@ -213,7 +213,7 @@ const ErrorViewer: React.FC<ErrorViewerProps> = ({ isOpen, onClose, className })
                                 )}
                                 <button
                                   onClick={() => setExpandedLog(expandedLog === log.id ? null : log.id)}
-                                  className="flex items-center space-x-1 hover:text-gray-900"
+                                  className="flex items-center space-x-1 hover:text-foreground"
                                 >
                                   {expandedLog === log.id ? (
                                     <>
@@ -232,7 +232,7 @@ const ErrorViewer: React.FC<ErrorViewerProps> = ({ isOpen, onClose, className })
                               {expandedLog === log.id && log.details && (
                                 <details className="mt-2">
                                   <summary className="cursor-pointer text-xs font-medium">Details</summary>
-                                  <pre className="mt-2 text-xs bg-gray-900 text-green-400 p-2 rounded overflow-x-auto">
+                                  <pre className="mt-2 text-xs bg-card text-success p-2 rounded overflow-x-auto">
                                     {JSON.stringify(log.details, null, 2)}
                                   </pre>
                                 </details>
@@ -254,8 +254,8 @@ const ErrorViewer: React.FC<ErrorViewerProps> = ({ isOpen, onClose, className })
               </div>
   
               {/* Footer */}
-              <div className="p-4 border-t border-gray-200 bg-gray-50">
-                <div className="flex items-center justify-between text-sm text-gray-600">
+              <div className="p-4 border-t border-border bg-muted/10">
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
                   <span>Showing {filteredLogs.length} of {criticalErrors.length} critical errors</span>
                   <div className="flex items-center space-x-2">
                     <Clock className="w-4 h-4" />

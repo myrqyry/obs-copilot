@@ -30,7 +30,7 @@ export const GenerationHistory: React.FC<GenerationHistoryProps> = ({
   };
 
   return (
-    <div className="w-96 bg-white border-l flex flex-col h-full">
+    <div className="w-96 bg-card border-l flex flex-col h-full">
       <div className="p-4 border-b flex justify-between items-center">
         <h3 className="text-lg font-bold">Generation History</h3>
         <Button variant="ghost" size="icon" onClick={onClose}>
@@ -41,22 +41,22 @@ export const GenerationHistory: React.FC<GenerationHistoryProps> = ({
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-4">
           {generationHistory.length === 0 ? (
-            <div className="text-center text-gray-500 py-16">
+            <div className="text-center text-muted-foreground py-16">
               <p>Your generated content will appear here.</p>
             </div>
           ) : (
             generationHistory.map((item) => (
-              <div key={item.id} className="bg-gray-50 p-3 rounded-lg border">
+              <div key={item.id} className="bg-muted/10 p-3 rounded-lg border">
                 <div className="flex justify-between items-start">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       {getIconForType(item.type)}
                       <Badge variant="secondary">{item.type}</Badge>
                     </div>
-                    <p className="text-sm text-gray-700 truncate w-60">
+                    <p className="text-sm text-muted-foreground truncate w-60">
                       {item.prompt}
                     </p>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       {new Date(item.timestamp).toLocaleString()}
                     </p>
                   </div>

@@ -77,7 +77,7 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({ connection, on
 
 
   return (
-    <Card className={`relative mb-4 ${isCurrentConnection ? 'border-2 border-green-500 shadow-lg' : ''}`}>
+    <Card className={`relative mb-4 ${isCurrentConnection ? 'border-2 border-success/20 shadow-lg' : ''}`}>
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle className="text-lg font-semibold">{connection.name}</CardTitle>

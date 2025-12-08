@@ -8,10 +8,10 @@ import { formatDistanceToNow } from 'date-fns';
 
 const StatusIndicator: React.FC<{ status: ServiceStatus }> = ({ status }) => {
   const statusStyles: Record<ServiceStatus, string> = {
-    healthy: 'bg-green-500',
-    degraded: 'bg-yellow-500',
-    critical: 'bg-red-500',
-    unknown: 'bg-gray-500',
+    healthy: 'bg-success/100',
+    degraded: 'bg-warning/100',
+    critical: 'bg-error/100',
+    unknown: 'bg-muted/100',
   };
 
   return <span className={`inline-block w-3 h-3 rounded-full ${statusStyles[status]}`} />;

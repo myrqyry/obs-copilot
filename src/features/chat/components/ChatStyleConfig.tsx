@@ -46,12 +46,12 @@ const ChatStyleConfig: React.FC<ChatStyleConfigProps> = ({
               onClick={() => onThemeChange(key)}
               className={`p-3 rounded-lg border-2 ${
                 selectedTheme === key
-                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900'
-                  : 'border-gray-200 dark:border-gray-700'
+                  ? 'border-ring bg-primary/10 dark:bg-card'
+                  : 'border-border dark:border-border'
               }`}
             >
               <div className="text-sm font-medium">{theme.name}</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">
+              <div className="text-xs text-muted-foreground dark:text-muted-foreground">
                 {theme.font.family} • {theme.font.size}px
               </div>
             </button>
@@ -78,9 +78,9 @@ const ChatStyleConfig: React.FC<ChatStyleConfigProps> = ({
                 className="rounded"
               />
               <span className="text-sm capitalize">{provider}</span>
-              {provider === 'bttv' && <span className="text-xs text-gray-500 dark:text-gray-400">BetterTTV</span>}
-              {provider === 'ffz' && <span className="text-xs text-gray-500 dark:text-gray-400">FrankerFaceZ</span>}
-              {provider === 'seventv' && <span className="text-xs text-gray-500 dark:text-gray-400">7TV</span>}
+              {provider === 'bttv' && <span className="text-xs text-muted-foreground dark:text-muted-foreground">BetterTTV</span>}
+              {provider === 'ffz' && <span className="text-xs text-muted-foreground dark:text-muted-foreground">FrankerFaceZ</span>}
+              {provider === 'seventv' && <span className="text-xs text-muted-foreground dark:text-muted-foreground">7TV</span>}
             </label>
           ))}
         </div>

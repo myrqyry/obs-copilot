@@ -20,11 +20,11 @@ export const ConnectionStatusIcon: React.FC<ConnectionStatusIconProps> = ({ onCl
   const getStatusInfo = (status: ConnectionStatus): { color: string; title: string; isConnecting: boolean } => {
     switch (status) {
       case 'connected':
-        return { color: 'bg-green-500', title: 'OBS Connected', isConnecting: false };
+        return { color: 'bg-success/100', title: 'OBS Connected', isConnecting: false };
       case 'connecting':
-        return { color: 'bg-yellow-500', title: 'OBS Connecting...', isConnecting: true };
+        return { color: 'bg-warning/100', title: 'OBS Connecting...', isConnecting: true };
       case 'reconnecting':
-        return { color: 'bg-yellow-500', title: 'OBS Reconnecting...', isConnecting: true };
+        return { color: 'bg-warning/100', title: 'OBS Reconnecting...', isConnecting: true };
       case 'error':
         return { color: 'bg-destructive', title: 'OBS Connection Error', isConnecting: false };
       case 'disconnected':

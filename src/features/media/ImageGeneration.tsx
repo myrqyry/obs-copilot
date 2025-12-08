@@ -199,7 +199,7 @@ const ImageGeneration: React.FC = () => {
                                                 id="searchGrounding"
                                                 checked={searchGrounding}
                                                 onChange={(e) => setSearchGrounding(e.target.checked)}
-                                                className="rounded border-gray-300"
+                                                className="rounded border-border"
                                             />
                                             <label htmlFor="searchGrounding" className="text-xs font-medium">
                                                 Enable Google Search Grounding

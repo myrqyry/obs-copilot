@@ -371,7 +371,7 @@ export const AIImageEditor: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-4">
                     <h3 className="text-lg font-semibold">Original Image</h3>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 min-h-[300px] flex items-center justify-center">
+                    <div className="border-2 border-dashed border-border rounded-lg p-4 min-h-[300px] flex items-center justify-center">
                         {currentImage ? (
                             <img
                                 src={currentImage}
@@ -379,7 +379,7 @@ export const AIImageEditor: React.FC = () => {
                                 className="max-w-full max-h-[300px] object-contain"
                             />
                         ) : (
-                            <div className="text-center text-gray-500">
+                            <div className="text-center text-muted-foreground">
                                 <ImageIcon className="w-12 h-12 mx-auto mb-2" />
                                 <p>No image loaded</p>
                             </div>
@@ -389,7 +389,7 @@ export const AIImageEditor: React.FC = () => {
 
                 <div className="space-y-4">
                     <h3 className="text-lg font-semibold">Preview</h3>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 min-h-[300px] flex items-center justify-center">
+                    <div className="border-2 border-dashed border-border rounded-lg p-4 min-h-[300px] flex items-center justify-center">
                         {outputUrl ? (
                             <img
                                 src={outputUrl}
@@ -397,7 +397,7 @@ export const AIImageEditor: React.FC = () => {
                                 className="max-w-full max-h-[300px] object-contain"
                             />
                         ) : (
-                            <div className="text-center text-gray-500">
+                            <div className="text-center text-muted-foreground">
                                 <ImageIcon className="w-12 h-12 mx-auto mb-2" />
                                 <p>Apply manipulations to see preview</p>
                             </div>
@@ -466,7 +466,7 @@ export const AIImageEditor: React.FC = () => {
                             >
                                 <RotateCcw className="w-4 h-4" />
                             </Button>
-                            <span className="text-sm text-gray-600">
+                            <span className="text-sm text-muted-foreground">
                                 {rotation}°
                             </span>
                             <Button
@@ -601,7 +601,7 @@ export const AIImageEditor: React.FC = () => {
                                 </div>
 
                                 {aiError && (
-                                    <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
+                                    <div className="text-sm text-error bg-error/10 p-2 rounded">
                                         {aiError}
                                     </div>
                                 )}

@@ -73,6 +73,23 @@
     /* Dynamic accent variables with fallbacks to prevent theme transition issues */
     --dynamic-accent: #94e2d5; /* fallback to ctp-teal */
     --dynamic-secondary-accent: #cba6f7; /* fallback to ctp-mauve */
+
+    /* Semantic Tokens: success, error, obs, status */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --error: 0 72% 51%;
+    --error-foreground: 0 0% 100%;
+
+    /* OBS state tokens */
+    --obs-connected: 142 76% 36%;
+    --obs-disconnected: 0 0% 45%;
+    --obs-recording: 0 72% 51%;
+    --obs-streaming: 221 83% 53%;
+
+    /* Status tokens */
+    --status-live: 0 72% 51%;
+    --status-offline: 0 0% 45%;
+    --status-pending: 45 93% 47%;
   }
 
   /* ============================================================
@@ -366,8 +383,8 @@
 }
 
 /* Glassy variant used when custom background is present */
-.chat-bubble-glass {
-  @apply backdrop-blur-md backdrop-saturate-[1.2] bg-white/5;
+  .chat-bubble-glass {
+  @apply backdrop-blur-md backdrop-saturate-[1.2] bg-overlay/5;
 }
 .chat-bubble-glass-extra-dark {
   @apply backdrop-blur-md backdrop-saturate-[1.2] bg-[rgba(8,8,12,0.6)];
@@ -456,6 +473,18 @@
   --component-active-bg: var(--secondary);
   --component-line-inactive-color: var(--muted-foreground);
   --component-active-color-default: var(--accent-foreground);
+  /* Dark variants for semantic tokens */
+  --success: 142 70% 36%;
+  --success-foreground: 0 0% 100%;
+  --error: 0 62% 50%;
+  --error-foreground: 0 0% 100%;
+  --obs-connected: 142 70% 40%;
+  --obs-disconnected: 0 0% 60%;
+  --obs-recording: 0 62% 50%;
+  --obs-streaming: 221 83% 53%;
+  --status-live: 0 62% 50%;
+  --status-offline: 0 0% 60%;
+  --status-pending: 45 85% 47%;
 }
 
 

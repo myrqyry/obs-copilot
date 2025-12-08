@@ -52,6 +52,25 @@ module.exports = {
           DEFAULT: "hsl(var(--muted))",
           foreground: "hsl(var(--muted-foreground))",
         },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        error: {
+          DEFAULT: "hsl(var(--error))",
+          foreground: "hsl(var(--error-foreground))",
+        },
+        obs: {
+          connected: "hsl(var(--obs-connected))",
+          disconnected: "hsl(var(--obs-disconnected))",
+          recording: "hsl(var(--obs-recording))",
+          streaming: "hsl(var(--obs-streaming))",
+        },
+        status: {
+          live: "hsl(var(--status-live))",
+          offline: "hsl(var(--status-offline))",
+          pending: "hsl(var(--status-pending))",
+        },
         accent: {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
@@ -64,27 +83,34 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        overlay: "hsl(var(--background-overlay))",
       },
       boxShadow: {
-        glow: '0 0 20px hsl(var(--primary) / 0.3)',
+        // Glow effects
+        'glow': '0 0 20px hsl(var(--primary) / 0.3)',
         'glow-lg': '0 0 40px hsl(var(--primary) / 0.4)',
         'glow-accent': '0 0 20px hsl(var(--accent) / 0.3)',
         'glow-accent-lg': '0 0 40px hsl(var(--accent) / 0.4)',
-        'glass': '0 8px 32px rgba(0, 0, 0, 0.1)',
-        'glass-lg': '0 12px 48px rgba(0, 0, 0, 0.15)',
-        'primary': '0 4px 20px hsl(var(--primary) / 0.2)',
-        'accent': '0 4px 20px hsl(var(--accent) / 0.2)',
-        'glow': '0 0 5px hsl(var(--primary)), 0 0 10px hsl(var(--primary)), 0 0 15px hsl(var(--primary))',
-        'glow-lg': '0 0 10px hsl(var(--primary)), 0 0 20px hsl(var(--primary)), 0 0 30px hsl(var(--primary))',
-        'glow-xl': '0 0 15px hsl(var(--primary)), 0 0 30px hsl(var(--primary)), 0 0 45px hsl(var(--primary))',
-        'inner-glow': 'inset 0 0 10px hsl(var(--primary) / 0.3)',
+
+        // Neon effects
+        'neon': '0 0 5px currentColor, 0 0 10px currentColor, 0 0 15px currentColor',
+        'neon-lg': '0 0 10px currentColor, 0 0 20px currentColor, 0 0 30px currentColor',
+
+        // Glass morphism
         'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
         'glass-lg': '0 12px 40px 0 rgba(31, 38, 135, 0.45)',
         'glass-xl': '0 16px 48px 0 rgba(31, 38, 135, 0.55)',
-        'neon': '0 0 5px currentColor, 0 0 10px currentColor, 0 0 15px currentColor',
-        'neon-lg': '0 0 10px currentColor, 0 0 20px currentColor, 0 0 30px currentColor',
+
+        // Soft shadows
         'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',
         'soft-lg': '0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+
+        // Primary/Accent themed
+        'primary': '0 4px 20px hsl(var(--primary) / 0.2)',
+        'accent': '0 4px 20px hsl(var(--accent) / 0.2)',
+
+        // Inner glow
+        'inner-glow': 'inset 0 0 10px hsl(var(--primary) / 0.3)',
       },
       animation: {
         'ripple': 'ripple 0.6s linear',
@@ -113,7 +139,6 @@ module.exports = {
         "sink": "sink 3s ease-in-out infinite",
         "glow": "glow 2s ease-in-out infinite alternate",
         "shimmer": "shimmer 2s linear infinite",
-        "gradient": "gradient 3s ease infinite",
         "morph": "morph 4s ease-in-out infinite",
         "serviceSwitch": "serviceSwitch 0.3s ease-in-out",
         "modal-appear": "modal-appear var(--duration-normal) var(--ease-out)",
@@ -358,6 +383,7 @@ module.exports = {
   plugins: [
     require("tailwindcss-animate"),
     require('tailwind-scrollbar')({ nocompatible: true }),
+    require('@tailwindcss/container-queries'),
     function({ addUtilities, theme }) {
       const newUtilities = {
         '.text-balance': {
@@ -414,6 +440,34 @@ module.exports = {
             'backdrop-filter': 'blur(12px)',
             'border': '1px solid rgba(255, 255, 255, 0.05)',
             'box-shadow': '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+        }
+        ,
+        '.card-elevated': {
+          '@apply bg-card border border-border rounded-lg shadow-soft px-4 py-3': {},
+        },
+        '.btn-primary': {
+          '@apply bg-primary text-primary-foreground hover:bg-primary/90 transition-colors px-4 py-2 rounded-md': {},
+        },
+        '.input-field': {
+          '@apply bg-input border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2': {},
+        },
+        '.flex-center': {
+          '@apply flex items-center justify-center': {},
+        },
+        '.absolute-center': {
+          '@apply absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2': {},
+        },
+        '.text-ellipsis-2': {
+          'display': '-webkit-box',
+          '-webkit-line-clamp': '2',
+          '-webkit-box-orient': 'vertical',
+          'overflow': 'hidden',
+        },
+        '.text-ellipsis-3': {
+          'display': '-webkit-box',
+          '-webkit-line-clamp': '3',
+          '-webkit-box-orient': 'vertical',
+          'overflow': 'hidden',
         }
       }
       addUtilities(newUtilities)

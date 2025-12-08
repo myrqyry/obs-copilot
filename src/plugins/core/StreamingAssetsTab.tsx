@@ -84,13 +84,13 @@ const StreamingAssetsTab: React.FC = () => {
   const currentCategoryInfo = categoryInfoMap[activeCategory];
 
   return (
-    <div className="flex h-full bg-gray-50">
+    <div className="flex h-full bg-muted/10">
       <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="bg-white border-b p-4">
+        <div className="bg-card border-b p-4">
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Streaming Assets</h2>
-              <p className="text-gray-600">Search and add media assets to your OBS scenes</p>
+              <h2 className="text-2xl font-bold text-foreground">Streaming Assets</h2>
+              <p className="text-muted-foreground">Search and add media assets to your OBS scenes</p>
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -104,7 +104,7 @@ const StreamingAssetsTab: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="bg-white border-b">
+        <div className="bg-card border-b">
           <Tabs value={activeCategory} onValueChange={setActiveCategory}>
             <TabsList className="w-full justify-start bg-transparent border-b-0 p-0">
               <ScrollArea className="w-full whitespace-nowrap">
@@ -119,7 +119,7 @@ const StreamingAssetsTab: React.FC = () => {
                       <TabsTrigger
                         key={category.id}
                         value={category.id}
-                        className="flex items-center gap-2 px-4 py-3 border-b-2 data-[state=active]:border-blue-500"
+                        className="flex items-center gap-2 px-4 py-3 border-b-2 data-[state=active]:border-ring"
                       >
                         <div className={`p-1.5 rounded-lg bg-${category.color}-100`}>
                           {category.icon}
@@ -133,7 +133,7 @@ const StreamingAssetsTab: React.FC = () => {
                               </Badge>
                             )}
                           </div>
-                          <span className="text-xs text-gray-500 hidden sm:block">
+                          <span className="text-xs text-muted-foreground hidden sm:block">
                             {configs.length} source{configs.length !== 1 ? 's' : ''}
                           </span>
                         </div>
@@ -149,18 +149,18 @@ const StreamingAssetsTab: React.FC = () => {
           <ScrollArea className="h-full">
             <div className="p-6 space-y-6">
               {missingApiKeys.length > 0 && (
-                <Card className="border-orange-200 bg-orange-50">
+                <Card className="border-warning/20 bg-warning/10">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
-                      <Settings className="w-5 h-5 text-orange-600 mt-0.5" />
+                      <Settings className="w-5 h-5 text-warning mt-0.5" />
                       <div>
-                        <h3 className="font-medium text-orange-900">API Keys Required</h3>
-                        <p className="text-sm text-orange-700 mb-2">
+                        <h3 className="font-medium text-warning">API Keys Required</h3>
+                        <p className="text-sm text-warning mb-2">
                           Some services require API keys to function:
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {missingApiKeys.map(service => (
-                            <Badge key={service.value} variant="outline" className="text-orange-700 border-orange-300">
+                            <Badge key={service.value} variant="outline" className="text-warning border-warning/30">
                               {service.label}
                             </Badge>
                           ))}
@@ -168,7 +168,7 @@ const StreamingAssetsTab: React.FC = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="mt-2 text-orange-700 border-orange-300"
+                          className="mt-2 text-warning border-warning/30"
                           onClick={() => setShowSettings(true)}
                         >
                           Configure API Keys
@@ -183,10 +183,10 @@ const StreamingAssetsTab: React.FC = () => {
                   <div className={`inline-flex p-3 rounded-full bg-${currentCategoryInfo.color}-100 mb-3`}>
                     {currentCategoryInfo.icon}
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                  <h3 className="text-lg font-semibold text-foreground mb-1">
                     {currentCategoryInfo.name}
                   </h3>
-                  <p className="text-gray-600 max-w-md mx-auto">
+                  <p className="text-muted-foreground max-w-md mx-auto">
                     {currentCategoryInfo.description}
                   </p>
                 </div>

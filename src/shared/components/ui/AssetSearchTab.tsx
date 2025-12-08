@@ -37,7 +37,7 @@ const AssetSearchTab: React.FC = () => {
   const renderEmojiGrid = (item: StandardApiItem, onClick: () => void) => (
     <div 
       key={item.id} 
-      className="text-5xl flex items-center justify-center cursor-pointer bg-gradient-to-br from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 rounded-lg h-full transition-all duration-200 transform hover:scale-105"
+      className="text-5xl flex items-center justify-center cursor-pointer bg-gradient-to-br from-primary/10 to-accent/10 hover:from-primary/20 hover:to-accent/20 rounded-lg h-full transition-all duration-200 transform hover:scale-105"
       onClick={onClick}
       title={item.title}
     >
@@ -48,7 +48,7 @@ const AssetSearchTab: React.FC = () => {
   // Custom modal renderer for SVG icons
   const renderSvgModal = (item: StandardApiItem) => (
     <div className="flex flex-col items-center space-y-6">
-      <div className="w-80 h-80 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-8">
+      <div className="w-80 h-80 flex items-center justify-center bg-gradient-to-br from-gray-50 to-muted/30 rounded-xl p-8">
         {item.svgContent ? (
           <SecureHtmlRenderer 
             htmlContent={item.svgContent} 
@@ -57,7 +57,7 @@ const AssetSearchTab: React.FC = () => {
             className="w-full h-full"
           />
         ) : (
-          <div className="text-gray-400">SVG Preview Not Available</div>
+          <div className="text-muted-foreground">SVG Preview Not Available</div>
         )}
       </div>
       <div className="text-center">

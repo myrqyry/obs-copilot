@@ -12,7 +12,7 @@ export const VideoGenerator: React.FC = () => {
           Video Generation (Coming Soon)
         </CardTitle>
       </CardHeader>
-      <CardContent className="text-center text-gray-500">
+      <CardContent className="text-center text-muted-foreground">
         <p className="mb-4">
           AI video generation is on the horizon. Soon you'll be able to create
           short clips, animations, and dynamic video content.

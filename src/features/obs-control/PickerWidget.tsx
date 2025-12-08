@@ -62,7 +62,7 @@ const PickerWidget: React.FC<PickerWidgetProps> = ({ config }) => {
       <BaseWidget config={config}>
         <div className="flex flex-col gap-2 p-2 rounded-md border opacity-50">
           <label className="text-sm font-medium">Select Scene</label>
-          <div className="text-gray-500">Not connected to OBS</div>
+          <div className="text-muted-foreground">Not connected to OBS</div>
         </div>
       </BaseWidget>
     );
@@ -86,7 +86,7 @@ const PickerWidget: React.FC<PickerWidgetProps> = ({ config }) => {
                   ))}
               </SelectContent>
         </Select>
-        {errorMessage && <p className="text-red-500 text-xs mt-1">{errorMessage}</p>}
+        {errorMessage && <p className="text-error text-xs mt-1">{errorMessage}</p>}
       </div>
     </BaseWidget>
   );

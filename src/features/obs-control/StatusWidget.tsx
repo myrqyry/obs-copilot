@@ -42,7 +42,7 @@ const StatusWidget: React.FC<StatusWidgetProps> = ({ config }) => {
       <BaseWidget config={config}>
         <div className="flex flex-col gap-2 p-2 rounded-md border opacity-50">
           <label className="text-sm font-medium">Status</label>
-          <div className="text-gray-500">Not connected to OBS</div>
+          <div className="text-muted-foreground">Not connected to OBS</div>
         </div>
       </BaseWidget>
     );

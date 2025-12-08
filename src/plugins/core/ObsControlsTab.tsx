@@ -127,7 +127,7 @@ const ObsControlsTab: React.FC<ObsControlsTabProps> = () => {
         <Card className="p-8 text-center">
           <CardContent>
             <h3 className="text-lg font-semibold mb-2">{title}</h3>
-            <p className="text-gray-600 mb-4">{message}</p>
+            <p className="text-muted-foreground mb-4">{message}</p>
             <Badge variant={variant as any}>{obsStatus.charAt(0).toUpperCase() + obsStatus.slice(1)}</Badge>
           </CardContent>
         </Card>
@@ -136,11 +136,11 @@ const ObsControlsTab: React.FC<ObsControlsTabProps> = () => {
   }
 
   return (
-    <div className="flex h-full bg-gray-50">
+    <div className="flex h-full bg-muted/10">
       {/* Main Controls Area */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="bg-white border-b p-4 flex justify-between items-center">
+        <div className="bg-card border-b p-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
             <h2 className="text-xl font-semibold">OBS Controls</h2>
             <Badge variant="secondary">{currentGroupWidgets.length} widgets</Badge>
@@ -148,7 +148,7 @@ const ObsControlsTab: React.FC<ObsControlsTabProps> = () => {
 
           <div className="flex items-center gap-2">
             {/* View Mode Toggle */}
-            <div className="flex bg-gray-100 rounded-lg p-1">
+            <div className="flex bg-muted/30 rounded-lg p-1">
               <Button
                 variant={viewMode === 'grid' ? 'default' : 'ghost'}
                 size="sm"
@@ -205,7 +205,7 @@ const ObsControlsTab: React.FC<ObsControlsTabProps> = () => {
               <TabsTrigger
                 key={group.id}
                 value={group.id}
-                className="data-[state=active]:bg-white data-[state=active]:border-b-2"
+                className="data-[state=active]:bg-card data-[state=active]:border-b-2"
               >
                 {group.name}
                 <Badge variant="secondary" className="ml-2">
@@ -236,10 +236,10 @@ const ObsControlsTab: React.FC<ObsControlsTabProps> = () => {
               {currentGroupWidgets.map(widget => (
                 <div
                   key={widget.config.id}
-                  className={`bg-white rounded-lg shadow-sm border-2 transition-all duration-200 ${
+                  className={`bg-card rounded-lg shadow-sm border-2 transition-all duration-200 ${
                     selectedWidgetId === widget.config.id
-                      ? 'border-blue-500 shadow-md'
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-ring shadow-md'
+                      : 'border-border hover:border-border'
                   }`}
                   onClick={() => handleWidgetSelect(widget.config.id)}
                 >
@@ -258,7 +258,7 @@ const ObsControlsTab: React.FC<ObsControlsTabProps> = () => {
                 <Card
                   key={widget.config.id}
                   className={`cursor-pointer transition-all ${
-                    selectedWidgetId === widget.config.id ? 'ring-2 ring-blue-500' : ''
+                    selectedWidgetId === widget.config.id ? 'ring-2 ring-ring' : ''
                   }`}
                   onClick={() => handleWidgetSelect(widget.config.id)}
                 >

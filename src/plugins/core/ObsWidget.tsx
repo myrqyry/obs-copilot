@@ -8,7 +8,7 @@ import { executeObsWidgetAction } from '@/shared/services/actionMapper';
 const ObsWidget: React.FC<ObsWidgetConfig> = (config) => {
   if (config.type === 'control') {
     if (!config.control) {
-      return <div className="text-yellow-500">Control not fully loaded</div>;
+      return <div className="text-warning">Control not fully loaded</div>;
     }
     switch (config.control.kind) {
       case 'slider':
@@ -16,7 +16,7 @@ const ObsWidget: React.FC<ObsWidgetConfig> = (config) => {
       case 'knob':
         return <ObsKnobWidget config={config} />;
       default:
-        return <div className="text-red-500">Unsupported control type: {config.control.kind}</div>;
+        return <div className="text-error">Unsupported control type: {config.control.kind}</div>;
     }
   }
 

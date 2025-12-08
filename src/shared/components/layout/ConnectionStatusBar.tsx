@@ -20,12 +20,12 @@ export const ConnectionStatusBar: React.FC = () => {
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'connected': return 'text-green-500 bg-green-500/10 border-green-500/20';
+            case 'connected': return 'text-success bg-success/100/10 border-success/20/20';
             case 'connecting':
-            case 'reconnecting': return 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20';
+            case 'reconnecting': return 'text-warning bg-warning/100/10 border-warning/20/20';
             case 'error':
             case 'disconnected':
-            default: return 'text-red-500 bg-red-500/10 border-red-500/20';
+            default: return 'text-error bg-error/100/10 border-error/20/20';
         }
     };
 
@@ -59,7 +59,7 @@ export const ConnectionStatusBar: React.FC = () => {
                         <p className="font-semibold">OBS WebSocket</p>
                         <p className="text-sm capitalize">{obsStatus}</p>
                         {obsError && (
-                            <p className="text-xs text-red-400 max-w-[200px] break-words">{obsError}</p>
+                            <p className="text-xs text-error max-w-[200px] break-words">{obsError}</p>
                         )}
                     </div>
                 }>
@@ -75,7 +75,7 @@ export const ConnectionStatusBar: React.FC = () => {
                                     e.stopPropagation();
                                     handleObsReconnect();
                                 }}
-                                className="ml-1 p-0.5 hover:bg-white/10 rounded transition-colors"
+                                className="ml-1 p-0.5 hover:bg-card/10 rounded transition-colors"
                                 aria-label="Reconnect to OBS"
                             >
                                 <RefreshCw className="w-3 h-3" />
@@ -90,7 +90,7 @@ export const ConnectionStatusBar: React.FC = () => {
                         <p className="font-semibold">Backend API</p>
                         <p className="text-sm capitalize">{backendStatus}</p>
                         {backendError && (
-                            <p className="text-xs text-red-400 max-w-[200px] break-words">{backendError}</p>
+                            <p className="text-xs text-error max-w-[200px] break-words">{backendError}</p>
                         )}
                         {backendLastChecked > 0 && (
                             <p className="text-xs text-muted-foreground">
@@ -114,15 +114,15 @@ export const ConnectionStatusBar: React.FC = () => {
                         <p className="font-semibold">Streamer.bot</p>
                         <p className="text-sm">{isStreamerBotConnected ? 'Connected' : 'Disconnected'}</p>
                         {streamerBotError && (
-                            <p className="text-xs text-red-400 max-w-[200px] break-words">{streamerBotError}</p>
+                            <p className="text-xs text-error max-w-[200px] break-words">{streamerBotError}</p>
                         )}
                     </div>
                 }>
                     <div className={cn(
                         "flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs font-medium transition-colors cursor-help",
                         isStreamerBotConnected 
-                            ? 'text-green-500 bg-green-500/10 border-green-500/20'
-                            : 'text-red-500 bg-red-500/10 border-red-500/20'
+                            ? 'text-success bg-success/100/10 border-success/20/20'
+                            : 'text-error bg-error/100/10 border-error/20/20'
                     )}>
                         {isStreamerBotConnected ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
                         <span>SB</span>

@@ -55,7 +55,7 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
                 <Tooltip content="Regenerate response">
                     <button
                         onClick={handleRegenerate}
-                        className="text-muted-foreground hover:text-green-500 hover:bg-green-500/10 p-1 rounded-full transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                        className="text-muted-foreground hover:text-success hover:bg-success/100/10 p-1 rounded-full transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-success/50"
                         aria-label="Regenerate message"
                     >
                         <RefreshCw className="w-3 h-3" />

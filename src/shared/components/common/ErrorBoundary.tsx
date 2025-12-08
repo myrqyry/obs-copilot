@@ -42,23 +42,23 @@ class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       // Enhanced fallback UI with error details and toast integration
       return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100 text-gray-700">
-          <div className="text-center p-8 bg-white rounded-lg shadow-lg max-w-md">
-            <h1 className="text-2xl font-bold mb-4 text-red-600">Application Error</h1>
+        <div className="flex items-center justify-center min-h-screen bg-muted/30 text-muted-foreground">
+          <div className="text-center p-8 bg-card rounded-lg shadow-lg max-w-md">
+            <h1 className="text-2xl font-bold mb-4 text-error">Application Error</h1>
             <p className="text-lg mb-4">An unexpected error occurred.</p>
-            <div className="bg-gray-50 p-4 rounded mb-4 text-sm">
+            <div className="bg-muted/10 p-4 rounded mb-4 text-sm">
               <p className="font-medium mb-1">Error details logged. Check notifications for more info.</p>
-              <p className="text-gray-600 text-xs">This error has been reported to the system.</p>
+              <p className="text-muted-foreground text-xs">This error has been reported to the system.</p>
             </div>
             <div className="space-y-2">
               <button
-                className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                className="w-full px-4 py-2 bg-primary text-foreground rounded hover:bg-primary transition-colors"
                 onClick={() => window.location.reload()}
               >
                 Refresh Page
               </button>
               <button
-                className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors"
+                className="w-full px-4 py-2 border border-border text-muted-foreground rounded hover:bg-muted/10 transition-colors"
                 onClick={() => {
                   this.setState({ hasError: false });
                   // Optionally clear uiStore errors

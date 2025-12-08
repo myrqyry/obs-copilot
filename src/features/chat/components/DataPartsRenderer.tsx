@@ -43,7 +43,7 @@ export const DataPartsRenderer: React.FC<DataPartsRendererProps> = ({ dataParts 
                             {val.result && (
                                 <div className="text-xs mt-1">
                                     {val.result.success ? (
-                                        <span className="text-green-500">Success: {val.result.message || 'OK'}</span>
+                                        <span className="text-success">Success: {val.result.message || 'OK'}</span>
                                     ) : (
                                         <span className="text-destructive">Error: {val.result.error || 'Failed'}</span>
                                     )}

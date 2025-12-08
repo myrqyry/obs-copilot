@@ -131,7 +131,7 @@ export const ConnectionSettings: React.FC = () => {
                             </>
                         ) : obsTestResult === 'success' ? (
                             <>
-                                <CheckCircle2 className="w-4 h-4 mr-2 text-green-500" />
+                                <CheckCircle2 className="w-4 h-4 mr-2 text-success" />
                                 Connected!
                             </>
                         ) : obsTestResult === 'error' ? (
@@ -191,7 +191,7 @@ export const ConnectionSettings: React.FC = () => {
                             </>
                         ) : backendTestResult === 'success' ? (
                             <>
-                                <CheckCircle2 className="w-4 h-4 mr-2 text-green-500" />
+                                <CheckCircle2 className="w-4 h-4 mr-2 text-success" />
                                 Connected!
                             </>
                         ) : backendTestResult === 'error' ? (

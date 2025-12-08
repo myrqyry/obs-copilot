@@ -17,8 +17,8 @@ export const GeminiStatusPopup: React.FC<GeminiStatusPopupProps> = ({ status, me
             'text-secondary': status === 'initializing',
             'text-primary': status === 'connected',
             'text-destructive': status === 'error',
-            'text-yellow-500': status === 'unavailable',
-            'text-purple-500': status === 'missing-key',
+            'text-warning': status === 'unavailable',
+            'text-accent': status === 'missing-key',
         }
     );
 

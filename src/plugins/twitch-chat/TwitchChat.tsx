@@ -375,7 +375,7 @@ const TwitchChat: React.FC = () => {
 
           {/* New Message List */}
           <div
-            className="flex-1 min-h-[50vh] max-h-[70vh] w-full overflow-auto border p-2 text-white"
+            className="flex-1 min-h-[50vh] max-h-[70vh] w-full overflow-auto border p-2 text-foreground"
             style={themeStyle}
             role="log"
             aria-live="polite"

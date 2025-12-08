@@ -51,9 +51,9 @@ const AudioMeterWidget: React.FC<AudioMeterWidgetProps> = ({ config, id }) => {
   const renderMeter = (level: number, index: number) => {
     const barHeight = Math.max(0, (level / -18) * 100); // Normalize to 0-100%, -18dB max
     return (
-      <div key={index} className="w-2 bg-gray-700 rounded mr-1">
+      <div key={index} className="w-2 bg-muted/70 rounded mr-1">
         <div
-          className={`h-full bg-gradient-to-t from-red-500 via-yellow-500 to-green-500 rounded transition-all duration-100 ease-linear`}
+          className={`h-full bg-gradient-to-t from-error via-warning to-success rounded transition-all duration-100 ease-linear`}
           style={{ height: `${barHeight}%` }}
         />
       </div>
@@ -61,12 +61,12 @@ const AudioMeterWidget: React.FC<AudioMeterWidgetProps> = ({ config, id }) => {
   };
 
   return (
-    <div className="p-4 bg-gray-800 rounded-lg shadow-lg max-w-sm mx-auto">
-      <h3 className="text-white text-lg font-bold mb-2">Audio Meter: {sourceName}</h3>
+    <div className="p-4 bg-card rounded-lg shadow-lg max-w-sm mx-auto">
+      <h3 className="text-foreground text-lg font-bold mb-2">Audio Meter: {sourceName}</h3>
       <div className="flex justify-center mb-2">
         {levels.map((level, index) => renderMeter(level, index))}
       </div>
-      <div className="text-xs text-gray-300 text-center">
+      <div className="text-xs text-muted-foreground text-center">
         {levels.map((level, index) => (
           <span key={index} className="mx-1">
             Ch {index + 1}: {level.toFixed(1)} dB

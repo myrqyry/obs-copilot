@@ -26,7 +26,7 @@ export const CardStack = ({ items }: CardStackProps) => {
         <div
           key={item.id}
           ref={(el) => (cardRefs.current[index] = el)}
-          className="absolute inset-0 bg-white rounded-lg shadow-lg"
+          className="absolute inset-0 bg-card rounded-lg shadow-lg"
         >
           <div className="p-4">
             <h3 className="text-xl font-bold">{item.title}</h3>

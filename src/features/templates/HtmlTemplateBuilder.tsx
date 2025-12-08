@@ -408,7 +408,7 @@ const HtmlTemplateBuilder: React.FC<HtmlTemplateBuilderProps> = ({ accentColorNa
 
             {/* Preview Modal */}
             {showPreview && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                <div className="fixed inset-0 bg-overlay/50 flex items-center justify-center p-4 z-50">
                     <div className="bg-card text-card-foreground rounded-lg border max-w-4xl w-full max-h-[90vh] overflow-y-auto">
                         <div className="p-6 border-b">
                             <div className="flex justify-between items-center">

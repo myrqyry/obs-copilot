@@ -7,7 +7,7 @@ interface EnhancedKnobProps {
   max: number;
   step?: number;
   size?: 'sm' | 'md' | 'lg';
-  color?: string;
+  color?: 'primary' | 'accent' | 'destructive' | 'muted';
   label?: string;
   showValue?: boolean;
   disabled?: boolean;
@@ -21,7 +21,7 @@ export const EnhancedKnob: React.FC<EnhancedKnobProps> = ({
   max,
   step = 1,
   size = 'md',
-  color = 'blue',
+  color = 'primary',
   label,
   showValue = true,
   disabled = false,
@@ -61,6 +61,23 @@ export const EnhancedKnob: React.FC<EnhancedKnobProps> = ({
   }, [min, max, step]);
 
   // Update rotation when value changes
+    const colorClass = (() => {
+      switch (color) {
+        case 'primary':
+          return 'text-primary';
+        case 'accent':
+          return 'text-accent';
+        case 'destructive':
+          return 'text-destructive';
+        case 'muted':
+          return 'text-muted';
+        default:
+          // Fallback to primary for unknown tokens
+          return 'text-primary';
+      }
+    })();
+
+    const bgColorClass = colorClass.replace(/^text-/, 'bg-');
   useEffect(() => {
     const targetRotation = valueToRotation(value);
     animate(rotation, targetRotation, {
@@ -121,7 +138,7 @@ export const EnhancedKnob: React.FC<EnhancedKnobProps> = ({
   return (
     <div className="flex flex-col items-center gap-2">
       {label && (
-        <label className={`font-medium text-gray-700 ${config.fontSize}`}>
+        <label className={`font-medium text-muted-foreground ${config.fontSize}`}>
           {label}
         </label>
       )}
@@ -140,7 +157,7 @@ export const EnhancedKnob: React.FC<EnhancedKnobProps> = ({
             stroke="currentColor"
             strokeWidth={config.strokeWidth}
             fill="none"
-            className="text-gray-200"
+            className="text-muted"
           />
           <circle
             cx={config.size / 2}
@@ -152,7 +169,7 @@ export const EnhancedKnob: React.FC<EnhancedKnobProps> = ({
             strokeDasharray={strokeDasharray}
             strokeDashoffset={strokeDashoffset}
             strokeLinecap="round"
-            className={`text-${color}-500 transition-all duration-200`}
+            className={`${colorClass} transition-all duration-200`}
           />
         </svg>
 
@@ -161,8 +178,8 @@ export const EnhancedKnob: React.FC<EnhancedKnobProps> = ({
           ref={knobRef}
           className={`
             absolute inset-2 rounded-full cursor-pointer select-none
-            bg-gradient-to-br from-white to-gray-100
-            shadow-lg border-2 border-gray-300
+            bg-gradient-to-br from-card to-muted/30
+            shadow-lg border-2 border-border
             flex items-center justify-center
             ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-xl'}
             ${isDragging ? 'shadow-xl' : ''}
@@ -180,21 +197,21 @@ export const EnhancedKnob: React.FC<EnhancedKnobProps> = ({
           {/* Indicator dot */}
           <div
             className={`
-              w-2 h-2 rounded-full bg-${color}-500
+              w-2 h-2 rounded-full ${bgColorClass}
               absolute top-2 transform -translate-x-1/2
             `}
           />
 
           {/* Center dot */}
-          <div className={`w-1 h-1 rounded-full bg-gray-400`} />
+          <div className={`w-1 h-1 rounded-full bg-muted/80`} />
         </motion.div>
       </div>
 
       {showValue && (
         <div className={`${config.fontSize} font-mono text-center min-w-12`}>
-          <span className="text-gray-900">{value}</span>
+          <span className="text-foreground">{value}</span>
           {typeof min === 'number' && typeof max === 'number' && (
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-muted-foreground">
               {min} - {max}
             </div>
           )}

@@ -238,7 +238,7 @@ export const SpeechGenerator: React.FC = () => {
                 rows={6}
                 className="mt-1 font-mono"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 {isMultiSpeaker
                   ? 'Use "Speaker1:" and "Speaker2:" to indicate different speakers'
                   : 'Natural conversational text works best'
@@ -285,7 +285,7 @@ export const SpeechGenerator: React.FC = () => {
                           </Badge>
                           <div>
                             <div className="font-medium">{voice.name}</div>
-                            <div className="text-xs text-gray-500">{voice.description}</div>
+                            <div className="text-xs text-muted-foreground">{voice.description}</div>
                           </div>
                         </div>
                       </SelectItem>
@@ -310,7 +310,7 @@ export const SpeechGenerator: React.FC = () => {
                             </Badge>
                             <div>
                               <div className="font-medium">{voice.name}</div>
-                              <div className="text-xs text-gray-500">{voice.description}</div>
+                              <div className="text-xs text-muted-foreground">{voice.description}</div>
                             </div>
                           </div>
                         </SelectItem>
@@ -334,7 +334,7 @@ export const SpeechGenerator: React.FC = () => {
                             </Badge>
                             <div>
                               <div className="font-medium">{voice.name}</div>
-                              <div className="text-xs text-gray-500">{voice.description}</div>
+                              <div className="text-xs text-muted-foreground">{voice.description}</div>
                             </div>
                           </div>
                         </SelectItem>
@@ -388,20 +388,20 @@ export const SpeechGenerator: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="aspect-video bg-gray-100 rounded-lg flex flex-col items-center justify-center p-8">
+            <div className="aspect-video bg-muted/30 rounded-lg flex flex-col items-center justify-center p-8">
               {isGenerating ? (
                 <div className="text-center">
-                  <div className="w-12 h-12 border-4 border-green-200 border-t-green-500 rounded-full mx-auto mb-4 animate-spin" />
-                  <p className="text-gray-600">Converting text to speech...</p>
-                  <p className="text-sm text-gray-500 mt-1">{progress}% complete</p>
+                  <div className="w-12 h-12 border-4 border-success/20 border-t-green-500 rounded-full mx-auto mb-4 animate-spin" />
+                  <p className="text-muted-foreground">Converting text to speech...</p>
+                  <p className="text-sm text-muted-foreground mt-1">{progress}% complete</p>
                 </div>
               ) : lastGeneration?.result?.audioData ? (
                 <div className="text-center w-full">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Volume2 className="w-8 h-8 text-green-600" />
+                  <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Volume2 className="w-8 h-8 text-success" />
                   </div>
-                  <p className="text-gray-900 font-medium mb-2">Audio Ready</p>
-                  <p className="text-sm text-gray-500 mb-4">
+                  <p className="text-foreground font-medium mb-2">Audio Ready</p>
+                  <p className="text-sm text-muted-foreground mb-4">
                     Voice: {lastGeneration.metadata?.voice}
                   </p>
 
@@ -414,12 +414,12 @@ export const SpeechGenerator: React.FC = () => {
                   />
 
                   {/* Waveform Visualization Placeholder */}
-                  <div className="w-full h-16 bg-gray-200 rounded-lg mb-4 flex items-center justify-center">
+                  <div className="w-full h-16 bg-muted rounded-lg mb-4 flex items-center justify-center">
                     <div className="flex items-end gap-1 h-8">
                       {Array.from({ length: 20 }).map((_, i) => (
                         <div
                           key={i}
-                          className={`bg-green-500 w-2 rounded-sm transition-all duration-75 ${
+                          className={`bg-success/100 w-2 rounded-sm transition-all duration-75 ${
                             isPlaying ? 'animate-pulse' : ''
                           }`}
                           style={{
@@ -432,7 +432,7 @@ export const SpeechGenerator: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="text-center text-gray-500">
+                <div className="text-center text-muted-foreground">
                   <Volume2 className="w-16 h-16 mx-auto mb-4 opacity-50" />
                   <p>Your generated audio will appear here</p>
                 </div>
@@ -478,7 +478,7 @@ export const SpeechGenerator: React.FC = () => {
 
             {/* Metadata */}
             {lastGeneration && (
-              <div className="mt-4 text-xs text-gray-500 space-y-1">
+              <div className="mt-4 text-xs text-muted-foreground space-y-1">
                 <p><strong>Model:</strong> {lastGeneration.model}</p>
                 <p><strong>Created:</strong> {new Date(lastGeneration.timestamp).toLocaleString()}</p>
                 <p><strong>Length:</strong> ~{Math.ceil(text.length / 10)} seconds</p>

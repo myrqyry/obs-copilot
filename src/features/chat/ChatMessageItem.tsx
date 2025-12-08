@@ -105,16 +105,16 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
         if (!message.status) return null;
         const { type, message: statusMessage } = message.status;
         let icon = 'ℹ️';
-        let colorClass = 'text-blue-400';
+        let colorClass = 'text-primary';
         if (type === 'success') {
             icon = '✅';
-            colorClass = 'text-green-400';
+            colorClass = 'text-success';
         } else if (type === 'error') {
             icon = '❌';
-            colorClass = 'text-red-400';
+            colorClass = 'text-error';
         } else if (type === 'warning') {
             icon = '⚠️';
-            colorClass = 'text-yellow-400';
+            colorClass = 'text-warning';
         }
 
         return (

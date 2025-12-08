@@ -111,7 +111,7 @@ export const ConnectionsTab: React.FC = () => {
                 />
               ))
             ) : (
-              <p className="text-gray-600">Your configured connections will appear here. Click "Add New" to create one.</p>
+              <p className="text-muted-foreground">Your configured connections will appear here. Click "Add New" to create one.</p>
             )}
           </div>
         </div>

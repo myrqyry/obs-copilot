@@ -118,7 +118,7 @@ export const FaviconIcon: React.FC<FaviconIconProps> = ({ domain, alt, className
         return (
             <Tooltip content={alt || `${domain} favicon`}>
                 <div
-                    className={`inline-flex items-center justify-center bg-gray-200 text-gray-600 text-xs font-bold rounded-sm ${className}`}
+                    className={`inline-flex items-center justify-center bg-muted text-muted-foreground text-xs font-bold rounded-sm ${className}`}
                     style={{ width: size, height: size, minWidth: size, minHeight: size }}
                 >
                     {getDomainEmoji()}

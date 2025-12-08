@@ -162,11 +162,11 @@ export const AssetSettingsPanel: React.FC<AssetSettingsPanelProps> = ({
   }, []);
 
   return (
-    <div className="w-96 bg-white border-l shadow-lg flex flex-col">
+    <div className="w-96 bg-card border-l shadow-lg flex flex-col">
       <div className="p-4 border-b flex justify-between items-center">
         <div>
           <h3 className="text-lg font-semibold">Asset Settings</h3>
-          <p className="text-sm text-gray-600">Configure API keys and preferences</p>
+          <p className="text-sm text-muted-foreground">Configure API keys and preferences</p>
         </div>
         <Button variant="ghost" size="sm" onClick={onClose}>
           <X className="w-4 h-4" />
@@ -200,11 +200,11 @@ export const AssetSettingsPanel: React.FC<AssetSettingsPanelProps> = ({
                             <div className="flex items-center justify-between">
                               <CardTitle className="text-sm font-medium">{config.label}</CardTitle>
                               <div className="flex items-center gap-2">
-                                {isValid && <Badge variant="outline" className="text-green-600 border-green-300"><Check className="w-3 h-3 mr-1" />Valid</Badge>}
-                                {hasError && <Badge variant="outline" className="text-red-600 border-red-300"><AlertCircle className="w-3 h-3 mr-1" />Invalid</Badge>}
+                                {isValid && <Badge variant="outline" className="text-success border-success/30"><Check className="w-3 h-3 mr-1" />Valid</Badge>}
+                                {hasError && <Badge variant="outline" className="text-error border-error/30"><AlertCircle className="w-3 h-3 mr-1" />Invalid</Badge>}
                               </div>
                             </div>
-                            <p className="text-xs text-gray-600">{config.description}</p>
+                            <p className="text-xs text-muted-foreground">{config.description}</p>
                           </CardHeader>
                           <CardContent className="space-y-3">
                             <div className="relative">
@@ -219,7 +219,7 @@ export const AssetSettingsPanel: React.FC<AssetSettingsPanelProps> = ({
                               <Button variant="outline" size="sm" onClick={() => testApiKey(key)} disabled={!currentValue || isTesting} className="text-xs">
                                 {isTesting ? 'Testing...' : 'Test Key'}
                               </Button>
-                              {config.helpUrl && <Button variant="ghost" size="sm" onClick={() => window.open(config.helpUrl, '_blank')} className="text-xs text-blue-600 hover:text-blue-700">Get API Key →</Button>}
+                              {config.helpUrl && <Button variant="ghost" size="sm" onClick={() => window.open(config.helpUrl, '_blank')} className="text-xs text-primary hover:text-primary">Get API Key →</Button>}
                             </div>
                           </CardContent>
                         </Card>
@@ -240,11 +240,11 @@ export const AssetSettingsPanel: React.FC<AssetSettingsPanelProps> = ({
                           <div className="flex items-center justify-between">
                             <CardTitle className="text-sm font-medium">{config.label}</CardTitle>
                             <div className="flex items-center gap-2">
-                              {currentValue && isValid && <Badge variant="outline" className="text-green-600 border-green-300"><Check className="w-3 h-3 mr-1" />Valid</Badge>}
-                              {currentValue && hasError && <Badge variant="outline" className="text-red-600 border-red-300"><AlertCircle className="w-3 h-3 mr-1" />Invalid</Badge>}
+                              {currentValue && isValid && <Badge variant="outline" className="text-success border-success/30"><Check className="w-3 h-3 mr-1" />Valid</Badge>}
+                              {currentValue && hasError && <Badge variant="outline" className="text-error border-error/30"><AlertCircle className="w-3 h-3 mr-1" />Invalid</Badge>}
                             </div>
                           </div>
-                          <p className="text-xs text-gray-600">{config.description}</p>
+                          <p className="text-xs text-muted-foreground">{config.description}</p>
                         </CardHeader>
                         <CardContent className="space-y-3">
                           <div className="relative">
@@ -259,7 +259,7 @@ export const AssetSettingsPanel: React.FC<AssetSettingsPanelProps> = ({
                             <Button variant="outline" size="sm" onClick={() => testApiKey(key)} disabled={!currentValue || isTesting} className="text-xs">
                               {isTesting ? 'Testing...' : 'Test Key'}
                             </Button>
-                            {config.helpUrl && <Button variant="ghost" size="sm" onClick={() => window.open(config.helpUrl, '_blank')} className="text-xs text-blue-600 hover:text-blue-700">Get API Key →</Button>}
+                            {config.helpUrl && <Button variant="ghost" size="sm" onClick={() => window.open(config.helpUrl, '_blank')} className="text-xs text-primary hover:text-primary">Get API Key →</Button>}
                           </div>
                         </CardContent>
                       </Card>
@@ -293,7 +293,7 @@ export const AssetSettingsPanel: React.FC<AssetSettingsPanelProps> = ({
         </div>
       </Tabs>
       {hasUnsavedChanges && (
-        <div className="p-4 border-t bg-gray-50">
+        <div className="p-4 border-t bg-muted/10">
           <Button onClick={saveSettings} className="w-full">
             <Save className="w-4 h-4 mr-2" />
             Save Settings

@@ -518,7 +518,7 @@ export const AIImageEditor: React.FC = () => {
                                             className="w-full h-16 object-cover rounded cursor-pointer border"
                                             onClick={() => setCurrentImage(url)}
                                         />
-                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center gap-1">
+                                        <div className="absolute inset-0 bg-overlay/50 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center gap-1">
                                             <Button 
                                                 size="sm" 
                                                 variant="secondary" 

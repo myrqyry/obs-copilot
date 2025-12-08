@@ -332,9 +332,9 @@ export const EnhancedImageGenerator: React.FC = () => {
           />
 
           {inputImage && (
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="mt-4 p-3 bg-primary/10 rounded-lg border border-primary/20">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-blue-900">
+                <span className="text-sm font-medium text-primary">
                   Image uploaded for editing
                 </span>
                 <Button variant="ghost" size="sm" onClick={clearInputImage}>
@@ -389,7 +389,7 @@ export const EnhancedImageGenerator: React.FC = () => {
                       <SelectItem key={style.id} value={style.id}>
                         <div>
                           <div className="font-medium">{style.name}</div>
-                          <div className="text-xs text-gray-500">{style.example}</div>
+                          <div className="text-xs text-muted-foreground">{style.example}</div>
                         </div>
                       </SelectItem>
                     ))}
@@ -410,7 +410,7 @@ export const EnhancedImageGenerator: React.FC = () => {
                     <SelectItem value="">
                       <div>
                         <div className="font-medium">None</div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-muted-foreground">
                           No pre-processing
                         </div>
                       </div>
@@ -418,7 +418,7 @@ export const EnhancedImageGenerator: React.FC = () => {
                     <SelectItem value="canny_edge">
                       <div>
                         <div className="font-medium">Canny Edge</div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-muted-foreground">
                           Use edge detection to guide generation
                         </div>
                       </div>
@@ -444,7 +444,7 @@ export const EnhancedImageGenerator: React.FC = () => {
                     <SelectItem key={modelOption.value} value={modelOption.value}>
                       <div>
                         <div className="font-medium">{modelOption.label}</div>
-                        <div className="text-xs text-gray-500">{modelOption.description}</div>
+                        <div className="text-xs text-muted-foreground">{modelOption.description}</div>
                       </div>
                     </SelectItem>
                   ))}
@@ -542,16 +542,16 @@ export const EnhancedImageGenerator: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+            <div className="aspect-square bg-muted/30 rounded-lg flex items-center justify-center overflow-hidden">
               {isGenerating ? (
                 <div className="text-center">
                   <motion.div
-                    className="w-12 h-12 border-4 border-blue-200 border-t-blue-500 rounded-full mx-auto mb-4"
+                    className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full mx-auto mb-4"
                     animate={{ rotate: 360 }}
                     transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                   />
-                  <p className="text-gray-600">Creating your masterpiece...</p>
-                  <p className="text-sm text-gray-500 mt-1">{progress}% complete</p>
+                  <p className="text-muted-foreground">Creating your masterpiece...</p>
+                  <p className="text-sm text-muted-foreground mt-1">{progress}% complete</p>
                 </div>
               ) : lastGeneration?.result?.images?.[0] ? (
                 <img
@@ -560,7 +560,7 @@ export const EnhancedImageGenerator: React.FC = () => {
                   className="w-full h-full object-contain"
                 />
               ) : (
-                <div className="text-center text-gray-500">
+                <div className="text-center text-muted-foreground">
                   <Image className="w-16 h-16 mx-auto mb-4 opacity-50" />
                   <p>Your generated image will appear here</p>
                 </div>
@@ -585,7 +585,7 @@ export const EnhancedImageGenerator: React.FC = () => {
 
             {/* Metadata */}
             {lastGeneration && (
-              <div className="mt-4 text-xs text-gray-500 space-y-1">
+              <div className="mt-4 text-xs text-muted-foreground space-y-1">
                 <p><strong>Model:</strong> {lastGeneration.model}</p>
                 <p><strong>Created:</strong> {new Date(lastGeneration.timestamp).toLocaleString()}</p>
                 {lastGeneration.metadata?.aspectRatio && (

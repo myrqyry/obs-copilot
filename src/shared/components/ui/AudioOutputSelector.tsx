@@ -86,7 +86,7 @@ const AudioOutputSelector: React.FC = () => {
                             </Button>
                             <audio ref={audioRef} src="https://www.soundjay.com/buttons/sounds/button-3.mp3" preload="auto" />
                         </div>
-                        {sinkError && <div className="text-xs text-red-600 mt-1">{sinkError}</div>}
+                        {sinkError && <div className="text-xs text-error mt-1">{sinkError}</div>}
                         <p className="text-xs text-muted-foreground mt-2">
                             Hint: Use a virtual audio cable (like VB-CABLE) to create a separate audio source in OBS.<br />
                             <b>Note:</b> Output switching only works in Chrome/Edge with &lt;audio&gt; elements.

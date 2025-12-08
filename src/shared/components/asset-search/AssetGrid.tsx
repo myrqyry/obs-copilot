@@ -41,14 +41,14 @@ const AssetThumbnail: React.FC<AssetItemProps> = ({ item, onClick, className = '
     // Emoji display
     return (
       <motion.div
-        className={`group cursor-pointer bg-white hover:bg-gray-50 rounded-lg shadow-sm border-2 border-transparent hover:border-blue-300 transition-all duration-200 ${className}`}
+        className={`group cursor-pointer bg-card hover:bg-muted/10 rounded-lg shadow-sm border-2 border-transparent hover:border-primary/30 transition-all duration-200 ${className}`}
         onClick={onClick}
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
       >
         <div className="h-full flex flex-col items-center justify-center p-4">
           <div className="text-4xl mb-2">{item.character}</div>
-          <div className="text-xs text-gray-600 text-center font-medium truncate w-full">
+          <div className="text-xs text-muted-foreground text-center font-medium truncate w-full">
             {item.title}
           </div>
         </div>
@@ -60,7 +60,7 @@ const AssetThumbnail: React.FC<AssetItemProps> = ({ item, onClick, className = '
     // SVG display
     return (
       <motion.div
-        className={`group cursor-pointer bg-white hover:bg-gray-50 rounded-lg shadow-sm border-2 border-transparent hover:border-blue-300 transition-all duration-200 ${className}`}
+        className={`group cursor-pointer bg-card hover:bg-muted/10 rounded-lg shadow-sm border-2 border-transparent hover:border-primary/30 transition-all duration-200 ${className}`}
         onClick={onClick}
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
@@ -70,7 +70,7 @@ const AssetThumbnail: React.FC<AssetItemProps> = ({ item, onClick, className = '
             className="flex-1 flex items-center justify-center"
             dangerouslySetInnerHTML={{ __html: sanitizeSvg(item.svgContent) }}
           />
-          <div className="text-xs text-gray-600 text-center font-medium truncate mt-2">
+          <div className="text-xs text-muted-foreground text-center font-medium truncate mt-2">
             {item.title}
           </div>
         </div>
@@ -81,7 +81,7 @@ const AssetThumbnail: React.FC<AssetItemProps> = ({ item, onClick, className = '
   // Image/GIF display
   return (
     <motion.div
-      className={`group cursor-pointer rounded-lg shadow-sm border-2 border-transparent hover:border-blue-300 transition-all duration-200 overflow-hidden ${className}`}
+      className={`group cursor-pointer rounded-lg shadow-sm border-2 border-transparent hover:border-primary/30 transition-all duration-200 overflow-hidden ${className}`}
       onClick={onClick}
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
@@ -89,15 +89,15 @@ const AssetThumbnail: React.FC<AssetItemProps> = ({ item, onClick, className = '
       <div className="relative h-full">
         {/* Loading placeholder */}
         {!imageLoaded && !imageError && (
-          <div className="absolute inset-0 bg-gray-200 animate-pulse flex items-center justify-center">
-            <div className="text-gray-400 text-sm">Loading...</div>
+          <div className="absolute inset-0 bg-muted animate-pulse flex items-center justify-center">
+            <div className="text-muted-foreground text-sm">Loading...</div>
           </div>
         )}
 
         {/* Error placeholder */}
         {imageError && (
-          <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
-            <div className="text-gray-500 text-sm">Failed to load</div>
+          <div className="absolute inset-0 bg-muted/30 flex items-center justify-center">
+            <div className="text-muted-foreground text-sm">Failed to load</div>
           </div>
         )}
 
@@ -112,11 +112,11 @@ const AssetThumbnail: React.FC<AssetItemProps> = ({ item, onClick, className = '
         />
 
         {/* Overlay */}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-200" />
+        <div className="absolute inset-0 bg-overlay/0 group-hover:bg-overlay/30 transition-colors duration-200" />
 
         {/* Content overlay */}
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 translate-y-full group-hover:translate-y-0 transition-transform duration-200">
-          <div className="text-white">
+          <div className="text-foreground">
             <div className="text-sm font-medium truncate">{item.title}</div>
             {item.author && (
               <div className="text-xs opacity-75 truncate">by {item.author}</div>
@@ -129,7 +129,7 @@ const AssetThumbnail: React.FC<AssetItemProps> = ({ item, onClick, className = '
           <div className="absolute top-2 right-2">
             <Badge
               variant="secondary"
-              className="text-xs bg-black/60 text-white border-0"
+              className="text-xs bg-overlay/60 text-foreground border-0"
             >
               {item.format.toUpperCase()}
             </Badge>
@@ -139,8 +139,8 @@ const AssetThumbnail: React.FC<AssetItemProps> = ({ item, onClick, className = '
         {/* GIF play indicator */}
         {item.format === 'gif' && (
           <div className="absolute top-2 left-2">
-            <div className="bg-black/60 rounded-full p-1">
-              <Play className="w-3 h-3 text-white" />
+            <div className="bg-overlay/60 rounded-full p-1">
+              <Play className="w-3 h-3 text-foreground" />
             </div>
           </div>
         )}
@@ -150,7 +150,7 @@ const AssetThumbnail: React.FC<AssetItemProps> = ({ item, onClick, className = '
           <div className="absolute top-2 left-2">
             <Badge
               variant="secondary"
-              className="text-xs bg-black/60 text-white border-0"
+              className="text-xs bg-overlay/60 text-foreground border-0"
             >
               {item.dimensions.width}×{item.dimensions.height}
             </Badge>
@@ -253,7 +253,7 @@ const AssetModal: React.FC<{
           <div className="text-center">
             <h3 className="text-xl font-semibold">{item.title}</h3>
             {item.description && (
-              <p className="text-gray-600 mt-1">{item.description}</p>
+              <p className="text-muted-foreground mt-1">{item.description}</p>
             )}
           </div>
         </div>
@@ -264,13 +264,13 @@ const AssetModal: React.FC<{
       return (
         <div className="flex flex-col items-center space-y-4 p-6">
           <div
-            className="w-64 h-64 flex items-center justify-center bg-gray-50 rounded-lg"
+            className="w-64 h-64 flex items-center justify-center bg-muted/10 rounded-lg"
             dangerouslySetInnerHTML={{ __html: item.svgContent }}
           />
           <div className="text-center">
             <h3 className="text-xl font-semibold">{item.title}</h3>
             {item.author && (
-              <p className="text-gray-600">by {item.author}</p>
+              <p className="text-muted-foreground">by {item.author}</p>
             )}
           </div>
         </div>
@@ -289,14 +289,14 @@ const AssetModal: React.FC<{
         <div className="text-center px-4">
           <h3 className="text-xl font-semibold">{item.title}</h3>
           {item.author && (
-            <p className="text-gray-600">by {item.author}</p>
+            <p className="text-muted-foreground">by {item.author}</p>
           )}
           {item.description && (
-            <p className="text-sm text-gray-500 mt-2 max-w-md">{item.description}</p>
+            <p className="text-sm text-muted-foreground mt-2 max-w-md">{item.description}</p>
           )}
 
           {/* Metadata */}
-          <div className="flex flex-wrap justify-center gap-4 mt-4 text-sm text-gray-500">
+          <div className="flex flex-wrap justify-center gap-4 mt-4 text-sm text-muted-foreground">
             {item.dimensions && (item.dimensions.width > 0 || item.dimensions.height > 0) && (
               <span>{item.dimensions.width} × {item.dimensions.height}</span>
             )}

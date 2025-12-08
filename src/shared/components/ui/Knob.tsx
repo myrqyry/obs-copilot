@@ -47,10 +47,13 @@ const Knob: React.FC<KnobProps> = ({
         onChange={handleValueChange}
         onMouseUp={handleMouseUp}
         disabled={disabled}
-        className="w-full h-2 rounded-lg appearance-none cursor-pointer bg-gray-200 dark:bg-gray-700
-                   [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500
-                   [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-500"
-        style={{ width: `${size}px`, height: `${size}px`, transform: 'rotate(270deg)' }} // Rotate to simulate knob
+        className={
+          `w-[var(--knob-size)] h-[var(--knob-size)] rounded-lg appearance-none cursor-pointer bg-muted
+          [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary
+          [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary
+          rotate-[270deg] ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`
+        }
+        style={{ ['--knob-size']: `${size}px` } as React.CSSProperties}
       />
     </div>
   );

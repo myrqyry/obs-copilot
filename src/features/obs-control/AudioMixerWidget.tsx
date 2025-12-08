@@ -102,9 +102,9 @@ const AudioMixerWidget: React.FC<AudioMixerWidgetProps> = ({ config, id }) => {
   }, [isSync, channelVolumes, sourceName, id, numChannels]);
 
   return (
-    <div className="p-4 bg-gray-800 rounded-lg shadow-lg max-w-md mx-auto">
-      <h3 className="text-white text-lg font-bold mb-2">Audio Mixer: {sourceName}</h3>
-      <label className="text-gray-300 mb-1 block">Sync Channels: {isSync ? 'On' : 'Off'}</label>
+    <div className="p-4 bg-card rounded-lg shadow-lg max-w-md mx-auto">
+      <h3 className="text-foreground text-lg font-bold mb-2">Audio Mixer: {sourceName}</h3>
+      <label className="text-muted-foreground mb-1 block">Sync Channels: {isSync ? 'On' : 'Off'}</label>
       <input
         type="checkbox"
         checked={isSync}
@@ -114,7 +114,7 @@ const AudioMixerWidget: React.FC<AudioMixerWidgetProps> = ({ config, id }) => {
       <div className="space-y-2">
         {channelVolumes.map((volume, index) => (
           <div key={index} className="flex items-center justify-between">
-            <span className="text-gray-300 text-sm">Channel {index + 1}</span>
+            <span className="text-muted-foreground text-sm">Channel {index + 1}</span>
             <input
               type="range"
               min={config.valueMapping?.min || -60}
@@ -124,7 +124,7 @@ const AudioMixerWidget: React.FC<AudioMixerWidgetProps> = ({ config, id }) => {
               onChange={(e) => handleChannelVolumeChange(index, Number(e.target.value))}
               className="flex-1 mx-2 slider slider-primary"
             />
-            <span className="text-white text-sm">{volume.toFixed(1)} dB</span>
+            <span className="text-foreground text-sm">{volume.toFixed(1)} dB</span>
           </div>
         ))}
       </div>

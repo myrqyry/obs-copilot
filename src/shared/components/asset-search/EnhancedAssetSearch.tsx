@@ -214,8 +214,8 @@ export const EnhancedAssetSearch: React.FC<EnhancedAssetSearchProps> = ({
             className="w-full h-full flex items-center justify-center"
             dangerouslySetInnerHTML={{ __html: sanitizeSvg(item.svgContent) }}
           />
-          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
-            <p className="text-white text-xs truncate">{item.title}</p>
+          <div className="absolute inset-0 bg-overlay/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+            <p className="text-foreground text-xs truncate">{item.title}</p>
           </div>
         </div>
       );

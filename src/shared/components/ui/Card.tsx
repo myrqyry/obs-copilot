@@ -34,7 +34,7 @@ export const Card: React.FC<CardProps> = ({
     outlined: 'bg-transparent border-2 border-border hover:border-primary/50 hover:shadow-sm',
     gradient: 'bg-gradient-to-br from-card via-card/80 to-card/60 border border-border shadow-lg hover:shadow-xl hover:border-accent/40',
     neon: 'bg-card/80 border border-primary/30 shadow-glow hover:shadow-glow-lg backdrop-blur-sm hover:border-accent/50',
-    frosted: 'bg-white/5 backdrop-blur-xl border border-white/10 shadow-lg hover:shadow-xl hover:border-primary/20',
+    frosted: 'bg-card/5 backdrop-blur-xl border border-white/10 shadow-lg hover:shadow-xl hover:border-primary/20',
     minimal: 'bg-transparent border border-border/50 hover:border-accent/60',
     // New accent-focused variants
     'accent-gradient': 'bg-gradient-to-br from-primary/10 via-accent/5 to-primary/10 border border-primary/20 shadow-sm hover:shadow-md hover:border-accent/40',

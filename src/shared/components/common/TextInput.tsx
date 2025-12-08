@@ -167,7 +167,7 @@ export const TextInput: React.FC<TextInputProps> = ({
     const stateStyles = error
       ? 'border-destructive focus:border-destructive focus:ring-destructive/20'
       : success
-        ? 'border-green-500 focus:border-green-500 focus:ring-green-500/20'
+        ? 'border-success/20 focus:border-success/20 focus:ring-success/20'
         : '';
 
     return cn(baseStyles, variantStyles[variant], sizeStyles[size], borderRadiusStyles, widthStyles, stateStyles);
@@ -178,7 +178,7 @@ export const TextInput: React.FC<TextInputProps> = ({
     const stateStyles = error
       ? 'text-destructive'
       : success
-        ? 'text-green-600'
+        ? 'text-success'
         : 'text-foreground';
 
     const shouldFloat = floatLabel || variant === 'expressive' || variant === 'outlined';
@@ -187,7 +187,7 @@ export const TextInput: React.FC<TextInputProps> = ({
       return cn(
         'absolute left-3 -translate-y-1/2 pointer-events-none transform transition-all duration-200 ease-in-out',
         isFocused || (value && String(value).length > 0) ? 'text-xs top-2.5' : 'text-base top-1/2',
-        error ? 'text-destructive' : success ? 'text-green-600' : 'text-muted-foreground'
+        error ? 'text-destructive' : success ? 'text-success' : 'text-muted-foreground'
       );
     }
 
@@ -199,7 +199,7 @@ export const TextInput: React.FC<TextInputProps> = ({
     const stateStyles = error
       ? 'text-destructive'
       : success
-        ? 'text-green-600'
+        ? 'text-success'
         : 'text-muted-foreground';
 
     return cn(baseStyles, stateStyles);

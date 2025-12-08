@@ -42,6 +42,7 @@
     "fix:glob": "node scripts/fix-glob-imports.cjs",
     "fix:types": "node scripts/consolidate-types.cjs",
     "fix:quick": "pnpm fix:glob && pnpm fix:types",
+    "fix:tailwind": "node ./scripts/fix-tailwind-issues.cjs",
     "// === Quality ===": "",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

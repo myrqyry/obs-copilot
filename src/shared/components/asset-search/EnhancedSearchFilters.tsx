@@ -240,7 +240,7 @@ export const EnhancedSearchFilters: React.FC<EnhancedSearchFiltersProps> = ({
               id="remove_low_contrast"
               checked={!!filters.remove_low_contrast}
               onChange={(e) => onFilterChange('remove_low_contrast', e.target.checked)}
-              className="h-3 w-3 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              className="h-3 w-3 rounded border-border text-info focus:ring-info"
             />
             <label htmlFor="remove_low_contrast" className="ml-2 text-xs font-medium text-muted-foreground">
               Exclude Low Contrast
@@ -272,7 +272,7 @@ export const EnhancedSearchFilters: React.FC<EnhancedSearchFiltersProps> = ({
               id="vector"
               checked={!!filters.vector}
               onChange={(e) => onFilterChange('vector', e.target.checked)}
-              className="h-3 w-3 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              className="h-3 w-3 rounded border-border text-info focus:ring-info"
             />
             <label htmlFor="vector" className="ml-2 text-xs font-medium text-muted-foreground">
               Vector

@@ -23,7 +23,7 @@ export const ActionParameterMapper: React.FC<ActionParameterMapperProps> = ({ pa
 
                 return (
                     <div key={key}>
-                        <label htmlFor={inputId} className="text-sm font-medium text-gray-300 capitalize mb-1 block">
+                        <label htmlFor={inputId} className="text-sm font-medium text-muted-foreground capitalize mb-1 block">
                             {key.replace(/([A-Z])/g, ' $1')}
                         </label>
                         {type === 'boolean' && (
@@ -33,9 +33,9 @@ export const ActionParameterMapper: React.FC<ActionParameterMapperProps> = ({ pa
                                     type="checkbox"
                                     checked={value}
                                     onChange={(e) => handleParamChange(key, e.target.checked)}
-                                    className="h-4 w-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+                                    className="h-4 w-4 text-primary bg-muted/70 border-border rounded focus:ring-ring"
                                 />
-                                <span className="ml-2 text-sm text-gray-300">{value ? 'Enabled' : 'Disabled'}</span>
+                                <span className="ml-2 text-sm text-muted-foreground">{value ? 'Enabled' : 'Disabled'}</span>
                             </div>
                         )}
                         {type === 'number' && (

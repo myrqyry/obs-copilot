@@ -205,7 +205,7 @@ export const WidgetPalette: React.FC<WidgetPaletteProps> = ({ onAddWidget, onClo
   }, [onAddWidget]);
 
   return (
-    <div className="w-80 bg-white border-l shadow-lg flex flex-col">
+    <div className="w-80 bg-card border-l shadow-lg flex flex-col">
       {/* Header */}
       <div className="p-4 border-b flex justify-between items-center">
         <h3 className="text-lg font-semibold">Widget Palette</h3>
@@ -217,7 +217,7 @@ export const WidgetPalette: React.FC<WidgetPaletteProps> = ({ onAddWidget, onClo
       {/* Search */}
       <div className="p-4 border-b">
         <div className="relative">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search widgets..."
             value={searchTerm}
@@ -254,12 +254,12 @@ export const WidgetPalette: React.FC<WidgetPaletteProps> = ({ onAddWidget, onClo
             >
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 p-2 bg-gray-100 rounded-lg">
+                  <div className="flex-shrink-0 p-2 bg-muted/30 rounded-lg">
                     {template.icon}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-medium truncate">{template.name}</h4>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="text-sm text-muted-foreground mt-1">
                       {template.description}
                     </p>
                     <div className="flex items-center gap-2 mt-2">
@@ -279,7 +279,7 @@ export const WidgetPalette: React.FC<WidgetPaletteProps> = ({ onAddWidget, onClo
       </ScrollArea>
 
       {/* Quick Add Section */}
-      <div className="p-4 border-t bg-gray-50">
+      <div className="p-4 border-t bg-muted/10">
         <h4 className="font-medium mb-3">Quick Add</h4>
         <div className="space-y-2">
           <Button

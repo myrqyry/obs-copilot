@@ -34,7 +34,7 @@ export const WidgetConfigPanel: React.FC<WidgetConfigPanelProps> = ({ widgetId, 
 
   if (!config) {
     return (
-      <div className="w-80 bg-white border-l shadow-lg flex items-center justify-center">
+      <div className="w-80 bg-card border-l shadow-lg flex items-center justify-center">
         <p>Widget not found</p>
       </div>
     );
@@ -73,12 +73,12 @@ export const WidgetConfigPanel: React.FC<WidgetConfigPanelProps> = ({ widgetId, 
   }, [config]);
 
   return (
-    <div className="w-80 bg-white border-l shadow-lg flex flex-col">
+    <div className="w-80 bg-card border-l shadow-lg flex flex-col">
       {/* Header */}
       <div className="p-4 border-b flex justify-between items-center">
         <div>
           <h3 className="text-lg font-semibold">Configure Widget</h3>
-          <p className="text-sm text-gray-600">{localConfig.name}</p>
+          <p className="text-sm text-muted-foreground">{localConfig.name}</p>
         </div>
         <Button variant="ghost" size="sm" onClick={onClose}>
           <X className="w-4 h-4" />
@@ -270,7 +270,7 @@ export const WidgetConfigPanel: React.FC<WidgetConfigPanelProps> = ({ widgetId, 
       </div>
 
       {/* Action Buttons */}
-      <div className="p-4 border-t bg-gray-50 space-y-2">
+      <div className="p-4 border-t bg-muted/10 space-y-2">
         {hasUnsavedChanges && (
           <div className="flex gap-2">
             <Button onClick={handleSave} size="sm" className="flex-1">

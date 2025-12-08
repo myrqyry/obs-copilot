@@ -26,10 +26,10 @@ const UniversalWidgetEngine: React.FC<UniversalWidgetEngineProps> = ({ config, o
 
   if (error) {
     return (
-      <Card className="p-4 bg-red-50 border-red-200">
+      <Card className="p-4 bg-error/10 border-error/20">
         <CardContent className="flex flex-col gap-2">
-          <Label className="text-sm font-medium text-red-800">{config.name}</Label>
-          <p className="text-sm text-red-600">{error}</p>
+          <Label className="text-sm font-medium text-error">{config.name}</Label>
+          <p className="text-sm text-error">{error}</p>
         </CardContent>
       </Card>
     );
@@ -40,7 +40,7 @@ const UniversalWidgetEngine: React.FC<UniversalWidgetEngineProps> = ({ config, o
       <Card className="p-4">
         <CardContent className="flex flex-col gap-2">
           <Label className="text-sm font-medium">{config.name}</Label>
-          <div className="text-sm text-gray-500">Loading...</div>
+          <div className="text-sm text-muted-foreground">Loading...</div>
         </CardContent>
       </Card>
     );
@@ -52,7 +52,7 @@ const UniversalWidgetEngine: React.FC<UniversalWidgetEngineProps> = ({ config, o
         return (
           <Button
             onClick={() => executeAction(null)}
-            className="w-full bg-blue-500 hover:bg-blue-600"
+            className="w-full bg-primary hover:bg-primary"
             disabled={isLoading}
             aria-label={`Button ${config.name}`}
           >
@@ -217,22 +217,22 @@ const UniversalWidgetEngine: React.FC<UniversalWidgetEngineProps> = ({ config, o
         return (
           <div className="space-y-2">
             <Label className="text-sm font-medium">{config.name}</Label>
-            <div className="w-full bg-gray-200 rounded-full h-2.5">
+            <div className="w-full bg-muted rounded-full h-2.5">
               <div
-                className="bg-blue-600 h-2.5 rounded-full"
+                className="bg-primary h-2.5 rounded-full"
                 style={{ width: `${clampedPercentage}%` }}
                 aria-label={`Meter ${config.name} at ${clampedPercentage.toFixed(0)}%`}
               ></div>
             </div>
-            <span className="text-xs text-gray-500">{clampedPercentage.toFixed(0)}%</span>
+            <span className="text-xs text-muted-foreground">{clampedPercentage.toFixed(0)}%</span>
           </div>
         );
       case WidgetControlType.CHART:
         return (
           <div className="space-y-2">
             <Label className="text-sm font-medium">{config.name}</Label>
-            <div className="w-full h-32 bg-gray-200 rounded border" aria-label={`Chart ${config.name}`}>
-              <p className="text-xs text-gray-500 p-2">Chart placeholder</p>
+            <div className="w-full h-32 bg-muted rounded border" aria-label={`Chart ${config.name}`}>
+              <p className="text-xs text-muted-foreground p-2">Chart placeholder</p>
             </div>
           </div>
         );
@@ -240,8 +240,8 @@ const UniversalWidgetEngine: React.FC<UniversalWidgetEngineProps> = ({ config, o
         return (
           <div className="space-y-2">
             <Label className="text-sm font-medium">{config.name}</Label>
-            <div className="w-full p-2 bg-gray-100 rounded border" aria-label={`Custom widget ${config.name}`}>
-              <p className="text-xs text-gray-500">Custom widget content</p>
+            <div className="w-full p-2 bg-muted/30 rounded border" aria-label={`Custom widget ${config.name}`}>
+              <p className="text-xs text-muted-foreground">Custom widget content</p>
             </div>
           </div>
         );
@@ -250,7 +250,7 @@ const UniversalWidgetEngine: React.FC<UniversalWidgetEngineProps> = ({ config, o
           <Card className="p-4">
             <CardContent>
               <Label className="text-sm font-medium">{config.name}</Label>
-              <p className="text-sm text-gray-500">Control type not implemented yet</p>
+              <p className="text-sm text-muted-foreground">Control type not implemented yet</p>
             </CardContent>
           </Card>
         );
@@ -262,7 +262,7 @@ const UniversalWidgetEngine: React.FC<UniversalWidgetEngineProps> = ({ config, o
       <CardContent>
         {renderWidget()}
         {config.visualConfig?.showLabel && (
-          <p className="text-xs text-gray-500 mt-1">{config.name}</p>
+          <p className="text-xs text-muted-foreground mt-1">{config.name}</p>
         )}
       </CardContent>
     </Card>
