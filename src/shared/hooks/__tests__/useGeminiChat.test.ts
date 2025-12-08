@@ -204,6 +204,47 @@ describe('useGeminiChat integration tests', () => {
     expect(mockChatStore.addMessage).toHaveBeenCalledWith({ role: 'assistant', content: 'Action executed' });
   });
 
+  it('should normalize action types and call obsClient for createInput', async () => {
+    const { aiService } = require('../../services/aiService');
+    const { obsStateManager } = require('@/shared/services/obsStateManager');
+    const { obsActionValidator } = require('@/shared/services/obsActionValidator');
+    const { obsClient } = require('@/shared/services/obsClient');
+    const uiStore = require('../../store/uiStore').default;
+
+    // Ensure confirmation auto-confirms
+    uiStore.setState({ showConfirmation: ({ onConfirm }: any) => onConfirm() });
+
+    // Mock the aiService to return a CreateInput command in a non-streaming response
+    aiService.queryWithOBSContext = vi.fn().mockResolvedValue({
+      actions: [{ command: 'CreateInput', args: { inputName: 'TestInput', inputKind: 'browser_source', sceneName: 'TestScene', sceneItemEnabled: true } }],
+      reasoning: 'Create input created',
+    });
+
+    // Provide minimal obs state
+    obsStateManager.getStateWithChanges = vi.fn().mockResolvedValue({
+      full_state: { current_scene: 'TestScene' },
+      changes: {},
+      recent_changes: [],
+      is_first_query: true
+    });
+
+    // Validate batch returns ok
+    obsActionValidator.validateBatch = vi.fn().mockResolvedValue({ valid: true, warnings: [], errors: [] });
+
+    // Spy on obsClient.call
+    vi.spyOn(obsClient, 'call').mockResolvedValue({});
+
+    // Render hook and invoke handleSend
+    const { result } = renderHook(() => useGeminiChat(undefined, () => null));
+
+    await act(async () => {
+      await result.current.handleSend('Create an input', () => {}, undefined);
+    });
+
+    expect(aiService.queryWithOBSContext).toHaveBeenCalled();
+    expect(obsClient.call).toHaveBeenCalledWith('CreateInput', expect.objectContaining({ inputName: 'TestInput' }));
+  });
+
   it('should use non-streaming generateContent for quick responses', async () => {
     mockUseGeminiChat.mockReturnValue({
       messages: mockChatStore.messages,

@@ -1,3 +1,15 @@
+/**
+ * Centralized type exports
+ * Single source of truth for all shared types
+ *
+ * Usage:
+ *   import { ObsAction, OBSScene, OBSSource } from '@/shared/types';
+ */
+
+// Minimal consolidated exports to avoid duplicate and .d.ts re-exports
+export * from './obs';
+export * from './obsActions';
+
 export * from './ai';
 export * from './api';
 export * from './assetSearch';

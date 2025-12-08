@@ -1,6 +1,6 @@
 import { readFile } from 'fs/promises';
 import path from 'path';
-import glob from 'glob';
+import { glob } from 'glob';
 import { logger } from '@/shared/utils/logger';
 
 /**
