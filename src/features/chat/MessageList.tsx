@@ -28,43 +28,43 @@ export const MessageList: React.FC<MessageListProps> = ({
     handleSuggestionClick,
     obsSources,
     handleAddToContext,
-    extraDarkMode,
-    flipSides,
-    handleRegenerate,
-    chatBackgroundType = 'image',
-    chatPattern,
-    userChatBubbleColorName,
-    modelChatBubbleColorName,
-    customChatBackground,
-}) => {
-    const messagesEndRef = useRef<HTMLDivElement>(null);
-    const messageRefs = useRef<(HTMLDivElement | null)[]>([]);
-
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        if (messageRefs.current.length > 0) {
-            const lastMessage = messageRefs.current[messageRefs.current.length - 1];
-            if (lastMessage) {
-                gsap.fromTo(
-                    lastMessage,
-                    { opacity: 0, y: 10 },
-                    { opacity: 1, y: 0, duration: 0.3 }
-                );
-            }
-        }
-    }, [messages]);
-
     return (
         <div
-            className={`flex-grow p-2 space-y-2 overflow-y-auto relative z-10 ${
-                chatBackgroundType === 'image' ? 'bg-cover bg-fixed bg-center' : ''
-            }`}
-            style={
-                chatBackgroundType === 'image'
-                    ? { backgroundImage: `url(${customChatBackground})` }
-                    : chatPattern
-                    ? {
-                        backgroundImage: generatePatternCSS(chatPattern),
+            ref={containerRef}
+            className={clsx(
+                "flex-1 overflow-y-auto px-4 py-6 flex flex-col gap-3 transition-all duration-300 rounded-2xl bg-background/70 backdrop-blur-md shadow-inner border border-border",
+                backgroundClass,
+                patternClass,
+                extraDarkMode && "bg-black/80"
+            )}
+            style={backgroundStyle}
+        >
+            {messages.length === 0 && !isLoading ? (
+                <div className="flex flex-1 items-center justify-center text-muted-foreground/70 select-none text-base">
+                    No messages yet.
+                </div>
+            ) : (
+                <AnimatePresence initial={false}>
+                    {messages.map((msg, idx) => (
+                        <ChatMessageItem
+                            key={msg.id || idx}
+                            message={msg}
+                            accentColorName={accentColorName}
+                            userChatBubbleColorName={userChatBubbleColorName}
+                            modelChatBubbleColorName={modelChatBubbleColorName}
+                            flipSides={flipSides}
+                        />
+                    ))}
+                </AnimatePresence>
+            )}
+            {isLoading && (
+                <div className="flex items-center gap-2 text-muted-foreground/70 mt-2">
+                    <Loader2 className="animate-spin w-4 h-4" />
+                    <span>Thinking...</span>
+                </div>
+            )}
+        </div>
+    );
                         backgroundSize: 'cover',
                         backgroundAttachment: 'fixed',
                         backgroundPosition: 'center'

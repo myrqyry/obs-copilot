@@ -107,6 +107,15 @@ const TwitchChat: React.FC = () => {
 
   const [newMessageAtTop, setNewMessageAtTop] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
+
+    // Prevent unnecessary state updates to avoid infinite re-render loop
+    const handleNewMessageAtTopChange = useCallback((checked: boolean) => {
+      setNewMessageAtTop((prev) => (prev !== checked ? checked : prev));
+    }, []);
+
+    const handleAutoScrollChange = useCallback((checked: boolean) => {
+      setAutoScroll((prev) => (prev !== checked ? checked : prev));
+    }, []);
   const [isAtBottom, setIsAtBottom] = useState(true);
 
   const [processedMessages, setProcessedMessages] = useState<
@@ -353,14 +362,14 @@ const TwitchChat: React.FC = () => {
               label="New messages at top"
               description="Display new messages at the top of the chat list."
               checked={newMessageAtTop}
-              onCheckedChange={setNewMessageAtTop}
+              onCheckedChange={handleNewMessageAtTopChange}
             />
             <ConfigToggle
               id="auto-scroll"
               label="Auto-scroll"
               description="Automatically scroll to the bottom for new messages."
               checked={autoScroll}
-              onCheckedChange={setAutoScroll}
+              onCheckedChange={handleAutoScrollChange}
             />
           </div>
           <ChatSearch

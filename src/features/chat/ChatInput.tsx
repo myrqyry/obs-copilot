@@ -25,68 +25,68 @@ interface ChatInputProps {
     setUseGoogleSearch: (value: boolean) => void;
     isConnected: boolean;
     currentProgramScene: string | null;
-    onScreenshot: () => void;
-    onAudio: (audioBlob: Blob) => void;
-    onImageSelect?: (file: File, base64: string) => void;
-    chatInputRef: React.RefObject<HTMLTextAreaElement>;
-}
-
-export const ChatInput: React.FC<ChatInputProps> = ({
-    chatInputValue,
-    onChatInputChange,
-    isLoading,
-    isGeminiClientInitialized,
-    handleSend,
-    useGoogleSearch,
-    setUseGoogleSearch,
-    isConnected,
-    currentProgramScene,
-    onScreenshot,
-    onAudio,
-    onImageSelect,
-    chatInputRef,
-}) => {
-    const [error, setError] = useState<string | undefined>(undefined);
-    const [attachmentsOpen, setAttachmentsOpen] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-    const handleValidatedSend = () => {
-        try {
-            chatInputSchema.parse({ chatInputValue });
-            setError(undefined);
-            handleSend();
-        } catch (err) {
-            if (err instanceof ZodError) {
-                setError(err.issues[0].message);
-            }
-        }
-    };
-
-    const chatStatus: ChatStatus | undefined = isLoading ? 'submitted' : undefined;
-
     return (
-        <div className="p-3 border-t border-border bg-background rounded-b-lg">
-            <PromptInput onSubmit={handleValidatedSend} className="!shadow-none !border-0 !rounded-none !bg-transparent">
-                <PromptInputTextarea
+        <form
+            className="flex items-end gap-3 w-full"
+            onSubmit={handleSubmit}
+            autoComplete="off"
+        >
+            <div className="flex-1 flex flex-col gap-2">
+                <Input
                     ref={chatInputRef}
                     value={chatInputValue}
-                    onChange={(e) => {
-                        onChatInputChange(e.target.value);
-                        if (error) setError(undefined);
-                    }}
-                    placeholder={isLoading ? 'Waiting for Gemini...' : 'Type your message...'}
-                    disabled={isLoading || !isGeminiClientInitialized}
-                    label="Type your message..."
+                    onChange={(e) => onChatInputChange(e.target.value)}
+                    placeholder={isConnected ? 'Type your message...' : 'Connect to start chatting'}
+                    disabled={isLoading || !isConnected}
+                    className="w-full min-h-[44px] px-4 py-2 rounded-xl bg-background/90 border border-border focus:ring-2 focus:ring-accent/60 shadow-inner transition"
                 />
-                    <PromptInputToolbar className="!p-0 !pr-2">
-                    <PromptInputTools>
-                        {/* Attachments popover: groups screenshot, upload image, record audio, and web-search toggle */}
-                        <PopoverPrimitive.Root open={attachmentsOpen} onOpenChange={setAttachmentsOpen}>
-                            <PopoverPrimitive.Trigger asChild>
-                                <PromptInputButton
-                                    onClick={() => setAttachmentsOpen((v) => !v)}
-                                    disabled={!isGeminiClientInitialized}
-                                    aria-label="Attachments"
+                <div className="flex gap-2 items-center">
+                    {onScreenshot && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={onScreenshot}
+                            className="text-muted-foreground hover:text-accent rounded-full"
+                            tabIndex={-1}
+                        >
+                            <CameraIcon className="w-5 h-5" />
+                        </Button>
+                    )}
+                    {onAudio && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={onAudio}
+                            className="text-muted-foreground hover:text-accent rounded-full"
+                            tabIndex={-1}
+                        >
+                            <MicIcon className="w-5 h-5" />
+                        </Button>
+                    )}
+                    {onImageSelect && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={onImageSelect}
+                            className="text-muted-foreground hover:text-accent rounded-full"
+                            tabIndex={-1}
+                        >
+                            <ImageIcon className="w-5 h-5" />
+                        </Button>
+                    )}
+                </div>
+            </div>
+            <Button
+                type="submit"
+                disabled={isLoading || !isConnected || !chatInputValue.trim()}
+                className="ml-2 px-5 py-2 rounded-xl bg-accent text-accent-foreground shadow-lg hover:bg-accent/90 focus:ring-2 focus:ring-accent/60 transition"
+            >
+                {isLoading ? <Loader2 className="animate-spin w-5 h-5" /> : <SendIcon className="w-5 h-5" />}
+            </Button>
+        </form>
                                     className="transition-all duration-200 text-muted-foreground hover:text-accent hover:bg-accent/10"
                                 >
                                     <Paperclip className="w-4 h-4" />

@@ -63,7 +63,9 @@ export class PluginManager {
 
     // Check for ID conflicts
     if (this.plugins.has(plugin.id)) {
-      throw new Error(`Plugin with ID "${plugin.id}" is already registered`);
+      // Instead of throwing, log a warning and skip registration
+      console.warn(`Plugin with ID "${plugin.id}" is already registered. Skipping duplicate registration.`);
+      return;
     }
 
     try {

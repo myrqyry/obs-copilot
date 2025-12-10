@@ -43,38 +43,39 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     onSuggestionClick,
     obsSources,
     onSourceSelect,
-    flipSides,
-    extraDarkMode,
-    showSuggestions = false,
-    onAddToContext,
-    onRegenerate,
-    userChatBubbleColorName,
-    modelChatBubbleColorName,
-    customChatBackground,
-}) => {
-    const itemRef = useRef<HTMLDivElement>(null);
-    const bubbleRef = useRef<HTMLDivElement>(null);
-    const [isShrunk, setIsShrunk] = useState(false);
-    const [forceExpand, setForceExpand] = useState(false);
-    const [isScrolling, setIsScrolling] = useState(false);
-    const prevShrunkRef = useRef<boolean | null>(null);
-    const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    const accentColorName = useConfigStore(state => state.theme.accent);
-    const secondaryAccentColorName = useConfigStore(state => state.theme.secondaryAccent);
-
-    const memoizedSuggestions = useMemo(() => getRandomSuggestions(4), [message.id]);
-
-    useLayoutEffect(() => {
-        if (!itemRef.current) return;
-        const el = itemRef.current;
-        const animation = gsap.fromTo(
-            el,
-            { opacity: 0, y: 15, scale: 0.98 },
-            { opacity: 1, y: 0, scale: 1, duration: 0.35, ease: 'power2.out' }
-        );
-
-        const heightLimit = 320;
+    return (
+        <div
+            className={clsx(
+                'flex w-full',
+                isUser ? (flipSides ? 'justify-start' : 'justify-end') : (flipSides ? 'justify-end' : 'justify-start')
+            )}
+        >
+            <div
+                className={clsx(
+                    'max-w-[80%] flex flex-col',
+                    isUser
+                        ? userChatBubbleColorName
+                            ? `bg-${userChatBubbleColorName} text-foreground`
+                            : 'bg-accent text-accent-foreground'
+                        : modelChatBubbleColorName
+                        ? `bg-${modelChatBubbleColorName} text-foreground`
+                        : 'bg-card text-card-foreground',
+                    'rounded-2xl px-5 py-3 mb-1 shadow-lg',
+                    glassClass,
+                    isSystem && 'border border-dashed border-border/60',
+                    isUser ? 'self-end' : 'self-start',
+                    'backdrop-blur-sm bg-opacity-90'
+                )}
+            >
+                <span className="text-xs font-semibold opacity-70 mb-1 select-none tracking-wide">
+                    {isSystem ? 'System' : isUser ? 'You' : 'Gemini'}
+                </span>
+                <div className="whitespace-pre-wrap break-words text-base leading-relaxed">
+                    {message.content}
+                </div>
+            </div>
+        </div>
+    );
         const tolerance = 40;
         const shouldShrink = !forceExpand && el.scrollHeight > heightLimit + tolerance;
 

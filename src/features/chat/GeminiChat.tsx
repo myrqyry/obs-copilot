@@ -309,40 +309,44 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
 
 
     return (
-        <div className="flex flex-col h-full">
-            <Card className="p-4 flex flex-col h-full">
-                <MessageList
-                    messages={messages}
-                    isLoading={isLoading}
-                    handleSuggestionClick={(prompt) => onChatInputChange(prompt)}
-                    accentColorName={accentColorName}
-                    obsSources={sources}
-                    handleAddToContext={handleAddToContext}
-                    extraDarkMode={extraDarkMode}
-                    flipSides={flipSides}
-                    handleRegenerate={memoizedHandleRegenerate}
-                    userChatBubbleColorName={userChatBubbleColorName}
-                    modelChatBubbleColorName={modelChatBubbleColorName}
-                    chatBackgroundType={chatBackgroundType}
-                    chatPattern={chatPattern}
-                    customChatBackground={customChatBackground || ''}
-                />
-                <ChatInput
-                    chatInputValue={chatInputValue}
-                    onChatInputChange={onChatInputChange}
-                    isLoading={isLoading}
-                    isGeminiClientInitialized={isGeminiClientInitialized}
-                    handleSend={() => handleSend(chatInputValue, onChatInputChange)}
-                    useGoogleSearch={useGoogleSearch}
-                    setUseGoogleSearch={setUseGoogleSearch}
-                    isConnected={isConnected}
-                    currentProgramScene={currentProgramScene}
-                    onScreenshot={handleScreenshot}
-                    onAudio={handleAudioInput}
-                    onImageSelect={handleImageSelect}
-                    chatInputRef={chatInputRef}
-                />
-            </Card>
+      <div className="flex flex-col h-full w-full bg-background/90">
+        <div className="flex flex-col flex-1 max-w-3xl mx-auto my-6 rounded-2xl shadow-2xl border border-border bg-card/80 backdrop-blur-lg overflow-hidden">
+          <div className="flex-1 flex flex-col min-h-[400px] max-h-[70vh]">
+            <MessageList
+              messages={messages}
+              isLoading={isLoading}
+              handleSuggestionClick={(prompt) => onChatInputChange(prompt)}
+              accentColorName={accentColorName}
+              obsSources={sources}
+              handleAddToContext={handleAddToContext}
+              extraDarkMode={extraDarkMode}
+              flipSides={flipSides}
+              handleRegenerate={memoizedHandleRegenerate}
+              userChatBubbleColorName={userChatBubbleColorName}
+              modelChatBubbleColorName={modelChatBubbleColorName}
+              chatBackgroundType={chatBackgroundType}
+              chatPattern={chatPattern}
+              customChatBackground={customChatBackground || ''}
+            />
+          </div>
+          <div className="border-t border-border bg-background/80 p-3">
+            <ChatInput
+              chatInputValue={chatInputValue}
+              onChatInputChange={onChatInputChange}
+              isLoading={isLoading}
+              isGeminiClientInitialized={isGeminiClientInitialized}
+              handleSend={() => handleSend(chatInputValue, onChatInputChange)}
+              useGoogleSearch={useGoogleSearch}
+              setUseGoogleSearch={setUseGoogleSearch}
+              isConnected={isConnected}
+              currentProgramScene={currentProgramScene}
+              onScreenshot={handleScreenshot}
+              onAudio={handleAudioInput}
+              onImageSelect={handleImageSelect}
+              chatInputRef={chatInputRef}
+            />
+          </div>
         </div>
+      </div>
     );
 };
