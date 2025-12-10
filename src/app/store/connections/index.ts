@@ -14,6 +14,26 @@ export const useConnectionsStore = create<CombinedState>()(
       ...createStreamerBotConnectionSlice(...args),
       ...createConnectionProfilesSlice(...args),
       ...createBackendConnectionSlice(...args),
+      /**
+       * Connect to OBS using obsClient and update store state
+       */
+      connectToObs: async (address: string, password?: string) => {
+        const { setConnected, setConnecting, setError } = useOBSConnectionStore.getState();
+        setConnecting(true);
+        setError(null);
+        try {
+          // obsClient is a singleton
+          const { obsClient } = await import('@/shared/services/obsClient');
+          await obsClient.connect(address, password);
+          setConnected(true);
+          setConnecting(false);
+          setError(null);
+        } catch (err: any) {
+          setConnected(false);
+          setConnecting(false);
+          setError(err?.message || 'Failed to connect to OBS');
+        }
+      },
     }),
     {
       name: 'connection-profiles-storage',
