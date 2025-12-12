@@ -85,7 +85,7 @@ class GeminiCacheService:
 
             cache = await gemini_service.run_in_executor(
                 self.client.caches.create,
-                model="gemini-1.5-flash-001",
+                model="gemini-2.5-flash",
                 config=config,
             )
 
@@ -102,7 +102,7 @@ class GeminiCacheService:
             return None
 
     async def generate_with_cache(
-        self, cache_name: str, user_prompt: str, model: str = "gemini-1.5-flash-001"
+        self, cache_name: str, user_prompt: str, model: str = "gemini-2.5-flash"
     ) -> Optional[Dict]:
         """Generate content using cached context"""
         if not self.client:
