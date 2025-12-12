@@ -14,6 +14,8 @@ import { UniversalWidgetConfig } from '@/shared/types/universalWidget';
 import { Buffer } from 'buffer';
 import { pcm16ToWavUrl } from '@/shared/lib/pcmToWavUrl';
 import { httpClient } from './httpClient';
+import { ImageGenerationSchema } from '@/shared/schemas/gemini';
+import { z } from 'zod';
 import { MODEL_CONFIG } from '@/config/modelConfig';
 import { logger } from '@/shared/utils/logger';
 import { useErrorStore } from '@/app/store/errorStore'; // Import useErrorStore
@@ -215,59 +217,79 @@ class GeminiService extends BaseService implements AIService {
     logger.info('[Gemini] Generating image with options:', { model, ...rest });
 
     return this.withRetry(async () => {
+      try {
+        // 1. Validate payload with Zod
+        let validatedData;
         try {
-          // Use JSON payload for complex data including multiple images
-          const payload = {
+          validatedData = ImageGenerationSchema.parse({
             prompt,
             model,
-            ...rest,
-            // Map camelCase to snake_case for backend if needed, but Pydantic handles it if we match
-            // However, the backend expects snake_case for Pydantic models usually unless configured otherwise.
-            // Let's map explicitly to be safe.
-            image_format: rest.outputMimeType ? rest.outputMimeType.split('/')[1] : 'png',
-            aspect_ratio: rest.aspectRatio,
-            person_generation: rest.personGeneration,
-            image_input: rest.imageInput?.data,
-            image_input_mime_type: rest.imageInput?.mimeType,
-            reference_images: rest.referenceImages?.map(img => ({
-                data: img.data,
-                mime_type: img.mimeType
-            })),
-            image_size: rest.imageSize,
-            search_grounding: rest.searchGrounding
-          };
-
-          const response = await httpClient.post('/gemini/generate-image-enhanced', payload);
-    
-          const images: Array<{ data: string; mime_type: string }> = response.data.images || [];
-          logger.info(`[Gemini] Image generation successful, received ${images.length} images.`);
-          
-          // Convert base64 data to blob URLs
-          return Promise.all(images.map((img) => {
-              const base64Data = img.data;
-              const byteCharacters = atob(base64Data);
-              const byteNumbers = new Array(byteCharacters.length);
-              for (let i = 0; i < byteCharacters.length; i++) {
-                  byteNumbers[i] = byteCharacters.charCodeAt(i);
-              }
-              const byteArray = new Uint8Array(byteNumbers);
-              const blob = new Blob([byteArray], { type: img.mime_type });
-              return URL.createObjectURL(blob);
-          }));
-        } catch (error: any) {
-          const geminiError = mapToGeminiError(error, 'image generation');
-          
-          if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
+            ...rest
+          });
+        } catch (zodError) {
+          if (zodError instanceof z.ZodError) {
+            logger.error('[Gemini] Image generation validation error:', zodError.errors);
             safeAddError({
-              message: geminiError.message,
+              message: `Gemini image generation validation error: ${zodError.errors[0]?.message || 'Invalid data'}`,
               source: 'geminiService',
-              level: 'critical',
-              details: { model, prompt: prompt.substring(0, 50), error: geminiError.originalError }
+              level: 'error',
+              details: zodError.errors
             });
-            throw geminiError;
+            throw new Error(`Invalid request data: ${zodError.errors[0]?.message || 'Invalid data'}`);
           }
+          throw zodError;
+        }
+
+        // 2. Map to backend snake_case (if needed)
+        const payload = {
+          prompt: validatedData.prompt,
+          model: validatedData.model,
+          number_of_images: validatedData.numberOfImages,
+          image_format: validatedData.outputMimeType ? validatedData.outputMimeType.split('/')[1] : 'png',
+          aspect_ratio: validatedData.aspectRatio,
+          person_generation: validatedData.personGeneration,
+          negative_prompt: validatedData.negativePrompt,
+          image_input: validatedData.imageInput?.data,
+          image_input_mime_type: validatedData.imageInput?.mimeType,
+          reference_images: validatedData.referenceImages?.map(img => ({
+            data: img.data,
+            mime_type: img.mimeType
+          })),
+          image_size: validatedData.imageSize,
+          search_grounding: validatedData.searchGrounding
+        };
+
+        const response = await httpClient.post('/gemini/generate-image-enhanced', payload);
+
+        const images: Array<{ data: string; mime_type: string }> = response.data.images || [];
+        logger.info(`[Gemini] Image generation successful, received ${images.length} images.`);
+
+        // Convert base64 data to blob URLs
+        return Promise.all(images.map((img) => {
+          const base64Data = img.data;
+          const byteCharacters = atob(base64Data);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: img.mime_type });
+          return URL.createObjectURL(blob);
+        }));
+      } catch (error: any) {
+        const geminiError = mapToGeminiError(error, 'image generation');
+
+        if (geminiError instanceof GeminiAuthError || geminiError instanceof GeminiNonRetryableError) {
+          safeAddError({
+            message: geminiError.message,
+            source: 'geminiService',
+            level: 'critical',
+            details: { model, prompt: prompt.substring(0, 50), error: geminiError.originalError }
+          });
           throw geminiError;
         }
+        throw geminiError;
+      }
     }, 'Gemini image generation');
   }
 

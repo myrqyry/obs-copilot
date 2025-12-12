@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/shared/components/ui/Button';
 import { obsClient } from '@/shared/services/obsClient';
 import { UniversalWidgetConfig } from '@/shared/types/universalWidget';
-import { useWidgetStore } from './widgetStore';
+import { useWidgetsStore } from '@/app/store/widgetsStore';
 
 interface ButtonWidgetProps {
   config: UniversalWidgetConfig;
@@ -10,7 +10,7 @@ interface ButtonWidgetProps {
 
 export const ButtonWidget: React.FC<ButtonWidgetProps> = ({ config }) => {
   const { id, actionType, targetName } = config;
-  const { updateWidgetState } = useWidgetStore();
+  const { updateWidgetState } = useWidgetsStore();
   const [isLoading, setIsLoading] = React.useState(false);
 
   const executeAction = async () => {

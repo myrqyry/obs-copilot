@@ -141,10 +141,4 @@ export const useWidgetsStore = create<WidgetStore>()(
   )
 );
 
-// Backwards compatibility exports: some older modules import alternate hook names
-// like `useWidgetStore` or `useUniversalWidgetStore`. Provide aliases to avoid
-// breaking imports until the codebase is migrated.
-export const useWidgetStore = useWidgetsStore;
-export const useUniversalWidgetStore = useWidgetsStore;
-
 export default useWidgetsStore;

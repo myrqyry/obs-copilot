@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Switch } from '@/shared/components/ui/switch';
 import { obsClient } from '@/shared/services/obsClient';
 import { UniversalWidgetConfig } from '@/shared/types/universalWidget';
-import { useWidgetStore } from './widgetStore';
+import { useWidgetsStore } from '@/app/store/widgetsStore';
 
 interface SwitchWidgetProps {
   config: UniversalWidgetConfig;
@@ -10,7 +10,7 @@ interface SwitchWidgetProps {
 
 export const SwitchWidget: React.FC<SwitchWidgetProps> = ({ config }) => {
   const { id, actionType, targetName } = config;
-  const { updateWidgetState } = useWidgetStore();
+  const { updateWidgetState } = useWidgetsStore();
   const [isChecked, setIsChecked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [currentValue, setCurrentValue] = useState<boolean | null>(null);

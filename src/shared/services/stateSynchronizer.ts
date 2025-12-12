@@ -1,4 +1,4 @@
-import { useWidgetStore } from '@/app/store/widgetsStore';
+import { useWidgetsStore } from '@/app/store/widgetsStore';
 import { obsClient } from './obsClient';
 import { EventSubscriptionManager } from './eventSubscriptionManager';
 import { logger } from '@/shared/utils/logger';
@@ -10,11 +10,11 @@ export class StateSynchronizer {
     try {
       // Sync scenes
       const sceneResponse = await obsClient.call('GetSceneList');
-      useWidgetStore.setState({ availableScenes: sceneResponse.scenes || [] });
+      useWidgetsStore.setState({ availableScenes: sceneResponse.scenes || [] });
 
       // Sync current scene
       const currentSceneResponse = await obsClient.call('GetCurrentScene');
-      useWidgetStore.setState({ currentScene: currentSceneResponse.currentScene });
+      useWidgetsStore.setState({ currentScene: currentSceneResponse.currentScene });
 
       // Sync inputs
       const inputListResponse = await obsClient.call('GetInputList');
@@ -28,7 +28,7 @@ export class StateSynchronizer {
         const volumeResponse = await obsClient.call('GetInputVolume', { inputName: input.inputName });
         volumeLevels[input.inputName] = volumeResponse.inputVolumeDb;
       }
-      useWidgetStore.setState({ mutedInputs, volumeLevels });
+      useWidgetsStore.setState({ mutedInputs, volumeLevels });
 
       logger.info('State synchronized with OBS');
     } catch (error: any) {
@@ -55,16 +55,16 @@ export class StateSynchronizer {
 
   // Sync specific widget state
   async syncWidgetState(widgetId: string) {
-    const widget = useWidgetStore.getState().widgets[widgetId];
+    const widget = useWidgetsStore.getState().widgets[widgetId];
     if (widget && widget.config) {
       try {
         // Sync based on widget type
         if (widget.config.targetType === 'scene') {
           const currentScene = await obsClient.call('GetCurrentScene');
-          useWidgetStore.updateWidgetState(widgetId, { currentValue: currentScene.currentScene });
+          useWidgetsStore.updateWidgetState(widgetId, { currentValue: currentScene.currentScene });
         } else if (widget.config.targetType === 'input') {
           const mute = await obsClient.call('GetInputMute', { inputName: widget.config.targetName });
-          useWidgetStore.updateWidgetState(widgetId, { currentValue: mute.inputMuted });
+          useWidgetsStore.updateWidgetState(widgetId, { currentValue: mute.inputMuted });
         }
         // Add more types
       } catch (error: any) {

@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Slider } from '@/shared/components/ui/slider';
-import { useWidgetStore } from '../widgetStore';
+import { useWidgetsStore } from '@/app/store/widgetsStore';
 import ComprehensiveErrorBoundary from '@/shared/components/common/ComprehensiveErrorBoundary';
 import { UniversalWidgetConfig } from '@/shared/types/universalWidget';
 
@@ -12,7 +12,7 @@ export const UniversalKnob: React.FC<UniversalKnobProps> = ({ config }) => {
   const { id, valueMapping } = config;
   const [value, setValue] = useState<number>(valueMapping?.defaultValue || 0);
   const [error, setError] = useState<string | null>(null);
-  const { executeAction } = useWidgetStore();
+  const { executeAction } = useWidgetsStore();
 
   const handleValueChange = useCallback(async (newValue: number | number[]) => {
     const normalized = Array.isArray(newValue) ? newValue[0] : newValue;

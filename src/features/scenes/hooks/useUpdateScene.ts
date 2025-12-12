@@ -2,16 +2,16 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/api/queryClient';
 import type { OBSScene } from '@/shared/types/obs';
-import { apiClient } from '@/api/client';
+import { obsClient } from '@/shared/services/obsClient';
 
 export function useUpdateScene() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (scene: Partial<OBSScene> & { id: string }) => {
-      // Call your API here
-      const response = await apiClient.patch(`/scenes/${scene.id}`, scene);
-      return response.data;
+    mutationFn: async (scene: Partial<OBSScene> & { sceneName: string }) => {
+      // Use obsClient to switch scene via WebSocket
+      await obsClient.call('SetCurrentProgramScene', { sceneName: scene.sceneName });
+      return { sceneName: scene.sceneName };
     },
     onMutate: async (newScene) => {
       // Cancel outgoing refetches
@@ -22,7 +22,9 @@ export function useUpdateScene() {
 
       // Optimistically update the cache
       queryClient.setQueryData(queryKeys.obs.scenes(), (old: OBSScene[] | undefined) =>
-        old?.map((scene) => (scene.id === newScene.id ? { ...scene, ...newScene } : scene))
+        old?.map((scene) =>
+          scene.sceneName === newScene.sceneName ? { ...scene, ...newScene } : scene
+        )
       );
 
       // Return context with the snapshot

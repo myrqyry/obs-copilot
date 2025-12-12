@@ -1,9 +1,9 @@
 import { logger } from '@/shared/utils/logger';
-import { useWidgetStore } from '@/app/store/widgetsStore';
+import { useWidgetsStore } from '@/app/store/widgetsStore';
 
 export class ConflictResolver {
   static resolveWidgetConflict(widgetId1: string, widgetId2: string, property: string, newValue: any) {
-    const store = useWidgetStore.getState();
+    const store = useWidgetsStore.getState();
     const widget1 = store.widgets[widgetId1];
     const widget2 = store.widgets[widgetId2];
 
@@ -66,7 +66,7 @@ export class ConflictResolver {
     if (widgets.length === 0) return newValue;
 
     // Get priorities
-    const priorities = widgets.map(w => useWidgetStore.getState().widgets[w]?.priority || 0);
+    const priorities = widgets.map(w => useWidgetsStore.getState().widgets[w]?.priority || 0);
     const maxPriorityIndex = priorities.indexOf(Math.max(...priorities));
     const winningWidget = widgets[maxPriorityIndex];
 

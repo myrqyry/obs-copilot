@@ -1,32 +1,32 @@
-import useUiStore, { AppError } from './uiStore';
 
-// Thin adapter to expose only the error-related API expected by components
-export type { AppError };
+import useUiStore, { AppError, UiStore } from './uiStore';
 
-export const useErrorStore: any = () => {
-  // Provide a minimal subset interface matching prior code expectations
-  const addError = (error: Omit<AppError, 'id' | 'timestamp' | 'isDismissed'>) => {
-    return useUiStore.getState().addError(error);
-  };
+// Define the exact shape of the error slice we want to expose
+export interface ErrorStoreSlice {
+  errors: AppError[];
+  addError: (error: Omit<AppError, 'id' | 'timestamp' | 'isDismissed'>) => void;
+  dismissError: (id: string) => void;
+  clearErrors: () => void;
+}
 
-  const dismissError = (id: string) => useUiStore.getState().dismissError(id);
+// Selector function to extract only error-related state
+const errorSelector = (state: UiStore): ErrorStoreSlice => ({
+  errors: state.errors,
+  addError: state.addError,
+  dismissError: state.dismissError,
+  clearErrors: state.clearErrors,
+});
 
-  const clearErrors = () => useUiStore.getState().clearErrors();
-
-  // Return current errors array and helper functions
-  const errors = useUiStore((s) => s.errors);
-
-  return {
-    errors,
-    addError,
-    dismissError,
-    clearErrors,
-  };
+export const useErrorStore = () => {
+  return useUiStore(errorSelector);
 };
 
-export default useErrorStore;
+// Backwards compatibility accessor for non-hook usage
+// Attach a typed getter that proxies to the main store
+export const getErrorStoreState = () => errorSelector(useUiStore.getState());
 
-// Backwards-compatible accessor: some places call `useErrorStore.getState()`
-// (Zustand-style). Attach the underlying getState so both call styles work.
-// Using a cast to any keeps TypeScript happy in this small compatibility shim.
-(useErrorStore as any).getState = useUiStore.getState;
+// If you absolutely must keep the .getState() syntax on the hook for legacy code:
+(useErrorStore as any).getState = getErrorStoreState;
+
+export type { AppError };
+export default useErrorStore;

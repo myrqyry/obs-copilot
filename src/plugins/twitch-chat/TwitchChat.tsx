@@ -281,9 +281,11 @@ const TwitchChat: React.FC = () => {
             emoteScale={customizations.effects.emoteScale}
             messageSpacing={selectedTheme.messageSpacing}
             onHeightChange={(height) => {
-              // Update actual measured height
-              if (itemHeights.current.get(message.id) !== height) {
+              // Only update and reset if height actually changed and is different from previous
+              const prev = itemHeights.current.get(message.id);
+              if (typeof height === 'number' && (!prev || Math.abs(prev - height) > 1)) {
                 itemHeights.current.set(message.id, height);
+                // Only reset if the height difference is significant
                 listRef.current?.resetAfterIndex(index);
               }
             }}
